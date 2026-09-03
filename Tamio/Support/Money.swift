@@ -49,3 +49,47 @@ enum Money {
         return String(Int(n.rounded()))
     }
 }
+
+extension Money {
+    /// Lee un importe escrito por una persona o exportado por otro programa.
+    ///
+    /// Hay que aguantar los dos mundos: "1.960,00" (español) y "1,960.00"
+    /// (inglés), con o sin separador de miles, con símbolo de moneda o sin él.
+    /// La regla es simple: **manda el último separador que aparezca**, porque
+    /// el decimal siempre va al final.
+    static func desdeTexto(_ texto: String) -> Centavos? {
+        var limpio = texto.trimmingCharacters(in: .whitespaces)
+        limpio.removeAll { !"0123456789.,-".contains($0) }
+        guard !limpio.isEmpty else { return nil }
+
+        let ultimaComa = limpio.lastIndex(of: ",")
+        let ultimoPunto = limpio.lastIndex(of: ".")
+
+        var normalizado = limpio
+        switch (ultimaComa, ultimoPunto) {
+        case let (coma?, punto?):
+            // Están los dos: el que va después es el decimal, el otro es miles.
+            if coma > punto {
+                normalizado = limpio.replacingOccurrences(of: ".", with: "")
+                normalizado = normalizado.replacingOccurrences(of: ",", with: ".")
+            } else {
+                normalizado = limpio.replacingOccurrences(of: ",", with: "")
+            }
+        case (let coma?, nil):
+            // Solo coma: es decimal si deja dos dígitos detrás ("19600,00"),
+            // y separador de miles si deja tres ("19,600").
+            let detras = limpio.distance(from: limpio.index(after: coma), to: limpio.endIndex)
+            normalizado = detras == 3
+                ? limpio.replacingOccurrences(of: ",", with: "")
+                : limpio.replacingOccurrences(of: ",", with: ".")
+        case (nil, let punto?):
+            let detras = limpio.distance(from: limpio.index(after: punto), to: limpio.endIndex)
+            if detras == 3 { normalizado = limpio.replacingOccurrences(of: ".", with: "") }
+        case (nil, nil):
+            break
+        }
+
+        guard let valor = Double(normalizado) else { return nil }
+        return Int((valor * 100).rounded())
+    }
+}

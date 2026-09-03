@@ -38,6 +38,42 @@ enum Fechas {
 
     /// Convierte una fecha de la semilla en `Date`, en cualquiera de los dos
     /// órdenes ("30 ago 2026" o "Aug 30, 2026"). `nil` si no la reconoce.
+    /// Interpreta las fechas que devuelve Supabase, que llegan en varios
+    /// formatos según la columna: ISO completo, ISO sin zona, o solo el día.
+    static func desdeTexto(_ texto: String?) -> Date? {
+        guard let texto, !texto.isEmpty else { return nil }
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        if let d = iso.date(from: texto) { return d }
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = iso.date(from: texto) { return d }
+        iso.formatOptions = [.withFullDate]
+        if let d = iso.date(from: texto) { return d }
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.timeZone = TimeZone(identifier: "UTC")
+        for formato in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd"] {
+            df.dateFormat = formato
+            if let d = df.date(from: texto) { return d }
+        }
+        return nil
+    }
+
+    /// Fecha escrita por una persona o exportada por otro programa. Se prueba
+    /// primero el ISO que genera la app y luego los formatos habituales de
+    /// Excel. El día-primero va antes que el mes-primero: la app se usa en
+    /// México y España, donde 03/09 es 3 de septiembre.
+    static func desdeTextoFlexible(_ texto: String) -> Date? {
+        if let d = desdeTexto(texto) { return d }
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
+        for formato in ["dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "MM/dd/yyyy", "yyyy/MM/dd"] {
+            df.dateFormat = formato
+            if let d = df.date(from: texto) { return d }
+        }
+        return nil
+    }
+
     static func desdeSemilla(_ texto: String) -> Date? {
         let piezas = texto
             .replacingOccurrences(of: ",", with: " ")

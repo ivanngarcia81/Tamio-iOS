@@ -7,6 +7,13 @@ struct MiembrosView: View {
     @State private var vm = MiembrosViewModel()
     @State private var abierto: Aportante?
     @State private var hoja: HojaAportante?
+    /// Archivo recién generado, a la espera de que se elija dónde mandarlo.
+    @State private var csvParaCompartir: URL?
+    @State private var mostrarImportador = false
+    @State private var analisis: ImportadorAportantes.Analisis?
+    @State private var mostrarImportadorAportes = false
+    @State private var analisisAportes: ImportadorAportes.Analisis?
+    @State private var errorImportacion: String?
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     private enum HojaAportante: Identifiable {
@@ -49,7 +56,7 @@ struct MiembrosView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                Button { } label: { Label(L.t("Importar CSV", "Import CSV"), systemImage: "square.and.arrow.down") }
+                menuArchivo
                 Button { hoja = .nueva } label: {
                     HStack(spacing: 5) { Image(systemName: "plus"); Text(L.t("Nuevo", "New")) }
                         .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
@@ -66,7 +73,98 @@ struct MiembrosView: View {
                 NuevoAportanteView(existente: a) { a in Task { await vm.actualizar(a) } }
             }
         }
+        .sheet(item: $csvParaCompartir) { url in
+            CompartirArchivo(url: url)
+        }
+        .fileImporter(isPresented: $mostrarImportador,
+                      allowedContentTypes: [.commaSeparatedText, .text, .data],
+                      allowsMultipleSelection: false) { analizar($0) }
+        .sheet(item: $analisis) { a in
+            ImportarAportantesView(analisis: a) { lista in
+                Task { await vm.importar(lista) }
+            }
+        }
+        .fileImporter(isPresented: $mostrarImportadorAportes,
+                      allowedContentTypes: [.commaSeparatedText, .text, .data],
+                      allowsMultipleSelection: false) { analizarAportes($0) }
+        .sheet(item: $analisisAportes) { a in
+            ImportarAportesView(analisis: a) { porAportante in
+                Task { await vm.importarAportes(porAportante) }
+            }
+        }
+        .alert(L.t("No se pudo importar", "Couldn't import"),
+               isPresented: Binding(get: { errorImportacion != nil },
+                                    set: { if !$0 { errorImportacion = nil } })) {
+            Button(L.t("Entendido", "OK"), role: .cancel) { errorImportacion = nil }
+        } message: {
+            Text(errorImportacion ?? "")
+        }
         .task { await vm.cargar() }
+    }
+
+    /// Exporta lo que se está viendo, con los filtros y la búsqueda ya
+    /// aplicados: es lo que se espera de un botón de exportar, y para sacarlo
+    /// todo basta con quitar el filtro.
+    private var menuArchivo: some View {
+        Menu {
+            Button {
+                mostrarImportador = true
+            } label: {
+                Label(L.t("Importar aportantes…", "Import givers…"),
+                      systemImage: "square.and.arrow.down")
+            }
+            Button {
+                mostrarImportadorAportes = true
+            } label: {
+                Label(L.t("Importar aportes…", "Import gifts…"),
+                      systemImage: "square.and.arrow.down.on.square")
+            }
+            Button {
+                csvParaCompartir = ExportadorAportantes.plantilla()
+            } label: {
+                Label(L.t("Descargar plantilla", "Download template"),
+                      systemImage: "doc.badge.plus")
+            }
+            Divider()
+            Button {
+                csvParaCompartir = ExportadorAportantes.aportantes(vm.itemsFiltrados)
+            } label: {
+                Label(L.t("Aportantes (CSV)", "Givers (CSV)"), systemImage: "person.2")
+            }
+            Button {
+                csvParaCompartir = ExportadorAportantes.aportes(vm.itemsFiltrados)
+            } label: {
+                Label(L.t("Aportes (CSV)", "Gifts (CSV)"), systemImage: "list.bullet.rectangle")
+            }
+        } label: {
+            Label(L.t("Archivo", "File"), systemImage: "square.and.arrow.up")
+        }
+    }
+
+    /// Analiza el archivo y enseña el resumen. Nada se escribe hasta que se
+    /// confirma en la pantalla siguiente.
+    private func analizar(_ resultado: Result<[URL], Error>) {
+        conArchivo(resultado) { url in
+            analisis = try ImportadorAportantes.analizar(url, existentes: vm.items)
+        }
+    }
+
+    private func analizarAportes(_ resultado: Result<[URL], Error>) {
+        conArchivo(resultado) { url in
+            analisisAportes = try ImportadorAportes.analizar(url, existentes: vm.items)
+        }
+    }
+
+    private func conArchivo(_ resultado: Result<[URL], Error>,
+                            _ accion: (URL) throws -> Void) {
+        switch resultado {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            do { try accion(url) }
+            catch { errorImportacion = error.localizedDescription }
+        case .failure(let error):
+            errorImportacion = error.localizedDescription
+        }
     }
 
     private var listaColumna: some View {
@@ -90,6 +188,30 @@ struct MiembrosView: View {
                     Text(L.t("Todos", "All")).tag(FiltroMiembro.todos)
                 }
                 .pickerStyle(.segmented)
+
+                // El equivalente en Tesorería de "SIN ASISTIR ÚLTIMAMENTE" de
+                // Membresía: mismo gesto, un lado para la secretaria y otro
+                // para el tesorero. Solo aparece si hay a quien mirar.
+                if vm.atrasadosCount > 0 {
+                    Button { vm.soloAtrasados.toggle() } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                            Text(L.t("\(vm.atrasadosCount) sin aportar últimamente",
+                                     "\(vm.atrasadosCount) lapsed givers"))
+                            Spacer()
+                            if vm.soloAtrasados {
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                            }
+                        }
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(vm.soloAtrasados ? .white : Paleta.aviso)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+                        .frame(maxWidth: .infinity)
+                        .background(vm.soloAtrasados ? Paleta.aviso : Paleta.avisoFill,
+                                    in: RoundedRectangle(cornerRadius: 9))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
             Divider()
@@ -142,6 +264,11 @@ struct MiembrosView: View {
                 Text(Money.fmt(a.aportesTotal)).font(.subheadline.weight(.semibold)).monospacedDigit()
                 if a.estado == .traslado {
                     Text(L.t("Traslado", "Transfer"))
+                        .font(.caption2.weight(.semibold)).foregroundStyle(Paleta.aviso)
+                        .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
+                        .background(Paleta.avisoFill, in: Capsule())
+                } else if let atraso = a.periodosSinAportar, a.atrasadoEnAportes {
+                    Text(a.frecuencia.periodos(atraso))
                         .font(.caption2.weight(.semibold)).foregroundStyle(Paleta.aviso)
                         .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
                         .background(Paleta.avisoFill, in: Capsule())
