@@ -28,6 +28,9 @@ struct NuevoMovimientoView: View {
     @State private var incluidoEnCorte: Bool
     @State private var comprobante: String?
     @State private var mostrarImportador = false
+    /// El importe es el primer campo: se enfoca al presentar la hoja para que
+    /// salga el teclado y se lea como editable y no como texto gris estático.
+    @FocusState private var importeEnfocado: Bool
 
     init(tipo: TipoMovimiento, folio: String, existente: Movimiento?,
          onGuardar: @escaping (Movimiento) -> Void,
@@ -44,8 +47,8 @@ struct NuevoMovimientoView: View {
         _fecha = State(initialValue: existente?.fecha ?? Date())
         _metodo = State(initialValue: existente?.metodo ?? "Efectivo")
         _concepto = State(initialValue: existente?.nota ?? "")
-        _miembro = State(initialValue: existente?.miembro ?? "Sin asignar")
-        _darConstanciaAnual = State(initialValue: existente?.darConstanciaAnual ?? true)
+        _miembro = State(initialValue: existente?.miembro ?? Self.sinAsignar)
+        _darConstanciaAnual = State(initialValue: existente?.darConstanciaAnual ?? false)
         _pagadoA = State(initialValue: existente?.pagadoA ?? "")
         _rfc = State(initialValue: existente?.rfc ?? "")
         _repiteMensual = State(initialValue: existente?.repiteMensual ?? false)
@@ -81,10 +84,15 @@ struct NuevoMovimientoView: View {
                 "Otro",
             ]
     }
+    /// Centinela de "sin aportante". Estaba escrito como literal español en
+    /// tres sitios, y salía sin traducir en el Picker.
+    private static let sinAsignar = L.t("Sin asignar", "Unassigned")
+
     private var categorias: [String] { Self.listaCategorias(tipo) }
     private let metodos = ["Efectivo", "Transferencia", "Cheque", "Tarjeta", "Domiciliado"]
-    private let miembros = ["Sin asignar", "María Hernández Ríos", "Pedro Salas Aguirre",
-                            "Ana Lucía Torres", "Familia Ruvalcaba"]
+    private var miembros: [String] { [Self.sinAsignar, "María Hernández Ríos",
+                                      "Pedro Salas Aguirre", "Ana Lucía Torres",
+                                      "Familia Ruvalcaba"] }
 
     private var guardadoHabilitado: Bool {
         !importe.isEmpty && (tipo == .ingreso || !pagadoA.isEmpty)
@@ -102,6 +110,9 @@ struct NuevoMovimientoView: View {
                 .disabled(editando)
                 .onChange(of: tipo) { _, _ in
                     categoria = categorias.first ?? categoria
+                }
+                .onChange(of: miembro) { _, _ in
+                    if sinAportante { darConstanciaAnual = false }
                 }
 
                 importeView.padding(.vertical, 12)
@@ -136,6 +147,8 @@ struct NuevoMovimientoView: View {
             }
         }
         .hojaGrande()
+        .presentationDragIndicator(.visible)
+        .onAppear { if !editando { importeEnfocado = true } }
     }
 
     // MARK: - Secciones
@@ -168,18 +181,31 @@ struct NuevoMovimientoView: View {
 
     @ViewBuilder
     private var seccionAportante: some View {
+        // El pie sobre visitantes describe la fila Aportante, no el toggle, así
+        // que va pegado a ella: por eso son dos secciones y no una.
         Section {
             Picker(L.t("Aportante", "Contributor"), selection: $miembro) {
                 ForEach(miembros, id: \.self) { Text($0).tag($0) }
             }
-            Toggle(L.t("Dar constancia anual", "Annual receipt"), isOn: $darConstanciaAnual)
         } header: {
             Text(L.t("APORTANTE", "CONTRIBUTOR"))
         } footer: {
             Text(L.t("Si es un visitante, escribe su nombre: se guarda sin ficha en el padrón.",
                      "For a visitor, enter their name: saved without a profile in the directory."))
         }
+        Section {
+            Toggle(L.t("Dar constancia anual", "Annual receipt"), isOn: $darConstanciaAnual)
+                .disabled(sinAportante)
+        } footer: {
+            if sinAportante {
+                Text(L.t("Elige un aportante para poder emitir la constancia.",
+                         "Pick a contributor to issue the receipt."))
+            }
+        }
     }
+
+    /// No hay aportante al que emitir constancia.
+    private var sinAportante: Bool { miembro == Self.sinAsignar }
 
     @ViewBuilder
     private var seccionBeneficiario: some View {
@@ -239,12 +265,13 @@ struct NuevoMovimientoView: View {
                     .foregroundStyle(.secondary)
                 TextField("0.00", text: $importe)
                     .keyboardType(.decimalPad)
+                    .focused($importeEnfocado)
                     .multilineTextAlignment(.center)
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .fixedSize()
             }
-            Text("MXN · \(categoria) · \(metodo)")
+            Text("MXN")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -262,7 +289,7 @@ struct NuevoMovimientoView: View {
         let f = DateFormatter(); f.dateFormat = "HH:mm"
         let persona: String?
         if tipo == .ingreso {
-            persona = miembro != "Sin asignar" ? miembro : nil
+            persona = miembro != Self.sinAsignar ? miembro : nil
         } else {
             persona = pagadoA.isEmpty ? nil : pagadoA
         }
@@ -277,7 +304,7 @@ struct NuevoMovimientoView: View {
             hora: f.string(from: fecha),
             fecha: fecha,
             registradoPor: "Iván García",
-            miembro: tipo == .ingreso && miembro != "Sin asignar" ? miembro : nil,
+            miembro: tipo == .ingreso && !sinAportante ? miembro : nil,
             categoriaCompleta: categoria,
             nota: concepto.isEmpty ? nil : concepto,
             sinDepositar: existente?.sinDepositar ?? (tipo == .ingreso),
@@ -309,8 +336,8 @@ struct NuevoMovimientoView: View {
         fecha = Date()
         metodo = "Efectivo"
         concepto = ""
-        miembro = "Sin asignar"
-        darConstanciaAnual = true
+        miembro = Self.sinAsignar
+        darConstanciaAnual = false
         pagadoA = ""
         rfc = ""
         repiteMensual = false

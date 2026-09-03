@@ -86,6 +86,35 @@ enum Paleta {
         return pizarra                                     // resto
     }
 
+    /// SF Symbol por categoría, para la fila de movimientos. Antes la fila
+    /// abría con un punto de 8×8 teñido con `categoria(_:)`: sin leyenda, y con
+    /// gris azulado, gris, cian y verde conviviendo, no había forma de deducir
+    /// qué significaba cada color, y a ese tamaño varios eran indistinguibles.
+    /// Un símbolo se identifica solo.
+    static func iconoCategoria(_ nombre: String) -> String {
+        let s = nombre.lowercased()
+        if s.contains("diezmo") { return "hands.and.sparkles.fill" }
+        if s.contains("ofrenda") { return "gift.fill" }
+        if s.contains("mision") { return "globe.americas.fill" }
+        if s.contains("evento") { return "calendar" }
+        if s.contains("servicio") || s.contains("utilidad") { return "bolt.fill" }
+        if s.contains("manten") { return "wrench.and.screwdriver.fill" }
+        if s.contains("limpieza") { return "sparkles" }
+        if s.contains("aliment") { return "fork.knife" }
+        if s.contains("suministro") || s.contains("material") { return "shippingbox.fill" }
+        if s.contains("transporte") { return "car.fill" }
+        if s.contains("tecnolog") { return "desktopcomputer" }
+        if s.contains("renta") { return "building.2.fill" }
+        if s.contains("compensa") || s.contains("pastor") { return "person.crop.circle.fill" }
+        if s.contains("músico") || s.contains("musico") { return "music.note" }
+        if s.contains("ayuda") { return "heart.fill" }
+        if s.contains("donativ") || s.contains("donaci") { return "hand.raised.fill" }
+        if s.contains("seguro") { return "shield.fill" }
+        if s.contains("publicidad") { return "megaphone.fill" }
+        if s.contains("mobiliario") { return "chair.fill" }
+        return "circle.fill"
+    }
+
     /// Puntos de color de la agenda ("Esta semana"), por familia de actividad.
     static let agenda: [Color] = [morado, brand, naranja, cian]
 }

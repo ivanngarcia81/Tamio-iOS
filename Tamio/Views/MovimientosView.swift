@@ -131,12 +131,11 @@ struct MovimientosView: View {
         vm.tipo == .ingreso ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses")
     }
 
+    /// Solo el mes: el conteo y el total viven en el pie de la lista, que es
+    /// donde se consultan tras filtrar. Antes el header los repetía literal.
     private var subtituloBarra: String {
         let f = DateFormatter(); f.locale = Locale.current; f.dateFormat = "LLLL"
-        let mes = f.string(from: Date()).capitalized
-        let n = vm.itemsFiltrados.count
-        return L.t("\(mes) · \(n) movimientos · \(Money.fmt(vm.total))",
-                   "\(mes) · \(n) entries · \(Money.fmt(vm.total))")
+        return f.string(from: Date()).capitalized
     }
 
     // MARK: - Columna maestra
@@ -324,14 +323,23 @@ struct MovimientosView: View {
     private func filaContenido(_ m: Movimiento) -> some View {
         let esSel = m.id == vm.seleccionId
         return HStack(spacing: 10) {
-            Circle().fill(Paleta.categoria(m.categoria)).frame(width: 8, height: 8)
+            // Símbolo de la categoría dentro de un círculo tintado: el punto de
+            // 8×8 no se podía interpretar sin leyenda.
+            Image(systemName: Paleta.iconoCategoria(m.categoria))
+                .font(.system(size: 13))
+                .foregroundStyle(Paleta.categoria(m.categoria))
+                .frame(width: 30, height: 30)
+                .background(Paleta.categoria(m.categoria).opacity(0.14), in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(m.titular).font(.subheadline.weight(.medium)).lineLimit(1)
                 Text(m.subtitulo).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 4) {
-                Text(Money.fmt(m.monto)).font(.subheadline.weight(.semibold)).monospacedDigit()
+                // Signo y color en la lista, igual que en Inicio y Por revisar.
+                Text(Money.firmado(m.monto, ingreso: m.esIngreso))
+                    .font(.subheadline.weight(.semibold)).monospacedDigit()
+                    .foregroundStyle(Money.color(ingreso: m.esIngreso))
                 if m.sinDepositar {
                     Text(L.t("Sin depositar", "Not deposited"))
                         .font(.caption2.weight(.semibold))
@@ -354,7 +362,9 @@ struct MovimientosView: View {
         HStack {
             Text(L.t("\(vm.itemsFiltrados.count) movimientos", "\(vm.itemsFiltrados.count) entries"))
             Spacer()
-            Text(Money.fmt(vm.total)).monospacedDigit().fontWeight(.semibold)
+            Text(Money.firmado(vm.total, ingreso: vm.tipo == .ingreso))
+                .monospacedDigit().fontWeight(.semibold)
+                .foregroundStyle(Money.color(ingreso: vm.tipo == .ingreso))
         }
         .font(.caption)
         .foregroundStyle(.secondary)

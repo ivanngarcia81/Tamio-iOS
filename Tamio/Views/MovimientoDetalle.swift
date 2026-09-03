@@ -62,7 +62,7 @@ struct MovimientoDetalle: View {
     private var cabecera: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(m.titular).font(.title.weight(.bold))
-            AmountText(cents: m.monto, size: 30)
+            AmountText(cents: m.monto, size: 30, ingreso: m.esIngreso)
             // Quién lo registró ya lo dice el rastro de auditoría, más abajo.
             Text("\(m.metodo) · \(m.hora)")
                 .font(.subheadline)

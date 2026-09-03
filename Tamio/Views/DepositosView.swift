@@ -34,7 +34,8 @@ struct DepositosView: View {
                         // Siempre el corte fresco del VM, para reflejar las
                         // acciones (selección, cuenta, ficha) al instante.
                         detalle(vm.corte(c.id) ?? c)
-                            .navigationTitle(c.titulo)
+                            // El H1 del detalle ya dice el título del corte.
+                            .navigationTitle("")
                             .navigationBarTitleDisplayMode(.inline)
                     }
             }

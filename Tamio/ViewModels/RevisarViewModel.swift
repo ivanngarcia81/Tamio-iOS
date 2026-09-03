@@ -90,7 +90,7 @@ final class RevisarViewModel {
     /// Guarda los cambios del formulario "Editar"; el asunto sigue en la bandeja.
     @MainActor
     func editar(id: Int, concepto: String, importe: String, categoria: String,
-                metodo: String, aportante: String?) async {
+                metodo: String, aportante: String?, fecha: Date) async {
         guard var r = todos.first(where: { $0.id == id }) else { return }
         let signo = r.esGasto ? "−" : "+"
         var campos = r.campos.map { c -> CampoRevision in
@@ -99,6 +99,7 @@ final class RevisarViewModel {
             case L.t("Importe", "Amount"): return .init(label: c.label, valor: "\(signo)$\(importe) MXN", resalte: r.esGasto ? .rojo : .verde)
             case L.t("Categoría", "Category"): return .init(label: c.label, valor: categoria)
             case L.t("Método de pago", "Payment method"): return .init(label: c.label, valor: metodo)
+            case L.t("Fecha", "Date"): return .init(label: c.label, valor: Fechas.corta(fecha))
             case L.t("Aportante", "Giver"): return .init(label: c.label, valor: aportante ?? c.valor, resalte: aportante == nil ? .rojo : .ninguno)
             default: return c
             }
@@ -109,7 +110,8 @@ final class RevisarViewModel {
                      archivado: r.archivado, descripcion: r.descripcion, seccionTitulo: r.seccionTitulo,
                      campos: campos, seccionSecundaria: r.seccionSecundaria, camposSecundarios: r.camposSecundarios,
                      notaPie: r.notaPie, acciones: r.acciones, esGasto: r.esGasto,
-                     editImporte: importe, editCategoria: categoria, editMetodo: metodo, editAportante: aportante)
+                     editImporte: importe, editCategoria: categoria, editMetodo: metodo,
+                     editAportante: aportante, toastResuelto: r.toastResuelto)
         await repo.actualizar(r)
         await cargar()
     }

@@ -64,18 +64,18 @@ struct CorteDetalle: View {
 
     private var cabecera: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top) {
+            HStack(alignment: .firstTextBaseline) {
                 Text(corte.titulo).font(.title.weight(.bold))
-                if corte.sinDepositar {
-                    Pill(texto: L.t("Sin depositar", "Not deposited"), color: Paleta.aviso)
-                        .padding(.top, 6)
-                }
                 Spacer()
                 Button { onNuevoCorte?() } label: {
                     Label(L.t("Nuevo corte", "New cut"), systemImage: "plus").font(.subheadline)
                 }
                 .buttonStyle(.bordered)
                 .tint(Color.secondary)
+            }
+            // El chip en línea con el H1 partía el título en dos renglones.
+            if corte.sinDepositar {
+                Pill(texto: L.t("Sin depositar", "Not deposited"), color: Paleta.aviso)
             }
             Text(corte.descripcion).font(.subheadline).foregroundStyle(.secondary)
         }
@@ -84,38 +84,50 @@ struct CorteDetalle: View {
     // MARK: - Chips KPI
 
     private var chips: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) { chipEfectivo; chipCheques; chipListo }
-            VStack(spacing: 12) { chipEfectivo; chipCheques; chipListo }
-        }
-    }
-
-    private var chipEfectivo: some View {
-        chip(titulo: L.t("Efectivo seleccionado", "Cash selected"),
-             monto: corte.efectivoSeleccionado, verde: false,
-             sub: L.t("De \(Money.fmt(corte.efectivoEstimado)) estimados en caja",
-                      "Of \(Money.fmt(corte.efectivoEstimado)) estimated on hand"))
-    }
-    private var chipCheques: some View {
-        chip(titulo: L.t("Cheques (\(corte.chequesCount))", "Checks (\(corte.chequesCount))"),
-             monto: corte.chequesMonto, verde: false,
-             sub: L.t("Se depositan con la misma ficha", "Deposited on the same slip"))
-    }
-    private var chipListo: some View {
-        chip(titulo: L.t("Listo para depositar", "Ready to deposit"),
-             monto: corte.listoParaDepositar, verde: true,
-             sub: L.t("\(corte.seleccionados) de \(corte.totalSeleccionables) seleccionados",
-                      "\(corte.seleccionados) of \(corte.totalSeleccionables) selected"))
-    }
-
-    private func chip(titulo: String, monto: Centavos, verde: Bool, sub: String) -> some View {
         Tarjeta {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(titulo).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
-                AmountText(cents: monto, size: 24, color: verde ? Paleta.brand : .primary)
-                Text(sub).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    TituloSeccion(texto: L.t("EL CORTE", "THIS DEPOSIT"))
+                    Spacer()
+                    Text(L.t("\(corte.seleccionados) de \(corte.totalSeleccionables) seleccionados",
+                             "\(corte.seleccionados) of \(corte.totalSeleccionables) selected"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Paleta.brand)
+                }
+                .padding(.bottom, 10)
+
+                filaChip(L.t("Efectivo seleccionado", "Cash selected"),
+                         monto: corte.efectivoSeleccionado,
+                         sub: L.t("De \(Money.fmt(corte.efectivoEstimado)) estimados en caja",
+                                  "Of \(Money.fmt(corte.efectivoEstimado)) estimated on hand"))
+                Divider()
+                filaChip(L.t("Cheques (\(corte.chequesCount))", "Checks (\(corte.chequesCount))"),
+                         monto: corte.chequesMonto,
+                         sub: L.t("Se depositan con la misma ficha", "Deposited on the same slip"))
+                Divider()
+                filaChip(L.t("Listo para depositar", "Ready to deposit"),
+                         monto: corte.listoParaDepositar,
+                         sub: nil, destacada: true)
             }
         }
+    }
+
+    private func filaChip(_ titulo: String, monto: Centavos,
+                          sub: String?, destacada: Bool = false) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(titulo)
+                    .font(destacada ? .subheadline.weight(.semibold) : .subheadline)
+                    .foregroundStyle(destacada ? .primary : .secondary)
+                if let sub {
+                    Text(sub).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                }
+            }
+            Spacer(minLength: 10)
+            AmountText(cents: monto, size: destacada ? 22 : 18,
+                       color: destacada ? Paleta.brand : .primary)
+        }
+        .padding(.vertical, 9)
     }
 
     // MARK: - Columna izquierda (checklist + movimientos)
@@ -311,7 +323,7 @@ struct CorteDetalle: View {
                         Text(corte.registro.cuenta).font(.subheadline)
                         Image(systemName: "chevron.up.chevron.down").font(.caption2)
                     }
-                    .foregroundStyle(Paleta.enlace)
+                    .foregroundStyle(Paleta.brand)
                 }
             }
         }

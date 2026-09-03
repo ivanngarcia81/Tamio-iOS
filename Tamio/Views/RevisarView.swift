@@ -43,9 +43,10 @@ struct RevisarView: View {
         .overlay(alignment: .bottom) { toastView }
         .animation(.snappy, value: vm.toast?.id)
         .sheet(item: $editando) { a in
-            EditarAsuntoView(r: a) { concepto, importe, categoria, metodo, aportante in
+            EditarAsuntoView(r: a) { concepto, importe, categoria, metodo, aportante, fecha in
                 Task { await vm.editar(id: a.id, concepto: concepto, importe: importe,
-                                       categoria: categoria, metodo: metodo, aportante: aportante) }
+                                       categoria: categoria, metodo: metodo,
+                                       aportante: aportante, fecha: fecha) }
             }
         }
         .task { await vm.cargar() }

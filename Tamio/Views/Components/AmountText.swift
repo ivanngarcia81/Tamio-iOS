@@ -9,9 +9,15 @@ struct AmountText: View {
     /// Color de la parte entera. Por defecto el negro/gris del sistema; se pasa
     /// verde o rojo solo cuando la cifra comunica signo (montos de movimientos).
     var color: Color = .primary
+    /// Dirección del dinero. Cuando se da, la cifra sale con signo y con el
+    /// color que le corresponde ("+$1,200.00" verde, "−$3,410.50" rojo), la
+    /// misma regla que las listas: antes el detalle de un gasto mostraba
+    /// "$3,410.50" en negro y el Dashboard ese mismo dato en rojo.
+    var ingreso: Bool? = nil
 
     var body: some View {
-        let texto = Money.fmt(cents)
+        let texto = ingreso.map { Money.firmado(cents, ingreso: $0) } ?? Money.fmt(cents)
+        let color = ingreso.map { Money.color(ingreso: $0) } ?? self.color
         // Money.fmt siempre trae dos decimales tras un punto.
         let partes = texto.split(separator: ".", maxSplits: 1).map(String.init)
         let entero = partes.first ?? texto

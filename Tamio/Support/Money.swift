@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 /// El dinero se guarda y se opera en **centavos** (enteros), igual que en la
 /// app actual (migración 36, `src/dinero.ts`). Nunca en coma flotante: sumar
@@ -18,6 +18,21 @@ enum Money {
         let value = Double(cents) / 100.0
         let cuerpo = f.string(from: NSNumber(value: value)) ?? "0.00"
         return "$" + cuerpo
+    }
+
+    /// Importe con la dirección del dinero al frente: "+$1,200.00" para un
+    /// ingreso, "−$3,410.50" para un gasto. En una tesorería la dirección es lo
+    /// primero que se escanea, así que va en TODAS las listas y detalles, no
+    /// solo en el Dashboard: la lista de Gastos mostraba "$3,410.50" en negro
+    /// mientras Inicio y Por revisar mostraban ese mismo dato en rojo y con
+    /// signo. Menos tipográfico (U+2212), como ya usaba la semilla.
+    static func firmado(_ cents: Centavos, ingreso: Bool) -> String {
+        (ingreso ? "+" : "\u{2212}") + fmt(cents)
+    }
+
+    /// El color que acompaña a `firmado`. Verde entra, rojo sale.
+    static func color(ingreso: Bool) -> Color {
+        ingreso ? Paleta.brand : Paleta.negativo
     }
 
     /// "13k" · "1.4M" — etiqueta corta para los ejes de las gráficas, donde no
