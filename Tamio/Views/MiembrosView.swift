@@ -149,12 +149,12 @@ struct MiembrosView: View {
                     Text(L.t("Traslado", "Transfer"))
                         .font(.caption2.weight(.semibold)).foregroundStyle(Paleta.aviso)
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Paleta.aviso.opacity(0.15), in: Capsule())
+                        .background(Paleta.avisoFill, in: Capsule())
                 }
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(esSel ? Paleta.brand.opacity(0.10) : rowBG)
+        .background(esSel ? Paleta.brandFill : rowBG)
         .overlay(alignment: .leading) { if esSel { Rectangle().fill(Paleta.brand).frame(width: 3) } }
     }
 

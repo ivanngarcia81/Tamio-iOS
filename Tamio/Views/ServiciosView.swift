@@ -122,7 +122,7 @@ struct ServiciosView: View {
                 .fixedSize()
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
-        .background(sel ? Paleta.brand.opacity(0.10) : (sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)))
+        .background(sel ? Paleta.brandFill : (sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)))
         .overlay(alignment: .leading) { if sel { Rectangle().fill(Paleta.brand).frame(width: 3) } }
     }
 
@@ -145,7 +145,7 @@ struct ServiciosView: View {
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(Paleta.brand)
                             .padding(.horizontal, 14).padding(.vertical, 8)
-                            .background(Paleta.brand.opacity(0.1), in: Capsule())
+                            .background(Paleta.brandFill, in: Capsule())
                     }
                     Button { mostrarAsignar = true } label: {
                         Text(L.t("Asignar", "Assign"))

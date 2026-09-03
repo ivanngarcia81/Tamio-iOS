@@ -56,7 +56,7 @@ struct InformesMembresiaView: View {
                         }
                     }
                     .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(sel ? Paleta.brand.opacity(0.08) : Color.clear)
+                    .background(sel ? Paleta.brandFill : Color.clear)
                     .overlay(alignment: .leading) {
                         if sel { Rectangle().fill(Paleta.brand).frame(width: 3) }
                     }
@@ -156,7 +156,7 @@ struct InformesMembresiaView: View {
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Paleta.brand)
                     .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(Paleta.brand.opacity(0.1), in: Capsule())
+                    .background(Paleta.brandFill, in: Capsule())
                 }
 
                 if vm.periodoTipo == .mes || vm.periodoTipo == .trimestre || vm.periodoTipo == .anio {
@@ -204,7 +204,7 @@ struct InformesMembresiaView: View {
                         .foregroundStyle(sel ? Paleta.brand : .secondary)
                         .padding(.horizontal, 10).padding(.vertical, 4)
                         .background(
-                            sel ? Paleta.brand.opacity(0.12) : Color(.tertiarySystemFill),
+                            sel ? Paleta.brandFill : Color(.tertiarySystemFill),
                             in: Capsule()
                         )
                 }
@@ -279,13 +279,13 @@ struct InformesMembresiaView: View {
                             Label(L.t("Imprimir / PDF", "Print / PDF"), systemImage: "printer")
                                 .font(.subheadline.weight(.medium)).foregroundStyle(Paleta.brand)
                                 .padding(.horizontal, 12).padding(.vertical, 6)
-                                .background(Paleta.brand.opacity(0.1), in: Capsule())
+                                .background(Paleta.brandFill, in: Capsule())
                         }
                         Button { prepararCSV() } label: {
                             Label(L.t("Exportar (CSV)", "Export (CSV)"), systemImage: "square.and.arrow.up")
                                 .font(.subheadline.weight(.medium)).foregroundStyle(Paleta.brand)
                                 .padding(.horizontal, 12).padding(.vertical, 6)
-                                .background(Paleta.brand.opacity(0.1), in: Capsule())
+                                .background(Paleta.brandFill, in: Capsule())
                         }
                         Spacer()
                     }
@@ -304,7 +304,7 @@ struct InformesMembresiaView: View {
                                 HStack(spacing: 8) {
                                     Text(nombre).font(.subheadline).frame(minWidth: 80, alignment: .leading)
                                     ZStack(alignment: .leading) {
-                                        RoundedRectangle(cornerRadius: 4).fill(Paleta.brand.opacity(0.25))
+                                        RoundedRectangle(cornerRadius: 4).fill(Paleta.brandMuted)
                                         RoundedRectangle(cornerRadius: 4).fill(Paleta.brand)
                                             .scaleEffect(x: max(0.001, Double(valor) / Double(maxEstado)), y: 1, anchor: .leading)
                                     }
@@ -330,7 +330,7 @@ struct InformesMembresiaView: View {
                                 HStack(spacing: 8) {
                                     Text(nombre).font(.subheadline).frame(minWidth: 80, alignment: .leading)
                                     ZStack(alignment: .leading) {
-                                        RoundedRectangle(cornerRadius: 4).fill(Paleta.brand.opacity(0.25))
+                                        RoundedRectangle(cornerRadius: 4).fill(Paleta.brandMuted)
                                         RoundedRectangle(cornerRadius: 4).fill(Paleta.brand)
                                             .scaleEffect(x: max(0.001, Double(valor) / Double(maxMinisterio)), y: 1, anchor: .leading)
                                     }

@@ -31,11 +31,11 @@ struct MiembroDetalle: View {
             (L.t("Total", "Total"), r.total, Paleta.brand),
             (L.t("Activos", "Active"), r.activos, Paleta.brand),
             (L.t("Inactivos", "Inactive"), r.inactivos, Paleta.aviso),
-            (L.t("Nuevos", "New"), r.nuevos, Color(hex: 0x7C3AED)),
-            (L.t("Recibidos", "Received"), r.recibidos, Color(hex: 0x06B6D4)),
+            (L.t("Nuevos", "New"), r.nuevos, Paleta.morado),
+            (L.t("Recibidos", "Received"), r.recibidos, Paleta.cian),
             (L.t("Trasladados", "Transferred"), r.trasladados, Paleta.aviso),
             (L.t("Ausencias", "Absences"), r.ausencias, Paleta.negativo),
-            (L.t("Incompletos", "Incomplete"), r.incompletos, Color(hex: 0x7C3AED)),
+            (L.t("Incompletos", "Incomplete"), r.incompletos, Paleta.morado),
         ]
         return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
             ForEach(kpis, id: \.0) { k in miniKPI(k.0, k.1, k.2) }
@@ -49,7 +49,8 @@ struct MiembroDetalle: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(.background, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color(.secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(alignment: .top) {
             RoundedRectangle(cornerRadius: 2).fill(color).frame(height: 3).padding(.horizontal, 10)
         }
@@ -103,7 +104,7 @@ struct MiembroDetalle: View {
                     }
                     Chart(miembro.asistencia) { m in
                         BarMark(x: .value("Mes", m.mes), y: .value("Asistencia", m.valor))
-                            .foregroundStyle(m.mes == miembro.asistencia.last?.mes ? Paleta.brand : Paleta.brand.opacity(0.25))
+                            .foregroundStyle(m.mes == miembro.asistencia.last?.mes ? Paleta.brand : Paleta.brandMuted)
                             .cornerRadius(3)
                     }
                     .chartYAxis(.hidden)

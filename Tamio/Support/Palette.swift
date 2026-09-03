@@ -17,26 +17,60 @@ extension Color {
 /// Por eso aquí NO hay acentos decorativos: el verde de Tamio se usa solo para
 /// el estado seleccionado (sidebar, segmentado, botón Nuevo) y para las cifras
 /// que comunican signo (montos y variaciones). El resto es gris del sistema.
+///
+/// **Modo claro y oscuro.** Todos los colores viven en `Assets.xcassets` como
+/// Color Sets con apariencia Any + Dark; aquí solo se nombran. Antes eran hex
+/// fijos y en oscuro quedaban apagados.
+///
+/// Los rellenos (`…Fill`), atenuados (`…Muted`) y bordes (`…Stroke`) **ya
+/// llevan el alpha dentro del Color Set**. No les apliques `.opacity()` encima:
+/// un verde al 12% sobre blanco es un verde pálido legible, pero ese mismo 12%
+/// sobre negro es prácticamente negro. Por eso el alpha del modo oscuro es casi
+/// el doble que el del claro, y por eso tiene que estar en el catálogo y no en
+/// la vista. La única excepción legítima es una **sombra**, donde el alpha sí es
+/// parte del efecto (ver `ServiciosView`).
 enum Paleta {
     /// El verde propio de Tamio (logo, seleccionado, botón Nuevo, cifras en +).
-    static let brand = Color(hex: 0x157A4B)
+    static let brand = Color("TamioBrand")
+    /// Fondo de lo seleccionado: filas, píldoras de filtro, cabecera de nav.
+    static let brandFill = Color("TamioBrandFill")
+    /// Verde atenuado de las barras secundarias (meses que no son el último).
+    static let brandMuted = Color("TamioBrandMuted")
+    /// Borde de píldora de filtro activo.
+    static let brandStroke = Color("TamioBrandStroke")
+
     /// Cifras negativas y variaciones malas.
-    static let negativo = Color(hex: 0xDC2626)
-    /// Enlaces de acción ("Ver todos", "Abrir bandeja →", "Ver ficha").
-    static let enlace = Color(hex: 0x2563EB)
+    static let negativo = Color("TamioNegativo")
+    /// Fondo de badge/cápsula en rojo.
+    static let negativoFill = Color("TamioNegativoFill")
+
     /// Avisos suaves ("Sin depositar", pendientes). Naranja.
-    static let aviso = Color(hex: 0xEA580C)
+    static let aviso = Color("TamioAviso")
+    /// Fondo de cápsula de aviso.
+    static let avisoFill = Color("TamioAvisoFill")
+    /// Borde de recuadro de aviso.
+    static let avisoStroke = Color("TamioAvisoStroke")
+
+    /// Enlaces de acción ("Ver todos", "Abrir bandeja →", "Ver ficha").
+    static let enlace = Color("TamioEnlace")
     /// Badge de conteo urgente (Por revisar 7, Mensajes 2).
-    static let badge = Color(hex: 0xDC2626)
+    static let badge = Color("TamioNegativo")
+
+    // MARK: - Categorías
+
+    /// Los colores de categoría también tienen variante oscura: sobre negro el
+    /// morado #7C3AED es el que peor se lee de todos. En Dark cada tono sube un
+    /// escalón de luminosidad (`TamioCat1`…`TamioCat6` en el catálogo).
+    static let morado   = Color("TamioCat1")
+    static let cian     = Color("TamioCat2")
+    static let naranja  = Color("TamioCat3")
+    static let azulCielo = Color("TamioCat4")
+    static let ambar    = Color("TamioCat5")
+    static let pizarra  = Color("TamioCat6")
 
     /// Colores de la dona de INGRESOS por categoría, en orden de tamaño:
     /// Diezmos (verde) · Ofrendas (morado) · Misiones (cian) · Eventos (naranja).
-    static let donut: [Color] = [
-        Color(hex: 0x157A4B),
-        Color(hex: 0x7C3AED),
-        Color(hex: 0x06B6D4),
-        Color(hex: 0xF97316),
-    ]
+    static let donut: [Color] = [brand, morado, cian, naranja]
 
     /// Color por categoría, para el punto de la lista de movimientos y la
     /// etiqueta del detalle. Espeja los colores de la dona (Diezmos verde,
@@ -47,16 +81,11 @@ enum Paleta {
         if s.contains("ofrenda") { return donut[1] }      // morado
         if s.contains("mision") { return donut[2] }       // cian
         if s.contains("evento") { return donut[3] }       // naranja
-        if s.contains("servicio") { return Color(hex: 0x0EA5E9) }   // azul cielo
-        if s.contains("manten") { return Color(hex: 0xF59E0B) }     // ámbar
-        return Color(hex: 0x64748B)                        // pizarra (resto)
+        if s.contains("servicio") { return azulCielo }
+        if s.contains("manten") { return ambar }
+        return pizarra                                     // resto
     }
 
     /// Puntos de color de la agenda ("Esta semana"), por familia de actividad.
-    static let agenda: [Color] = [
-        Color(hex: 0x7C3AED), // morado
-        Color(hex: 0x157A4B), // verde
-        Color(hex: 0xF97316), // naranja
-        Color(hex: 0x06B6D4), // cian
-    ]
+    static let agenda: [Color] = [morado, brand, naranja, cian]
 }

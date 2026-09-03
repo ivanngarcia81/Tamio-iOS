@@ -261,7 +261,7 @@ struct ConfiguracionView: View {
                         .frame(minHeight: 52)
                         .background(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(seccion == .cuenta ? Paleta.brand.opacity(0.12) : Color(.systemFill))
+                                .fill(seccion == .cuenta ? Paleta.brandFill : Color(.systemFill))
                         )
                     }
                     .buttonStyle(.plain)
@@ -339,7 +339,7 @@ struct ConfiguracionView: View {
                     .frame(minHeight: 44)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(seccion == s ? Paleta.brand.opacity(0.12) : .clear)
+                            .fill(seccion == s ? Paleta.brandFill : .clear)
                     )
                 }
                 .buttonStyle(.plain)
@@ -407,7 +407,7 @@ private struct SeccionCuenta: View {
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundStyle(Paleta.brand)
                                 .frame(width: 66, height: 66)
-                                .background(Paleta.brand.opacity(0.12), in: Circle())
+                                .background(Paleta.brandFill, in: Circle())
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("Ivan Garcia")
                                     .font(.system(size: 20, weight: .bold))
@@ -726,11 +726,11 @@ private struct SeccionTesorero: View {
                                 }
                                 .foregroundStyle(Paleta.aviso)
                                 .padding(.horizontal, 20).padding(.vertical, 10)
-                                .background(Paleta.aviso.opacity(0.10),
+                                .background(Paleta.avisoFill,
                                             in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(Paleta.aviso.opacity(0.45),
+                                        .stroke(Paleta.avisoStroke,
                                                 style: StrokeStyle(lineWidth: 1, dash: [4, 2]))
                                 )
                             }

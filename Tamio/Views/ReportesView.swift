@@ -65,7 +65,7 @@ struct ReportesView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16).padding(.vertical, 12)
-        .background(sel ? Paleta.brand.opacity(0.10) : rowBG)
+        .background(sel ? Paleta.brandFill : rowBG)
     }
 
     // MARK: - Vista previa
@@ -160,7 +160,7 @@ struct ReportesView: View {
                 delta: e.deltaGastos, invert: true, sub: L.t("vs mes anterior", "vs last month"))
         chipKPI(L.t("Balance neto", "Net balance"), e.balanceNeto, Paleta.brand,
                 delta: e.deltaBalance, invert: false, sub: L.t("vs mes anterior", "vs last month"))
-        chipKPI(L.t("Mes anterior", "Previous month"), e.mesAnterior, Color(hex: 0x7C3AED),
+        chipKPI(L.t("Mes anterior", "Previous month"), e.mesAnterior, Paleta.morado,
                 delta: nil, invert: false, sub: e.mesAnteriorNombre)
     }
 
@@ -197,7 +197,7 @@ struct ReportesView: View {
                 AmountText(cents: e.saldoPeriodo, size: 26)
                 Chart(e.saldoSerie) { m in
                     BarMark(x: .value("Mes", m.mes), y: .value("Saldo", m.monto))
-                        .foregroundStyle(m.mes == e.saldoSerie.last?.mes ? Paleta.brand : Paleta.brand.opacity(0.25))
+                        .foregroundStyle(m.mes == e.saldoSerie.last?.mes ? Paleta.brand : Paleta.brandMuted)
                         .cornerRadius(3)
                 }
                 .chartYAxis(.hidden).frame(height: 70)
@@ -252,7 +252,7 @@ struct ReportesView: View {
                         }
                         .font(.subheadline).monospacedDigit()
                         .padding(.vertical, 9)
-                        .background(esUltimo ? Paleta.brand.opacity(0.08) : .clear)
+                        .background(esUltimo ? Paleta.brandFill : .clear)
                         if !esUltimo { Divider() }
                     }
                 }

@@ -10,7 +10,7 @@ extension View {
         if #available(iOS 26.0, *) {
             self.navigationTitle(titulo)
                 .navigationSubtitle(subtitulo)
-                .toolbarBackground(Paleta.brand.opacity(0.12), for: .navigationBar)
+                .toolbarBackground(Paleta.brandFill, for: .navigationBar)
                 .toolbarBackground(.visible, for: .navigationBar)
         } else {
             self.navigationTitle(titulo)

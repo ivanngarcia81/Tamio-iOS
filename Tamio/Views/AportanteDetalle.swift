@@ -221,7 +221,7 @@ struct AportanteDetalle: View {
                 }
                 Chart(a.aportesSerie) { m in
                     BarMark(x: .value("Mes", m.mes), y: .value("Monto", m.monto))
-                        .foregroundStyle(m.mes == a.aportesSerie.last?.mes ? Paleta.brand : Paleta.brand.opacity(0.25))
+                        .foregroundStyle(m.mes == a.aportesSerie.last?.mes ? Paleta.brand : Paleta.brandMuted)
                         .cornerRadius(3)
                 }
                 .chartYAxis(.hidden)

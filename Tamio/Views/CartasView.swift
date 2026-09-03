@@ -97,7 +97,7 @@ struct CartasView: View {
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(
                             tipo == vm.plantillaSeleccionada
-                                ? Paleta.brand.opacity(0.08)
+                                ? Paleta.brandFill
                                 : rowBG
                         )
                 }
@@ -131,7 +131,7 @@ struct CartasView: View {
                     .foregroundStyle(sel ? Paleta.brand : Color(.secondaryLabel))
                     .frame(width: 32, height: 32)
                     .background(
-                        (sel ? Paleta.brand.opacity(0.12) : Color(.tertiarySystemFill)),
+                        (sel ? Paleta.brandFill : Color(.tertiarySystemFill)),
                         in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                     )
                 VStack(alignment: .leading, spacing: 2) {
@@ -183,7 +183,7 @@ struct CartasView: View {
                             .font(.subheadline.weight(.medium)).lineLimit(1)
                             .foregroundStyle(Paleta.brand)
                             .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(Paleta.brand.opacity(0.1), in: Capsule())
+                            .background(Paleta.brandFill, in: Capsule())
                     }
                     .fixedSize()
                     Button { mostrarFirmaAlert = true } label: {

@@ -234,7 +234,7 @@ struct RevisarView: View {
 
             Divider().padding(.leading, 16)
         }
-        .background(esSel ? Paleta.brand.opacity(0.06) : Color(.systemBackground))
+        .background(esSel ? Paleta.brandFill : Color(.systemBackground))
         .overlay(alignment: .leading) {
             if esSel { Rectangle().fill(Paleta.brand).frame(width: 3) }
         }
@@ -248,7 +248,7 @@ struct RevisarView: View {
                 Text(a.archivado ? L.t("ARCHIVADO", "ARCHIVED") : L.t("REQUIERE REVISIÓN", "NEEDS REVIEW"))
                     .font(.caption2.weight(.bold)).foregroundStyle(Paleta.negativo)
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Paleta.negativo.opacity(0.12), in: Capsule())
+                    .background(Paleta.negativoFill, in: Capsule())
 
                 Text(a.tipo.etiqueta).font(.title.weight(.bold))
                 Text(a.descripcion).font(.subheadline).foregroundStyle(.secondary)
@@ -359,7 +359,8 @@ struct RevisarView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color(.secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(alignment: .top) { RoundedRectangle(cornerRadius: 2).fill(acento).frame(height: 3).padding(.horizontal, 12) }
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.separator.opacity(0.6), lineWidth: 0.5))
     }

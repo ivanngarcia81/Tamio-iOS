@@ -140,8 +140,8 @@ struct MembresiaView: View {
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(vm.filtroAño != nil ? Paleta.brand : .primary)
                             .padding(.horizontal, 13).padding(.vertical, 7)
-                            .background(Capsule().fill(vm.filtroAño != nil ? Paleta.brand.opacity(0.12) : Color(.secondarySystemFill)))
-                            .overlay(Capsule().stroke(vm.filtroAño != nil ? Paleta.brand.opacity(0.45) : Color.clear, lineWidth: 1))
+                            .background(Capsule().fill(vm.filtroAño != nil ? Paleta.brandFill : Color(.secondarySystemFill)))
+                            .overlay(Capsule().stroke(vm.filtroAño != nil ? Paleta.brandStroke : Color.clear, lineWidth: 1))
                         }
 
                         Spacer()
@@ -160,8 +160,8 @@ struct MembresiaView: View {
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(filtrosActivos > 0 ? Paleta.brand : .primary)
                             .padding(.horizontal, 13).padding(.vertical, 7)
-                            .background(Capsule().fill(filtrosActivos > 0 ? Paleta.brand.opacity(0.12) : Color(.secondarySystemFill)))
-                            .overlay(Capsule().stroke(filtrosActivos > 0 ? Paleta.brand.opacity(0.45) : Color.clear, lineWidth: 1))
+                            .background(Capsule().fill(filtrosActivos > 0 ? Paleta.brandFill : Color(.secondarySystemFill)))
+                            .overlay(Capsule().stroke(filtrosActivos > 0 ? Paleta.brandStroke : Color.clear, lineWidth: 1))
                         }
                         .buttonStyle(.plain)
                     }
@@ -253,7 +253,7 @@ struct MembresiaView: View {
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(esSel ? Paleta.brand.opacity(0.10) : Color.clear)
+        .background(esSel ? Paleta.brandFill : Color.clear)
         .overlay(alignment: .leading) {
             if esSel { Rectangle().fill(Paleta.brand).frame(width: 3) }
         }
@@ -281,7 +281,7 @@ struct MembresiaView: View {
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(esSel ? Paleta.brand.opacity(0.10) : Color.clear)
+        .background(esSel ? Paleta.brandFill : Color.clear)
         .overlay(alignment: .leading) {
             if esSel { Rectangle().fill(Paleta.brand).frame(width: 3) }
         }

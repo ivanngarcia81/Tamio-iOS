@@ -111,7 +111,7 @@ struct ActasView: View {
                 .foregroundStyle(sel ? Paleta.brand : Color(.secondaryLabel))
                 .frame(width: 36, height: 36)
                 .background(
-                    (sel ? Paleta.brand.opacity(0.12) : Color(.tertiarySystemFill)),
+                    (sel ? Paleta.brandFill : Color(.tertiarySystemFill)),
                     in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                 )
             VStack(alignment: .leading, spacing: 3) {
@@ -122,7 +122,7 @@ struct ActasView: View {
             Pill(texto: acta.estado.etiqueta, color: acta.estado.color)
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
-        .background(sel ? Paleta.brand.opacity(0.10) : (sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)))
+        .background(sel ? Paleta.brandFill : (sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)))
         .overlay(alignment: .leading) { if sel { Rectangle().fill(Paleta.brand).frame(width: 3) } }
     }
 
@@ -145,7 +145,7 @@ struct ActasView: View {
                                 .font(.subheadline.weight(.medium)).lineLimit(1)
                                 .foregroundStyle(Paleta.brand)
                                 .padding(.horizontal, 12).padding(.vertical, 6)
-                                .background(Paleta.brand.opacity(0.1), in: Capsule())
+                                .background(Paleta.brandFill, in: Capsule())
                         }
                         .fixedSize()
                         Button { mostrarCerrarAlert = true } label: {

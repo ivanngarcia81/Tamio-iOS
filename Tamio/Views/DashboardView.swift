@@ -259,15 +259,15 @@ struct DashboardView: View {
             .background(Color(.secondarySystemGroupedBackground),
                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Paleta.aviso.opacity(0.5), lineWidth: 1))
+                .stroke(Paleta.avisoStroke, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
 
     private let catColores: [Color] = [
         Paleta.brand,
-        Color(hex: 0x7C3AED),
-        Color(hex: 0x06B6D4),
+        Paleta.morado,
+        Paleta.cian,
         Paleta.aviso,
     ]
 

@@ -8,7 +8,7 @@ struct RegistroView: View {
     @State private var abierto: Apunte?
     @State private var escribiendo = false
 
-    private let morado = Color(hex: 0x7C3AED)   // Secretaría
+    private let morado = Paleta.morado   // Secretaría
 
     var body: some View {
         GeometryReader { geo in
@@ -126,7 +126,7 @@ struct RegistroView: View {
                         if a.esNota {
                             Text("NOTA").font(.caption2.weight(.bold)).foregroundStyle(Paleta.aviso)
                                 .padding(.horizontal, 5).padding(.vertical, 1)
-                                .background(Paleta.aviso.opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
+                                .background(Paleta.avisoFill, in: RoundedRectangle(cornerRadius: 4))
                         }
                         Text(meta(a)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
@@ -154,9 +154,9 @@ struct RegistroView: View {
     }
 
     private func fondoFila(_ a: Apunte, sel: Bool) -> Color {
-        if sel { return Paleta.brand.opacity(0.10) }
-        if a.esNota { return Paleta.aviso.opacity(0.07) }
-        if a.esAlerta { return Paleta.negativo.opacity(0.06) }
+        if sel { return Paleta.brandFill }
+        if a.esNota { return Paleta.avisoFill }
+        if a.esAlerta { return Paleta.negativoFill }
         return .clear
     }
 
@@ -251,7 +251,8 @@ struct RegistroView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color(.secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(alignment: .top) {
             RoundedRectangle(cornerRadius: 2).fill(acento).frame(height: 3).padding(.horizontal, 12)
         }
