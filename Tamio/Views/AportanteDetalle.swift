@@ -7,10 +7,12 @@ import Charts
 struct AportanteDetalle: View {
     let a: Aportante
     var onEditar: (() -> Void)? = nil
-    var onEliminar: (() -> Void)? = nil
-    @State private var subtab = 0   // 0 Datos · 1 Aportes · 2 Familia · 3 Asistencia
+    /// Ya no se puede borrar a nadie desde aquí: dar de baja a una persona
+    /// es del padrón, y el padrón lo lleva Secretaría. Un botón que borra
+    /// fichas en una pantalla de Tesorería es la peor versión de tener el dato
+    /// en el sitio equivocado.
+    @State private var subtab = 0   // 0 Datos · 1 Aportes · 2 Familia · 3 Constancia
     @State private var anio = "2026"
-    @State private var confirmarEliminar = false
 
     /// Texto de la constancia anual, para compartir/exportar.
     @State private var documento: DocumentoAportanteView.Tipo?
@@ -103,19 +105,6 @@ struct AportanteDetalle: View {
         .buttonStyle(.borderedProminent).tint(Paleta.brand)
     }
 
-    private var eliminarBoton: some View {
-        Button(role: .destructive) { confirmarEliminar = true } label: {
-            Label(L.t("Eliminar", "Delete"), systemImage: "trash")
-        }
-        .buttonStyle(.bordered)
-        .tint(.red)
-        .confirmationDialog(L.t("¿Eliminar a \(a.nombre)?", "Delete \(a.nombre)?"),
-                            isPresented: $confirmarEliminar, titleVisibility: .visible) {
-            Button(L.t("Eliminar", "Delete"), role: .destructive) { onEliminar?() }
-            Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
-        }
-    }
-
     private var botones: some View {
         ViewThatFits(in: .horizontal) {
             // Ancho (iPad): tres en línea
@@ -123,7 +112,6 @@ struct AportanteDetalle: View {
                 Button { onEditar?() } label: { Label(L.t("Editar", "Edit"), systemImage: "pencil") }
                     .buttonStyle(.bordered)
                     .tint(Color.secondary)
-                eliminarBoton
                 menuDocumentos
             }
             // Estrecho (iPhone): Edit+Delete arriba, PDF abajo
@@ -132,7 +120,6 @@ struct AportanteDetalle: View {
                     Button { onEditar?() } label: { Label(L.t("Editar", "Edit"), systemImage: "pencil") }
                         .buttonStyle(.bordered)
                         .tint(Color.secondary)
-                    eliminarBoton
                 }
                 menuDocumentos
             }

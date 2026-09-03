@@ -72,11 +72,9 @@ final class MiembrosViewModel {
         await cargar()
         seleccionId = a.id
     }
-    @MainActor func eliminar(_ a: Aportante) async {
-        try? await repo.eliminar(id: a.id)
-        if seleccionId == a.id { seleccionId = nil }
-        await cargar()
-    }
+    // Sin `eliminar`: sacar a alguien del padrón es de Secretaría, que lo hace
+    // dándole de baja (conservando su historial) en vez de borrando la ficha.
+    // El repositorio mantiene la operación para quien sí deba usarla.
 
     var seleccion: Aportante? { items.first { $0.id == seleccionId } }
 

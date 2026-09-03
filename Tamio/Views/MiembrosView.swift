@@ -31,9 +31,7 @@ struct MiembrosView: View {
                         .background(.regularMaterial)
                     Divider()
                     if let a = vm.seleccion {
-                        AportanteDetalle(a: a,
-                                         onEditar: { hoja = .editar(a) },
-                                         onEliminar: { Task { await vm.eliminar(a) } })
+                        AportanteDetalle(a: a, onEditar: { hoja = .editar(a) })
                     } else {
                         ContentUnavailableView(L.t("Selecciona un aportante", "Select a giver"),
                                                systemImage: "person.crop.circle")
@@ -43,9 +41,7 @@ struct MiembrosView: View {
                 listaColumna
                     .background(.regularMaterial)
                     .navigationDestination(item: $abierto) { a in
-                        AportanteDetalle(a: a,
-                                         onEditar: { hoja = .editar(a) },
-                                         onEliminar: { Task { await vm.eliminar(a) } })
+                        AportanteDetalle(a: a, onEditar: { hoja = .editar(a) })
                             .navigationTitle(a.nombre)
                             .navigationBarTitleDisplayMode(.inline)
                     }

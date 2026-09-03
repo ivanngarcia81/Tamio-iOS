@@ -608,6 +608,11 @@ private struct NuevoMiembroSheet: View {
     // MEMBRESÍA
     @State private var estado: EstadoMiembro
     @State private var fechaIngreso: Date
+    /// Una baja o un traslado no son solo un cambio de etiqueta: hay que poder
+    /// decir cuándo y por qué, o dentro de dos años nadie sabrá qué pasó con
+    /// esa persona.
+    @State private var fechaBaja = Date()
+    @State private var motivoBaja = ""
 
     // Vida espiritual
     @State private var bautizadoAgua: Bool
@@ -801,15 +806,39 @@ private struct NuevoMiembroSheet: View {
                     }
                 }
 
-                Section(L.t("MEMBRESÍA", "MEMBERSHIP")) {
+                Section {
+                    // Baja y Traslado faltaban: no había forma de sacar a nadie
+                    // del padrón, y sin embargo la lista ya tenía un filtro de
+                    // "Bajas" al que era imposible llegar.
                     Picker(L.t("Estado", "Status"), selection: $estado) {
                         Text(L.t("Activo", "Active")).tag(EstadoMiembro.activo)
                         Text(L.t("Nuevo", "New")).tag(EstadoMiembro.nuevo)
                         Text(L.t("Recibido", "Received")).tag(EstadoMiembro.recibido)
+                        Text(L.t("Traslado", "Transfer")).tag(EstadoMiembro.traslado)
+                        Text(L.t("Baja", "Removed")).tag(EstadoMiembro.baja)
                     }
                     DatePicker(L.t("Comenzó a congregarse", "Started attending"),
                                selection: $fechaIngreso, displayedComponents: .date)
                         .tint(Paleta.brand)
+                    if estado == .baja || estado == .traslado {
+                        DatePicker(estado == .baja
+                                   ? L.t("Fecha de baja", "Removal date")
+                                   : L.t("Fecha de traslado", "Transfer date"),
+                                   selection: $fechaBaja, displayedComponents: .date)
+                            .tint(Paleta.brand)
+                        TextField(L.t("Motivo", "Reason"), text: $motivoBaja, axis: .vertical)
+                            .lineLimit(2...4)
+                    }
+                } header: {
+                    Text(L.t("MEMBRESÍA", "MEMBERSHIP"))
+                } footer: {
+                    if estado == .baja {
+                        Text(L.t("La persona sale del padrón activo. Su historial y sus aportes se conservan.",
+                                 "The person leaves the active roster. Their history and giving are kept."))
+                    } else if estado == .traslado {
+                        Text(L.t("Se registra su salida hacia otra congregación.",
+                                 "Records their move to another congregation."))
+                    }
                 }
 
                 Section {
@@ -898,6 +927,16 @@ private struct NuevoMiembroSheet: View {
         var datos: [Dato] = [
             Dato(etiqueta: L.t("Fecha de ingreso", "Join date"), valor: fechaStr),
         ]
+        // Sin esto, una baja quedaría como una etiqueta gris sin explicación.
+        if estado == .baja || estado == .traslado {
+            datos.append(Dato(etiqueta: estado == .baja
+                              ? L.t("Fecha de baja", "Removal date")
+                              : L.t("Fecha de traslado", "Transfer date"),
+                              valor: fmt.string(from: fechaBaja)))
+            if !motivoBaja.trimmingCharacters(in: .whitespaces).isEmpty {
+                datos.append(Dato(etiqueta: L.t("Motivo", "Reason"), valor: motivoBaja))
+            }
+        }
         if !correo.isEmpty     { datos.append(Dato(etiqueta: L.t("Correo", "Email"),          valor: correo)) }
         if !telefono.isEmpty   { datos.append(Dato(etiqueta: L.t("Teléfono", "Phone"),         valor: telefono)) }
         if !direccion.isEmpty  { datos.append(Dato(etiqueta: L.t("Dirección", "Address"),      valor: direccion)) }
