@@ -38,6 +38,7 @@ struct MovimientoDetalle: View {
             }
             .padding(24)
         }
+        .colchonInferior()
         .background(Color(.systemGroupedBackground))
         .fileImporter(isPresented: $mostrarImportador,
                       allowedContentTypes: [.image, .pdf],
@@ -75,10 +76,12 @@ struct MovimientoDetalle: View {
                       systemImage: "paperclip")
             }
             .buttonStyle(.bordered)
+            .tint(Color.secondary)
             ShareLink(item: textoCompartir) {
                 Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
             }
             .buttonStyle(.bordered)
+            .tint(Color.secondary)
             Button { onEditar?() } label: {
                 Label(L.t("Editar", "Edit"), systemImage: "pencil").fontWeight(.semibold)
             }

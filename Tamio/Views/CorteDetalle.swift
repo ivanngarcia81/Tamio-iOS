@@ -28,6 +28,7 @@ struct CorteDetalle: View {
             }
             .padding(24)
         }
+        .colchonInferior()
         .background(Color(.systemGroupedBackground))
         .fileImporter(isPresented: $mostrarImportador,
                       allowedContentTypes: [.image, .pdf],
@@ -62,6 +63,7 @@ struct CorteDetalle: View {
                     Label(L.t("Nuevo corte", "New cut"), systemImage: "plus").font(.subheadline)
                 }
                 .buttonStyle(.bordered)
+                .tint(Color.secondary)
             }
             Text(corte.descripcion).font(.subheadline).foregroundStyle(.secondary)
         }
@@ -244,6 +246,7 @@ struct CorteDetalle: View {
                                 .font(.subheadline)
                         }
                         .buttonStyle(.bordered)
+                        .tint(Color.secondary)
                     }
                 }
             }

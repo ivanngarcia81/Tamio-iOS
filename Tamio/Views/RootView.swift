@@ -110,7 +110,11 @@ private struct IPhoneRootView: View {
                 .tabItem { Label(L.t("Ajustes", "Settings"), systemImage: "gearshape") }
         }
         .tint(Paleta.brand)
-        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+        // `.ultraThinMaterial` es el material más transparente del sistema: dejaba
+        // leer el contenido por debajo de la barra. `.bar` es el que usa el sistema
+        // para tab bars, y `.visible` evita que se retire cuando nada scrollea.
+        .toolbarBackground(.bar, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .task { await revisarVM.cargar() }
     }
 }

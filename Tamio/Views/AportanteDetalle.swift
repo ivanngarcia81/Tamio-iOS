@@ -41,6 +41,7 @@ struct AportanteDetalle: View {
             }
             .padding(24)
         }
+        .colchonInferior()
         .background(Color(.systemGroupedBackground))
     }
 
@@ -95,6 +96,7 @@ struct AportanteDetalle: View {
             HStack(spacing: 8) {
                 Button { onEditar?() } label: { Label(L.t("Editar", "Edit"), systemImage: "pencil") }
                     .buttonStyle(.bordered)
+                    .tint(Color.secondary)
                 eliminarBoton
                 ShareLink(item: constanciaTexto) {
                     Label(L.t("Constancia anual (PDF)", "Annual receipt (PDF)"), systemImage: "doc.text").fontWeight(.semibold)
@@ -106,6 +108,7 @@ struct AportanteDetalle: View {
                 HStack(spacing: 8) {
                     Button { onEditar?() } label: { Label(L.t("Editar", "Edit"), systemImage: "pencil") }
                         .buttonStyle(.bordered)
+                        .tint(Color.secondary)
                     eliminarBoton
                 }
                 ShareLink(item: constanciaTexto) {

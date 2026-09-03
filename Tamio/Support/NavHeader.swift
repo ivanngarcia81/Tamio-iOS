@@ -17,6 +17,13 @@ extension View {
         }
     }
 
+    /// Colchón bajo el contenido scrolleable para que la última fila no quede
+    /// pegada al tab bar. Es un `safeAreaInset` y no un `padding` para que el
+    /// scroll siga llegando hasta el borde: solo desplaza el área segura.
+    func colchonInferior(_ alto: CGFloat = 12) -> some View {
+        safeAreaInset(edge: .bottom) { Color.clear.frame(height: alto) }
+    }
+
     /// Tamaño de hoja para formularios: `.form` — angosta y CENTRADA (no ocupa
     /// todo el ancho como `.page`), con altura estándar que ya acomoda todos los
     /// campos con poco scroll. (`.fitted` colapsaba el `Form` interno.)

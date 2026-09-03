@@ -86,6 +86,7 @@ struct RevisarView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
+        .colchonInferior()
     }
 
     private func filaTargeta(_ a: Revision) -> some View {
@@ -177,6 +178,7 @@ struct RevisarView: View {
                 .font(.caption2).foregroundStyle(.tertiary).padding(16)
             }
         }
+        .colchonInferior()
     }
 
     private func filaCompacta(_ a: Revision) -> some View {
@@ -267,6 +269,7 @@ struct RevisarView: View {
             }
             .padding(24)
         }
+        .colchonInferior()
         .background(Color(.systemGroupedBackground))
     }
 
@@ -279,6 +282,7 @@ struct RevisarView: View {
                 } else {
                     Button { activar(ac, a) } label: { Text(ac.label) }
                         .buttonStyle(.bordered)
+                        .tint(Color.secondary)
                 }
             }
             Spacer()

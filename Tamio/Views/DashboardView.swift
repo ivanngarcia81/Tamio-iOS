@@ -50,11 +50,13 @@ struct DashboardView: View {
     private var scrollContent: some View {
         if esIPad {
             ScrollView { innerContent }
+            .colchonInferior()
                 .background(Color(.systemGroupedBackground))
                 .encabezadoNav(L.t("Inicio", "Home"), vm.periodoLegible)
                 .navigationBarTitleDisplayMode(.inline)
         } else {
             ScrollView { innerContent }
+            .colchonInferior()
                 .background(Color(.systemGroupedBackground))
                 .navigationTitle(L.t("Inicio", "Home"))
                 .navigationBarTitleDisplayMode(.inline)

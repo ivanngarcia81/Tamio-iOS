@@ -188,6 +188,7 @@ struct MembresiaView: View {
             .font(.caption).foregroundStyle(.secondary)
             .padding(.horizontal, 16).padding(.vertical, 10)
         }
+        .colchonInferior()
     }
 
     @ViewBuilder
@@ -392,6 +393,7 @@ private struct PanelAsistencia: View {
             }
             .padding(20)
         }
+        .colchonInferior()
         .background(Color(.systemGroupedBackground))
     }
 

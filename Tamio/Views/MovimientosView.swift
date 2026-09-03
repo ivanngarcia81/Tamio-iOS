@@ -128,6 +128,7 @@ struct MovimientosView: View {
             Divider()
             pieLista
         }
+        .colchonInferior()
     }
 
     @ViewBuilder

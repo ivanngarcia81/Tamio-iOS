@@ -21,6 +21,7 @@ struct MiembroDetalle: View {
             }
             .padding(24)
         }
+        .colchonInferior()
         .background(Color(.systemGroupedBackground))
     }
 
@@ -85,7 +86,7 @@ struct MiembroDetalle: View {
 
     private var botonesMiembro: some View {
         HStack(spacing: 10) {
-            Button { onSeguimiento() } label: { Text(L.t("Seguimiento", "Follow-up")) }.buttonStyle(.bordered)
+            Button { onSeguimiento() } label: { Text(L.t("Seguimiento", "Follow-up")) }.buttonStyle(.bordered).tint(Color.secondary)
             Button { onEditar() } label: { Label(L.t("Editar", "Edit"), systemImage: "pencil").fontWeight(.semibold) }
                 .buttonStyle(.borderedProminent).tint(Paleta.brand)
         }

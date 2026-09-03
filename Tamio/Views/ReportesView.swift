@@ -129,6 +129,7 @@ struct ReportesView: View {
                 Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
             }
             .buttonStyle(.bordered)
+            .tint(Color.secondary)
             Button { mostrarPDF = true } label: {
                 Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.text").fontWeight(.semibold)
             }
