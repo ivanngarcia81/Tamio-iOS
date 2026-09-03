@@ -8,11 +8,21 @@ struct MiembroDetalle: View {
     let resumen: MembresiaResumen?
     let onEditar: () -> Void
     let onSeguimiento: () -> Void
+    /// Filtra la lista de miembros por el indicador tocado. Solo se cablea en
+    /// compacto; en iPad la rejilla sigue siendo texto, como hasta ahora.
+    var onFiltrarAccion: ((FiltroAccion) -> Void)? = nil
+
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if let r = resumen { indicadores(r) }
+                if let r = resumen {
+                    // En iPhone las cuatro columnas fijas daban celdas de unos
+                    // 80 pt: ocho tarjetas en dos filas de mosaico, casi un
+                    // tercio de la pantalla antes de ver un dato del miembro.
+                    if sizeClass == .compact { resumenCompacto(r) } else { indicadores(r) }
+                }
                 cabecera
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: 16) { columnaIzquierda; columnaDerecha.frame(width: 320) }
@@ -25,7 +35,92 @@ struct MiembroDetalle: View {
         .background(Color(.systemGroupedBackground))
     }
 
-    // MARK: - 8 indicadores del padrón
+    // MARK: - Resumen del padrón en compacto
+
+    /// Los mismos ocho números en una tarjeta de tres filas, agrupados por lo
+    /// que significan: estado del padrón, movimiento del periodo y lo que
+    /// requiere acción. En la rejilla los ocho pesaban igual, cuando Total es
+    /// el dato de cabecera e Incompletos una tarea pendiente.
+    ///
+    /// Los acentos de color de `miniKPI` se pierden aquí a propósito: ocho
+    /// colores sin leyenda no comunicaban nada, y en la versión agrupada la
+    /// jerarquía la da la posición.
+    private func resumenCompacto(_ r: MembresiaResumen) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline, spacing: Esp.hueco) {
+                Text("\(r.total)")
+                    .font(.largeTitle.weight(.bold)).monospacedDigit()
+                Text(L.t("en el padrón", "on the roster"))
+                    .font(.subheadline).foregroundStyle(.secondary)
+                Spacer(minLength: 4)
+                Text(L.t("\(r.activos) activos · \(r.inactivos) inactivos",
+                         "\(r.activos) active · \(r.inactivos) inactive"))
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+            }
+
+            Divider()
+
+            HStack(spacing: 0) {
+                dato(L.t("Nuevos", "New"), r.nuevos)
+                dato(L.t("Recibidos", "Received"), r.recibidos)
+                dato(L.t("Trasladados", "Transferred"), r.trasladados)
+            }
+
+            Divider()
+
+            HStack(spacing: 10) {
+                accion(L.t("Ausencias", "Absences"), r.ausencias, .ausencias)
+                accion(L.t("Incompletos", "Incomplete"), r.incompletos, .incompletos)
+            }
+        }
+        .padding(Esp.tarjeta)
+        .background(Color(.secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func dato(_ titulo: String, _ valor: Int) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(titulo).font(.caption).foregroundStyle(.secondary)
+                .lineLimit(1).minimumScaleFactor(0.85)
+            Text("\(valor)").font(.title3.weight(.semibold)).monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Fila 3: los dos que requieren acción. Con `onFiltrarAccion` a nil se
+    /// dibujan sin chevron y sin tap, que es mejor que un botón que no lleva a
+    /// ningún lado.
+    @ViewBuilder
+    private func accion(_ titulo: String, _ valor: Int, _ filtro: FiltroAccion) -> some View {
+        if let onFiltrarAccion {
+            // `.buttonStyle(.plain)` es obligatorio: sin él el tint verde del
+            // TabView pisa el `foregroundStyle` del label.
+            Button { onFiltrarAccion(filtro) } label: {
+                etiquetaAccion(titulo, valor, conChevron: true)
+            }
+            .buttonStyle(.plain)
+        } else {
+            etiquetaAccion(titulo, valor, conChevron: false)
+        }
+    }
+
+    private func etiquetaAccion(_ titulo: String, _ valor: Int, conChevron: Bool) -> some View {
+        HStack(spacing: 6) {
+            Text(titulo).font(.subheadline).lineLimit(1).minimumScaleFactor(0.85)
+            Text("\(valor)").font(.subheadline.weight(.bold)).monospacedDigit()
+            Spacer(minLength: 2)
+            if conChevron {
+                Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
+            }
+        }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, Esp.chip).padding(.vertical, 9)
+        .frame(maxWidth: .infinity)
+        .background(Paleta.avisoFill, in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
+    }
+
+    // MARK: - 8 indicadores del padrón (iPad)
 
     private func indicadores(_ r: MembresiaResumen) -> some View {
         let kpis: [(String, Int, Color)] = [

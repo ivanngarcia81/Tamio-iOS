@@ -1,6 +1,14 @@
 import Foundation
 import Observation
 
+/// Los dos indicadores de la ficha que exigen una acción y ahora filtran la
+/// lista. Antes los ocho números eran solo texto: ninguno llevaba a ningún
+/// lado, así que la tesorera veía "21 incompletos" y tenía que ir a buscarlos
+/// a mano.
+enum FiltroAccion {
+    case ausencias, incompletos
+}
+
 @Observable
 final class MembresiaViewModel {
     private let repo: MembresiaRepository
@@ -13,6 +21,8 @@ final class MembresiaViewModel {
     var filtroAño: Int? = nil
     var filtroEstado: EstadoMiembro? = nil
     var filtroMinisterio: String? = nil
+    /// Filtro que llega desde los indicadores de la ficha del miembro.
+    var filtroAccion: FiltroAccion? = nil
 
     init(repo: MembresiaRepository = MockMembresiaRepository()) {
         self.repo = repo
@@ -70,6 +80,29 @@ final class MembresiaViewModel {
             && (filtroAño == nil || m.miembroDesde.contains(String(filtroAño!)))
             && (filtroEstado == nil || m.estado == filtroEstado)
             && (filtroMinisterio == nil || m.area.localizedCaseInsensitiveContains(filtroMinisterio!))
+            && cumpleAccion(m)
+        }
+    }
+
+    /// La misma regla que ya usaba `itemsAusentes` para las ausencias, y el
+    /// expediente con algún campo pendiente para los incompletos.
+    private func cumpleAccion(_ m: Miembro) -> Bool {
+        switch filtroAccion {
+        case nil: return true
+        case .ausencias:
+            return m.estado != .baja && m.rachaSinAsistir != L.t("0 servicios", "0 services")
+        case .incompletos:
+            return m.expediente.contains { !$0.completo }
+        }
+    }
+
+    /// Etiqueta del filtro vigente, para el chip que permite quitarlo. Sin ella
+    /// la lista quedaría filtrada sin decir por qué.
+    var etiquetaFiltroAccion: String? {
+        switch filtroAccion {
+        case nil: return nil
+        case .ausencias: return L.t("Con ausencias", "With absences")
+        case .incompletos: return L.t("Expediente incompleto", "Incomplete record")
         }
     }
 

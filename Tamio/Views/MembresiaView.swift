@@ -26,7 +26,15 @@ struct MembresiaView: View {
                     .navigationDestination(item: $abierto) { m in
                         MiembroDetalle(miembro: m, resumen: vm.resumen,
                                        onEditar: { miembroAEditar = m },
-                                       onSeguimiento: { miembroParaSeguimiento = m })
+                                       onSeguimiento: { miembroParaSeguimiento = m },
+                                       onFiltrarAccion: { filtro in
+                                           // La lista no está a la vista en
+                                           // iPhone: aplicar el filtro sin
+                                           // volver a ella no se vería.
+                                           vm.filtroAccion = filtro
+                                           subtab = 0
+                                           abierto = nil
+                                       })
                             .background(Color(.systemGroupedBackground))
                             .navigationBarTitleDisplayMode(.inline)
                     }
@@ -85,7 +93,11 @@ struct MembresiaView: View {
             if let m = listActiva.first(where: { $0.id == vm.seleccionId }) ?? listActiva.first {
                 MiembroDetalle(miembro: m, resumen: vm.resumen,
                                onEditar: { miembroAEditar = m },
-                               onSeguimiento: { miembroParaSeguimiento = m })
+                               onSeguimiento: { miembroParaSeguimiento = m },
+                               onFiltrarAccion: { filtro in
+                                   vm.filtroAccion = filtro
+                                   subtab = 0
+                               })
             } else {
                 ContentUnavailableView(L.t("Selecciona un miembro", "Select a member"),
                                        systemImage: "person.crop.circle")
@@ -121,6 +133,21 @@ struct MembresiaView: View {
                     .font(.subheadline)
                     .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                     .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 9))
+
+                    if let etiqueta = vm.etiquetaFiltroAccion {
+                        HStack(spacing: 6) {
+                            Text(etiqueta).font(.subheadline.weight(.medium))
+                            Button { vm.filtroAccion = nil } label: {
+                                Image(systemName: "xmark.circle.fill")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .foregroundStyle(Paleta.aviso)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+                        .background(Capsule().fill(Paleta.avisoFill))
+                        .overlay(Capsule().stroke(Paleta.avisoStroke, lineWidth: 1))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
 
                     HStack(spacing: 8) {
                         Menu {
@@ -286,6 +313,7 @@ struct MembresiaView: View {
 
     private var filtrosActivos: Int {
         (vm.filtroEstado != nil ? 1 : 0) + (vm.filtroMinisterio != nil ? 1 : 0)
+            + (vm.filtroAccion != nil ? 1 : 0)
     }
 
     private var filtrosSheet: some View {
@@ -318,6 +346,7 @@ struct MembresiaView: View {
                     Button(L.t("Limpiar", "Clear")) {
                         vm.filtroEstado = nil
                         vm.filtroMinisterio = nil
+                        vm.filtroAccion = nil
                     }
                     .foregroundStyle(filtrosActivos > 0 ? Paleta.brand : .secondary)
                     .disabled(filtrosActivos == 0)
