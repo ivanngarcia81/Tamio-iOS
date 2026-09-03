@@ -39,13 +39,13 @@ struct NuevoMovimientoView: View {
         self.onGuardar = onGuardar
         self.onNuevoFolio = onNuevoFolio
         let t = existente?.tipo ?? tipo
-        let cats = Self.listaCategorias(t)
+        let cats = Catalogos.categorias(t)
         _folioActual = State(initialValue: existente?.folio ?? folio)
         _tipo = State(initialValue: t)
         _importe = State(initialValue: existente.map { Self.aTexto($0.monto) } ?? "")
         _categoria = State(initialValue: existente?.categoria ?? (cats.first ?? ""))
         _fecha = State(initialValue: existente?.fecha ?? Date())
-        _metodo = State(initialValue: existente?.metodo ?? "Efectivo")
+        _metodo = State(initialValue: existente?.metodo ?? (Catalogos.metodos.first ?? ""))
         _concepto = State(initialValue: existente?.nota ?? "")
         _miembro = State(initialValue: existente?.miembro ?? Self.sinAsignar)
         _darConstanciaAnual = State(initialValue: existente?.darConstanciaAnual ?? false)
@@ -60,36 +60,17 @@ struct NuevoMovimientoView: View {
 
     private var editando: Bool { existente != nil }
 
-    private static func listaCategorias(_ tipo: TipoMovimiento) -> [String] {
-        tipo == .ingreso
-            ? ["Diezmo", "Ofrenda", "Misiones", "Eventos", "Otro"]
-            : [
-                "Compensación",
-                "Pastores",
-                "Músicos",
-                "Suministros",
-                "Limpieza",
-                "Utilidades",
-                "Mantenimiento",
-                "Alimentos",
-                "Tecnología",
-                "Misiones",
-                "Ayudas",
-                "Ayuda social",
-                "Transporte",
-                "Publicidad",
-                "Renta",
-                "Seguros",
-                "Varios",
-                "Otro",
-            ]
-    }
     /// Centinela de "sin aportante". Estaba escrito como literal español en
     /// tres sitios, y salía sin traducir en el Picker.
     private static let sinAsignar = L.t("Sin asignar", "Unassigned")
 
-    private var categorias: [String] { Self.listaCategorias(tipo) }
-    private let metodos = ["Efectivo", "Transferencia", "Cheque", "Tarjeta", "Domiciliado"]
+    /// Catálogo compartido con la hoja de edición, más el valor vigente si no
+    /// está en él: un `Picker` no puede marcar una selección que no exista
+    /// entre sus opciones.
+    private var categorias: [String] {
+        Catalogos.conValorVigente(Catalogos.categorias(tipo), categoria)
+    }
+    private var metodos: [String] { Catalogos.conValorVigente(Catalogos.metodos, metodo) }
     private var miembros: [String] { [Self.sinAsignar, "María Hernández Ríos",
                                       "Pedro Salas Aguirre", "Ana Lucía Torres",
                                       "Familia Ruvalcaba"] }
@@ -156,12 +137,7 @@ struct NuevoMovimientoView: View {
     @ViewBuilder
     private var seccionDetalle: some View {
         Section(header: Text(L.t("DETALLE", "DETAILS"))) {
-            Picker(tipo == .ingreso
-                   ? L.t("Tipo de ingreso", "Income type")
-                   : L.t("Categoría", "Category"),
-                   selection: $categoria) {
-                ForEach(categorias, id: \.self) { Text($0).tag($0) }
-            }
+            pickerCategoria
             // Para gastos el concepto es requerido y va justo tras la categoría
             if tipo == .gasto {
                 TextField(L.t("Concepto", "Concept"), text: $concepto)
@@ -171,6 +147,7 @@ struct NuevoMovimientoView: View {
             Picker(L.t("Método de pago", "Payment method"), selection: $metodo) {
                 ForEach(metodos, id: \.self) { Text($0).tag($0) }
             }
+            .pickerStyle(.menu)
             // Para ingresos el concepto es opcional y va al final de la sección
             if tipo == .ingreso {
                 TextField(L.t("Concepto · opcional", "Concept · optional"), text: $concepto)
@@ -187,6 +164,7 @@ struct NuevoMovimientoView: View {
             Picker(L.t("Aportante", "Contributor"), selection: $miembro) {
                 ForEach(miembros, id: \.self) { Text($0).tag($0) }
             }
+            .pickerStyle(.menu)
         } header: {
             Text(L.t("APORTANTE", "CONTRIBUTOR"))
         } footer: {
@@ -206,6 +184,30 @@ struct NuevoMovimientoView: View {
 
     /// No hay aportante al que emitir constancia.
     private var sinAportante: Bool { miembro == Self.sinAsignar }
+
+    /// El catálogo de gastos pasa de una decena, así que ahí el Picker empuja
+    /// una pantalla con lista y palomitas —el mismo patrón que la hoja de
+    /// Filtros— en vez de un menú de diecinueve renglones; los ingresos son
+    /// seis y caben en el menú. La regla la decide el catálogo, así que la
+    /// hoja de edición hace exactamente lo mismo.
+    @ViewBuilder
+    private var pickerCategoria: some View {
+        // Dos ramas y no un ternario en `.pickerStyle`: los estilos son tipos
+        // distintos y un ternario entre ellos no compila.
+        if categorias.count > 10 {
+            pickerCategoriaBase.pickerStyle(.navigationLink)
+        } else {
+            pickerCategoriaBase.pickerStyle(.menu)
+        }
+    }
+
+    private var pickerCategoriaBase: some View {
+        Picker(tipo == .ingreso ? L.t("Tipo de ingreso", "Income type")
+                                : L.t("Categoría", "Category"),
+               selection: $categoria) {
+            ForEach(categorias, id: \.self) { Text($0).tag($0) }
+        }
+    }
 
     @ViewBuilder
     private var seccionBeneficiario: some View {

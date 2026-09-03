@@ -23,15 +23,6 @@ struct EditarAsuntoView: View {
     @State private var fecha: Date
     @FocusState private var importeEnfocado: Bool
 
-    private let categoriasIngreso = [
-        L.t("Diezmo", "Tithe"), L.t("Ofrenda general", "General offering"),
-        L.t("Ofrenda misionera", "Mission offering"), L.t("Donativo", "Donation"), L.t("Otros", "Other"),
-    ]
-    private let categoriasGasto = [
-        L.t("Servicios", "Utilities"), L.t("Mantenimiento", "Maintenance"), L.t("Misiones", "Missions"),
-        L.t("Materiales", "Supplies"), L.t("Mobiliario", "Furniture"), L.t("Renta", "Rent"), L.t("Otros", "Other"),
-    ]
-    private let metodos = [L.t("Efectivo", "Cash"), L.t("Transferencia", "Transfer"), L.t("Cheque", "Check")]
     private let aportantes = ["Pedro Salas Aguirre", "Karla Villalobos Ruiz", "María Hernández Ríos", "Ana Lucía Torres Beltrán"]
 
     /// Centinela de "sin aportante" en el Picker, como en la hoja de alta.
@@ -43,16 +34,12 @@ struct EditarAsuntoView: View {
         self.onGuardar = onGuardar
         _concepto = State(initialValue: r.concepto)
         _importe = State(initialValue: r.editImporte ?? "")
-        let cats = r.esGasto
-            ? [L.t("Servicios", "Utilities"), L.t("Mantenimiento", "Maintenance"), L.t("Misiones", "Missions"),
-               L.t("Materiales", "Supplies"), L.t("Mobiliario", "Furniture"), L.t("Renta", "Rent"), L.t("Otros", "Other")]
-            : [L.t("Diezmo", "Tithe"), L.t("Ofrenda general", "General offering"),
-               L.t("Ofrenda misionera", "Mission offering"), L.t("Donativo", "Donation"), L.t("Otros", "Other")]
-        // Un Picker necesita que la selección exista entre sus opciones; el
-        // asunto puede llegar sin categoría ("Sin categoría", en rojo).
-        let catInicial = r.editCategoria.flatMap { cats.contains($0) ? $0 : nil } ?? (cats.first ?? "")
-        _categoria = State(initialValue: catInicial)
-        _metodo = State(initialValue: r.editMetodo ?? L.t("Efectivo", "Cash"))
+        // El asunto puede llegar sin categoría ("Sin categoría", en rojo); si
+        // trae una que no está en el catálogo, `conValorVigente` la conserva
+        // como opción en lugar de perderla.
+        let cats = Catalogos.categorias(r.esGasto ? .gasto : .ingreso)
+        _categoria = State(initialValue: r.editCategoria ?? (cats.first ?? ""))
+        _metodo = State(initialValue: r.editMetodo ?? (Catalogos.metodos.first ?? ""))
         _aportante = State(initialValue: r.editAportante)
         // La fecha sale del campo "Fecha" del asunto. Esta hoja se abre desde
         // el ítem marcado como duplicado, donde corregirla es lo más probable.
@@ -60,7 +47,11 @@ struct EditarAsuntoView: View {
         _fecha = State(initialValue: Fechas.desdeSemilla(textoFecha) ?? Date())
     }
 
-    private var categorias: [String] { r.esGasto ? categoriasGasto : categoriasIngreso }
+    /// Mismo catálogo y misma regla que la hoja de alta.
+    private var categorias: [String] {
+        Catalogos.conValorVigente(Catalogos.categorias(r.esGasto ? .gasto : .ingreso), categoria)
+    }
+    private var metodos: [String] { Catalogos.conValorVigente(Catalogos.metodos, metodo) }
     private var folio: String {
         r.campos.first { $0.label == L.t("Folio", "Folio") }?.valor ?? ""
     }
@@ -87,12 +78,7 @@ struct EditarAsuntoView: View {
                 Section(header: Text(L.t("DETALLE", "DETAILS"))) {
                     TextField(L.t("Concepto", "Concept"), text: $concepto)
                         .autocorrectionDisabled()
-                    Picker(r.esGasto ? L.t("Categoría", "Category")
-                                     : L.t("Tipo de ingreso", "Income type"),
-                           selection: $categoria) {
-                        ForEach(categorias, id: \.self) { Text($0).tag($0) }
-                    }
-                    .pickerStyle(.menu)
+                    pickerCategoria
                     DatePicker(L.t("Fecha", "Date"), selection: $fecha, displayedComponents: .date)
                     Picker(L.t("Método de pago", "Payment method"), selection: $metodo) {
                         ForEach(metodos, id: \.self) { Text($0).tag($0) }
@@ -135,6 +121,26 @@ struct EditarAsuntoView: View {
         // ocupaba la pantalla completa y dejaba medio lienzo vacío.
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    /// Misma regla que la hoja de alta: si el catálogo pasa de una decena, el
+    /// Picker empuja una pantalla con lista; si no, menú. Dos ramas y no un
+    /// ternario en `.pickerStyle`, que son tipos distintos y no compila.
+    @ViewBuilder
+    private var pickerCategoria: some View {
+        if categorias.count > 10 {
+            pickerCategoriaBase.pickerStyle(.navigationLink)
+        } else {
+            pickerCategoriaBase.pickerStyle(.menu)
+        }
+    }
+
+    private var pickerCategoriaBase: some View {
+        Picker(r.esGasto ? L.t("Categoría", "Category")
+                         : L.t("Tipo de ingreso", "Income type"),
+               selection: $categoria) {
+            ForEach(categorias, id: \.self) { Text($0).tag($0) }
+        }
     }
 
     /// El Picker trabaja con String; el modelo guarda `nil` cuando no hay
