@@ -15,40 +15,141 @@ import Foundation
 ///
 /// En la app real esto lo alimentará Ajustes → Categorías, que es donde la
 /// iglesia las crea; de momento es el catálogo del prototipo.
+/// **La identidad de una categoría, independiente del idioma.**
+///
+/// `Movimiento.categoria` guarda la etiqueta ya resuelta por `L.t`: "Diezmo"
+/// con el sistema en español, "Tithe" en inglés. Todo lo que decidía algo
+/// mirando ese texto —el color y el ícono de la fila— comparaba contra
+/// literales españoles (`contains("diezmo")`), así que en inglés no acertaba
+/// NINGUNA rama y las nueve filas de Ingresos salían con el mismo círculo gris.
+/// Es el mismo fallo que `Catalogos` ya documenta para el `Picker`, una capa
+/// más abajo.
+///
+/// La clave rompe el vínculo: el catálogo dice qué clave es cada etiqueta, y
+/// el color y el ícono se eligen por clave. La etiqueta vuelve a ser lo que
+/// debe ser, texto para leer.
+enum CategoriaClave: String, CaseIterable {
+    // Ingreso
+    case diezmo, ofrenda, misiones, eventos, donativo
+    // Gasto
+    case compensacion, pastores, musicos, suministros, mobiliario, limpieza
+    case utilidades, mantenimiento, alimentos, tecnologia, ayudas, ayudaSocial
+    case transporte, publicidad, renta, seguros, varios
+    // Ambos
+    case otro
+}
+
 enum Catalogos {
-    static var categoriasIngreso: [String] {
-        [L.t("Diezmo", "Tithe"),
-         L.t("Ofrenda", "Offering"),
-         L.t("Misiones", "Missions"),
-         L.t("Eventos", "Events"),
-         L.t("Donativo", "Donation"),
-         L.t("Otro", "Other")]
+    /// Una entrada del catálogo: la clave manda, la etiqueta solo se lee.
+    struct Categoria {
+        let clave: CategoriaClave
+        /// Las dos etiquetas, siempre las dos. Se guardan juntas para poder
+        /// reconocer un movimiento capturado en el otro idioma.
+        let es: String
+        let en: String
+        var etiqueta: String { L.t(es, en) }
     }
 
-    static var categoriasGasto: [String] {
-        [L.t("Compensación", "Compensation"),
-         L.t("Pastores", "Pastors"),
-         L.t("Músicos", "Musicians"),
-         L.t("Suministros", "Supplies"),
-         L.t("Mobiliario", "Furniture"),
-         L.t("Limpieza", "Cleaning"),
-         L.t("Utilidades", "Utilities"),
-         L.t("Mantenimiento", "Maintenance"),
-         L.t("Alimentos", "Food"),
-         L.t("Tecnología", "Technology"),
-         L.t("Misiones", "Missions"),
-         L.t("Ayudas", "Assistance"),
-         L.t("Ayuda social", "Social aid"),
-         L.t("Transporte", "Transport"),
-         L.t("Publicidad", "Advertising"),
-         L.t("Renta", "Rent"),
-         L.t("Seguros", "Insurance"),
-         L.t("Varios", "Misc"),
-         L.t("Otro", "Other")]
+    static let catalogoIngreso: [Categoria] = [
+        Categoria(clave: .diezmo,   es: "Diezmo",   en: "Tithe"),
+        Categoria(clave: .ofrenda,  es: "Ofrenda",  en: "Offering"),
+        Categoria(clave: .misiones, es: "Misiones", en: "Missions"),
+        Categoria(clave: .eventos,  es: "Eventos",  en: "Events"),
+        Categoria(clave: .donativo, es: "Donativo", en: "Donation"),
+        Categoria(clave: .otro,     es: "Otro",     en: "Other"),
+    ]
+
+    static let catalogoGasto: [Categoria] = [
+        Categoria(clave: .compensacion,  es: "Compensación",  en: "Compensation"),
+        Categoria(clave: .pastores,      es: "Pastores",      en: "Pastors"),
+        Categoria(clave: .musicos,       es: "Músicos",       en: "Musicians"),
+        Categoria(clave: .suministros,   es: "Suministros",   en: "Supplies"),
+        Categoria(clave: .mobiliario,    es: "Mobiliario",    en: "Furniture"),
+        Categoria(clave: .limpieza,      es: "Limpieza",      en: "Cleaning"),
+        Categoria(clave: .utilidades,    es: "Utilidades",    en: "Utilities"),
+        Categoria(clave: .mantenimiento, es: "Mantenimiento", en: "Maintenance"),
+        Categoria(clave: .alimentos,     es: "Alimentos",     en: "Food"),
+        Categoria(clave: .tecnologia,    es: "Tecnología",    en: "Technology"),
+        Categoria(clave: .misiones,      es: "Misiones",      en: "Missions"),
+        Categoria(clave: .ayudas,        es: "Ayudas",        en: "Assistance"),
+        Categoria(clave: .ayudaSocial,   es: "Ayuda social",  en: "Social aid"),
+        Categoria(clave: .transporte,    es: "Transporte",    en: "Transport"),
+        Categoria(clave: .publicidad,    es: "Publicidad",    en: "Advertising"),
+        Categoria(clave: .renta,         es: "Renta",         en: "Rent"),
+        Categoria(clave: .seguros,       es: "Seguros",       en: "Insurance"),
+        Categoria(clave: .varios,        es: "Varios",        en: "Misc"),
+        Categoria(clave: .otro,          es: "Otro",          en: "Other"),
+    ]
+
+    static func catalogo(_ tipo: TipoMovimiento) -> [Categoria] {
+        tipo == .ingreso ? catalogoIngreso : catalogoGasto
     }
+
+    static var categoriasIngreso: [String] { catalogoIngreso.map(\.etiqueta) }
+    static var categoriasGasto: [String] { catalogoGasto.map(\.etiqueta) }
 
     static func categorias(_ tipo: TipoMovimiento) -> [String] {
-        tipo == .ingreso ? categoriasIngreso : categoriasGasto
+        catalogo(tipo).map(\.etiqueta)
+    }
+
+    // MARK: - De etiqueta a clave
+
+    /// Raíces que reconocen una categoría **escrita a mano** o heredada de
+    /// otra versión del catálogo: la semilla trae "Ofrenda misionera" y
+    /// "Ofrenda de gratitud", y una iglesia puede haber capturado "Servicios"
+    /// cuando el catálogo llamaba así a Utilidades. El orden importa: lo más
+    /// específico primero, o "Ayuda social" se resolvería como "Ayudas".
+    private static let raices: [(CategoriaClave, [String])] = [
+        (.ayudaSocial,   ["ayuda social", "social aid"]),
+        (.diezmo,        ["diezmo", "tithe"]),
+        (.ofrenda,       ["ofrenda", "offering"]),
+        (.misiones,      ["mision", "mission"]),
+        (.eventos,       ["evento", "event"]),
+        (.donativo,      ["donativ", "donaci", "donation"]),
+        (.compensacion,  ["compensa", "compensation"]),
+        (.pastores,      ["pastor"]),
+        (.musicos,       ["music"]),
+        (.suministros,   ["suministro", "material", "suppl"]),
+        (.mobiliario,    ["mobiliario", "furniture"]),
+        (.limpieza,      ["limpieza", "cleaning"]),
+        (.utilidades,    ["utilidad", "utilit", "servicio", "service"]),
+        (.mantenimiento, ["manten", "maintenance"]),
+        (.alimentos,     ["aliment", "food"]),
+        (.tecnologia,    ["tecnolog", "technolog"]),
+        (.ayudas,        ["ayuda", "assistance"]),
+        (.transporte,    ["transport"]),
+        (.publicidad,    ["publicidad", "advertis"]),
+        (.renta,         ["renta", "rent"]),
+        (.seguros,       ["seguro", "insurance"]),
+        (.varios,        ["varios", "misc"]),
+    ]
+
+    /// Todas las etiquetas del catálogo, en los dos idiomas, con su clave.
+    private static let porEtiqueta: [String: CategoriaClave] = {
+        var tabla: [String: CategoriaClave] = [:]
+        for c in catalogoIngreso + catalogoGasto {
+            tabla[normalizar(c.es)] = c.clave
+            tabla[normalizar(c.en)] = c.clave
+        }
+        return tabla
+    }()
+
+    /// Sin acentos, sin mayúsculas y sin espacios de sobra: "Tecnología" y
+    /// "tecnologia" son la misma categoría.
+    private static func normalizar(_ s: String) -> String {
+        s.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+            .trimmingCharacters(in: .whitespaces)
+    }
+
+    /// La clave de una etiqueta guardada, venga del idioma que venga. `nil`
+    /// para una categoría que la iglesia se inventó y que no se parece a
+    /// ninguna del catálogo: esas son las que salen en gris, y ahora **solo**
+    /// esas.
+    static func clave(deEtiqueta etiqueta: String) -> CategoriaClave? {
+        let n = normalizar(etiqueta)
+        guard !n.isEmpty else { return nil }
+        if let exacta = porEtiqueta[n] { return exacta }
+        return raices.first { _, formas in formas.contains { n.contains($0) } }?.0
     }
 
     static var metodos: [String] {

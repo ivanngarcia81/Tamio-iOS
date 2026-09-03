@@ -25,7 +25,7 @@ struct MovimientoDetalle: View {
     @State private var abriendoComprobante = false
     @State private var errorComprobante: String?
     @Environment(\.openURL) private var openURL
-    private var color: Color { Paleta.categoria(m.categoria) }
+    private var color: Color { Paleta.categoria(m.claveCategoria) }
 
     /// Texto que se comparte con el sistema (ShareLink).
     private var textoCompartir: String {

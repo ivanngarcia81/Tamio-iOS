@@ -45,6 +45,11 @@ struct Movimiento: Identifiable {
     /// uid y esto queda nulo.
     var aportanteNombre: String? = nil
 
+    /// La categoría como identidad y no como texto: es lo que eligen el ícono
+    /// y el color. `nil` si la iglesia la escribió a mano y no se parece a
+    /// ninguna del catálogo.
+    var claveCategoria: CategoriaClave? { Catalogos.clave(deEtiqueta: categoria) }
+
     var titular: String {
         if let persona, !persona.isEmpty { return "\(categoria) · \(persona)" }
         return categoria

@@ -390,11 +390,11 @@ struct MovimientosView: View {
         return HStack(spacing: 10) {
             // Símbolo de la categoría dentro de un círculo tintado: el punto de
             // 8×8 no se podía interpretar sin leyenda.
-            Image(systemName: Paleta.iconoCategoria(m.categoria))
+            Image(systemName: Paleta.iconoCategoria(m.claveCategoria))
                 .font(.system(size: 13))
-                .foregroundStyle(Paleta.categoria(m.categoria))
+                .foregroundStyle(Paleta.categoria(m.claveCategoria))
                 .frame(width: 30, height: 30)
-                .background(Paleta.categoria(m.categoria).opacity(0.14), in: Circle())
+                .background(Paleta.categoria(m.claveCategoria).opacity(0.14), in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(m.titular).font(.subheadline.weight(.medium)).lineLimit(1)
                 Text(m.subtitulo).font(.caption).foregroundStyle(.secondary).lineLimit(1)

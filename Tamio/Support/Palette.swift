@@ -72,18 +72,26 @@ enum Paleta {
     /// Diezmos (verde) · Ofrendas (morado) · Misiones (cian) · Eventos (naranja).
     static let donut: [Color] = [brand, morado, cian, naranja]
 
-    /// Color por categoría, para el punto de la lista de movimientos y la
+    /// Color por categoría, para el ícono de la lista de movimientos y la
     /// etiqueta del detalle. Espeja los colores de la dona (Diezmos verde,
     /// Ofrendas morado, Misiones cian, Eventos naranja) y añade los de gasto.
-    static func categoria(_ nombre: String) -> Color {
-        let s = nombre.lowercased()
-        if s.contains("diezmo") { return donut[0] }       // verde
-        if s.contains("ofrenda") { return donut[1] }      // morado
-        if s.contains("mision") { return donut[2] }       // cian
-        if s.contains("evento") { return donut[3] }       // naranja
-        if s.contains("servicio") { return azulCielo }
-        if s.contains("manten") { return ambar }
-        return pizarra                                     // resto
+    ///
+    /// Recibe la CLAVE y no la etiqueta: antes comparaba `contains("diezmo")`
+    /// contra un texto que en inglés dice "Tithe", así que no acertaba ninguna
+    /// rama y toda la lista salía del mismo gris. Ver `CategoriaClave`.
+    static func categoria(_ clave: CategoriaClave?) -> Color {
+        switch clave {
+        case .diezmo:        return donut[0]   // verde
+        case .ofrenda:       return donut[1]   // morado
+        case .misiones:      return donut[2]   // cian
+        case .eventos:       return donut[3]   // naranja
+        case .utilidades:    return azulCielo
+        case .mantenimiento: return ambar
+        // Gris solo para el resto del catálogo y para lo que la iglesia se
+        // invente en Ajustes. La ley de color prohíbe repartir acentos
+        // decorativos entre veintitrés categorías.
+        default:             return pizarra
+        }
     }
 
     /// SF Symbol por categoría, para la fila de movimientos. Antes la fila
@@ -91,28 +99,34 @@ enum Paleta {
     /// gris azulado, gris, cian y verde conviviendo, no había forma de deducir
     /// qué significaba cada color, y a ese tamaño varios eran indistinguibles.
     /// Un símbolo se identifica solo.
-    static func iconoCategoria(_ nombre: String) -> String {
-        let s = nombre.lowercased()
-        if s.contains("diezmo") { return "hands.and.sparkles.fill" }
-        if s.contains("ofrenda") { return "gift.fill" }
-        if s.contains("mision") { return "globe.americas.fill" }
-        if s.contains("evento") { return "calendar" }
-        if s.contains("servicio") || s.contains("utilidad") { return "bolt.fill" }
-        if s.contains("manten") { return "wrench.and.screwdriver.fill" }
-        if s.contains("limpieza") { return "sparkles" }
-        if s.contains("aliment") { return "fork.knife" }
-        if s.contains("suministro") || s.contains("material") { return "shippingbox.fill" }
-        if s.contains("transporte") { return "car.fill" }
-        if s.contains("tecnolog") { return "desktopcomputer" }
-        if s.contains("renta") { return "building.2.fill" }
-        if s.contains("compensa") || s.contains("pastor") { return "person.crop.circle.fill" }
-        if s.contains("músico") || s.contains("musico") { return "music.note" }
-        if s.contains("ayuda") { return "heart.fill" }
-        if s.contains("donativ") || s.contains("donaci") { return "hand.raised.fill" }
-        if s.contains("seguro") { return "shield.fill" }
-        if s.contains("publicidad") { return "megaphone.fill" }
-        if s.contains("mobiliario") { return "chair.fill" }
-        return "circle.fill"
+    static func iconoCategoria(_ clave: CategoriaClave?) -> String {
+        switch clave {
+        case .diezmo:        return "hands.and.sparkles.fill"
+        case .ofrenda:       return "gift.fill"
+        case .misiones:      return "globe.americas.fill"
+        case .eventos:       return "calendar"
+        case .donativo:      return "hand.raised.fill"
+        case .compensacion,
+             .pastores:      return "person.crop.circle.fill"
+        case .musicos:       return "music.note"
+        case .suministros:   return "shippingbox.fill"
+        case .mobiliario:    return "chair.fill"
+        case .limpieza:      return "sparkles"
+        case .utilidades:    return "bolt.fill"
+        case .mantenimiento: return "wrench.and.screwdriver.fill"
+        case .alimentos:     return "fork.knife"
+        case .tecnologia:    return "desktopcomputer"
+        case .ayudas,
+             .ayudaSocial:   return "heart.fill"
+        case .transporte:    return "car.fill"
+        case .publicidad:    return "megaphone.fill"
+        case .renta:         return "building.2.fill"
+        case .seguros:       return "shield.fill"
+        case .varios,
+             .otro:          return "tray.fill"
+        // Una categoría inventada en Ajustes: no hay símbolo que le pegue.
+        case nil:            return "circle.fill"
+        }
     }
 
     /// Puntos de color de la agenda ("Esta semana"), por familia de actividad.
