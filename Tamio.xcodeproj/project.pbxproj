@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		109DD59330497B0000E781A1 /* AccesoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD59230497B0000E781A1 /* AccesoView.swift */; };
+		109DD59130497B0000E781A1 /* SesionSupabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD59030497B0000E781A1 /* SesionSupabase.swift */; };
 		109DD58530497A0000E781A1 /* Fechas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD58430497A0000E781A1 /* Fechas.swift */; };
 		109DD58330497A0000E781A1 /* Espaciado.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD58230497A0000E781A1 /* Espaciado.swift */; };
 		109DD58130497A0000E781A1 /* Catalogos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD58030497A0000E781A1 /* Catalogos.swift */; };
@@ -94,6 +96,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		109DD59230497B0000E781A1 /* AccesoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccesoView.swift; sourceTree = "<group>"; };
+		109DD59030497B0000E781A1 /* SesionSupabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SesionSupabase.swift; sourceTree = "<group>"; };
 		109DD58430497A0000E781A1 /* Fechas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fechas.swift; sourceTree = "<group>"; };
 		109DD58230497A0000E781A1 /* Espaciado.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Espaciado.swift; sourceTree = "<group>"; };
 		109DD58030497A0000E781A1 /* Catalogos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalogos.swift; sourceTree = "<group>"; };
@@ -275,6 +279,7 @@
 				630E8CADA66AF06CEC50D6D5 /* Palette.swift */,
 				59A3F1E2883B1BF903DAF0E8 /* PDFExport.swift */,
 				109DD55F304964A800E781A1 /* Supabase.swift */,
+				109DD59030497B0000E781A1 /* SesionSupabase.swift */,
 				109DD58430497A0000E781A1 /* Fechas.swift */,
 				109DD58230497A0000E781A1 /* Espaciado.swift */,
 				109DD58030497A0000E781A1 /* Catalogos.swift */,
@@ -315,6 +320,7 @@
 			children = (
 				D014F01B5FC4BD495876EBD4 /* ActasView.swift */,
 				05A757092F90A8F4C8636DF6 /* AgendaView.swift */,
+				109DD59230497B0000E781A1 /* AccesoView.swift */,
 				28FE7FC5CAF1EF805C4A97DA /* AportanteDetalle.swift */,
 				8FEF0708FABDD5EE67DBD684 /* CartasView.swift */,
 				2C9E0C3772DBD4E6582C8AE3 /* ConfiguracionView.swift */,
@@ -479,6 +485,8 @@
 				C939626C1FC08A782F5A721A /* RegistroViewModel.swift in Sources */,
 				A2BD39D2F5801E8FCDD75718 /* Reporte.swift in Sources */,
 				109DD560304964A800E781A1 /* Supabase.swift in Sources */,
+				109DD59330497B0000E781A1 /* AccesoView.swift in Sources */,
+				109DD59130497B0000E781A1 /* SesionSupabase.swift in Sources */,
 				109DD58530497A0000E781A1 /* Fechas.swift in Sources */,
 				109DD58330497A0000E781A1 /* Espaciado.swift in Sources */,
 				109DD58130497A0000E781A1 /* Catalogos.swift in Sources */,

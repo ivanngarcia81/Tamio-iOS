@@ -106,6 +106,33 @@ struct MovimientosView: View {
         }
         .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
         .task { await vm.cargar() }
+        .overlay(alignment: .top) { avisoError }
+    }
+
+    /// El repositorio real puede fallar por red o porque RLS niegue el acceso.
+    /// Sin este aviso la lista se vería simplemente vacía, indistinguible de
+    /// "no hay movimientos".
+    @ViewBuilder private var avisoError: some View {
+        if let error = vm.error {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                Text(error).font(.footnote).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Button {
+                    vm.descartarError()
+                } label: {
+                    Image(systemName: "xmark").font(.footnote.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Paleta.negativo, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
+            .transition(.move(edge: .top).combined(with: .opacity))
+        }
     }
 
     private func abrir(_ m: Movimiento) {

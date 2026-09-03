@@ -85,7 +85,7 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
         let rows: [TransaccionDTO] = try await supabase
             .from("transactions")
             .select()
-            .eq("church_id", value: churchId)
+            .eq("church_id", value: churchIdActivo)
             .eq("tipo", value: tipoStr)
             .eq("deleted", value: false)
             .order("created_at", ascending: false)
@@ -110,7 +110,7 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
             .from("transactions")
             .update(toInsert(m))
             .eq("uid", value: m.id)
-            .eq("church_id", value: churchId)
+            .eq("church_id", value: churchIdActivo)
             .execute()
     }
 
@@ -120,7 +120,7 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
             .from("transactions")
             .update(SoftDelete(deleted: true))
             .eq("uid", value: id)
-            .eq("church_id", value: churchId)
+            .eq("church_id", value: churchIdActivo)
             .execute()
     }
 
@@ -132,7 +132,7 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
         let rows: [FolioRow]? = try? await supabase
             .from("transactions")
             .select("folio_seq")
-            .eq("church_id", value: churchId)
+            .eq("church_id", value: churchIdActivo)
             .eq("deleted", value: false)
             .order("folio_seq", ascending: false)
             .limit(1)
@@ -201,7 +201,7 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
         df.formatOptions = [.withInternetDateTime]
         return TransaccionInsert(
             uid: m.id.isEmpty ? UUID().uuidString : m.id,
-            churchId: churchId,
+            churchId: churchIdActivo,
             memberUid: nil,     // resolución de member por nombre pendiente
             tipo: m.tipo == .ingreso ? "ingreso" : "gasto",
             categoria: m.categoria,
