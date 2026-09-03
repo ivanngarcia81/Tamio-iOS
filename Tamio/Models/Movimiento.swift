@@ -11,7 +11,9 @@ struct Movimiento: Identifiable {
     /// Categoría corta para el titular y el punto ("Diezmo", "Servicios").
     let categoria: String
     let persona: String?
-    let folio: String
+    /// `var` por el mismo motivo que `id`: el número definitivo lo asigna el
+    /// contador del servidor al guardar, no la hoja de captura.
+    var folio: String
     let metodo: String
     let monto: Centavos
     let hora: String            // "11:20"
@@ -32,6 +34,16 @@ struct Movimiento: Identifiable {
     var incluidoEnCorte: Bool = true
     var darConstanciaAnual: Bool = true // solo ingresos
     var repiteMensual: Bool = false
+    /// Claves que la pantalla no edita pero que viven en la fila remota. Se
+    /// arrastran en el round-trip porque, si no, una edición cualquiera las
+    /// sobrescribe con nulo y se pierde el vínculo con el miembro y el
+    /// desglose de la categoría.
+    var memberUid: String? = nil
+    var subcategoria: String? = nil
+    /// Nombre del aportante que no tiene ficha en el padrón (un visitante, una
+    /// aseguradora). Excluyente con `memberUid`: si está en el padrón se usa el
+    /// uid y esto queda nulo.
+    var aportanteNombre: String? = nil
 
     var titular: String {
         if let persona, !persona.isEmpty { return "\(categoria) · \(persona)" }

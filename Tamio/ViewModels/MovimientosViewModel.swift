@@ -22,7 +22,7 @@ final class MovimientosViewModel {
     var filtroCategoria: String? = nil
     var soloSinDepositar = false
 
-    init(tipo: TipoMovimiento, repo: MovimientosRepository = SupabaseMovimientosRepository()) {
+    init(tipo: TipoMovimiento, repo: MovimientosRepository = repositorioMovimientos()) {
         self.tipo = tipo
         self.repo = repo
     }
@@ -72,7 +72,9 @@ final class MovimientosViewModel {
 
     @MainActor func descartarError() { error = nil }
 
-    func nuevoFolio() async -> String { await repo.siguienteFolio() }
+    /// Folio previsto para la serie que se está viendo. Orientativo: el
+    /// definitivo lo asigna el repositorio al guardar.
+    func nuevoFolio() async -> String { await repo.siguienteFolio(tipo: tipo) }
 
     // MARK: - Derivados
 

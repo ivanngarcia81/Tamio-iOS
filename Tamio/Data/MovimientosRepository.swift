@@ -8,8 +8,21 @@ protocol MovimientosRepository {
     func crear(_ m: Movimiento) async throws
     func actualizar(_ m: Movimiento) async throws
     func eliminar(id: String) async throws
-    /// Siguiente folio disponible, para un movimiento nuevo.
-    func siguienteFolio() async -> String
+    /// Folio que le tocaría al siguiente movimiento de esa serie, para
+    /// enseñarlo en la hoja de captura. Es orientativo: no reserva nada, así
+    /// que cancelar la hoja no deja huecos en la numeración. El folio
+    /// definitivo lo asigna `crear`.
+    func siguienteFolio(tipo: TipoMovimiento) async -> String
+}
+
+/// El repositorio que usa la app: la base del teléfono, siempre. Escribe local
+/// y encola; `MotorSincronizacion` lleva y trae contra Supabase por su cuenta.
+/// Ninguna pantalla espera ya a la red para guardar.
+///
+/// En modo revisión son datos de ejemplo, porque sin sesión iniciada Supabase
+/// no devolvería ni aceptaría nada que sincronizar.
+func repositorioMovimientos() -> MovimientosRepository {
+    ModoRevision.sinLogin ? MockMovimientosRepository() : OfflineMovimientosRepository()
 }
 
 /// Almacén falso en memoria. Es un **struct** (valor, como los demás repos) con
@@ -17,7 +30,8 @@ protocol MovimientosRepository {
 /// durante la sesión y se reflejen entre Ingresos y Gastos.
 struct MockMovimientosRepository: MovimientosRepository {
     private static var almacen: [Movimiento] = MockMovimientosRepository.semilla
-    private static var folio: Int = 1044
+    /// Un contador por serie, igual que en Supabase.
+    private static var folios: [TipoMovimiento: Int] = [.ingreso: 1044, .gasto: 1044]
 
     func lista(tipo: TipoMovimiento) async throws -> [Movimiento] {
         try? await Task.sleep(nanoseconds: 120_000_000)
@@ -27,6 +41,10 @@ struct MockMovimientosRepository: MovimientosRepository {
     func crear(_ m: Movimiento) async throws {
         var nuevo = m
         if nuevo.id.isEmpty { nuevo.id = UUID().uuidString }
+        // El folio se consume al guardar, no al abrir la hoja.
+        let seq = (Self.folios[m.tipo] ?? 0) + 1
+        Self.folios[m.tipo] = seq
+        nuevo.folio = String(seq)
         Self.almacen.append(nuevo)
     }
 
@@ -38,9 +56,8 @@ struct MockMovimientosRepository: MovimientosRepository {
         Self.almacen.removeAll { $0.id == id }
     }
 
-    func siguienteFolio() async -> String {
-        defer { Self.folio += 1 }
-        return String(Self.folio)
+    func siguienteFolio(tipo: TipoMovimiento) async -> String {
+        String((Self.folios[tipo] ?? 0) + 1)
     }
 
     // MARK: - Semilla (los datos del handoff)
