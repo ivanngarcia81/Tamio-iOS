@@ -20,7 +20,7 @@ enum TipoMovimiento {
 
 /// La iglesia activa. Espejo reducido de `Church` en `src/db.ts`.
 struct Church {
-    let id: Int
+    let id: String
     let nombre: String
     let ciudad: String
     let moneda: String
@@ -30,7 +30,7 @@ struct Church {
 /// Un movimiento (ingreso o gasto). El diseño muestra el titular como
 /// "categoría · persona" y el subtítulo como "Folio NNNN · método".
 struct Tx: Identifiable {
-    let id: Int
+    let id: String
     let tipo: TipoMovimiento
     let categoria: String
     let persona: String?
@@ -52,7 +52,7 @@ struct Tx: Identifiable {
 
 /// Una ocurrencia de "Esta semana" (agenda). El punto de color lo da la familia.
 struct AgendaItem: Identifiable {
-    let id: Int
+    let id: String
     /// "VIE" / "DOM" — día de la semana abreviado.
     let dia: String
     /// "21" — número del día.

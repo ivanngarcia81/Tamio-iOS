@@ -3,7 +3,7 @@ import Foundation
 @Observable
 final class ServiciosViewModel {
     var lista: [Servicio] = []
-    var seleccionId: Int? = 1
+    var seleccionId: String? = nil
     var cargando = false
 
     private let repo: ServiciosRepository
@@ -13,7 +13,7 @@ final class ServiciosViewModel {
     }
 
     var seleccion: Servicio? { lista.first { $0.id == seleccionId } }
-    var proximoId: Int { (lista.map(\.id).max() ?? 0) + 1 }
+    var proximoId: String { UUID().uuidString }
 
     @MainActor
     func agregarServicio(_ nuevo: Servicio) {
@@ -23,7 +23,7 @@ final class ServiciosViewModel {
 
     /// Reemplaza el roster con las asignaciones editadas y recalcula estadoRoster.
     @MainActor
-    func actualizarRoster(servicioId: Int, personas: [Int: String]) {
+    func actualizarRoster(servicioId: String, personas: [Int: String]) {
         guard let idx = lista.firstIndex(where: { $0.id == servicioId }) else { return }
         lista[idx].roster = lista[idx].roster.map { item in
             let txt = personas[item.id]?.trimmingCharacters(in: .whitespaces)
@@ -39,11 +39,10 @@ final class ServiciosViewModel {
 
     /// Añade una entrada de asistencia al historial del servicio.
     @MainActor
-    func registrarAsistencia(servicioId: Int, presentes: Int, total: Int, fecha: String) {
+    func registrarAsistencia(servicioId: String, presentes: Int, total: Int, fecha: String) {
         guard let idx = lista.firstIndex(where: { $0.id == servicioId }) else { return }
-        let nextId = (lista[idx].historial.map(\.id).max() ?? 0) + 1
         lista[idx].historial.append(
-            AsistenciaServicio(id: nextId, fecha: fecha, presentes: presentes, total: total)
+            AsistenciaServicio(id: UUID().uuidString, fecha: fecha, presentes: presentes, total: total)
         )
     }
 

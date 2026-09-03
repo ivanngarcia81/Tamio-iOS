@@ -46,7 +46,7 @@ struct RegistroDeposito {
 /// derivados son `var`: se recalculan cuando cambia la selección de movimientos,
 /// se asigna cuenta, se adjunta la ficha o se marca como depositado.
 struct Corte: Identifiable, Hashable {
-    let id: Int
+    let id: String
     var titulo: String
     var subtitulo: String       // "14 movimientos · Banorte ··4821"
     var descripcion: String     // "Dinero en caja del domingo 23 de agosto · …"

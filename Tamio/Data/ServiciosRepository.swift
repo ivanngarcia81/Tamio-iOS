@@ -12,16 +12,16 @@ struct MockServiciosRepository: ServiciosRepository {
 
     private static func historial() -> [AsistenciaServicio] {
         [
-            AsistenciaServicio(id: 1, fecha: L.fecha("2 ago"),  presentes: 118, total: 140),
-            AsistenciaServicio(id: 2, fecha: L.fecha("9 ago"),  presentes: 132, total: 140),
-            AsistenciaServicio(id: 3, fecha: L.fecha("16 ago"), presentes: 109, total: 140),
-            AsistenciaServicio(id: 4, fecha: L.fecha("23 ago"), presentes: 128, total: 140),
+            AsistenciaServicio(id: "1", fecha: L.fecha("2 ago"),  presentes: 118, total: 140),
+            AsistenciaServicio(id: "2", fecha: L.fecha("9 ago"),  presentes: 132, total: 140),
+            AsistenciaServicio(id: "3", fecha: L.fecha("16 ago"), presentes: 109, total: 140),
+            AsistenciaServicio(id: "4", fecha: L.fecha("23 ago"), presentes: 128, total: 140),
         ]
     }
 
     private static var servicios: [Servicio] {
         [
-            Servicio(id: 1,
+            Servicio(id: "1",
                      diaSemana: L.diaSemana("DOM"), numDia: "23",
                      titulo: L.t("Culto matutino", "Morning service"),
                      hora: "10:00",
@@ -41,7 +41,7 @@ struct MockServiciosRepository: ServiciosRepository {
                         PuntoOrden(id: 3, hora: "10:35", descripcion: L.t("Ofrenda y avisos", "Offering and announcements")),
                         PuntoOrden(id: 4, hora: "10:45", descripcion: L.t("Predicación · Hechos 2", "Preaching · Acts 2")),
                      ]),
-            Servicio(id: 2,
+            Servicio(id: "2",
                      diaSemana: L.diaSemana("DOM"), numDia: "23",
                      titulo: L.t("Culto vespertino", "Evening service"),
                      hora: "18:00",
@@ -59,7 +59,7 @@ struct MockServiciosRepository: ServiciosRepository {
                         PuntoOrden(id: 6, hora: "18:10", descripcion: L.t("Alabanza y adoración", "Praise and worship")),
                         PuntoOrden(id: 7, hora: "18:40", descripcion: L.t("Predicación", "Preaching")),
                      ]),
-            Servicio(id: 3,
+            Servicio(id: "3",
                      diaSemana: L.diaSemana("MIÉ"), numDia: "26",
                      titulo: L.t("Reunión de oración", "Prayer meeting"),
                      hora: "19:30",
@@ -73,7 +73,7 @@ struct MockServiciosRepository: ServiciosRepository {
                         PuntoOrden(id: 8, hora: "19:30", descripcion: L.t("Apertura y lectura bíblica", "Opening and Bible reading")),
                         PuntoOrden(id: 9, hora: "19:45", descripcion: L.t("Peticiones y oración en grupos", "Prayer requests and group prayer")),
                      ]),
-            Servicio(id: 4,
+            Servicio(id: "4",
                      diaSemana: L.diaSemana("DOM"), numDia: "30",
                      titulo: L.t("Santa cena", "Lord's Supper"),
                      hora: "10:00",

@@ -3,7 +3,7 @@ import Foundation
 @Observable
 final class ActasViewModel {
     var lista: [Acta] = []
-    var seleccionId: Int? = 1
+    var seleccionId: String? = nil
     var cargando = false
 
     private let repo: ActasRepository
@@ -13,7 +13,7 @@ final class ActasViewModel {
     }
 
     var seleccion: Acta? { lista.first { $0.id == seleccionId } }
-    var proximoId: Int { (lista.map(\.id).max() ?? 0) + 1 }
+    var proximoId: String { UUID().uuidString }
 
     @MainActor
     func agregarActa(_ nueva: Acta) {
@@ -22,13 +22,13 @@ final class ActasViewModel {
     }
 
     @MainActor
-    func cerrarActa(id: Int) {
+    func cerrarActa(id: String) {
         guard let idx = lista.firstIndex(where: { $0.id == id }) else { return }
         lista[idx].estado = .cerrada
     }
 
     @MainActor
-    func firmarActa(id: Int) {
+    func firmarActa(id: String) {
         guard let idx = lista.firstIndex(where: { $0.id == id }) else { return }
         lista[idx].estado = .firmada
     }

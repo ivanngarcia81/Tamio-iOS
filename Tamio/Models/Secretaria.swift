@@ -35,7 +35,7 @@ struct AcuerdoActa: Identifiable {
 }
 
 struct Acta: Identifiable, Hashable {
-    let id: Int
+    let id: String
     let folio: String
     let tipo: String
     let fecha: String
@@ -95,7 +95,7 @@ struct AsignacionRoster: Identifiable {
 }
 
 struct AsistenciaServicio: Identifiable {
-    let id: Int
+    let id: String
     let fecha: String
     let presentes: Int
     let total: Int
@@ -109,7 +109,7 @@ struct PuntoOrden: Identifiable {
 }
 
 struct Servicio: Identifiable, Hashable {
-    let id: Int
+    let id: String
     let diaSemana: String
     let numDia: String
     let titulo: String
@@ -212,7 +212,7 @@ enum TipoPlantilla: String, CaseIterable, Identifiable {
 }
 
 struct CartaEmitida: Identifiable {
-    let id: Int
+    let id: String
     let iniciales: String
     let persona: String
     let tipo: TipoPlantilla
@@ -309,7 +309,7 @@ enum TipoEvento: CaseIterable {
 }
 
 struct EventoAgenda: Identifiable {
-    let id: Int
+    let id: String
     let dia: Int
     let hora: String?
     let titulo: String

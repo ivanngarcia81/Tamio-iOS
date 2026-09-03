@@ -16,7 +16,7 @@ final class MembresiaViewModel {
     private(set) var items: [Miembro] = []
     private(set) var resumen: MembresiaResumen?
     private(set) var asistencia: AsistenciaResumen?
-    var seleccionId: Int?
+    var seleccionId: String?
     var busqueda = ""
     var filtroAño: Int? = nil
     var filtroEstado: EstadoMiembro? = nil
@@ -29,7 +29,7 @@ final class MembresiaViewModel {
     }
 
     /// ID disponible para el siguiente miembro que se cree en memoria.
-    var proximoId: Int { (items.map(\.id).max() ?? 0) + 1 }
+    var proximoId: String { UUID().uuidString }
 
     @MainActor
     func agregarMiembro(_ nuevo: Miembro) {
@@ -45,7 +45,7 @@ final class MembresiaViewModel {
     }
 
     @MainActor
-    func agregarSeguimiento(miembroId: Int, nota: SeguimientoNota) {
+    func agregarSeguimiento(miembroId: String, nota: SeguimientoNota) {
         guard let idx = items.firstIndex(where: { $0.id == miembroId }) else { return }
         items[idx].seguimientoNotas.append(nota)
     }

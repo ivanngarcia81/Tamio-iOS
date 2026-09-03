@@ -2,7 +2,7 @@ import Foundation
 
 protocol RevisarRepository {
     func asuntos() async -> [Revision]
-    func resolver(id: Int) async
+    func resolver(id: String) async
     func resolverTodos() async
     func restaurar(_ r: Revision) async
     func actualizar(_ r: Revision) async
@@ -18,12 +18,11 @@ struct MockRevisarRepository: RevisarRepository {
         try? await Task.sleep(nanoseconds: 120_000_000)
         return Self.almacen
     }
-    func resolver(id: Int) async { Self.almacen.removeAll { $0.id == id } }
+    func resolver(id: String) async { Self.almacen.removeAll { $0.id == id } }
     func resolverTodos() async { Self.almacen.removeAll { !$0.archivado } }
     func restaurar(_ r: Revision) async {
         if !Self.almacen.contains(where: { $0.id == r.id }) {
-            let pos = Self.almacen.firstIndex { $0.id > r.id } ?? Self.almacen.endIndex
-            Self.almacen.insert(r, at: pos)
+            Self.almacen.insert(r, at: 0)
         }
     }
     func actualizar(_ r: Revision) async {
@@ -50,7 +49,7 @@ struct MockRevisarRepository: RevisarRepository {
 
     private static var semilla: [Revision] {
         [
-            Revision(id: 1, tipo: .vistoBueno, concepto: L.t("Ofrenda del domingo", "Sunday offering"),
+            Revision(id: "1", tipo: .vistoBueno, concepto: L.t("Ofrenda del domingo", "Sunday offering"),
                      detalleLista: L.t("Rocío Ibarra · 30 ago 2026", "Rocío Ibarra · Aug 30, 2026"),
                      descripcion: L.t("«Ofrenda del domingo» por $8,420.00 se registró el 30 ago 2026 y quedó en espera de tu visto bueno. Hasta que se apruebe no cuenta en los totales del mes ni sale en el estado financiero.",
                                       "«Sunday offering» for $8,420.00 was recorded on Aug 30, 2026 and is awaiting your approval. Until approved it doesn't count in monthly totals or appear in the financial statement."),
@@ -68,7 +67,7 @@ struct MockRevisarRepository: RevisarRepository {
                      acciones: [aprobar, devolver, pedir],
                      editImporte: "8,420.00", editCategoria: L.t("Ofrenda general", "General offering"), editMetodo: L.t("Efectivo", "Cash")),
 
-            Revision(id: 2, tipo: .vistoBueno, concepto: L.t("Compra de sillas", "Chairs purchase"),
+            Revision(id: "2", tipo: .vistoBueno, concepto: L.t("Compra de sillas", "Chairs purchase"),
                      detalleLista: L.t("Luis Aguilar · 29 ago 2026", "Luis Aguilar · Aug 29, 2026"),
                      descripcion: L.t("«Compra de sillas» por $6,900.00 se registró el 29 ago 2026 y quedó en espera de tu visto bueno. Hasta que se apruebe no cuenta en los totales del mes ni sale en el estado financiero.",
                                       "«Chairs purchase» for $6,900.00 was recorded on Aug 29, 2026 and is awaiting your approval. Until approved it doesn't count in monthly totals or appear in the financial statement."),
@@ -86,7 +85,7 @@ struct MockRevisarRepository: RevisarRepository {
                      acciones: [aprobar, devolver, pedir],
                      esGasto: true, editImporte: "6,900.00", editCategoria: L.t("Mobiliario", "Furniture"), editMetodo: L.t("Transferencia", "Transfer")),
 
-            Revision(id: 3, tipo: .sinComprobante, concepto: L.t("Mantenimiento del aire", "AC maintenance"),
+            Revision(id: "3", tipo: .sinComprobante, concepto: L.t("Mantenimiento del aire", "AC maintenance"),
                      detalleLista: L.t("Luis Aguilar · 26 ago 2026", "Luis Aguilar · Aug 26, 2026"),
                      descripcion: L.t("«Mantenimiento del aire» ($4,350.00) se pagó por transferencia el 26 ago 2026 y no tiene comprobante adjunto. Se avisa porque pasa de $1,000.00; por debajo de esa cifra no se pide.",
                                       "«AC maintenance» ($4,350.00) was paid by transfer on Aug 26, 2026 and has no receipt attached. Flagged because it's over $1,000.00; below that it isn't required."),
@@ -104,7 +103,7 @@ struct MockRevisarRepository: RevisarRepository {
                      acciones: [aprobar, devolver, pedir],
                      esGasto: true, editImporte: "4,350.00", editCategoria: L.t("Mantenimiento", "Maintenance"), editMetodo: L.t("Transferencia", "Transfer")),
 
-            Revision(id: 4, tipo: .duplicado, concepto: L.t("Renta del anexo", "Annex rent"),
+            Revision(id: "4", tipo: .duplicado, concepto: L.t("Renta del anexo", "Annex rent"),
                      detalleLista: L.t("Luis Aguilar · 28 ago 2026", "Luis Aguilar · Aug 28, 2026"),
                      descripcion: L.t("«Renta del anexo» por $3,500.00 del 28 ago 2026 se parece a otro de $3,500.00 del 22 ago 2026: mismo importe, misma contraparte y pocos días de diferencia. Puede ser un cobro real repetido o el mismo capturado dos veces.",
                                       "«Annex rent» for $3,500.00 on Aug 28, 2026 looks like another for $3,500.00 on Aug 22, 2026: same amount, same counterparty, a few days apart. It could be a real repeated charge or the same one captured twice."),
@@ -131,7 +130,7 @@ struct MockRevisarRepository: RevisarRepository {
                      acciones: [editarPrim, pedir],
                      esGasto: true, editImporte: "3,500.00", editCategoria: L.t("Renta", "Rent"), editMetodo: L.t("Transferencia", "Transfer")),
 
-            Revision(id: 5, tipo: .categoriaVacia, concepto: L.t("Depósito varios", "Misc deposit"),
+            Revision(id: "5", tipo: .categoriaVacia, concepto: L.t("Depósito varios", "Misc deposit"),
                      detalleLista: L.t("CSV · 25 ago 2026", "CSV · Aug 25, 2026"),
                      descripcion: L.t("«Depósito varios» por $1,180.00 del 25 ago 2026 entró sin categoría. Sin ella no aparece en el desglose de los reportes ni suma en ninguna línea del estado financiero.",
                                       "«Misc deposit» for $1,180.00 on Aug 25, 2026 came in with no category. Without one it doesn't appear in report breakdowns or add to any line of the financial statement."),
@@ -149,7 +148,7 @@ struct MockRevisarRepository: RevisarRepository {
                      acciones: [resolver("Asignar categoría", "Assign category"), pedir],
                      editImporte: "1,180.00", editCategoria: L.t("Ofrenda general", "General offering"), editMetodo: L.t("Transferencia", "Transfer")),
 
-            Revision(id: 6, tipo: .sinVincular, concepto: L.t("Diezmo", "Tithe"),
+            Revision(id: "6", tipo: .sinVincular, concepto: L.t("Diezmo", "Tithe"),
                      detalleLista: L.t("Luis Aguilar · 24 ago 2026", "Luis Aguilar · Aug 24, 2026"),
                      descripcion: L.t("«Diezmo» por $2,400.00 del 24 ago 2026 está marcado para constancia pero no tiene aportante vinculado. Sin el vínculo no puede salir en la constancia anual de nadie.",
                                       "«Tithe» for $2,400.00 on Aug 24, 2026 is marked for a statement but has no giver linked. Without the link it can't appear on anyone's annual statement."),
@@ -168,7 +167,7 @@ struct MockRevisarRepository: RevisarRepository {
                      acciones: [resolver("Vincular aportante", "Link giver"), pedir],
                      editImporte: "2,400.00", editCategoria: L.t("Diezmo", "Tithe"), editMetodo: L.t("Transferencia", "Transfer")),
 
-            Revision(id: 7, tipo: .recurrenteVencido, concepto: L.t("Renta del anexo", "Annex rent"),
+            Revision(id: "7", tipo: .recurrenteVencido, concepto: L.t("Renta del anexo", "Annex rent"),
                      detalleLista: L.t("Serie mensual · julio y agosto sin generar", "Monthly series · July and August not generated"),
                      descripcion: L.t("«Renta del anexo» lleva 2 meses sin generar su movimiento. Los meses cumplidos no se crean solos hacia atrás: hay que generarlos o mover la fecha de la serie.",
                                       "«Annex rent» hasn't generated its entry for 2 months. Past months aren't created backwards on their own: generate them or move the series date."),
@@ -183,7 +182,7 @@ struct MockRevisarRepository: RevisarRepository {
                      ],
                      acciones: [navegar("Ver movimientos recurrentes", "See recurring entries")]),
 
-            Revision(id: 8, tipo: .faltaFirma, concepto: L.t("Miércoles 19 de agosto", "Wednesday Aug 19"),
+            Revision(id: "8", tipo: .faltaFirma, concepto: L.t("Miércoles 19 de agosto", "Wednesday Aug 19"),
                      detalleLista: L.t("Luis Aguilar · falta la segunda firma", "Luis Aguilar · second signature missing"),
                      descripcion: L.t("El corte «Miércoles 19 de agosto» del 19 ago 2026 pidió que una segunda persona contara el dinero, y todavía nadie ha firmado. Lo registró Luis Aguilar, así que la firma le toca a alguien más. Si el dinero ya está en el banco, lo que queda por revisar es el registro.",
                                       "The «Wednesday Aug 19» cut on Aug 19, 2026 asked for a second person to count the money, and nobody has signed yet. Luis Aguilar logged it, so the signature falls to someone else. If the money is already in the bank, what's left to review is the record."),
@@ -198,7 +197,7 @@ struct MockRevisarRepository: RevisarRepository {
                      ],
                      acciones: [navegar("Ir al corte", "Go to the cut")]),
 
-            Revision(id: 9, tipo: .archivado, concepto: "Carmen Ortiz Salinas",
+            Revision(id: "9", tipo: .archivado, concepto: "Carmen Ortiz Salinas",
                      detalleLista: L.t("Sin correo registrado", "No email on file"),
                      archivado: true,
                      descripcion: L.t("Carmen Ortiz Salinas está archivada. Se conserva su historial de aportes, pero no aparece en el padrón ni se le puede registrar nada nuevo hasta restaurarla.",
@@ -213,7 +212,7 @@ struct MockRevisarRepository: RevisarRepository {
                      ],
                      acciones: [resolver("Restaurar", "Restore")]),
 
-            Revision(id: 10, tipo: .archivado, concepto: "Tomás Iracheta Guzmán",
+            Revision(id: "10", tipo: .archivado, concepto: "Tomás Iracheta Guzmán",
                      detalleLista: "tomas.ig@gmail.com",
                      archivado: true,
                      descripcion: L.t("Tomás Iracheta Guzmán está archivado. Se conserva su historial de aportes, pero no aparece en el padrón ni se le puede registrar nada nuevo hasta restaurarlo.",

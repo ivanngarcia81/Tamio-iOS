@@ -9,7 +9,7 @@ final class MovimientosViewModel {
         didSet { if tipo != oldValue { filtroCategoria = nil; Task { await cargar() } } }
     }
     private(set) var items: [Movimiento] = []
-    var seleccionId: Int?
+    var seleccionId: String?
 
     // Filtros de la lista.
     var busqueda = ""

@@ -86,7 +86,7 @@ struct NuevoAportanteView: View {
 
     private func guardar() {
         let a = Aportante(
-            id: existente?.id ?? 0,
+            id: existente?.id ?? "",
             nombre: nombre, estado: existente?.estado ?? .activo, rol: rol, miembroDesde: miembroDesde,
             bautizadoAnio: L.t("Bautizado \(miembroDesde)", "Baptized \(miembroDesde)"),
             ministerios: ministerios, cargos: cargos,

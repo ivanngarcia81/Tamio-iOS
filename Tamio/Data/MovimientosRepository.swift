@@ -7,7 +7,7 @@ protocol MovimientosRepository {
     func lista(tipo: TipoMovimiento) async throws -> [Movimiento]
     func crear(_ m: Movimiento) async throws
     func actualizar(_ m: Movimiento) async throws
-    func eliminar(id: Int) async throws
+    func eliminar(id: String) async throws
     /// Siguiente folio disponible, para un movimiento nuevo.
     func siguienteFolio() async -> String
 }
@@ -17,7 +17,6 @@ protocol MovimientosRepository {
 /// durante la sesión y se reflejen entre Ingresos y Gastos.
 struct MockMovimientosRepository: MovimientosRepository {
     private static var almacen: [Movimiento] = MockMovimientosRepository.semilla
-    private static var siguienteId: Int = (MockMovimientosRepository.semilla.map(\.id).max() ?? 0) + 1
     private static var folio: Int = 1044
 
     func lista(tipo: TipoMovimiento) async throws -> [Movimiento] {
@@ -27,7 +26,7 @@ struct MockMovimientosRepository: MovimientosRepository {
 
     func crear(_ m: Movimiento) async throws {
         var nuevo = m
-        if nuevo.id == 0 { nuevo.id = Self.siguienteId; Self.siguienteId += 1 }
+        if nuevo.id.isEmpty { nuevo.id = UUID().uuidString }
         Self.almacen.append(nuevo)
     }
 
@@ -35,7 +34,7 @@ struct MockMovimientosRepository: MovimientosRepository {
         if let i = Self.almacen.firstIndex(where: { $0.id == m.id }) { Self.almacen[i] = m }
     }
 
-    func eliminar(id: Int) async throws {
+    func eliminar(id: String) async throws {
         Self.almacen.removeAll { $0.id == id }
     }
 
@@ -64,7 +63,7 @@ struct MockMovimientosRepository: MovimientosRepository {
     private static var semilla: [Movimiento] {
         var v: [Movimiento] = []
         v += [
-            Movimiento(id: 1, tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "María Hernández",
+            Movimiento(id: "1", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "María Hernández",
                 folio: "1043", metodo: L.t("Efectivo", "Cash"), monto: 1_200_00, hora: "11:20", fecha: dias(0),
                 registradoPor: "Iván García", miembro: "María Hernández Ríos",
                 categoriaCompleta: L.t("Diezmos · fondo general", "Tithes · general fund"),
@@ -72,66 +71,66 @@ struct MockMovimientosRepository: MovimientosRepository {
                           "Handed in a sealed envelope during prayer service. Amount confirmed with her before sealing."),
                 sinDepositar: true, comprobante: "sobre-1043.jpg",
                 auditoria: [
-                    AuditEntry(id: 1, titulo: L.t("Creado · Iván García", "Created · Iván García"),
+                    AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
                                detalle: creadoEn(dias(0), "11:20")),
-                    AuditEntry(id: 2, titulo: L.t("Categoría asignada", "Category assigned"),
+                    AuditEntry(id: "2", titulo: L.t("Categoría asignada", "Category assigned"),
                                detalle: L.t("Diezmos · fondo general", "Tithes · general fund")),
-                    AuditEntry(id: 3, titulo: L.t("Sin depositar", "Not deposited"),
+                    AuditEntry(id: "3", titulo: L.t("Sin depositar", "Not deposited"),
                                detalle: L.t("Se incluirá en el corte del domingo 23", "Will be in Sunday 23 deposit")),
                 ]),
-            Movimiento(id: 2, tipo: .ingreso, categoria: L.t("Ofrenda misionera", "Mission offering"), persona: nil,
+            Movimiento(id: "2", tipo: .ingreso, categoria: L.t("Ofrenda misionera", "Mission offering"), persona: nil,
                 folio: "1041", metodo: L.t("Efectivo", "Cash"), monto: 6_845_00, hora: "12:05", fecha: dias(0),
                 registradoPor: "Iván García", miembro: nil,
                 categoriaCompleta: L.t("Misiones · ofrenda", "Missions · offering"), nota: nil,
                 sinDepositar: true, comprobante: nil,
-                auditoria: [AuditEntry(id: 1, titulo: L.t("Creado · Iván García", "Created · Iván García"),
+                auditoria: [AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
                                        detalle: creadoEn(dias(0), "12:05"))]),
-            Movimiento(id: 3, tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: L.t("Familia Ruvalcaba", "Ruvalcaba family"),
+            Movimiento(id: "3", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: L.t("Familia Ruvalcaba", "Ruvalcaba family"),
                 folio: "1040", metodo: L.t("Cheque 8823", "Check 8823"), monto: 2_500_00, hora: "12:10", fecha: dias(0),
                 registradoPor: "Iván García", miembro: L.t("Familia Ruvalcaba", "Ruvalcaba family"),
                 categoriaCompleta: L.t("Diezmos · fondo general", "Tithes · general fund"), nota: nil,
                 sinDepositar: false, comprobante: nil,
-                auditoria: [AuditEntry(id: 1, titulo: L.t("Creado · Iván García", "Created · Iván García"),
+                auditoria: [AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
                                        detalle: creadoEn(dias(0), "12:10"))]),
-            Movimiento(id: 4, tipo: .ingreso, categoria: L.t("Ofrenda de miércoles", "Wednesday offering"), persona: nil,
+            Movimiento(id: "4", tipo: .ingreso, categoria: L.t("Ofrenda de miércoles", "Wednesday offering"), persona: nil,
                 folio: "1039", metodo: L.t("Efectivo", "Cash"), monto: 3_180_00, hora: "20:30", fecha: dias(1),
                 registradoPor: "Iván García", miembro: nil,
                 categoriaCompleta: L.t("Ofrendas · culto", "Offerings · service"), nota: nil,
                 sinDepositar: false, comprobante: nil, auditoria: []),
-            Movimiento(id: 5, tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "Pedro Salas",
+            Movimiento(id: "5", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "Pedro Salas",
                 folio: "1038", metodo: L.t("Transferencia SPEI", "SPEI transfer"), monto: 900_00, hora: "19:00", fecha: dias(1),
                 registradoPor: "Iván García", miembro: "Pedro Salas Aguirre",
                 categoriaCompleta: L.t("Diezmos · fondo general", "Tithes · general fund"), nota: nil,
                 sinDepositar: false, comprobante: nil, auditoria: []),
-            Movimiento(id: 6, tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "Ana Lucía Torres",
+            Movimiento(id: "6", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "Ana Lucía Torres",
                 folio: "1037", metodo: L.t("Efectivo", "Cash"), monto: 1_450_00, hora: "19:10", fecha: dias(1),
                 registradoPor: "Iván García", miembro: "Ana Lucía Torres",
                 categoriaCompleta: L.t("Diezmos · fondo general", "Tithes · general fund"), nota: nil,
                 sinDepositar: false, comprobante: nil, auditoria: []),
-            Movimiento(id: 7, tipo: .ingreso, categoria: L.t("Misiones", "Missions"), persona: L.t("ofrenda especial", "special offering"),
+            Movimiento(id: "7", tipo: .ingreso, categoria: L.t("Misiones", "Missions"), persona: L.t("ofrenda especial", "special offering"),
                 folio: "1036", metodo: L.t("Efectivo", "Cash"), monto: 7_248_00, hora: "11:00", fecha: dias(4),
                 registradoPor: "Iván García", miembro: nil,
                 categoriaCompleta: L.t("Misiones · ofrenda", "Missions · offering"), nota: nil,
                 sinDepositar: false, comprobante: nil, auditoria: []),
-            Movimiento(id: 8, tipo: .ingreso, categoria: L.t("Ofrenda de gratitud", "Thanksgiving offering"), persona: nil,
+            Movimiento(id: "8", tipo: .ingreso, categoria: L.t("Ofrenda de gratitud", "Thanksgiving offering"), persona: nil,
                 folio: "1035", metodo: L.t("Efectivo", "Cash"), monto: 540_00, hora: "11:05", fecha: dias(4),
                 registradoPor: "Iván García", miembro: nil,
                 categoriaCompleta: L.t("Ofrendas · culto", "Offerings · service"), nota: nil,
                 sinDepositar: false, comprobante: nil, auditoria: []),
-            Movimiento(id: 101, tipo: .gasto, categoria: L.t("Utilidades", "Utilities"), persona: "Luz CFE",
+            Movimiento(id: "101", tipo: .gasto, categoria: L.t("Utilidades", "Utilities"), persona: "Luz CFE",
                 folio: "0518", metodo: L.t("Transferencia", "Transfer"), monto: 3_410_50, hora: "09:30", fecha: dias(0),
                 registradoPor: "Iván García", miembro: nil,
                 categoriaCompleta: L.t("Utilidades · electricidad", "Utilities · electricity"),
                 nota: L.t("Recibo bimestral del templo.", "Bimonthly church bill."),
                 sinDepositar: false, comprobante: "cfe-0518.pdf",
-                auditoria: [AuditEntry(id: 1, titulo: L.t("Creado · Iván García", "Created · Iván García"),
+                auditoria: [AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
                                        detalle: creadoEn(dias(0), "09:30"))]),
-            Movimiento(id: 102, tipo: .gasto, categoria: L.t("Mantenimiento", "Maintenance"), persona: L.t("Ferretería El Clavo", "El Clavo hardware"),
+            Movimiento(id: "102", tipo: .gasto, categoria: L.t("Mantenimiento", "Maintenance"), persona: L.t("Ferretería El Clavo", "El Clavo hardware"),
                 folio: "0517", metodo: L.t("Efectivo", "Cash"), monto: 890_00, hora: "16:40", fecha: dias(1),
                 registradoPor: "Iván García", miembro: nil,
                 categoriaCompleta: L.t("Mantenimiento · materiales", "Maintenance · supplies"), nota: nil,
                 sinDepositar: false, comprobante: nil, auditoria: []),
-            Movimiento(id: 103, tipo: .gasto, categoria: L.t("Misiones", "Missions"), persona: nil,
+            Movimiento(id: "103", tipo: .gasto, categoria: L.t("Misiones", "Missions"), persona: nil,
                 folio: "0516", metodo: L.t("Transferencia", "Transfer"), monto: 2_000_00, hora: "10:00", fecha: dias(4),
                 registradoPor: "Iván García", miembro: nil,
                 categoriaCompleta: L.t("Misiones · apoyo", "Missions · support"), nota: nil,

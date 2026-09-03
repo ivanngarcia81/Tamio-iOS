@@ -9,7 +9,7 @@ final class MiembrosViewModel {
         didSet { if filtro != oldValue { Task { await cargar() } } }
     }
     private(set) var items: [Aportante] = []
-    var seleccionId: Int?
+    var seleccionId: String?
     var busqueda = ""
 
     init(repo: MiembrosRepository = MockMiembrosRepository()) {

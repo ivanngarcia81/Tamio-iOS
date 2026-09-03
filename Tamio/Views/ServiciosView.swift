@@ -236,7 +236,7 @@ struct ServiciosView: View {
 // MARK: - Sheet: Nuevo servicio
 
 private struct NuevoServicioSheet: View {
-    let proximoId: Int
+    let proximoId: String
     let onGuardar: (Servicio) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -529,7 +529,7 @@ private struct NuevoServicioSheet: View {
         let fechaCorta = fmtFecha.string(from: fecha)
 
         let histInicial: [AsistenciaServicio] = headcountTotal > 0
-            ? [AsistenciaServicio(id: 1, fecha: fechaCorta, presentes: headcountTotal,
+            ? [AsistenciaServicio(id: "1", fecha: fechaCorta, presentes: headcountTotal,
                                   total: max(headcountTotal, Self.miembrosMock.count))]
             : []
 

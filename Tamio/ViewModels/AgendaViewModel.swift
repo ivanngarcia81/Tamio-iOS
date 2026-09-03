@@ -82,7 +82,7 @@ final class AgendaViewModel {
 
     var pendientesMes: Int { eventos.filter { !$0.completado }.count }
 
-    var proximoId: Int { (eventos.map(\.id).max() ?? 0) + 1 }
+    var proximoId: String { UUID().uuidString }
 
     func añadir(_ ev: EventoAgenda) {
         eventos.append(ev)

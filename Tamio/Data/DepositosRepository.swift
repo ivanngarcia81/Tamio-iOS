@@ -4,7 +4,7 @@ protocol DepositosRepository {
     func cortes(estado: EstadoDeposito) async throws -> [Corte]
     func crear(_ corte: Corte) async throws
     func actualizar(_ corte: Corte) async throws
-    func marcarDepositado(id: Int) async throws
+    func marcarDepositado(id: String) async throws
 }
 
 /// Datos falsos que reproducen la pantalla de Depósitos del handoff. Usa un
@@ -28,7 +28,7 @@ struct MockDepositosRepository: DepositosRepository {
         }
     }
 
-    func marcarDepositado(id: Int) async throws {
+    func marcarDepositado(id: String) async throws {
         guard let i = Self.almacen.firstIndex(where: { $0.id == id }) else { return }
         Self.almacen[i].estado = .depositado
         Self.almacen[i].descripcion = L.t("Depositado hoy", "Deposited today")
@@ -37,7 +37,7 @@ struct MockDepositosRepository: DepositosRepository {
     private static var pendientes: [Corte] {
         [
             Corte(
-                id: 1,
+                id: "1",
                 titulo: L.t("Corte del domingo 23", "Sunday 23 cut"),
                 subtitulo: L.t("14 movimientos · Banorte ··4821", "14 entries · Banorte ··4821"),
                 descripcion: L.t("Dinero en caja del domingo 23 de agosto · revísalo antes de llevarlo al banco",
@@ -76,7 +76,7 @@ struct MockDepositosRepository: DepositosRepository {
                                            periodo: L.t("Agosto 2026", "August 2026"), monto: 11_445_00)
             ),
             Corte(
-                id: 2,
+                id: "2",
                 titulo: L.t("Ofrendas de miércoles 19", "Wednesday 19 offerings"),
                 subtitulo: L.t("6 movimientos · Sin cuenta asignada", "6 entries · No account assigned"),
                 descripcion: L.t("Dinero en caja del miércoles 19 de agosto · falta asignar la cuenta",
@@ -110,7 +110,7 @@ struct MockDepositosRepository: DepositosRepository {
     private static var depositados: [Corte] {
         [
             Corte(
-                id: 10,
+                id: "10",
                 titulo: L.t("Corte del domingo 16", "Sunday 16 cut"),
                 subtitulo: L.t("11 movimientos · Banorte ··4821", "11 entries · Banorte ··4821"),
                 descripcion: L.t("Depositado el lunes 17 de agosto", "Deposited Monday, Aug 17"),

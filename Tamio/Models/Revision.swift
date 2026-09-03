@@ -81,7 +81,7 @@ struct CampoRevision: Identifiable {
 
 /// Un asunto por revisar (bandeja de Tesorería/Secretaría).
 struct Revision: Identifiable, Hashable {
-    let id: Int
+    let id: String
     let tipo: RevisionTipo
     let concepto: String        // "Ofrenda del domingo" / nombre del miembro
     let detalleLista: String    // subtítulo en la lista

@@ -2,7 +2,7 @@ import Foundation
 
 /// Un aporte individual (renglón del historial).
 struct Aporte: Identifiable {
-    let id: Int
+    let id: String
     let concepto: String   // "Diezmo", "Misiones"
     let fecha: String      // "27 ago"
     let monto: Centavos
@@ -17,7 +17,7 @@ struct MesAporte: Identifiable {
 
 /// Un pariente (pestaña Familia).
 struct Pariente: Identifiable {
-    let id: Int
+    let id: String
     let relacion: String   // "Cónyuge", "Hijo"
     let nombre: String
 }
@@ -25,7 +25,7 @@ struct Pariente: Identifiable {
 /// Un aportante (Miembros · Tesorería): sus datos fiscales/personales y su
 /// historial de aportes. Distinto de `Miembro` (Secretaría, asistencia).
 struct Aportante: Identifiable, Hashable {
-    var id: Int   // var: el repositorio asigna el id al crear (id 0 = nuevo)
+    var id: String   // var: Supabase asigna el UID al crear (vacío = nuevo)
     let nombre: String
     let estado: EstadoMiembro
     let rol: String            // "diezmo" / "donador" — para el subtítulo de la lista

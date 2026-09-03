@@ -65,7 +65,7 @@ struct MockMembresiaRepository: MembresiaRepository {
 
     private static var miembros: [Miembro] {
         [
-            Miembro(id: 1, nombre: "María Hernández Ríos",
+            Miembro(id: "1", nombre: "María Hernández Ríos",
                     subtitulo: L.t("Ingresó 2014 · enseñanza · niños · 96%","Joined 2014 · teaching · children · 96%"),
                     estado: .activo, asistenciaPct: 96,
                     area: L.t("Enseñanza · niños","Teaching · children"),
@@ -88,7 +88,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                         MovMembresia(titulo: L.t("Se congrega desde","Attends since"),   fecha: L.fecha("Junio 2012")),
                     ]),
 
-            Miembro(id: 2, nombre: "Lucía Márquez Peña",
+            Miembro(id: "2", nombre: "Lucía Márquez Peña",
                     subtitulo: L.t("Ingresó 2019 · alabanza · 92%","Joined 2019 · worship · 92%"),
                     estado: .activo, asistenciaPct: 92,
                     area: L.t("Alabanza","Worship"),
@@ -109,7 +109,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                         MovMembresia(titulo: L.t("Bautismo en agua","Water baptism"),    fecha: L.fecha("15 mar 2019")),
                     ]),
 
-            Miembro(id: 3, nombre: "Pedro Salas Aguirre",
+            Miembro(id: "3", nombre: "Pedro Salas Aguirre",
                     subtitulo: L.t("Ingresó 2021 · ujier · 88%","Joined 2021 · usher · 88%"),
                     estado: .activo, asistenciaPct: 88,
                     area: L.t("Ujier","Usher"),
@@ -128,7 +128,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                         MovMembresia(titulo: L.t("Alta como miembro","Added as member"), fecha: L.fecha("12 jun 2021")),
                     ]),
 
-            Miembro(id: 4, nombre: "Javier Medina Cruz",
+            Miembro(id: "4", nombre: "Javier Medina Cruz",
                     subtitulo: L.t("Traslado en proceso · 41%","Transfer in progress · 41%"),
                     estado: .traslado, asistenciaPct: 41,
                     area: L.t("Sin área","No area"),
@@ -149,7 +149,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                         MovMembresia(titulo: L.t("Solicitud de traslado iniciada","Transfer request started"), fecha: L.fecha("12 ago 2026")),
                     ]),
 
-            Miembro(id: 5, nombre: "Ana Lucía Torres",
+            Miembro(id: "5", nombre: "Ana Lucía Torres",
                     subtitulo: L.t("Ingresó 2016 · intercesión · 62%","Joined 2016 · intercession · 62%"),
                     estado: .activo, asistenciaPct: 62,
                     area: L.t("Intercesión","Intercession"),
@@ -169,7 +169,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                         MovMembresia(titulo: L.t("Alta como miembro","Added as member"), fecha: L.fecha("19 sep 2016")),
                     ]),
 
-            Miembro(id: 6, nombre: "Familia Ruvalcaba",
+            Miembro(id: "6", nombre: "Familia Ruvalcaba",
                     subtitulo: L.t("4 integrantes · diezman · 84%","4 members · tithe givers · 84%"),
                     estado: .activo, asistenciaPct: 84,
                     area: L.t("Varios","Various"),
@@ -188,7 +188,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                         MovMembresia(titulo: L.t("Alta como miembro","Added as member"), fecha: L.fecha("7 ene 2016")),
                     ]),
 
-            Miembro(id: 7, nombre: "Daniel Guerra Salinas",
+            Miembro(id: "7", nombre: "Daniel Guerra Salinas",
                     subtitulo: L.t("Recibido por traslado · 78%","Received by transfer · 78%"),
                     estado: .nuevo, asistenciaPct: 78,
                     area: L.t("Sin área","No area"),
@@ -207,7 +207,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                         MovMembresia(titulo: L.t("Recibido por traslado","Received by transfer"), fecha: L.fecha("6 jul 2026")),
                     ]),
 
-            Miembro(id: 8, nombre: "Rosa Elena Vega",
+            Miembro(id: "8", nombre: "Rosa Elena Vega",
                     subtitulo: L.t("Traslado aceptado","Transfer accepted"),
                     estado: .baja, asistenciaPct: 0,
                     area: L.t("Sin área","No area"),

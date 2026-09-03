@@ -244,7 +244,7 @@ struct ActasView: View {
 // MARK: - Sheet: Nueva acta
 
 private struct NuevaActaSheet: View {
-    let proximoId: Int
+    let proximoId: String
     let onGuardar: (Acta) -> Void
     @Environment(\.dismiss) private var dismiss
 

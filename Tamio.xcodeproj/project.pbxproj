@@ -7,9 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		109DD58530497A0000E781A1 /* Fechas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD58430497A0000E781A1 /* Fechas.swift */; };
+		109DD58330497A0000E781A1 /* Espaciado.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD58230497A0000E781A1 /* Espaciado.swift */; };
+		109DD58130497A0000E781A1 /* Catalogos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD58030497A0000E781A1 /* Catalogos.swift */; };
+		109DD5713049700000E781A1 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 109DD5703049700000E781A1 /* Supabase */; };
 		05747F6824AE2F891D5F7049 /* ReportesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056C5CAF9667F55A2373560E /* ReportesViewModel.swift */; };
 		0B8D01419956FF26F533080D /* PDFExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A3F1E2883B1BF903DAF0E8 /* PDFExport.swift */; };
 		0C89DBA6C761483BB7766DB8 /* MovimientosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C8C96D1BB6EF88E7492B545 /* MovimientosRepository.swift */; };
+		109DD560304964A800E781A1 /* Supabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD55F304964A800E781A1 /* Supabase.swift */; };
+		109DD5623049665100E781A1 /* SupabaseMovimientosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5613049665100E781A1 /* SupabaseMovimientosRepository.swift */; };
 		127515E07FA461AED9B9AAA2 /* IPhoneSecretariaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FBFB6CE7A24648A6454B21 /* IPhoneSecretariaView.swift */; };
 		15C91FF7DBD066465A59F500 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64DF6849516658024DF7E700 /* RootView.swift */; };
 		1AB394125D0FE0449972B430 /* Revision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A5130CEB89DC504039D507 /* Revision.swift */; };
@@ -88,12 +94,17 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		109DD58430497A0000E781A1 /* Fechas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fechas.swift; sourceTree = "<group>"; };
+		109DD58230497A0000E781A1 /* Espaciado.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Espaciado.swift; sourceTree = "<group>"; };
+		109DD58030497A0000E781A1 /* Catalogos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalogos.swift; sourceTree = "<group>"; };
 		00CF93CF0E516BCEF91ABCC6 /* KPICard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KPICard.swift; sourceTree = "<group>"; };
 		0443766F8B7F327455F085E3 /* AgendaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgendaViewModel.swift; sourceTree = "<group>"; };
 		056C5CAF9667F55A2373560E /* ReportesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportesViewModel.swift; sourceTree = "<group>"; };
 		05A757092F90A8F4C8636DF6 /* AgendaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgendaView.swift; sourceTree = "<group>"; };
 		0C0ECAB8AB3DDB7471075342 /* Miembro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Miembro.swift; sourceTree = "<group>"; };
 		0E05B2C1157251C9D853544F /* DepositosViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosViewModel.swift; sourceTree = "<group>"; };
+		109DD55F304964A800E781A1 /* Supabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Supabase.swift; sourceTree = "<group>"; };
+		109DD5613049665100E781A1 /* SupabaseMovimientosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseMovimientosRepository.swift; sourceTree = "<group>"; };
 		1283425908338B34926D5B4A /* ServiciosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiciosRepository.swift; sourceTree = "<group>"; };
 		12E0985809A88DD8A5848115 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		15A5130CEB89DC504039D507 /* Revision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Revision.swift; sourceTree = "<group>"; };
@@ -168,6 +179,17 @@
 		F9A7DAC5C0FEB3136AFAC5F7 /* MembresiaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembresiaView.swift; sourceTree = "<group>"; };
 		FE3FA8923729781D4874A242 /* MiembroDetalle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiembroDetalle.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		109DD5723049700000E781A1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				109DD5713049700000E781A1 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		08CC0BA8906FAA0FBEF45658 /* Tamio */ = {
@@ -252,6 +274,10 @@
 				95131737CD36368276793476 /* NavHeader.swift */,
 				630E8CADA66AF06CEC50D6D5 /* Palette.swift */,
 				59A3F1E2883B1BF903DAF0E8 /* PDFExport.swift */,
+				109DD55F304964A800E781A1 /* Supabase.swift */,
+				109DD58430497A0000E781A1 /* Fechas.swift */,
+				109DD58230497A0000E781A1 /* Espaciado.swift */,
+				109DD58030497A0000E781A1 /* Catalogos.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -279,6 +305,7 @@
 				843AA28C65202374FDDF0E75 /* ReportesRepository.swift */,
 				DFB1B530471B04B6F06D2F58 /* RevisarRepository.swift */,
 				1283425908338B34926D5B4A /* ServiciosRepository.swift */,
+				109DD5613049665100E781A1 /* SupabaseMovimientosRepository.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -327,6 +354,7 @@
 			buildConfigurationList = C75AF1BEB0F72360F0F43BBF /* Build configuration list for PBXNativeTarget "Tamio" */;
 			buildPhases = (
 				9E7C6F033093088FC0979107 /* Sources */,
+				109DD5723049700000E781A1 /* Frameworks */,
 				37CC1D52623A9272A6B13F7D /* Resources */,
 			);
 			buildRules = (
@@ -335,6 +363,7 @@
 			);
 			name = Tamio;
 			packageProductDependencies = (
+				109DD5703049700000E781A1 /* Supabase */,
 			);
 			productName = Tamio;
 			productReference = 679A47FAE8BD5AB800A76194 /* Tamio.app */;
@@ -421,6 +450,7 @@
 				A513D9DEB1A92B422ED58314 /* KPICard.swift in Sources */,
 				A8D814FC36E37F8AE45FBA04 /* Localization.swift in Sources */,
 				584A223F70A5D1FF1EFD015E /* MembresiaRepository.swift in Sources */,
+				109DD5623049665100E781A1 /* SupabaseMovimientosRepository.swift in Sources */,
 				55BE47478958A09E5E13CBCC /* MembresiaView.swift in Sources */,
 				AE47E6BB26592BFAA9D7AD3F /* MembresiaViewModel.swift in Sources */,
 				D44D423A1DA08D77FB0AD17E /* Miembro.swift in Sources */,
@@ -448,6 +478,10 @@
 				CF4ABC3DC2BE4C2D83C6B3FC /* RegistroView.swift in Sources */,
 				C939626C1FC08A782F5A721A /* RegistroViewModel.swift in Sources */,
 				A2BD39D2F5801E8FCDD75718 /* Reporte.swift in Sources */,
+				109DD560304964A800E781A1 /* Supabase.swift in Sources */,
+				109DD58530497A0000E781A1 /* Fechas.swift in Sources */,
+				109DD58330497A0000E781A1 /* Espaciado.swift in Sources */,
+				109DD58130497A0000E781A1 /* Catalogos.swift in Sources */,
 				398720DB6C6BED4910FE81CB /* ReportePDF.swift in Sources */,
 				947D8B4FC7B6DD3101C1B3D4 /* ReportesRepository.swift in Sources */,
 				47D1BDA9349E3F1F8DA281F1 /* ReportesView.swift in Sources */,
@@ -670,6 +704,14 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		109DD5703049700000E781A1 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 109DD55E3048D7C300E781A1 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9630C66B0B9FFBC28BEEAB02 /* Project object */;
 }

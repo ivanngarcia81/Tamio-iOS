@@ -4,9 +4,9 @@ import Foundation
 /// además de lo de la lista, trae los campos del detalle, la nota, el estado de
 /// depósito, el comprobante y el rastro de auditoría.
 struct Movimiento: Identifiable {
-    /// `var` (no `let`): al crear un movimiento nuevo se manda con id 0 y el
-    /// repositorio le asigna el id real — igual que hará el motor con SQLite.
-    var id: Int
+    /// `var` (no `let`): al crear un movimiento nuevo se manda con id vacío
+    /// y Supabase asigna el UID real en el INSERT.
+    var id: String
     let tipo: TipoMovimiento
     /// Categoría corta para el titular y el punto ("Diezmo", "Servicios").
     let categoria: String
@@ -48,7 +48,7 @@ extension Movimiento: Hashable {
 
 /// Una entrada del rastro de auditoría (título + detalle).
 struct AuditEntry: Identifiable {
-    let id: Int
+    let id: String
     let titulo: String
     let detalle: String
 }

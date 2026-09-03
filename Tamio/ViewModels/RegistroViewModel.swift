@@ -7,7 +7,7 @@ final class RegistroViewModel {
 
     private(set) var todos: [Apunte] = []
     var filtro: FiltroRegistro = .todo
-    var seleccionId: Int?
+    var seleccionId: String?
 
     init(repo: RegistroRepository = MockRegistroRepository()) {
         self.repo = repo
@@ -60,7 +60,7 @@ final class RegistroViewModel {
     @MainActor
     func escribirNota(texto: String, area: ApunteArea) async {
         let nuevo = Apunte(
-            id: (todos.map(\.id).max() ?? 0) + 1,
+            id: UUID().uuidString,
             area: area,
             texto: texto,
             autor: "Iván García",

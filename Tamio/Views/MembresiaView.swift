@@ -584,7 +584,7 @@ private struct PanelAsistencia: View {
 // MARK: - Sheet de alta de nuevo miembro
 
 private struct NuevoMiembroSheet: View {
-    let proximoId: Int
+    let proximoId: String
     let miembroExistente: Miembro?
     let onGuardar: (Miembro) -> Void
 
@@ -630,7 +630,7 @@ private struct NuevoMiembroSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    init(proximoId: Int, miembroExistente: Miembro? = nil, onGuardar: @escaping (Miembro) -> Void) {
+    init(proximoId: String, miembroExistente: Miembro? = nil, onGuardar: @escaping (Miembro) -> Void) {
         self.proximoId = proximoId
         self.miembroExistente = miembroExistente
         self.onGuardar = onGuardar

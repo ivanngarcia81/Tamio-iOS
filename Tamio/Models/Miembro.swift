@@ -33,7 +33,7 @@ struct MesAsistencia: Identifiable {
 
 /// Un miembro del padrón: lo de la lista y lo de la ficha.
 struct Miembro: Identifiable, Hashable {
-    let id: Int
+    let id: String
     let nombre: String
     let subtitulo: String        // "Ingresó 2019 · miembro activo"
     let estado: EstadoMiembro

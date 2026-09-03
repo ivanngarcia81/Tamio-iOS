@@ -25,7 +25,7 @@ final class DepositosViewModel {
     }
     private(set) var items: [Corte] = []
     private(set) var pendientesTotal: Int = 0   // siempre refleja los pendientes reales
-    var seleccionId: Int?
+    var seleccionId: String?
 
     /// Cuentas bancarias disponibles para "Asignar cuenta".
     let cuentas = ["Banorte ··4821", "BBVA ··7730", L.t("Efectivo en caja", "Cash on hand")]
@@ -51,13 +51,13 @@ final class DepositosViewModel {
     var pendientesCount: Int { pendientesTotal }
 
     /// Corte por id (para el detalle en la ruta compacta, siempre fresco).
-    func corte(_ id: Int) -> Corte? { items.first { $0.id == id } }
+    func corte(_ id: String) -> Corte? { items.first { $0.id == id } }
 
     // MARK: - Acciones
 
     /// Marca/desmarca un movimiento del corte y recalcula los totales.
     @MainActor
-    func toggleMovimiento(corteId: Int, movId: Int) async {
+    func toggleMovimiento(corteId: String, movId: Int) async {
         guard let ci = items.firstIndex(where: { $0.id == corteId }),
               let mi = items[ci].movimientos.firstIndex(where: { $0.id == movId }) else { return }
         items[ci].movimientos[mi].seleccionado.toggle()
@@ -67,7 +67,7 @@ final class DepositosViewModel {
 
     /// Asigna la cuenta bancaria del depósito.
     @MainActor
-    func asignarCuenta(corteId: Int, cuenta: String) async {
+    func asignarCuenta(corteId: String, cuenta: String) async {
         guard let ci = items.firstIndex(where: { $0.id == corteId }) else { return }
         items[ci].registro.cuenta = cuenta
         try? await repo.actualizar(items[ci])
@@ -75,7 +75,7 @@ final class DepositosViewModel {
 
     /// Adjunta (registra el nombre de) la ficha del banco.
     @MainActor
-    func adjuntarFicha(corteId: Int, nombre: String) async {
+    func adjuntarFicha(corteId: String, nombre: String) async {
         guard let ci = items.firstIndex(where: { $0.id == corteId }) else { return }
         items[ci].fichaAdjunta = nombre
         try? await repo.actualizar(items[ci])
@@ -83,7 +83,7 @@ final class DepositosViewModel {
 
     /// Marca el corte como depositado; sale de la pestaña Pendientes.
     @MainActor
-    func marcarDepositado(corteId: Int) async {
+    func marcarDepositado(corteId: String) async {
         try? await repo.marcarDepositado(id: corteId)
         await cargar()
     }
@@ -92,7 +92,7 @@ final class DepositosViewModel {
     @MainActor
     func crearCorte(titulo: String, cuenta: String, monto: Centavos) async {
         let nuevo = Corte(
-            id: (Self.maxId(items) + 1),
+            id: UUID().uuidString,
             titulo: titulo.isEmpty ? L.t("Corte sin título", "Untitled cut") : titulo,
             subtitulo: L.t("0 movimientos · \(cuenta)", "0 entries · \(cuenta)"),
             descripcion: L.t("Corte creado hoy · agrega los movimientos en caja",
@@ -141,7 +141,7 @@ final class DepositosViewModel {
 
     private static func ordenar(_ cortes: [Corte], por orden: OrdenCorte) -> [Corte] {
         switch orden {
-        case .reciente: return cortes.sorted { $0.id > $1.id }
+        case .reciente: return cortes
         case .monto: return cortes.sorted { $0.montoTotal > $1.montoTotal }
         }
     }
@@ -153,7 +153,4 @@ final class DepositosViewModel {
         return f.string(from: Date()).capitalized
     }
 
-    private static func maxId(_ cortes: [Corte]) -> Int {
-        max(cortes.map(\.id).max() ?? 0, 1000)
-    }
 }

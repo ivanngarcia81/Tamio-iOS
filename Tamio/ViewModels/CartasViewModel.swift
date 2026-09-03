@@ -38,7 +38,7 @@ final class CartasViewModel {
     func emitirCarta() {
         guard !carta.aportante.isEmpty else { return }
         let nueva = CartaEmitida(
-            id: (emitidas.map(\.id).max() ?? 0) + 1,
+            id: UUID().uuidString,
             iniciales: iniciales(carta.aportante),
             persona: carta.aportante,
             tipo: carta.tipo

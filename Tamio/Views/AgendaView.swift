@@ -449,7 +449,7 @@ struct AgendaView: View {
 private struct NuevoEventoSheet: View {
     let mesActual: Date
     let diaInicial: Int
-    let proximoId: Int
+    let proximoId: String
     let onGuardar: (EventoAgenda) -> Void
 
     @State private var titulo = ""
@@ -485,7 +485,7 @@ private struct NuevoEventoSheet: View {
     private let estadosEvento: [String]
     private let opcionesRecordatorio: [String]
 
-    init(mesActual: Date, diaInicial: Int, proximoId: Int, onGuardar: @escaping (EventoAgenda) -> Void) {
+    init(mesActual: Date, diaInicial: Int, proximoId: String, onGuardar: @escaping (EventoAgenda) -> Void) {
         self.mesActual = mesActual
         self.diaInicial = diaInicial
         self.proximoId = proximoId

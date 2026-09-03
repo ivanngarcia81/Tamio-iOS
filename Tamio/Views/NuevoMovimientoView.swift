@@ -296,7 +296,7 @@ struct NuevoMovimientoView: View {
             persona = pagadoA.isEmpty ? nil : pagadoA
         }
         return Movimiento(
-            id: existente?.id ?? 0,
+            id: existente?.id ?? "",
             tipo: tipo,
             categoria: categoria,
             persona: persona,
@@ -312,7 +312,7 @@ struct NuevoMovimientoView: View {
             sinDepositar: existente?.sinDepositar ?? (tipo == .ingreso),
             comprobante: comprobante,
             auditoria: existente?.auditoria ?? [
-                AuditEntry(id: 1, titulo: L.t("Creado · Iván García", "Created · Iván García"),
+                AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
                            detalle: L.t("Ahora · iPad", "Just now · iPad"))
             ],
             pagadoA: tipo == .gasto ? (pagadoA.isEmpty ? nil : pagadoA) : nil,

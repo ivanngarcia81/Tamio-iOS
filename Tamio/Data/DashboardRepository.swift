@@ -25,8 +25,7 @@ struct MockDashboardRepository: DashboardRepository {
         let gastos = 21_145_50 * factor
 
         return DashboardData(
-            church: Church(
-                id: 1,
+            church: Church(id: "1",
                 nombre: "Iglesia Getsemaní",
                 ciudad: "Monterrey, N.L.",
                 moneda: "MXN",
@@ -68,29 +67,29 @@ struct MockDashboardRepository: DashboardRepository {
 
     private static var recientes: [Tx] {
         [
-            Tx(id: 1, tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "María Hernández",
+            Tx(id: "1", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "María Hernández",
                concepto: L.t("Diezmo", "Tithe"), folio: "1042", metodo: L.t("Efectivo", "Cash"), monto: 1_200_00),
-            Tx(id: 2, tipo: .gasto, categoria: L.t("Servicios", "Utilities"), persona: "Luz CFE",
+            Tx(id: "2", tipo: .gasto, categoria: L.t("Servicios", "Utilities"), persona: "Luz CFE",
                concepto: L.t("Luz CFE", "CFE power"), folio: "0518", metodo: L.t("Transferencia", "Transfer"), monto: 3_410_50),
-            Tx(id: 3, tipo: .ingreso, categoria: L.t("Ofrenda", "Offering"), persona: nil,
+            Tx(id: "3", tipo: .ingreso, categoria: L.t("Ofrenda", "Offering"), persona: nil,
                concepto: L.t("Ofrenda misionera", "Mission offering"), folio: "1041", metodo: L.t("Culto domingo", "Sunday service"), monto: 6_845_00),
-            Tx(id: 4, tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: L.t("Familia Ruvalcaba", "Ruvalcaba family"),
+            Tx(id: "4", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: L.t("Familia Ruvalcaba", "Ruvalcaba family"),
                concepto: L.t("Diezmo", "Tithe"), folio: "1040", metodo: L.t("Cheque 8823", "Check 8823"), monto: 2_500_00),
         ]
     }
 
     private static var semana: [AgendaItem] {
         [
-            AgendaItem(id: 1, dia: L.t("VIE", "FRI"), num: "21",
+            AgendaItem(id: "1", dia: L.t("VIE", "FRI"), num: "21",
                        titulo: L.t("Consejo de ancianos", "Elders council"),
                        subtitulo: L.t("19:00 · salón anexo · levantar acta", "7:00 PM · annex hall · minutes"), familia: 0),
-            AgendaItem(id: 2, dia: L.t("DOM", "SUN"), num: "23",
+            AgendaItem(id: "2", dia: L.t("DOM", "SUN"), num: "23",
                        titulo: L.t("Culto matutino", "Morning service"),
                        subtitulo: L.t("10:00 · roster completo", "10:00 · full roster"), familia: 1),
-            AgendaItem(id: 3, dia: L.t("DOM", "SUN"), num: "23",
+            AgendaItem(id: "3", dia: L.t("DOM", "SUN"), num: "23",
                        titulo: L.t("Depósito bancario", "Bank deposit"),
                        subtitulo: L.t("Banorte · 14 movimientos sin depositar", "Banorte · 14 undeposited items"), familia: 2),
-            AgendaItem(id: 4, dia: L.t("MIÉ", "WED"), num: "26",
+            AgendaItem(id: "4", dia: L.t("MIÉ", "WED"), num: "26",
                        titulo: L.t("Carta de traslado · J. Medina", "Transfer letter · J. Medina"),
                        subtitulo: L.t("Pendiente de firma del pastor", "Awaiting pastor's signature"), familia: 3),
         ]

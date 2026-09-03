@@ -12,7 +12,7 @@ struct MockActasRepository: ActasRepository {
 
     private static var actas: [Acta] {
         [
-            Acta(id: 1, folio: "2026-08", tipo: L.t("Consejo", "Council"),
+            Acta(id: "1", folio: "2026-08", tipo: L.t("Consejo", "Council"),
                  fecha: L.t("21 de agosto", "August 21"),
                  acuerdos: 6, estado: .borrador,
                  cuerpo: L.t(
@@ -27,7 +27,7 @@ struct MockActasRepository: ActasRepository {
                     AcuerdoActa(id: 5, texto: L.t("Se programan actividades especiales para el mes de septiembre.", "Special activities are scheduled for the month of September.")),
                     AcuerdoActa(id: 6, texto: L.t("Se aprueba el presupuesto de mantenimiento del templo.", "The temple maintenance budget is approved.")),
                  ]),
-            Acta(id: 2, folio: "2026-07", tipo: L.t("Asamblea", "Assembly"),
+            Acta(id: "2", folio: "2026-07", tipo: L.t("Asamblea", "Assembly"),
                  fecha: L.t("18 de julio", "July 18"),
                  acuerdos: 4, estado: .firmada,
                  cuerpo: L.t(
@@ -40,7 +40,7 @@ struct MockActasRepository: ActasRepository {
                     AcuerdoActa(id: 9, texto: L.t("Se aprueba el presupuesto para el segundo semestre.", "The second semester budget is approved.")),
                     AcuerdoActa(id: 10, texto: L.t("Se autoriza la renovación del contrato del salón social.", "The renewal of the social hall contract is authorized.")),
                  ]),
-            Acta(id: 3, folio: "2026-06", tipo: L.t("Consejo", "Council"),
+            Acta(id: "3", folio: "2026-06", tipo: L.t("Consejo", "Council"),
                  fecha: L.t("14 de junio", "June 14"),
                  acuerdos: 3, estado: .firmada,
                  cuerpo: L.t(
@@ -52,7 +52,7 @@ struct MockActasRepository: ActasRepository {
                     AcuerdoActa(id: 12, texto: L.t("Se acepta la donación del equipo de cocina.", "The kitchen equipment donation is accepted.")),
                     AcuerdoActa(id: 13, texto: L.t("Se aprueba el informe financiero de mayo.", "The May financial report is approved.")),
                  ]),
-            Acta(id: 4, folio: "2026-05", tipo: L.t("Extraordinaria", "Extraordinary"),
+            Acta(id: "4", folio: "2026-05", tipo: L.t("Extraordinaria", "Extraordinary"),
                  fecha: L.t("3 de mayo", "May 3"),
                  acuerdos: 2, estado: .firmada,
                  cuerpo: L.t(

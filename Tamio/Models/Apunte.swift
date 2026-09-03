@@ -28,7 +28,7 @@ enum FiltroRegistro: String, CaseIterable, Identifiable {
 /// Un apunte del registro: una línea de lo que pasó en la iglesia. El registro
 /// guarda copias, no referencias — por eso `folio`/`texto` quedan congelados.
 struct Apunte: Identifiable, Hashable {
-    let id: Int
+    let id: String
     let area: ApunteArea
     let texto: String        // "El corte «Domingo 23 de agosto» llegó al banco"
     let autor: String        // "Tamio" · o "Rocío Ibarra"

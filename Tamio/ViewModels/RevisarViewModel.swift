@@ -14,7 +14,7 @@ final class RevisarViewModel {
     private(set) var todos: [Revision] = []
     /// nil = "Todos".
     var filtro: RevisionTipo?
-    var seleccionId: Int?
+    var seleccionId: String?
     var toast: ToastRevisar?
 
     private var ultimoResuelto: Revision?
@@ -89,7 +89,7 @@ final class RevisarViewModel {
 
     /// Guarda los cambios del formulario "Editar"; el asunto sigue en la bandeja.
     @MainActor
-    func editar(id: Int, concepto: String, importe: String, categoria: String,
+    func editar(id: String, concepto: String, importe: String, categoria: String,
                 metodo: String, aportante: String?, fecha: Date) async {
         guard var r = todos.first(where: { $0.id == id }) else { return }
         let signo = r.esGasto ? "−" : "+"
@@ -138,7 +138,7 @@ final class RevisarViewModel {
         toast = ToastRevisar(id: toastSeq, mensaje: mensaje)
     }
 
-    private func siguienteA(_ id: Int) -> Int? {
+    private func siguienteA(_ id: String) -> String? {
         let v = visibles
         guard let i = v.firstIndex(where: { $0.id == id }) else { return nil }
         if i + 1 < v.count { return v[i + 1].id }
