@@ -8,20 +8,30 @@ import SwiftUI
 struct DashboardView: View {
     @State private var vm = DashboardViewModel()
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// En iPad los enlaces de las tarjetas mueven la selección de la sidebar;
+    /// en iPhone empujan la vista en el stack de la pestaña. Opcional para que
+    /// la preview de una tarjeta suelta no necesite el entorno completo.
+    @Environment(Navegacion.self) private var nav: Navegacion?
     private var esIPad: Bool { sizeClass == .regular }
 
     /// El "+ Nuevo" del Inicio crea un movimiento igual que en Ingresos, vía el
-    /// mismo repositorio (mock hoy, GRDB mañana), así aparece también allí.
-    private let movimientosRepo: MovimientosRepository = MockMovimientosRepository()
+    /// mismo repositorio, así aparece también allí. Antes era el mock: lo que
+    /// se capturaba desde Inicio no llegaba a Supabase ni salía en Ingresos, y
+    /// el `try?` del guardado se comía el error, así que parecía guardado.
+    private let movimientosRepo: MovimientosRepository = repositorioMovimientos()
     @State private var mostrarNuevo = false
     @State private var folioNuevo = ""
+    @State private var errorGuardado: String?
 
     var body: some View {
         scrollContent
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        Task { folioNuevo = await movimientosRepo.siguienteFolio(); mostrarNuevo = true }
+                        Task {
+                            folioNuevo = await movimientosRepo.siguienteFolio(tipo: .ingreso)
+                            mostrarNuevo = true
+                        }
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "plus")
@@ -37,10 +47,29 @@ struct DashboardView: View {
             }
             .sheet(isPresented: $mostrarNuevo) {
                 NuevoMovimientoView(tipo: .ingreso, folio: folioNuevo, existente: nil) { m in
-                    Task { try? await movimientosRepo.crear(m) }
+                    Task { await guardar(m) }
                 }
             }
+            .alert(L.t("No se pudo guardar", "Couldn't save"),
+                   isPresented: Binding(get: { errorGuardado != nil },
+                                        set: { if !$0 { errorGuardado = nil } })) {
+                Button(L.t("Entendido", "OK"), role: .cancel) { errorGuardado = nil }
+            } message: {
+                Text(errorGuardado ?? "")
+            }
             .task { await vm.cargar() }
+    }
+
+    /// Guarda y recarga los indicadores. Un fallo se avisa: dar por guardado
+    /// un movimiento que no se guardó es el peor final posible para esta hoja.
+    @MainActor
+    private func guardar(_ m: Movimiento) async {
+        do {
+            try await movimientosRepo.crear(m)
+            await vm.cargar()
+        } catch {
+            errorGuardado = error.localizedDescription
+        }
     }
 
     // MARK: - Nav + scroll
@@ -187,17 +216,24 @@ struct DashboardView: View {
         }
     }
 
+    /// La tarjeta entera es el botón: el pie decía "Abrir bandeja →" en color de
+    /// enlace pero era texto plano, así que prometía algo que no ocurría.
     private func kpiPorRevisar(_ d: DashboardData) -> some View {
-        KPICard(titulo: L.t("Por revisar", "To review")) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(d.pendientes)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                Text(L.t("movimientos", "items")).font(.subheadline).foregroundStyle(.secondary)
+        Button {
+            nav?.seccion = "porRevisar"
+        } label: {
+            KPICard(titulo: L.t("Por revisar", "To review")) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("\(d.pendientes)")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                    Text(L.t("movimientos", "items")).font(.subheadline).foregroundStyle(.secondary)
+                }
+            } pie: {
+                Text(L.t("Abrir bandeja →", "Open tray →")).foregroundStyle(Paleta.enlace)
             }
-        } pie: {
-            Text(L.t("Abrir bandeja →", "Open tray →")).foregroundStyle(Paleta.enlace)
         }
+        .buttonStyle(.plain)
     }
 
     // MARK: - iPhone KPI
@@ -300,13 +336,31 @@ struct DashboardView: View {
         }
     }
 
+    /// Aspecto del enlace de cabecera de las tarjetas de lista. El estilo es
+    /// común; lo que cambia es el control que lo envuelve en cada plataforma.
+    ///
+    /// El relleno y el `contentShape` no son decorativos: una línea de texto
+    /// mide unos 20pt de alto, la mitad del objetivo de toque de 44pt que pide
+    /// Apple. Sin esto hay que acertarle justo a la palabra, y con el dedo
+    /// parece que el enlace no responde.
+    private func textoEnlace(_ titulo: String) -> some View {
+        Text(titulo)
+            .font(.subheadline)
+            .foregroundStyle(Paleta.enlace)
+            .padding(.vertical, 12)
+            .padding(.leading, 16)
+            .contentShape(Rectangle())
+    }
+
     // MARK: - iPhone lists (títulos en .headline, no ALL CAPS)
 
     private func listaMovimientosIPhone(_ d: DashboardData) -> some View {
-        tarjetaListaIPhone(
-            titulo: L.t("Últimos movimientos", "Recent activity"),
-            accion: L.t("Ver todos", "See all")
-        ) {
+        tarjetaListaIPhone(titulo: L.t("Últimos movimientos", "Recent activity")) {
+            NavigationLink { MovimientosView(tipo: .ingreso) } label: {
+                textoEnlace(L.t("Ver todos", "See all"))
+            }
+            .buttonStyle(.plain)
+        } contenido: {
             ForEach(Array(d.recientes.enumerated()), id: \.element.id) { i, tx in
                 TransactionRow(tx: tx)
                 if i < d.recientes.count - 1 { Divider() }
@@ -315,10 +369,12 @@ struct DashboardView: View {
     }
 
     private func listaSemanaIPhone(_ d: DashboardData) -> some View {
-        tarjetaListaIPhone(
-            titulo: L.t("Esta semana", "This week"),
-            accion: L.t("Agenda", "Calendar")
-        ) {
+        tarjetaListaIPhone(titulo: L.t("Esta semana", "This week")) {
+            NavigationLink { AgendaView() } label: {
+                textoEnlace(L.t("Agenda", "Calendar"))
+            }
+            .buttonStyle(.plain)
+        } contenido: {
             ForEach(Array(d.semana.enumerated()), id: \.element.id) { i, item in
                 AgendaRow(item: item)
                 if i < d.semana.count - 1 { Divider() }
@@ -326,16 +382,19 @@ struct DashboardView: View {
         }
     }
 
-    private func tarjetaListaIPhone<C: View>(
-        titulo: String, accion: String, @ViewBuilder contenido: () -> C
+    private func tarjetaListaIPhone<E: View, C: View>(
+        titulo: String,
+        @ViewBuilder enlace: () -> E,
+        @ViewBuilder contenido: () -> C
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(titulo)
                     .font(.headline.weight(.semibold))
                 Spacer()
-                Text(accion).font(.subheadline).foregroundStyle(Paleta.enlace)
+                enlace()
             }
+            .padding(.vertical, -6)
             VStack(spacing: 0) { contenido() }
                 .padding(.horizontal, Esp.tarjeta)
                 .padding(.vertical, 4)
@@ -349,10 +408,12 @@ struct DashboardView: View {
     // MARK: - iPad lists (mantienen ALL CAPS según handoff iPad)
 
     private func listaMovimientos(_ d: DashboardData) -> some View {
-        tarjetaLista(
-            titulo: L.t("ÚLTIMOS MOVIMIENTOS", "RECENT ACTIVITY"),
-            accion: L.t("Ver todos", "See all")
-        ) {
+        tarjetaLista(titulo: L.t("ÚLTIMOS MOVIMIENTOS", "RECENT ACTIVITY")) {
+            Button { nav?.seccion = "ingresos" } label: {
+                textoEnlace(L.t("Ver todos", "See all"))
+            }
+            .buttonStyle(.plain)
+        } contenido: {
             ForEach(Array(d.recientes.enumerated()), id: \.element.id) { i, tx in
                 TransactionRow(tx: tx)
                 if i < d.recientes.count - 1 { Divider() }
@@ -361,10 +422,12 @@ struct DashboardView: View {
     }
 
     private func listaSemana(_ d: DashboardData) -> some View {
-        tarjetaLista(
-            titulo: L.t("ESTA SEMANA", "THIS WEEK"),
-            accion: L.t("Agenda", "Calendar")
-        ) {
+        tarjetaLista(titulo: L.t("ESTA SEMANA", "THIS WEEK")) {
+            Button { nav?.seccion = "agenda" } label: {
+                textoEnlace(L.t("Agenda", "Calendar"))
+            }
+            .buttonStyle(.plain)
+        } contenido: {
             ForEach(Array(d.semana.enumerated()), id: \.element.id) { i, item in
                 AgendaRow(item: item)
                 if i < d.semana.count - 1 { Divider() }
@@ -372,8 +435,10 @@ struct DashboardView: View {
         }
     }
 
-    private func tarjetaLista<Contenido: View>(
-        titulo: String, accion: String, @ViewBuilder contenido: () -> Contenido
+    private func tarjetaLista<E: View, Contenido: View>(
+        titulo: String,
+        @ViewBuilder enlace: () -> E,
+        @ViewBuilder contenido: () -> Contenido
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -381,7 +446,7 @@ struct DashboardView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(accion).font(.subheadline).foregroundStyle(Paleta.enlace)
+                enlace()
             }
             VStack(spacing: 0) { contenido() }
                 .padding(.horizontal, Esp.tarjeta)
