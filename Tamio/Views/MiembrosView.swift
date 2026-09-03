@@ -128,7 +128,6 @@ struct MiembrosView: View {
 
     private func fila(_ a: Aportante) -> some View {
         let esSel = a.id == vm.seleccionId
-        let rowBG: Color = sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)
         return HStack(spacing: 12) {
             Text(a.iniciales)
                 .font(.caption.weight(.bold)).foregroundStyle(.white)
