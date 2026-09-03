@@ -67,8 +67,13 @@ struct MockComprobantesStorage: ComprobantesStorage {
         return "revision/\(url.lastPathComponent)"
     }
 
+    /// En modo revisión no hay bucket que firmar. Antes devolvía una URL a
+    /// `example.invalid`, así que "Ver comprobante" abría Safari en una página
+    /// muerta y parecía un fallo de la app.
     func urlFirmada(_ ruta: String) async throws -> URL {
-        URL(string: "https://example.invalid/\(ruta)")!
+        throw NSError(domain: "Tamio", code: 1, userInfo: [NSLocalizedDescriptionKey:
+            L.t("En modo revisión no hay comprobantes que abrir.",
+                "No receipts to open in review mode.")])
     }
 }
 

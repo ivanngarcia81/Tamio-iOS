@@ -17,6 +17,21 @@ enum Fechas {
         "\(corta(d)), \(hora)"
     }
 
+    /// Primer día del mes de `d`, a medianoche: la clave con la que la lista
+    /// de movimientos agrupa y compara meses.
+    static func inicioDeMes(_ d: Date) -> Date {
+        let cal = Calendar.current
+        return cal.date(from: cal.dateComponents([.year, .month], from: d)) ?? d
+    }
+
+    /// "Septiembre" · "September" dentro del año en curso, y "Septiembre 2025"
+    /// fuera de él: en un historial de varios años el mes a secas es ambiguo.
+    static func mes(_ d: Date) -> String {
+        let cal = Calendar.current
+        let mismoAnio = cal.component(.year, from: d) == cal.component(.year, from: Date())
+        return fmt(mismoAnio ? "LLLL" : "LLLL yyyy").string(from: d).capitalized
+    }
+
     private static func fmt(_ formato: String) -> DateFormatter {
         let f = DateFormatter()
         f.locale = Locale.current

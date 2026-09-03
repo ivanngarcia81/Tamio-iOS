@@ -17,10 +17,12 @@ struct Pill: View {
 }
 
 /// Fila de "campo: valor" del detalle, con un enlace opcional ("Ver ficha").
+/// Antes aceptaba un `link:` que pintaba texto con `Paleta.enlace` y NADA
+/// más: parecía tocable y no lo era. Se quitó en vez de darle acción para que
+/// no vuelva a colarse un falso enlace por copiar esta pieza.
 struct FieldRow: View {
     let label: String
     let value: String
-    var link: String? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -30,9 +32,6 @@ struct FieldRow: View {
                 .frame(width: 120, alignment: .leading)
             Text(value).font(.subheadline)
             Spacer(minLength: 8)
-            if let link {
-                Text(link).font(.subheadline).foregroundStyle(Paleta.enlace)
-            }
         }
         .padding(.vertical, 10)
     }

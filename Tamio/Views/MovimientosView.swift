@@ -147,11 +147,10 @@ struct MovimientosView: View {
         Task { await vm.actualizar(actualizado) }
     }
 
-    private var mesActual: String {
-        let f = DateFormatter()
-        f.locale = Locale.current
-        f.dateFormat = "LLLL"
-        return f.string(from: Date()).capitalized
+    private static let todosLosMeses = L.t("Todos los meses", "All months")
+
+    private var etiquetaMes: String {
+        vm.mes.map(Fechas.mes) ?? Self.todosLosMeses
     }
 
     private var tituloBarra: String {
@@ -160,10 +159,8 @@ struct MovimientosView: View {
 
     /// Solo el mes: el conteo y el total viven en el pie de la lista, que es
     /// donde se consultan tras filtrar. Antes el header los repetía literal.
-    private var subtituloBarra: String {
-        let f = DateFormatter(); f.locale = Locale.current; f.dateFormat = "LLLL"
-        return f.string(from: Date()).capitalized
-    }
+    /// Y decía SIEMPRE el mes en curso, mirara uno el mes que mirara.
+    private var subtituloBarra: String { etiquetaMes }
 
     // MARK: - Columna maestra
 
@@ -245,7 +242,7 @@ struct MovimientosView: View {
             .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 9))
 
             HStack(spacing: 8) {
-                chip(mesActual, seleccionado: true, desplegable: true) {}
+                selectorMes
                 Spacer()
                 botonFiltros
             }
@@ -255,8 +252,11 @@ struct MovimientosView: View {
 
     // MARK: - Filtros
 
+    /// El mes no cuenta como filtro: tiene chip propio y siempre hay uno
+    /// puesto, así que el globito marcaría "1" permanentemente.
     private var filtrosActivos: Int {
-        (vm.filtroCategoria != nil ? 1 : 0) + (vm.soloSinDepositar ? 1 : 0)
+        (vm.filtroCategoria != nil ? 1 : 0)
+        + ((vm.tipo == .ingreso ? vm.soloSinDepositar : vm.soloPendientes) ? 1 : 0)
     }
 
     private var botonFiltros: some View {
@@ -307,9 +307,19 @@ struct MovimientosView: View {
                         .buttonStyle(.plain)
                     }
                 }
+                // Cada tipo tiene su estado. "Sin depositar" es de los
+                // ingresos —un gasto no entra en un corte—, así que en Gastos
+                // el filtro devolvía siempre cero resultados. Ahí lo que se
+                // busca es lo que quedó marcado para revisar.
                 Section(L.t("ESTADO", "STATUS")) {
-                    Toggle(L.t("Sin depositar", "Not deposited"), isOn: $vm.soloSinDepositar)
-                        .tint(Paleta.brand)
+                    if vm.tipo == .ingreso {
+                        Toggle(L.t("Sin depositar", "Not deposited"), isOn: $vm.soloSinDepositar)
+                            .tint(Paleta.brand)
+                    } else {
+                        Toggle(L.t("Marcados como pendientes", "Flagged for review"),
+                               isOn: $vm.soloPendientes)
+                            .tint(Paleta.brand)
+                    }
                 }
             }
             .listStyle(.insetGrouped)
@@ -320,6 +330,7 @@ struct MovimientosView: View {
                     Button(L.t("Limpiar", "Clear")) {
                         vm.filtroCategoria = nil
                         vm.soloSinDepositar = false
+                        vm.soloPendientes = false
                     }
                     .foregroundStyle(Paleta.brand)
                     .disabled(filtrosActivos == 0)
@@ -334,20 +345,44 @@ struct MovimientosView: View {
         .presentationDetents([.medium])
     }
 
-    private func chip(_ texto: String, seleccionado: Bool, desplegable: Bool = false,
-                      accion: @escaping () -> Void) -> some View {
-        Button(action: accion) {
-            HStack(spacing: 4) {
-                Text(texto)
-                if desplegable { Image(systemName: "chevron.down").font(.caption.weight(.semibold)) }
+    /// El chip del mes. Antes llevaba chevron de desplegable y una acción
+    /// VACÍA: parecía un selector, no lo era, y la lista traía todos los meses
+    /// aunque el chip nombrara uno. Ofrece solo los meses con movimientos —un
+    /// calendario libre dejaría caer en meses vacíos— más "Todos los meses".
+    private var selectorMes: some View {
+        Menu {
+            ForEach(vm.mesesDisponibles, id: \.self) { m in
+                opcionMes(Fechas.mes(m), marcada: vm.mes == m) { vm.mes = m }
             }
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(seleccionado ? Paleta.brand : .primary)
-            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-            .background(Capsule().fill(seleccionado ? Paleta.brandFill : Color(.secondarySystemFill)))
-            .overlay(Capsule().stroke(seleccionado ? Paleta.brandStroke : Color.clear, lineWidth: 1))
+            Divider()
+            opcionMes(Self.todosLosMeses, marcada: vm.mes == nil) { vm.mes = nil }
+        } label: {
+            chipEtiqueta(etiquetaMes, seleccionado: vm.mes != nil, desplegable: true)
         }
         .buttonStyle(.plain)
+    }
+
+    /// `Label` con palomita en vez de `Toggle`: dentro de un `Menu` la palomita
+    /// es la convención del sistema para "esta es la opción vigente".
+    @ViewBuilder
+    private func opcionMes(_ texto: String, marcada: Bool,
+                           _ accion: @escaping () -> Void) -> some View {
+        Button(action: accion) {
+            if marcada { Label(texto, systemImage: "checkmark") } else { Text(texto) }
+        }
+    }
+
+    private func chipEtiqueta(_ texto: String, seleccionado: Bool,
+                              desplegable: Bool = false) -> some View {
+        HStack(spacing: 4) {
+            Text(texto)
+            if desplegable { Image(systemName: "chevron.down").font(.caption.weight(.semibold)) }
+        }
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(seleccionado ? Paleta.brand : .primary)
+        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+        .background(Capsule().fill(seleccionado ? Paleta.brandFill : Color(.secondarySystemFill)))
+        .overlay(Capsule().stroke(seleccionado ? Paleta.brandStroke : Color.clear, lineWidth: 1))
     }
 
     private func filaContenido(_ m: Movimiento) -> some View {

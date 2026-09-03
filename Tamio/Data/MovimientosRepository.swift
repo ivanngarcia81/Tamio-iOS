@@ -31,7 +31,9 @@ func repositorioMovimientos() -> MovimientosRepository {
 struct MockMovimientosRepository: MovimientosRepository {
     private static var almacen: [Movimiento] = MockMovimientosRepository.semilla
     /// Un contador por serie, igual que en Supabase.
-    private static var folios: [TipoMovimiento: Int] = [.ingreso: 1044, .gasto: 1044]
+    /// El contador de gastos iba en 1044 mientras la semilla de gastos usaba
+    /// folios 05xx: el primer gasto nuevo saltaba de "0518" a "1045".
+    private static var folios: [TipoMovimiento: Int] = [.ingreso: 1044, .gasto: 521]
 
     func lista(tipo: TipoMovimiento) async throws -> [Movimiento] {
         try? await Task.sleep(nanoseconds: 120_000_000)
@@ -44,7 +46,7 @@ struct MockMovimientosRepository: MovimientosRepository {
         // El folio se consume al guardar, no al abrir la hoja.
         let seq = (Self.folios[m.tipo] ?? 0) + 1
         Self.folios[m.tipo] = seq
-        nuevo.folio = String(seq)
+        nuevo.folio = Self.folio(seq)
         Self.almacen.append(nuevo)
     }
 
@@ -57,8 +59,12 @@ struct MockMovimientosRepository: MovimientosRepository {
     }
 
     func siguienteFolio(tipo: TipoMovimiento) async -> String {
-        String((Self.folios[tipo] ?? 0) + 1)
+        Self.folio((Self.folios[tipo] ?? 0) + 1)
     }
+
+    /// Cuatro dígitos, como los folios de la semilla: sin esto el folio nuevo
+    /// de un gasto salía "522" junto a un "0521" y no parecían la misma serie.
+    private static func folio(_ n: Int) -> String { String(format: "%04d", n) }
 
     // MARK: - Semilla (los datos del handoff)
 
@@ -141,17 +147,69 @@ struct MockMovimientosRepository: MovimientosRepository {
                 nota: L.t("Recibo bimestral del templo.", "Bimonthly church bill."),
                 sinDepositar: false, comprobante: "cfe-0518.pdf",
                 auditoria: [AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
-                                       detalle: creadoEn(dias(0), "09:30"))]),
+                                       detalle: creadoEn(dias(0), "09:30"))],
+                pagadoA: "Luz CFE"),
             Movimiento(id: "102", tipo: .gasto, categoria: L.t("Mantenimiento", "Maintenance"), persona: L.t("Ferretería El Clavo", "El Clavo hardware"),
                 folio: "0517", metodo: L.t("Efectivo", "Cash"), monto: 890_00, hora: "16:40", fecha: dias(1),
                 registradoPor: "Iván García", miembro: nil,
                 categoriaCompleta: L.t("Mantenimiento · materiales", "Maintenance · supplies"), nota: nil,
-                sinDepositar: false, comprobante: nil, auditoria: []),
+                sinDepositar: false, comprobante: nil, auditoria: [],
+                pagadoA: L.t("Ferretería El Clavo", "El Clavo hardware")),
             Movimiento(id: "103", tipo: .gasto, categoria: L.t("Misiones", "Missions"), persona: nil,
                 folio: "0516", metodo: L.t("Transferencia", "Transfer"), monto: 2_000_00, hora: "10:00", fecha: dias(4),
                 registradoPor: "Iván García", miembro: nil,
                 categoriaCompleta: L.t("Misiones · apoyo", "Missions · support"), nota: nil,
                 sinDepositar: false, comprobante: nil, auditoria: []),
+            // --- Gastos de prueba (3 sep 2026) para recorrer la pantalla con
+            // beneficiario, RFC vacío, notas internas, comprobante y marcado
+            // pendiente: los tres campos que la ficha no enseñaba.
+            Movimiento(id: "104", tipo: .gasto, categoria: L.t("Utilidades", "Utilities"),
+                persona: "PSE&G",
+                folio: "0519", metodo: L.t("Transferencia", "Transfer"), monto: 428_63,
+                hora: "10:15", fecha: dias(0),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Utilidades", "Utilities"),
+                nota: L.t("Factura de electricidad de agosto", "August electricity bill"),
+                sinDepositar: false, comprobante: "factura-pseg-agosto-2026.pdf",
+                auditoria: [AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
+                                       detalle: creadoEn(dias(0), "10:15"))],
+                pagadoA: "PSE&G", rfc: nil,
+                notasAuditoria: L.t("Factura de agosto de 2026", "August 2026 bill"),
+                marcadoPendiente: false, incluidoEnCorte: false, darConstanciaAnual: false,
+                repiteMensual: false),
+            Movimiento(id: "105", tipo: .gasto, categoria: L.t("Suministros", "Supplies"),
+                persona: "Costco",
+                folio: "0520", metodo: L.t("Tarjeta", "Card"), monto: 189_74,
+                hora: "17:20", fecha: dias(1),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Suministros", "Supplies"),
+                nota: L.t("Papel, sobres y tinta para la impresora",
+                          "Paper, envelopes and printer ink"),
+                sinDepositar: false, comprobante: "recibo-costco.jpg",
+                auditoria: [AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
+                                       detalle: creadoEn(dias(1), "17:20"))],
+                pagadoA: "Costco", rfc: nil,
+                notasAuditoria: L.t("Compra para la oficina de la iglesia",
+                                    "Purchase for the church office"),
+                marcadoPendiente: false, incluidoEnCorte: false, darConstanciaAnual: false,
+                repiteMensual: false),
+            Movimiento(id: "106", tipo: .gasto, categoria: L.t("Misiones", "Missions"),
+                persona: L.t("Iglesia Misionera La Esperanza", "La Esperanza Mission Church"),
+                folio: "0521", metodo: L.t("Cheque", "Check"), monto: 600_00,
+                hora: "12:00", fecha: dias(2),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Misiones", "Missions"),
+                nota: L.t("Ofrenda mensual para obra misionera",
+                          "Monthly offering for mission work"),
+                sinDepositar: false, comprobante: "copia-cheque-misiones.jpg",
+                auditoria: [AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
+                                       detalle: creadoEn(dias(2), "12:00"))],
+                pagadoA: L.t("Iglesia Misionera La Esperanza", "La Esperanza Mission Church"),
+                rfc: nil,
+                notasAuditoria: L.t("Cheque preparado, pendiente de entrega",
+                                    "Check prepared, pending delivery"),
+                marcadoPendiente: true, incluidoEnCorte: false, darConstanciaAnual: false,
+                repiteMensual: false),
         ]
         return v
     }

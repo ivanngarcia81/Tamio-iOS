@@ -20,6 +20,11 @@ struct MovimientoDetalle: View {
     /// reemplazar). La vista padre lo guarda vía el repositorio.
     var onComprobante: ((String) -> Void)? = nil
     @State private var mostrarImportador = false
+    /// Abrir el comprobante pide una URL firmada al almacén: puede tardar y
+    /// puede fallar (sin red, ruta borrada del bucket). Las dos cosas se dicen.
+    @State private var abriendoComprobante = false
+    @State private var errorComprobante: String?
+    @Environment(\.openURL) private var openURL
     private var color: Color { Paleta.categoria(m.categoria) }
 
     /// Texto que se comparte con el sistema (ShareLink).
@@ -56,6 +61,12 @@ struct MovimientoDetalle: View {
             if m.sinDepositar {
                 Pill(texto: L.t("Sin depositar", "Not deposited"), color: Paleta.aviso)
             }
+            // Un gasto marcado para revisar sale en "Por revisar". Se capturaba
+            // y se guardaba, pero la ficha no lo decía por ningún lado: había
+            // que volver a abrir la hoja de edición para saberlo.
+            if m.marcadoPendiente {
+                Pill(texto: L.t("Pendiente de revisar", "Flagged for review"), color: Paleta.aviso)
+            }
         }
     }
 
@@ -72,12 +83,19 @@ struct MovimientoDetalle: View {
 
     private var acciones: some View {
         HStack(spacing: 10) {
-            Button { mostrarImportador = true } label: {
-                Label(m.comprobante == nil ? L.t("Comprobante", "Receipt") : L.t("Ver comprobante", "View receipt"),
-                      systemImage: "paperclip")
+            // Este botón decía "Ver comprobante" cuando ya había uno y lo que
+            // abría era el selector de archivos: pulsarlo para verlo llevaba a
+            // reemplazarlo. Ahora ver es ver y adjuntar es adjuntar.
+            Button {
+                if m.comprobante == nil { mostrarImportador = true } else { verComprobante() }
+            } label: {
+                Label(m.comprobante == nil ? L.t("Adjuntar comprobante", "Attach receipt")
+                                           : L.t("Ver comprobante", "View receipt"),
+                      systemImage: m.comprobante == nil ? "paperclip" : "eye")
             }
             .buttonStyle(.bordered)
             .tint(Color.secondary)
+            .disabled(abriendoComprobante)
             ShareLink(item: textoCompartir) {
                 Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
             }
@@ -97,25 +115,57 @@ struct MovimientoDetalle: View {
         Tarjeta {
             VStack(spacing: 0) {
                 FieldRow(label: L.t("Fecha y hora", "Date & time"), value: fechaLarga)
-                Divider()
+                // El "Ver ficha" que llevaba esta fila era texto verde sin
+                // acción. La ficha del padrón es de Secretaría y su acceso
+                // depende de un permiso que la app todavía no mira, así que
+                // aquí se enseña el nombre y nada más, hasta que Ajustes lo
+                // resuelva.
                 if let miembro = m.miembro {
-                    FieldRow(label: L.t("Miembro", "Member"), value: miembro, link: L.t("Ver ficha", "View profile"))
                     Divider()
+                    FieldRow(label: L.t("Miembro", "Member"), value: miembro)
                 }
+                // Un gasto se justifica por su beneficiario. Se capturaba
+                // —"Pagado a" es obligatorio para guardar— y se guardaba, pero
+                // la ficha no lo mostraba: solo aparecía colado en el titular,
+                // y el RFC no aparecía en ninguna parte de la app.
+                if let pagadoA = m.pagadoA, !pagadoA.isEmpty {
+                    Divider()
+                    FieldRow(label: L.t("Pagado a", "Paid to"), value: pagadoA)
+                }
+                if let rfc = m.rfc, !rfc.isEmpty {
+                    Divider()
+                    FieldRow(label: L.t("RFC", "Tax ID"), value: rfc)
+                }
+                Divider()
                 FieldRow(label: L.t("Método", "Method"), value: m.metodo)
                 Divider()
                 FieldRow(label: L.t("Categoría", "Category"), value: m.categoriaCompleta)
+                if m.repiteMensual {
+                    Divider()
+                    FieldRow(label: L.t("Periodicidad", "Recurrence"),
+                             value: L.t("Se repite cada mes", "Repeats monthly"))
+                }
                 if let nota = m.nota {
                     Divider()
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(L.t("Nota", "Note")).font(.subheadline).foregroundStyle(.secondary)
-                        Text(nota).font(.subheadline)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 10)
+                    bloqueTexto(L.t("Nota", "Note"), nota)
+                }
+                // Las notas internas iban al mismo sitio que la nota del
+                // movimiento en la hoja de captura y luego no se veían nunca.
+                if let notas = m.notasAuditoria, !notas.isEmpty {
+                    Divider()
+                    bloqueTexto(L.t("Notas internas", "Internal notes"), notas)
                 }
             }
         }
+    }
+
+    private func bloqueTexto(_ titulo: String, _ cuerpo: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(titulo).font(.subheadline).foregroundStyle(.secondary)
+            Text(cuerpo).font(.subheadline)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
     }
 
     private var auditYComprobante: some View {
@@ -175,9 +225,17 @@ struct MovimientoDetalle: View {
                             .frame(width: 44, height: 44)
                             .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(archivo).font(.subheadline).lineLimit(1)
+                            // La ruta guardada es "<church_id>/<uuid>.pdf": el
+                            // primer segmento no le dice nada a nadie.
+                            Text((archivo as NSString).lastPathComponent)
+                                .font(.subheadline).lineLimit(1).truncationMode(.middle)
                             HStack(spacing: 12) {
-                                Text(L.t("Ver", "View")).foregroundStyle(Paleta.enlace)
+                                // "Ver" era texto verde no tocable: parecía el
+                                // enlace para abrir el documento y no lo era,
+                                // pese a que el almacén ya sabía firmar la URL.
+                                Button(L.t("Ver", "View")) { verComprobante() }
+                                    .buttonStyle(.plain).foregroundStyle(Paleta.enlace)
+                                    .disabled(abriendoComprobante)
                                 Button(L.t("Reemplazar", "Replace")) { mostrarImportador = true }
                                     .buttonStyle(.plain).foregroundStyle(Paleta.enlace)
                             }
@@ -191,7 +249,33 @@ struct MovimientoDetalle: View {
                             .font(.subheadline)
                     }
                 }
+                if abriendoComprobante {
+                    Text(L.t("Abriendo…", "Opening…"))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                if let errorComprobante {
+                    Text(errorComprobante)
+                        .font(.caption).foregroundStyle(Paleta.negativo)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+        }
+    }
+
+    /// Pide la URL firmada al almacén y la abre. La ruta guardada es interna
+    /// del bucket: no se puede abrir directamente.
+    private func verComprobante() {
+        guard let ruta = m.comprobante else { return }
+        abriendoComprobante = true
+        errorComprobante = nil
+        Task {
+            do {
+                openURL(try await almacenComprobantes().urlFirmada(ruta))
+            } catch {
+                errorComprobante = L.t("No se pudo abrir el comprobante: \(error.localizedDescription)",
+                                       "Couldn't open the receipt: \(error.localizedDescription)")
+            }
+            abriendoComprobante = false
         }
     }
 
