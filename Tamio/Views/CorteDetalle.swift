@@ -15,20 +15,32 @@ struct CorteDetalle: View {
 
     @State private var mostrarImportador = false
     @State private var confirmarDeposito = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 cabecera
                 chips
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 16) { columnaIzquierda; columnaDerecha.frame(width: 300) }
-                    VStack(spacing: 16) { columnaIzquierda; columnaDerecha }
+                if sizeClass == .compact {
+                    // En iPhone el botón vive fijo abajo (`barraDepositar`), y la
+                    // ficha del banco sube ANTES de "Se registrará así": antes
+                    // quedaba debajo del botón, así que se podía confirmar el
+                    // depósito sin haber visto que existía la opción de adjuntar.
+                    columnaIzquierda
+                    tarjetaFicha
+                    tarjetaRegistro(conBoton: false)
+                } else {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: 16) { columnaIzquierda; columnaDerecha.frame(width: 300) }
+                        VStack(spacing: 16) { columnaIzquierda; columnaDerecha }
+                    }
                 }
             }
             .padding(24)
         }
         .colchonInferior()
+        .safeAreaInset(edge: .bottom) { barraDepositar }
         .background(Color(.systemGroupedBackground))
         .fileImporter(isPresented: $mostrarImportador,
                       allowedContentTypes: [.image, .pdf],
@@ -119,7 +131,7 @@ struct CorteDetalle: View {
             Tarjeta {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        TituloSeccion(texto: L.t("MOVIMIENTOS EN CAJA", "CASH ENTRIES"))
+                        TituloSeccion(texto: L.t("MOVIMIENTOS DEL CORTE", "ENTRIES IN THIS DEPOSIT"))
                         Spacer()
                         TituloSeccion(texto: L.t("MONTO", "AMOUNT"))
                     }
@@ -201,55 +213,84 @@ struct CorteDetalle: View {
 
     // MARK: - Columna derecha (se registrará así + ficha)
 
+    /// En regular (iPad) las dos tarjetas siguen juntas en su columna, con el
+    /// botón dentro. En compacto el cuerpo las coloca por separado.
     private var columnaDerecha: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Tarjeta {
-                VStack(alignment: .leading, spacing: 0) {
-                    TituloSeccion(texto: L.t("SE REGISTRARÁ ASÍ", "WILL BE RECORDED AS"))
-                        .padding(.bottom, 8)
-                    filaCuenta
-                    Divider()
-                    filaRegistro(L.t("Fecha", "Date"), corte.registro.fecha)
-                    Divider()
-                    filaRegistro(L.t("Periodo", "Period"), corte.registro.periodo)
-                    Divider()
-                    filaRegistro(L.t("Monto", "Amount"), Money.fmt(corte.registro.monto), fuerte: true)
+            tarjetaRegistro(conBoton: true)
+            tarjetaFicha
+        }
+    }
 
-                    if corte.sinDepositar {
-                        Button { confirmarDeposito = true } label: {
-                            Text(L.t("Marcar depositado", "Mark deposited"))
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Paleta.brand)
-                        .padding(.top, 14)
-                    }
+    private func tarjetaRegistro(conBoton: Bool) -> some View {
+        Tarjeta {
+            VStack(alignment: .leading, spacing: 0) {
+                TituloSeccion(texto: L.t("SE REGISTRARÁ ASÍ", "WILL BE RECORDED AS"))
+                    .padding(.bottom, 8)
+                filaCuenta
+                Divider()
+                filaRegistro(L.t("Fecha", "Date"), corte.registro.fecha)
+                Divider()
+                filaRegistro(L.t("Periodo", "Period"), corte.registro.periodo)
+                Divider()
+                filaRegistro(L.t("Monto", "Amount"), Money.fmt(corte.registro.monto), fuerte: true)
+
+                if conBoton, corte.sinDepositar {
+                    botonDepositar.padding(.top, 14)
                 }
             }
-            Tarjeta {
-                VStack(alignment: .leading, spacing: 10) {
-                    TituloSeccion(texto: L.t("FICHA DEL BANCO", "BANK SLIP"))
-                    if let ficha = corte.fichaAdjunta {
-                        HStack(spacing: 8) {
-                            Image(systemName: "doc.fill").foregroundStyle(Paleta.brand)
-                            Text(ficha).font(.subheadline).lineLimit(1)
-                            Spacer()
-                            Button(L.t("Cambiar", "Change")) { mostrarImportador = true }
-                                .font(.caption).buttonStyle(.borderless)
-                        }
-                    } else {
-                        Text(L.t("Foto o PDF de la ficha del banco", "Photo or PDF of the bank slip"))
+        }
+    }
+
+    private var tarjetaFicha: some View {
+        Tarjeta {
+            VStack(alignment: .leading, spacing: 10) {
+                TituloSeccion(texto: L.t("FICHA DEL BANCO", "BANK SLIP"))
+                if let ficha = corte.fichaAdjunta {
+                    HStack(spacing: 8) {
+                        Image(systemName: "doc.fill").foregroundStyle(Paleta.brand)
+                        Text(ficha).font(.subheadline).lineLimit(1)
+                        Spacer()
+                        Button(L.t("Cambiar", "Change")) { mostrarImportador = true }
+                            .font(.caption).buttonStyle(.borderless)
+                    }
+                } else {
+                    Text(L.t("Foto o PDF de la ficha del banco", "Photo or PDF of the bank slip"))
+                        .font(.subheadline)
+                    Button { mostrarImportador = true } label: {
+                        Label(L.t("Adjuntar ficha", "Attach slip"), systemImage: "paperclip")
                             .font(.subheadline)
-                        Button { mostrarImportador = true } label: {
-                            Label(L.t("Adjuntar ficha", "Attach slip"), systemImage: "paperclip")
-                                .font(.subheadline)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(Color.secondary)
                     }
+                    .buttonStyle(.bordered)
+                    .tint(Color.secondary)
                 }
             }
+        }
+    }
+
+    private var botonDepositar: some View {
+        Button { confirmarDeposito = true } label: {
+            Text(L.t("Marcar depositado", "Mark deposited"))
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(Paleta.brand)
+    }
+
+    /// La acción principal, fijada sobre el tab bar en compacto. Dentro del
+    /// scroll caía a media página y con la ficha del banco por debajo.
+    @ViewBuilder
+    private var barraDepositar: some View {
+        if sizeClass == .compact, corte.sinDepositar {
+            VStack(spacing: 0) {
+                Divider()
+                botonDepositar
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+            }
+            .background(.bar)
         }
     }
 

@@ -83,6 +83,7 @@ struct AportanteDetalle: View {
             Label(L.t("Eliminar", "Delete"), systemImage: "trash")
         }
         .buttonStyle(.bordered)
+        .tint(.red)
         .confirmationDialog(L.t("¿Eliminar a \(a.nombre)?", "Delete \(a.nombre)?"),
                             isPresented: $confirmarEliminar, titleVisibility: .visible) {
             Button(L.t("Eliminar", "Delete"), role: .destructive) { onEliminar?() }

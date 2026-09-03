@@ -408,6 +408,7 @@ private struct NuevaActaSheet: View {
                     Button(role: .destructive) {
                         mociones.removeAll { $0.id == mocion.id }
                     } label: { Label(L.t("Borrar", "Delete"), systemImage: "trash") }
+                    .tint(.red)   // el tint del TabView tapa el rojo del rol
                 }
             }
             HStack {
@@ -441,6 +442,7 @@ private struct NuevaActaSheet: View {
                     Button(role: .destructive) {
                         acuerdoItems.removeAll { $0.id == item.id }
                     } label: { Label(L.t("Borrar", "Delete"), systemImage: "trash") }
+                    .tint(.red)
                 }
             }
             HStack {
@@ -495,6 +497,7 @@ private struct NuevaActaSheet: View {
                 Button(role: .destructive) {
                     lista.wrappedValue.removeAll { $0.id == persona.id }
                 } label: { Label(L.t("Borrar", "Delete"), systemImage: "trash") }
+                .tint(.red)
             }
         }
         HStack {

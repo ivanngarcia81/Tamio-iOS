@@ -9,6 +9,9 @@ struct MovimientosView: View {
     @State private var abierto: Movimiento?
     @State private var hoja: HojaMov?
     @State private var mostrarFiltros = false
+    /// Movimiento cuya eliminación espera confirmación. Borrar un registro
+    /// financiero es más grave que marcar un corte, que ya la pide.
+    @State private var movimientoAEliminar: Movimiento?
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     init(tipo: TipoMovimiento) {
@@ -73,6 +76,21 @@ struct MovimientosView: View {
                         .background(Paleta.brand, in: Capsule())
                 }
             }
+        }
+        .confirmationDialog(
+            L.t("¿Eliminar este movimiento?", "Delete this entry?"),
+            isPresented: Binding(get: { movimientoAEliminar != nil },
+                                 set: { if !$0 { movimientoAEliminar = nil } }),
+            titleVisibility: .visible,
+            presenting: movimientoAEliminar
+        ) { m in
+            Button(L.t("Eliminar", "Delete"), role: .destructive) {
+                Task { await vm.eliminar(m) }
+            }
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
+        } message: { m in
+            Text(L.t("Se eliminará «\(m.titular)» por \(Money.fmt(m.monto)). No se puede deshacer.",
+                     "«\(m.titular)» for \(Money.fmt(m.monto)) will be deleted. This can't be undone."))
         }
         .sheet(item: $hoja) { item in
             switch item {
@@ -151,16 +169,17 @@ struct MovimientosView: View {
                 Section {
                     ForEach(grupo.items) { m in
                         filaContenido(m)
-                            .listRowInsets(EdgeInsets())
                             .listRowBackground(rowBG)
                             .contentShape(Rectangle())
                             .onTapGesture { abrir(m) }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
-                                    Task { await vm.eliminar(m) }
+                                    movimientoAEliminar = m
                                 } label: {
                                     Label(L.t("Eliminar", "Delete"), systemImage: "trash")
                                 }
+                                // El tint del TabView tapa el rojo del rol.
+                                .tint(.red)
                                 Button {
                                     hoja = .editar(m)
                                 } label: {
@@ -322,11 +341,13 @@ struct MovimientosView: View {
                 }
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(esSel ? Paleta.brandFill : Color.clear)
+        .padding(.vertical, 6)
+        .background(esSel ? Paleta.brandFill : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(alignment: .leading) {
             if esSel { Rectangle().fill(Paleta.brand).frame(width: 3) }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private var pieLista: some View {

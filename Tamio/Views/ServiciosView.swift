@@ -371,7 +371,8 @@ private struct NuevoServicioSheet: View {
                     Spacer()
                 }
                 .swipeActions { Button(role: .destructive) { cancionItems.removeAll { $0.id == item.id } }
-                    label: { Label(L.t("Borrar", "Delete"), systemImage: "trash") } }
+                    label: { Label(L.t("Borrar", "Delete"), systemImage: "trash") }
+                    .tint(.red) }   // el tint del TabView tapa el rojo del rol
             }
             HStack {
                 TextField(L.t("Canciones y participaciones · agregar", "Add a song or participation"),
@@ -468,7 +469,8 @@ private struct NuevoServicioSheet: View {
             ForEach(visitanteItems, id: \.id) { item in
                 Text(item.nombre)
                     .swipeActions { Button(role: .destructive) { visitanteItems.removeAll { $0.id == item.id } }
-                        label: { Label(L.t("Borrar", "Delete"), systemImage: "trash") } }
+                        label: { Label(L.t("Borrar", "Delete"), systemImage: "trash") }
+                        .tint(.red) }
             }
             HStack {
                 TextField(L.t("+ Agregar visitante", "+ Add visitor"), text: $nuevoVisitante)
