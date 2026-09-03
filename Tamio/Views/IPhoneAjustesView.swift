@@ -9,26 +9,12 @@ private enum AjustesRuta: Hashable {
 // MARK: - Vista principal
 
 struct IPhoneAjustesView: View {
-    @State private var cfgNombre    = "Iglesia Nueva Vida"
-    @State private var cfgCiudad   = ""
-    @State private var cfgEstado   = ""
-    @State private var cfgPais     = ""
-    @State private var cfgCP       = ""
-    @State private var cfgEIN      = ""
-    @State private var cfgMoneda   = "USD $"
+    /// Los datos de la iglesia ya no son `@State` de esta pantalla: vienen del
+    /// origen único que comparten iPhone, iPad y los documentos. Antes cada
+    /// pantalla tenía los suyos y no coincidían — el teléfono decía "Iglesia
+    /// Nueva Vida" y el iPad "Iglesia Getsemaní".
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
     @State private var cfgApertura = ""
-    @State private var cfgDir      = ""
-    @State private var cfgEstado2  = ""
-    @State private var cfgTel      = ""
-    @State private var cfgCorreoI  = ""
-    @State private var cfgPieInst  = ""
-    @State private var cfgSec      = ""
-    @State private var cfgSecCargo = ""
-    @State private var cfgTes      = ""
-    @State private var cfgTesCargo = "Tesorero"
-    @State private var cfgPastor   = ""
-    @State private var cfgPasCargo = "Pastor"
-    @State private var cfgFirmas   = true
     @State private var invEmail    = ""
     @State private var invNom      = ""
     @State private var invRol      = "Tesorero"
@@ -50,7 +36,8 @@ struct IPhoneAjustesView: View {
 
             Section {
                 filaNav(L.t("Iglesia", "Church"),
-                        val: cfgNombre.isEmpty ? "Iglesia Nueva Vida" : cfgNombre,
+                        val: cfg.config.nombre.isEmpty
+                            ? L.t("Sin configurar", "Not set") : cfg.config.nombre,
                         icono: "building.2.fill", icoBg: Color(hex: 0x34C759), ruta: .iglesia)
                 filaNav(L.t("Institución", "Institution"),
                         icono: "doc.richtext.fill", icoBg: Color(hex: 0x5856D6), ruta: .institucion)
@@ -94,6 +81,8 @@ struct IPhoneAjustesView: View {
             Text("Tamio 1.3.5").font(.caption2).foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity).padding(.bottom, 8)
         }
+        .task { await cfg.cargar() }
+        .onDisappear { Task { await cfg.guardarYa() } }
     }
 
     // MARK: - Fila perfil (compacta, índice)
@@ -140,18 +129,24 @@ struct IPhoneAjustesView: View {
         case .cuenta:
             AjustesCuentaView()
         case .iglesia:
-            AjustesIglesiaView(nombre: $cfgNombre, ciudad: $cfgCiudad,
-                               estado: $cfgEstado, pais: $cfgPais, cp: $cfgCP,
-                               ein: $cfgEIN, moneda: $cfgMoneda, apertura: $cfgApertura)
+            AjustesIglesiaView(nombre: $cfg.config.nombre, ciudad: $cfg.config.ciudad,
+                               estado: $cfg.config.estado, pais: $cfg.config.pais,
+                               cp: $cfg.config.codigoPostal,
+                               ein: $cfg.config.idFiscal, moneda: $cfg.config.moneda,
+                               apertura: $cfgApertura)
         case .institucion:
-            AjustesInstitucionView(nombreIglesia: cfgNombre,
-                                   dir: $cfgDir, estado2: $cfgEstado2,
-                                   tel: $cfgTel, correo: $cfgCorreoI,
-                                   pie: $cfgPieInst, sec: $cfgSec, cargo: $cfgSecCargo)
+            AjustesInstitucionView(nombreIglesia: cfg.config.nombre,
+                                   dir: $cfg.config.direccion, estado2: $cfg.config.ciudad,
+                                   tel: $cfg.config.telefono, correo: $cfg.config.correo,
+                                   pie: $cfg.config.pieInstitucional,
+                                   sec: $cfg.config.secretarioNombre,
+                                   cargo: $cfg.config.secretarioCargo)
         case .tesorero:
-            AjustesTesorerosView(tes: $cfgTes, tesCargo: $cfgTesCargo,
-                                  pastor: $cfgPastor, pasCargo: $cfgPasCargo,
-                                  firmas: $cfgFirmas)
+            AjustesTesorerosView(tes: $cfg.config.tesoreroNombre,
+                                  tesCargo: $cfg.config.tesoreroCargo,
+                                  pastor: $cfg.config.pastorNombre,
+                                  pasCargo: $cfg.config.pastorCargo,
+                                  firmas: $cfg.config.imprimirFirmas)
         case .acceso:
             AjustesAccesoView(invEmail: $invEmail, invNom: $invNom, invRol: $invRol,
                                permPadron: $permPadron, permBorrar: $permBorrar)
@@ -169,7 +164,31 @@ struct IPhoneAjustesView: View {
 
 // MARK: - Cuenta
 
+/// Lo que la pantalla cuenta de la sincronización. Que el número de cambios
+/// sin subir esté a la vista es lo que evita que alguien dé por guardado en el
+/// servidor algo que solo está en su teléfono.
+private struct AjustesSyncTexto {
+    static func estado(_ motor: MotorSincronizacion) -> String {
+        switch motor.estado {
+        case .sincronizando: return L.t("Sincronizando…", "Syncing…")
+        case .fallo(let detalle): return detalle
+        case .reposo:
+            guard let fecha = motor.ultimaSincronizacion else {
+                return L.t("Sin sincronizar todavía", "Not synced yet")
+            }
+            let f = DateFormatter()
+            f.locale = Locale.current
+            f.dateStyle = .short
+            f.timeStyle = .short
+            return f.string(from: fecha)
+        }
+    }
+}
+
 private struct AjustesCuentaView: View {
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    @State private var confirmarCierre = false
+
     var body: some View {
         List {
             // Cabecera de perfil completa (fiel al handoff)
@@ -216,12 +235,20 @@ private struct AjustesCuentaView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                Button(role: .destructive) { } label: {
+                Button(role: .destructive) { confirmarCierre = true } label: {
                     Text(L.t("Cerrar sesión", "Sign out")).foregroundStyle(Paleta.negativo)
                         .font(.subheadline).frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-                .disabled(true).opacity(0.4)
+                .disabled(sesion == nil)
+                .confirmationDialog(L.t("¿Cerrar sesión?", "Sign out?"),
+                                    isPresented: $confirmarCierre,
+                                    titleVisibility: .visible) {
+                    Button(L.t("Cerrar sesión", "Sign out"), role: .destructive) {
+                        Task { await sesion?.cerrarSesion() }
+                    }
+                    Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
+                }
             } footer: {
                 Text(L.t("Cerrar sesión no borra nada del aparato: al volver a entrar, todo sigue donde estaba.",
                          "Signing out doesn't erase anything: when you sign back in, everything will be there."))
@@ -443,6 +470,12 @@ private struct AjustesTesorerosView: View {
 // MARK: - Acceso y áreas
 
 private struct AjustesAccesoView: View {
+    /// Singleton observable: leer sus propiedades dentro de `body` basta para
+    /// que la pantalla se refresque cuando la sincronización avanza.
+    private let motor = MotorSincronizacion.compartido
+
+    private var estadoSync: String { AjustesSyncTexto.estado(motor) }
+
     @Binding var invEmail: String
     @Binding var invNom: String
     @Binding var invRol: String
@@ -483,15 +516,16 @@ private struct AjustesAccesoView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                valorF(L.t("Estado", "Status"), L.t("Sincronizado", "Synced"))
-                valorF(L.t("Último cambio", "Last change"), "0 subidos · 0 bajados")
-                Button { } label: {
+                valorF(L.t("Estado", "Status"), estadoSync)
+                valorF(L.t("Sin subir", "Not uploaded"),
+                       "\(motor.pendientes) " + L.t("cambios", "changes"))
+                Button { Task { await motor.sincronizar() } } label: {
                     Text(L.t("Sincronizar ahora", "Sync now")).font(.subheadline).foregroundStyle(Paleta.brand)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .disabled(true).opacity(0.4)
+                .disabled(motor.estado == .sincronizando)
             } header: {
-                Text(L.t("Sincronización (beta)", "Sync (beta)")).textCase(nil)
+                Text(L.t("Sincronización", "Sync")).textCase(nil)
             } footer: {
                 Text(L.t("Se sincroniza sola al abrir, al guardar y al reconectar. Aquí puedes forzarla a mano.",
                          "Syncs automatically on open, save, and reconnect. Tap to force a manual sync."))

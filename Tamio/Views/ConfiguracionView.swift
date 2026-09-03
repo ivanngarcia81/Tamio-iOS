@@ -394,6 +394,11 @@ struct ConfiguracionView: View {
 // MARK: - Cuenta
 
 private struct SeccionCuenta: View {
+    /// Opcional a propósito: las previews de esta sección se montan sin la
+    /// sesión en el entorno, y un `@Environment` no opcional las haría caer.
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    @State private var confirmarCierre = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -454,7 +459,7 @@ private struct SeccionCuenta: View {
 
                 // Cerrar sesión
                 VStack(alignment: .leading, spacing: 8) {
-                    Button { } label: {
+                    Button { confirmarCierre = true } label: {
                         Text(L.t("Cerrar sesión", "Sign out"))
                             .font(.system(size: 16.5))
                             .foregroundStyle(Paleta.negativo)
@@ -466,6 +471,15 @@ private struct SeccionCuenta: View {
                             )
                     }
                     .buttonStyle(.plain)
+                    .disabled(sesion == nil)
+                    .confirmationDialog(L.t("¿Cerrar sesión?", "Sign out?"),
+                                        isPresented: $confirmarCierre,
+                                        titleVisibility: .visible) {
+                        Button(L.t("Cerrar sesión", "Sign out"), role: .destructive) {
+                            Task { await sesion?.cerrarSesion() }
+                        }
+                        Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
+                    }
                     Text(L.t("Cerrar sesión no borra nada del aparato: al volver a entrar, todo sigue donde estaba.",
                              "Signing out doesn't delete anything from the device."))
                         .font(.system(size: 12.5))
@@ -484,12 +498,10 @@ private struct SeccionCuenta: View {
 // MARK: - Iglesia
 
 private struct SeccionIglesia: View {
-    @State private var nombre = "Iglesia Getsemaní"
-    @State private var ciudad = "Monterrey"
-    @State private var estado = "Nuevo León"
-    @State private var pais = "México"
-    @State private var cp = "64500"
-    @State private var einFiscal = ""
+    /// Mismo origen que el iPhone y que los documentos. Antes esta pantalla
+    /// tenía sus propios `@State` con "Iglesia Getsemaní" escrito dentro,
+    /// mientras el teléfono decía "Iglesia Nueva Vida" y el PDF, otra cosa.
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
 
     var body: some View {
         ScrollView {
@@ -529,15 +541,15 @@ private struct SeccionIglesia: View {
 
                 // Información
                 GrupoConf(titulo: L.t("INFORMACIÓN DE LA IGLESIA", "CHURCH INFORMATION")) {
-                    FilaEditable(label: L.t("Nombre de la iglesia", "Church name"), texto: $nombre)
+                    FilaEditable(label: L.t("Nombre de la iglesia", "Church name"), texto: $cfg.config.nombre)
                     Divider()
-                    FilaEditable(label: L.t("Ciudad (opcional)", "City (optional)"), texto: $ciudad)
+                    FilaEditable(label: L.t("Ciudad (opcional)", "City (optional)"), texto: $cfg.config.ciudad)
                     Divider()
-                    FilaEditable(label: L.t("Estado/Provincia (opcional)", "State/Province (optional)"), texto: $estado)
+                    FilaEditable(label: L.t("Estado/Provincia (opcional)", "State/Province (optional)"), texto: $cfg.config.estado)
                     Divider()
-                    FilaEditable(label: L.t("País (opcional)", "Country (optional)"), texto: $pais)
+                    FilaEditable(label: L.t("País (opcional)", "Country (optional)"), texto: $cfg.config.pais)
                     Divider()
-                    FilaEditable(label: L.t("Código postal (opcional)", "ZIP (optional)"), texto: $cp)
+                    FilaEditable(label: L.t("Código postal (opcional)", "ZIP (optional)"), texto: $cfg.config.codigoPostal)
                 }
 
                 // Fiscal
@@ -546,7 +558,7 @@ private struct SeccionIglesia: View {
                         Text(L.t("EIN / identificación fiscal", "EIN / Tax ID"))
                             .font(.system(size: 13.5))
                             .foregroundStyle(.secondary)
-                        TextField(L.t("p. ej. 12-3456789", "e.g. 12-3456789"), text: $einFiscal)
+                        TextField(L.t("p. ej. 12-3456789", "e.g. 12-3456789"), text: $cfg.config.idFiscal)
                             .font(.system(size: 16))
                     }
                     .padding(.horizontal, Esp.pantalla)
@@ -562,6 +574,8 @@ private struct SeccionIglesia: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .task { await cfg.cargar() }
+        .onDisappear { Task { await cfg.guardarYa() } }
     }
 }
 
