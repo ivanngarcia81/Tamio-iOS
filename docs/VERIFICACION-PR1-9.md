@@ -1,7 +1,7 @@
-# Verificación de PR 1–8 · Tamio-iOS
+# Verificación de PR 1–9 · Tamio-iOS
 
-Rama: `claude/repo-chat-vs-xcode-g6y9zx` · base `1c0e20e` · cabeza `b1412d6`
-69 archivos, +2041 / −767. Nueve commits.
+Rama: `claude/repo-chat-vs-xcode-g6y9zx` · base `1c0e20e` · cabeza `3084517`
+69 archivos de código, +2202 / −771. Diez commits de cambios más este documento.
 
 ---
 
@@ -59,6 +59,7 @@ Sitios donde un error de compilación es plausible, por orden de sospecha:
 | 1.7 | `MembresiaView` | `vm.sincronizarSeleccion(enSeguimiento:)` es `@MainActor` y se llama desde `.onChange`. |
 | 1.8 | `Sidebar.swift` | Los badges pasan `Int` donde la tupla declara `Int?`. Depende de promoción implícita a opcional. |
 | 1.9 | `RevisarViewModel.editar` | Ganó parámetro `fecha: Date`. Comprueba que el único call site (`RevisarView:46`) case. |
+| 1.10 | `MiembroDetalle` → `accion(_:_:_:)` | `@ViewBuilder` con `if let onFiltrarAccion` que devuelve dos vistas de tipo distinto. Si Swift se queja, envuelve en `AnyView`. |
 
 ---
 
@@ -104,6 +105,16 @@ grep -rc 'Catalogos\.' Tamio/Views/*.swift | grep -v ':0'            # → 4 y 4
 
 # PR 8 — ningún literal de margen horizontal
 grep -rhoE 'padding\(\.horizontal, [0-9]+\)' Tamio --include=*.swift | wc -l  # → 0
+
+# PR 9 — la rejilla de 4 columnas sigue existiendo solo para iPad
+grep -n 'count: 4' Tamio/Views/MiembroDetalle.swift                  # → 1, en indicadores(_:)
+grep -n 'resumenCompacto\|sizeClass == .compact' Tamio/Views/MiembroDetalle.swift
+
+# PR 9 — el filtro nuevo está en el ViewModel, no en una pantalla aparte
+grep -rn 'FiltroAccion' Tamio --include=*.swift                      # → 6 líneas
+
+# PR 9 — KPICard no se tocó (es del Dashboard)
+git diff 1c0e20e..HEAD --name-only | grep KPICard                    # → 0
 
 # PR 8 — las ocho listas en .plain con filaDeLista
 grep -rc 'filaDeLista(' Tamio/Views/*.swift | grep -v ':0'           # → 8 archivos
@@ -279,6 +290,45 @@ Contadores, que ahora deben cuadrar entre pantallas:
       una línea por vista: `.background(Color(.systemGroupedBackground))` en la
       lista en vez de heredar el material.
 
+### 3.9 · PR 9 — Los 8 indicadores del padrón (solo iPhone)
+
+**Ojo con dónde está.** El paquete decía que la rejilla estaba en la pantalla
+de Membresía, arriba del segmentado. No es así: vive dentro de
+`MiembroDetalle`, encima de la cabecera del propio miembro. Para verla, abre
+Membresía y **toca un miembro**.
+
+- [ ] **iPhone → Membresía → un miembro**: los ocho números están en **una
+      tarjeta de tres filas**, no en dos filas de mosaico. Total grande a la
+      izquierda con "en el padrón"; a la derecha "236 activos · 6 inactivos".
+- [ ] La tarjeta ocupa **notablemente menos alto** que el mosaico anterior, y
+      se ve la cabecera del miembro sin scrollear.
+- [ ] Fila 2: Nuevos / Recibidos / Trasladados en tres columnas. **En inglés y
+      en español las tres etiquetas caben** sin cortarse ("Trasladados" y
+      "Transferred" son las largas).
+- [ ] Fila 3: Ausencias e Incompletos se ven **como algo que se toca** —fondo
+      naranja tenue y chevron—, no como texto.
+- [ ] **Tocar "Incompletos"**: vuelve a la lista, se posa en la pestaña
+      Miembros, y la lista queda filtrada a los que tienen algún campo del
+      expediente pendiente.
+- [ ] Aparece un **chip naranja "Expediente incompleto"** con una x que lo
+      quita, el badge de "Más filtros" sube en uno, y "Limpiar" en la hoja de
+      filtros también lo borra. Sin eso la lista quedaría filtrada sin decir
+      por qué.
+- [ ] **Tocar "Ausencias"**: mismo comportamiento, filtrando por racha de
+      ausencias (excluye a los de baja).
+- [ ] El filtro se combina con los que ya había (año, estado, ministerio,
+      búsqueda) sin pelearse.
+- [ ] **Números de cuatro dígitos.** Cambia `MembresiaResumen` en
+      `MockMembresiaRepository.resumenPadron` a `total: 1248, activos: 1236`
+      y comprueba que nada se corta ni se desborda: el Total, la línea de
+      activos/inactivos y las tres columnas. Deshaz el cambio después.
+- [ ] **iPad → Membresía: se ve exactamente igual que antes.** La rejilla de
+      cuatro columnas y `miniKPI` no se tocaron, con sus barritas de color.
+      Los ocho números siguen siendo texto sin tap, como estaban.
+- [ ] **iPhone en horizontal.** Si el ancho pasa de 640 entra por la rama de
+      split con `sizeClass` compacto: la tarjeta se dibuja y el filtro
+      funciona sin sacar nada de la pila, porque la lista ya está a la vista.
+
 ---
 
 ## 4. Riesgos conocidos
@@ -329,7 +379,12 @@ ser un problema real.
 
    `checklist` requiere iOS 16; el resto son de iOS 13–14. El deployment target
    es 17, así que todos deberían estar.
-7. **`AccentColor` cambió también en claro** (PR 1). Era `#214F66`, un gris
+7. **Los acentos de color de la fila 3 desaparecieron en compacto** (PR 9). Las
+   barritas de color de `miniKPI` no están en la tarjeta agrupada: es
+   intencional —ocho colores sin leyenda no comunicaban nada y la jerarquía la
+   da la posición—, pero si esos colores servían para algo que no vi, aquí está
+   el cambio.
+8. **`AccentColor` cambió también en claro** (PR 1). Era `#214F66`, un gris
    azulado que no correspondía al verde con el que la app se tinta en
    `RootView`. Ahora es marca. Si algún control salía azul a propósito, ahí está
    la causa.
@@ -347,6 +402,8 @@ ser un problema real.
   `confirmationDialog`: el rojo lo pone el sistema.
 - Los nombres propios, folios, horas, montos y correos de la semilla siguen sin
   `L.t` a propósito: no son texto traducible.
+- `indicadores(_:)`, `miniKPI(_:_:_:)` y `KPICard.swift` se quedan como están:
+  la rejilla de cuatro columnas funciona en iPad y `KPICard` es del Dashboard.
 
 ---
 
