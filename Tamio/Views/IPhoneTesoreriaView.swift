@@ -13,19 +13,19 @@ struct IPhoneTesoreriaView: View {
 
             Section(L.t("REGISTRO", "RECORDS")) {
                 NavigationLink { MovimientosView(tipo: .ingreso) } label: {
-                    HubRow(iniciales: "Mo", color: Color(hex: 0x10B981),
+                    HubRow(icono: "arrow.left.arrow.right", color: Color(hex: 0x10B981),
                            titulo: L.t("Movimientos", "Transactions"),
                            subtitulo: L.t("132 registros · 14 sin depositar",
                                           "132 records · 14 undeposited"))
                 }
                 NavigationLink { MiembrosView() } label: {
-                    HubRow(iniciales: "Ap", color: Color(hex: 0x0D9488),
+                    HubRow(icono: "person.2.fill", color: Color(hex: 0x0D9488),
                            titulo: L.t("Aportantes", "Contributors"),
                            subtitulo: L.t("Diezmos y ofrendas por persona",
                                           "Tithes & offerings per person"))
                 }
                 NavigationLink { DepositosView() } label: {
-                    HubRow(iniciales: "De", color: Paleta.aviso,
+                    HubRow(icono: "building.columns.fill", color: Paleta.aviso,
                            titulo: L.t("Depósitos", "Deposits"),
                            subtitulo: L.t("1 corte pendiente · Banorte ••4821",
                                           "1 pending cut · Banorte ••4821"),
@@ -35,7 +35,7 @@ struct IPhoneTesoreriaView: View {
 
             Section(L.t("ANÁLISIS", "ANALYSIS")) {
                 NavigationLink { ReportesView() } label: {
-                    HubRow(iniciales: "Re", color: Color(hex: 0x0EA5E9),
+                    HubRow(icono: "chart.bar.fill", color: Color(hex: 0x0EA5E9),
                            titulo: L.t("Reportes", "Reports"),
                            subtitulo: L.t("Documentos del mes · PDF y hoja",
                                           "Monthly docs · PDF & spreadsheet"))
@@ -44,7 +44,7 @@ struct IPhoneTesoreriaView: View {
         }
         .listStyle(.insetGrouped)
         .encabezadoNav(L.t("Tesorería", "Treasury"),
-                       L.t("Agosto 2026 · Banorte ••4821", "August 2026 · Banorte ••4821"))
+                       "\(L.mesEnCurso) · Banorte ••4821")
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.cargar() }
     }

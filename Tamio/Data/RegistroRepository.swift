@@ -73,15 +73,15 @@ struct MockRegistroRepository: RegistroRepository {
             Apunte(id: 11, area: .secretaria,
                    texto: L.t("Carmen Ortiz Salinas se dio de baja del padrón (traslado a otra iglesia)",
                               "Carmen Ortiz Salinas was removed from the roll (transfer to another church)"),
-                   autor: "Tamio", hora: "20:10", grupo: "22 AGO 2026",
+                   autor: "Tamio", hora: "20:10", grupo: L.fecha("22 AGO 2026"),
                    fecha: L.t("22 de agosto", "Aug 22")),
             Apunte(id: 12, area: .secretaria,
                    texto: L.t("Se emitió la carta CAR‑2026‑0029 a Carmen Ortiz Salinas", "Letter CAR‑2026‑0029 issued to Carmen Ortiz Salinas"),
-                   autor: "Tamio", hora: "19:55", grupo: "22 AGO 2026",
+                   autor: "Tamio", hora: "19:55", grupo: L.fecha("22 AGO 2026"),
                    fecha: L.t("22 de agosto", "Aug 22"), folio: "CAR‑2026‑0029"),
             Apunte(id: 13, area: .tesoreria,
                    texto: L.t("El corte «Domingo 16 de agosto» llegó al banco", "The «Sunday Aug 16» cut reached the bank"),
-                   autor: "Tamio", hora: "13:20", grupo: "22 AGO 2026",
+                   autor: "Tamio", hora: "13:20", grupo: L.fecha("22 AGO 2026"),
                    fecha: L.t("22 de agosto", "Aug 22")),
         ]
     }

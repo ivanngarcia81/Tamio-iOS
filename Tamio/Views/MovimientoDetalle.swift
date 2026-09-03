@@ -63,7 +63,8 @@ struct MovimientoDetalle: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(m.titular).font(.title.weight(.bold))
             AmountText(cents: m.monto, size: 30)
-            Text("\(m.metodo) · \(m.hora) · " + L.t("registrado por \(m.registradoPor)", "logged by \(m.registradoPor)"))
+            // Quién lo registró ya lo dice el rastro de auditoría, más abajo.
+            Text("\(m.metodo) · \(m.hora)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }

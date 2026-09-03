@@ -46,6 +46,9 @@ struct MembresiaView: View {
             }
         }
         .task { await vm.cargar() }
+        .onChange(of: subtab) { _, nuevo in
+            vm.sincronizarSeleccion(enSeguimiento: nuevo == 2)
+        }
         .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
         .sheet(isPresented: $mostrarNuevo) {
             NuevoMiembroSheet(proximoId: vm.proximoId) { nuevo in
@@ -738,7 +741,7 @@ private struct NuevoMiembroSheet: View {
     }
 
     private static let fmtCorto: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "d MMM yyyy"; f.locale = Locale(identifier: "es_MX"); return f
+        let f = DateFormatter(); f.dateFormat = L.t("d MMM yyyy", "MMM d, yyyy"); f.locale = Locale.current; return f
     }()
 
     var body: some View {
@@ -1178,7 +1181,7 @@ private struct SeguimientoSheet: View {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none
-        f.locale = Locale(identifier: "es_MX")
+        f.locale = Locale.current
         return f
     }()
 

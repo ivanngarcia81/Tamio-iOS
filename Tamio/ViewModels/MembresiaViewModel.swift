@@ -52,6 +52,18 @@ final class MembresiaViewModel {
 
     var seleccion: Miembro? { items.first { $0.id == seleccionId } }
 
+    /// La pestaña Seguimiento muestra un subconjunto del padrón. Si la selección
+    /// vigente no está en él, la lista no resaltaba ninguna fila mientras el
+    /// panel derecho mostraba a otra persona (su `?? listActiva.first`), así que
+    /// el preseleccionado parecía cambiar solo. Se reajusta al cambiar de vista.
+    @MainActor
+    func sincronizarSeleccion(enSeguimiento: Bool) {
+        let lista = enSeguimiento ? itemsSeguimiento : itemsFiltrados
+        if !lista.contains(where: { $0.id == seleccionId }) {
+            seleccionId = lista.first?.id
+        }
+    }
+
     var itemsFiltrados: [Miembro] {
         items.filter { m in
             (busqueda.isEmpty || m.nombre.localizedCaseInsensitiveContains(busqueda))

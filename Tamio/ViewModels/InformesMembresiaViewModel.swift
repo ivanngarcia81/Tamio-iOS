@@ -84,7 +84,7 @@ final class InformesMembresiaViewModel {
     }
 
     private static let fmtCorto: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "d MMM yy"; f.locale = Locale(identifier: "es_MX"); return f
+        let f = DateFormatter(); f.dateFormat = L.t("d MMM yy", "MMM d, yy"); f.locale = Locale.current; return f
     }()
 
     // MARK: - Mock data por periodo

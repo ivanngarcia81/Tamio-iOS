@@ -39,7 +39,7 @@ struct MockDashboardRepository: DashboardRepository {
             deltaGastos: 0.11,
             registrosIngreso: 132 * factor,
             diezmos: 18 * factor,
-            pendientes: 7,
+            pendientes: MockRevisarRepository.porRevisarCount,
             corteDias: 11,
             tramos: Self.seisMeses,
             // Suman 48,320.00 → 52% / 22% / 15% / 11%, y el total de la dona

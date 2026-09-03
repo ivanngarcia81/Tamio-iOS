@@ -30,6 +30,11 @@ struct MockRevisarRepository: RevisarRepository {
         if let i = Self.almacen.firstIndex(where: { $0.id == r.id }) { Self.almacen[i] = r }
     }
 
+    /// Asuntos sin archivar. El Dashboard lo lee para su aviso "por revisar",
+    /// que antes llevaba un 7 suelto en su propia semilla mientras el badge del
+    /// tab y esta bandeja contaban 8. Una sola fuente para los tres.
+    static var porRevisarCount: Int { almacen.filter { !$0.archivado }.count }
+
     // Constructores de acciones comunes.
     private static var aprobar: AccionRevision { .init(label: L.t("Aprobar", "Approve"), kind: .aprobar, prominente: true) }
     private static var pedir: AccionRevision { .init(label: L.t("Pedir dato", "Request info"), kind: .pedir) }

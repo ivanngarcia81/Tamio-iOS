@@ -3,6 +3,9 @@ import SwiftUI
 /// Hub de Secretaría para iPhone, fiel al handoff: KPI de padrón activo,
 /// secciones PADRÓN, REGISTRO, EQUIPO y PRÓXIMOS COMPROMISOS.
 struct IPhoneSecretariaView: View {
+    /// Mismas cifras que encabezan Membresía, no un número propio.
+    private let padron = MockMembresiaRepository.resumenPadron
+
     var body: some View {
         List {
             Section {
@@ -11,13 +14,13 @@ struct IPhoneSecretariaView: View {
 
             Section(L.t("PADRÓN", "ROSTER")) {
                 NavigationLink { MembresiaView() } label: {
-                    HubRow(iniciales: "Me", color: Paleta.brand,
+                    HubRow(icono: "person.text.rectangle.fill", color: Paleta.brand,
                            titulo: L.t("Membresía", "Membership"),
-                           subtitulo: L.t("14 personas · altas y bajas",
-                                          "14 people · additions & removals"))
+                           subtitulo: L.t("\(padron.total) personas · \(padron.activos) activos",
+                                          "\(padron.total) people · \(padron.activos) active"))
                 }
                 NavigationLink { InformesMembresiaView() } label: {
-                    HubRow(iniciales: "In", color: Paleta.enlace,
+                    HubRow(icono: "chart.pie.fill", color: Paleta.enlace,
                            titulo: L.t("Informes de membresía", "Membership reports"),
                            subtitulo: L.t("Panorama, padrón y seguimiento",
                                           "Overview, roster & tracking"))
@@ -26,25 +29,25 @@ struct IPhoneSecretariaView: View {
 
             Section(L.t("REGISTRO", "RECORDS")) {
                 NavigationLink { AgendaView() } label: {
-                    HubRow(iniciales: "Ag", color: Color(hex: 0x0D9488),
+                    HubRow(icono: "calendar", color: Color(hex: 0x0D9488),
                            titulo: L.t("Agenda", "Calendar"),
-                           subtitulo: L.t("Agosto 2026 · 7 compromisos",
-                                          "August 2026 · 7 events"))
+                           subtitulo: L.t("\(L.mesEnCurso) · 7 compromisos",
+                                          "\(L.mesEnCurso) · 7 events"))
                 }
                 NavigationLink { ServiciosView() } label: {
-                    HubRow(iniciales: "Se", color: Paleta.aviso,
+                    HubRow(icono: "checklist", color: Paleta.aviso,
                            titulo: L.t("Registro de servicios", "Service log"),
                            subtitulo: L.t("Roster y asistencia por culto",
                                           "Roster & attendance per service"))
                 }
                 NavigationLink { ActasView() } label: {
-                    HubRow(iniciales: "Ac", color: Color(hex: 0x7C3AED),
+                    HubRow(icono: "doc.text.fill", color: Color(hex: 0x7C3AED),
                            titulo: L.t("Actas", "Minutes"),
                            subtitulo: L.t("Acta 2026-08 en borrador", "Draft minutes 2026-08"),
                            badge: 1)
                 }
                 NavigationLink { CartasView() } label: {
-                    HubRow(iniciales: "Ca", color: Color(hex: 0x06B6D4),
+                    HubRow(icono: "envelope.fill", color: Color(hex: 0x06B6D4),
                            titulo: L.t("Cartas y traslados", "Letters & transfers"),
                            subtitulo: L.t("3 documentos abiertos", "3 open documents"))
                 }
@@ -52,7 +55,7 @@ struct IPhoneSecretariaView: View {
 
             Section(L.t("EQUIPO", "TEAM")) {
                 // Mensajes: pantalla pendiente de construir.
-                HubRow(iniciales: "Ms", color: Color(hex: 0x64748B),
+                HubRow(icono: "bubble.left.and.bubble.right.fill", color: Color(hex: 0x64748B),
                        titulo: L.t("Mensajes", "Messages"),
                        subtitulo: L.t("Secretaría, tesorería y pastor",
                                       "Secretary, treasury & pastor"),
@@ -77,7 +80,7 @@ struct IPhoneSecretariaView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("12")
+                Text("\(padron.activos)")
                     .font(.system(size: 32, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(Paleta.brand)
@@ -85,8 +88,11 @@ struct IPhoneSecretariaView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            Text(L.t("14 en el directorio · 2 de baja o inactivos",
-                     "14 in directory · 2 removed or inactive"))
+            // Las tres cifras salen del mismo resumen y cuadran entre sí: antes
+            // este KPI decía 12 de alta y 14 en el directorio mientras
+            // Membresía encabezaba 248 / 236.
+            Text(L.t("\(padron.total) en el directorio · \(padron.total - padron.activos) de baja o inactivos",
+                     "\(padron.total) in directory · \(padron.total - padron.activos) removed or inactive"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

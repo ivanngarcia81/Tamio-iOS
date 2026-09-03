@@ -70,7 +70,7 @@ struct IPhoneAjustesView: View {
                 filaNav(L.t("Categorías", "Categories"),
                         icono: "tag.fill", icoBg: Color(hex: 0xFF9500), ruta: .categorias)
                 filaNav(L.t("Preferencias", "Preferences"),
-                        icono: "macwindow", icoBg: Color(hex: 0x8E8E93), ruta: .preferencias)
+                        icono: "macwindow", icoBg: Color(hex: 0xAF52DE), ruta: .preferencias)
             } header: {
                 Text(L.t("General", "General")).textCase(nil)
             }
@@ -78,7 +78,7 @@ struct IPhoneAjustesView: View {
 
             Section {
                 NavigationLink(value: AjustesRuta.zona) {
-                    Text(L.t("Zona sensible", "Sensitive zone")).foregroundStyle(Paleta.negativo)
+                    Text(L.t("Zona de riesgo", "Danger zone")).foregroundStyle(Paleta.negativo)
                 }
             } footer: {
                 Text(L.t("Respaldos, restauración y borrado de datos. Los cambios aquí no se pueden deshacer.",
@@ -763,7 +763,7 @@ private struct AjustesPreferenciasView: View {
     }
 }
 
-// MARK: - Zona sensible
+// MARK: - Zona de riesgo
 
 private struct AjustesZonaView: View {
     @State private var confirmarBorrar = false
@@ -870,7 +870,7 @@ private struct AjustesZonaView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(L.t("Zona sensible", "Sensitive zone"))
+        .navigationTitle(L.t("Zona de riesgo", "Danger zone"))
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
             Text("Compilación del 2026-08-29 18:09 UTC")

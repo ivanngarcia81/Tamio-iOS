@@ -51,7 +51,10 @@ struct MovimientosView: View {
                     .navigationDestination(item: $abierto) { m in
                         MovimientoDetalle(m: m, onEditar: { hoja = .editar(m) },
                                           onComprobante: { nombre in adjuntarComprobante(m, nombre) })
-                            .navigationTitle(m.titular)
+                            // El H1 de la ficha ya dice el titular; repetirlo en la
+                            // barra lo dejaba tres veces en pantalla, con el chip
+                            // de categoría. La barra va vacía.
+                            .navigationTitle("")
                             .navigationBarTitleDisplayMode(.inline)
                     }
             }

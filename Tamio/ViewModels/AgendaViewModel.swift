@@ -35,7 +35,7 @@ final class AgendaViewModel {
     var etiquetaMes: String {
         let fmt = DateFormatter()
         fmt.dateFormat = "MMMM yyyy"
-        fmt.locale = Locale(identifier: "es_MX")
+        fmt.locale = Locale.current
         return fmt.string(from: mesActual).capitalized
     }
 

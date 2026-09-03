@@ -95,9 +95,9 @@ struct MockReportesRepository: ReportesRepository {
             deltaIngresos: 0.042, deltaGastos: 0.11, deltaBalance: 0.018,
             saldoPeriodo: 27_174_50,
             saldoSerie: [
-                MesAporte(mes: "Mar", monto: 23_540_00), MesAporte(mes: "Abr", monto: 24_205_00),
-                MesAporte(mes: "May", monto: 17_780_00), MesAporte(mes: "Jun", monto: 29_820_00),
-                MesAporte(mes: "Jul", monto: 26_690_00), MesAporte(mes: "Ago", monto: 27_174_50),
+                MesAporte(mes: L.mes("Mar"), monto: 23_540_00), MesAporte(mes: L.mes("Abr"), monto: 24_205_00),
+                MesAporte(mes: L.mes("May"), monto: 17_780_00), MesAporte(mes: L.mes("Jun"), monto: 29_820_00),
+                MesAporte(mes: L.mes("Jul"), monto: 26_690_00), MesAporte(mes: L.mes("Ago"), monto: 27_174_50),
             ],
             composicion: [
                 CategoriaMonto(nombre: L.t("Diezmos", "Tithes"), monto: 25_120_00),

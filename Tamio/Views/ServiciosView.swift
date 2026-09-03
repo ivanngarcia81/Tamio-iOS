@@ -524,8 +524,8 @@ private struct NuevoServicioSheet: View {
 
     private func construir() -> Servicio {
         let fmtDia   = DateFormatter(); fmtDia.dateFormat = "d"
-        let fmtSem   = DateFormatter(); fmtSem.dateFormat = "EEE"; fmtSem.locale = Locale(identifier: "es_MX")
-        let fmtFecha = DateFormatter(); fmtFecha.dateFormat = "d MMM"; fmtFecha.locale = Locale(identifier: "es_MX")
+        let fmtSem   = DateFormatter(); fmtSem.dateFormat = "EEE"; fmtSem.locale = Locale.current
+        let fmtFecha = DateFormatter(); fmtFecha.dateFormat = L.t("d MMM", "MMM d"); fmtFecha.locale = Locale.current
 
         let numDia     = fmtDia.string(from: fecha)
         let diaSem     = fmtSem.string(from: fecha).uppercased()
@@ -679,7 +679,7 @@ private struct TomarAsistenciaSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private static let fmtFecha: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "d MMM"; f.locale = Locale(identifier: "es_MX"); return f
+        let f = DateFormatter(); f.dateFormat = L.t("d MMM", "MMM d"); f.locale = Locale.current; return f
     }()
 
     init(servicio: Servicio, onGuardar: @escaping (Int, Int, String) -> Void) {

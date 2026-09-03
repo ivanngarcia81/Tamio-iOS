@@ -15,7 +15,7 @@ private enum SeccionConfig: String, CaseIterable, Identifiable {
         case .acceso:       return L.t("Acceso y áreas", "Access & areas")
         case .categorias:   return L.t("Categorías", "Categories")
         case .preferencias: return L.t("Preferencias", "Preferences")
-        case .zona:         return L.t("Zona sensible", "Danger zone")
+        case .zona:         return L.t("Zona de riesgo", "Danger zone")
         }
     }
 
@@ -40,7 +40,7 @@ private enum SeccionConfig: String, CaseIterable, Identifiable {
         case .tesorero:     return Color(hex: 0x2AB2C9)
         case .acceso:       return Color(hex: 0x0A84FF)
         case .categorias:   return Color(hex: 0xFF9500)
-        case .preferencias: return Color(hex: 0x8E8E93)
+        case .preferencias: return Color(hex: 0xAF52DE)
         case .zona:         return Color(hex: 0xFF3B30)
         }
     }
@@ -280,7 +280,7 @@ struct ConfiguracionView: View {
 
             Divider()
 
-            // Zona sensible
+            // Zona de riesgo
             Button { seccion = .zona } label: {
                 HStack(spacing: 11) {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -291,7 +291,7 @@ struct ConfiguracionView: View {
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.white)
                         )
-                    Text(L.t("Zona sensible", "Danger zone"))
+                    Text(L.t("Zona de riesgo", "Danger zone"))
                         .font(.system(size: 15.5, weight: seccion == .zona ? .semibold : .medium))
                         .foregroundStyle(seccion == .zona ? Color(hex: 0xFF3B30) : .primary)
                     Spacer()
@@ -1073,7 +1073,7 @@ private struct SeccionPreferencias: View {
     }
 }
 
-// MARK: - Zona sensible
+// MARK: - Zona de riesgo
 
 private struct SeccionZona: View {
     @State private var ultimoRespaldo = L.t("Ninguno", "None")

@@ -526,13 +526,13 @@ private struct NuevaActaSheet: View {
         let folio = String(format: "%04d-%02d", año, mes)
 
         let fmtLargo = DateFormatter()
-        fmtLargo.dateFormat = "d 'de' MMMM 'de' yyyy"
-        fmtLargo.locale = Locale(identifier: "es_MX")
+        fmtLargo.dateFormat = L.t("d 'de' MMMM 'de' yyyy", "MMMM d, yyyy")
+        fmtLargo.locale = Locale.current
         let fechaLarga = fmtLargo.string(from: fecha)
 
         let fmtCorto = DateFormatter()
-        fmtCorto.dateFormat = "d 'de' MMMM"
-        fmtCorto.locale = Locale(identifier: "es_MX")
+        fmtCorto.dateFormat = L.t("d 'de' MMMM", "MMMM d")
+        fmtCorto.locale = Locale.current
         let fechaCorta = fmtCorto.string(from: fecha)
 
         let horaTxt = tieneHoraInicio

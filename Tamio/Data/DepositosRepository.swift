@@ -64,11 +64,11 @@ struct MockDepositosRepository: DepositosRepository {
                             enlace: nil),
                 ],
                 movimientos: [
-                    MovimientoCaja(id: 1, categoria: "Diezmo", folio: "1042",
+                    MovimientoCaja(id: 1, categoria: L.t("Diezmo", "Tithe"), folio: "1042",
                                    cuando: L.t("Domingo 23 · 12:38 p.m.", "Sunday 23 · 12:38 p.m."), monto: 1_200_00, seleccionado: true),
                     MovimientoCaja(id: 2, categoria: L.t("Ofrenda misionera", "Mission offering"), folio: "1041",
                                    cuando: L.t("Domingo 23 · contada por los ujieres", "Sunday 23 · counted by ushers"), monto: 6_845_00, seleccionado: true),
-                    MovimientoCaja(id: 3, categoria: "Diezmo", folio: "1040",
+                    MovimientoCaja(id: 3, categoria: L.t("Diezmo", "Tithe"), folio: "1040",
                                    cuando: L.t("Cheque 3841 · Banamex", "Check 3841 · Banamex"), monto: 2_500_00, seleccionado: true, esCheque: true),
                 ],
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
@@ -124,7 +124,7 @@ struct MockDepositosRepository: DepositosRepository {
                                          "Slip attached Monday, Aug 17 by Iván García."), enlace: nil),
                 ],
                 movimientos: [
-                    MovimientoCaja(id: 1, categoria: "Diezmo", folio: "1030",
+                    MovimientoCaja(id: 1, categoria: L.t("Diezmo", "Tithe"), folio: "1030",
                                    cuando: L.t("Domingo 16", "Sunday 16"), monto: 5_320_00, seleccionado: true),
                     MovimientoCaja(id: 2, categoria: L.t("Ofrenda", "Offering"), folio: "1029",
                                    cuando: L.t("Domingo 16", "Sunday 16"), monto: 4_500_00, seleccionado: true),

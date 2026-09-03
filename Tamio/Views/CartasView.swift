@@ -614,8 +614,8 @@ private struct VistaPreviaSheet: View {
 
     private let hoy: String = {
         let f = DateFormatter()
-        f.dateFormat = "d 'de' MMMM 'de' yyyy"
-        f.locale = Locale(identifier: "es_MX")
+        f.dateFormat = L.t("d 'de' MMMM 'de' yyyy", "MMMM d, yyyy")
+        f.locale = Locale.current
         return f.string(from: Date())
     }()
 

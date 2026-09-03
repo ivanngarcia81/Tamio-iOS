@@ -62,10 +62,12 @@ struct TituloSeccion: View {
     }
 }
 
-/// Fila de hub de iPhone: círculo de color con iniciales, título + subtítulo,
+/// Fila de hub de iPhone: círculo de color con símbolo, título + subtítulo,
 /// badge rojo opcional. Diseño fiel al handoff de Tamio iPhone.
 struct HubRow: View {
-    let iniciales: String
+    /// SF Symbol. Antes eran iniciales en castellano ("Mo", "Ap", "Ag") que
+    /// quedaban junto a títulos en inglés; un símbolo no tiene idioma.
+    let icono: String
     let color: Color
     let titulo: String
     let subtitulo: String
@@ -73,8 +75,8 @@ struct HubRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Text(iniciales)
-                .font(.system(size: 13, weight: .semibold))
+            Image(systemName: icono)
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 36, height: 36)
                 .background(color, in: Circle())
