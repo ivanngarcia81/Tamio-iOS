@@ -9,15 +9,31 @@
 /* Begin PBXBuildFile section */
 		109DD59330497B0000E781A1 /* AccesoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD59230497B0000E781A1 /* AccesoView.swift */; };
 		109DD59130497B0000E781A1 /* SesionSupabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD59030497B0000E781A1 /* SesionSupabase.swift */; };
+		109DD5A130497B0000E781A1 /* Navegacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5A030497B0000E781A1 /* Navegacion.swift */; };
+		109DD5A330497B0000E781A1 /* ModoRevision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5A230497B0000E781A1 /* ModoRevision.swift */; };
 		109DD58530497A0000E781A1 /* Fechas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD58430497A0000E781A1 /* Fechas.swift */; };
 		109DD58330497A0000E781A1 /* Espaciado.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD58230497A0000E781A1 /* Espaciado.swift */; };
 		109DD58130497A0000E781A1 /* Catalogos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD58030497A0000E781A1 /* Catalogos.swift */; };
+		109DD60130497B0000E781A1 /* CSV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD60030497B0000E781A1 /* CSV.swift */; };
+		109DD61130497B0000E781A1 /* CSVLector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD61030497B0000E781A1 /* CSVLector.swift */; };
 		109DD5713049700000E781A1 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 109DD5703049700000E781A1 /* Supabase */; };
+		109DD5B230497B0000E781A1 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 109DD5B130497B0000E781A1 /* GRDB */; };
 		05747F6824AE2F891D5F7049 /* ReportesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056C5CAF9667F55A2373560E /* ReportesViewModel.swift */; };
 		0B8D01419956FF26F533080D /* PDFExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A3F1E2883B1BF903DAF0E8 /* PDFExport.swift */; };
 		0C89DBA6C761483BB7766DB8 /* MovimientosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C8C96D1BB6EF88E7492B545 /* MovimientosRepository.swift */; };
 		109DD560304964A800E781A1 /* Supabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD55F304964A800E781A1 /* Supabase.swift */; };
 		109DD5623049665100E781A1 /* SupabaseMovimientosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5613049665100E781A1 /* SupabaseMovimientosRepository.swift */; };
+		109DD5A530497B0000E781A1 /* AportantesCatalogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5A430497B0000E781A1 /* AportantesCatalogo.swift */; };
+		109DD60330497B0000E781A1 /* ExportadorAportantes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD60230497B0000E781A1 /* ExportadorAportantes.swift */; };
+		109DD61330497B0000E781A1 /* ImportadorAportantes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD61230497B0000E781A1 /* ImportadorAportantes.swift */; };
+		109DD62130497B0000E781A1 /* ImportadorAportes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD62030497B0000E781A1 /* ImportadorAportes.swift */; };
+		109DD5A730497B0000E781A1 /* ComprobantesStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5A630497B0000E781A1 /* ComprobantesStorage.swift */; };
+		109DD5E330497B0000E781A1 /* ConfiguracionIglesiaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5E230497B0000E781A1 /* ConfiguracionIglesiaRepository.swift */; };
+		109DD5C130497B0000E781A1 /* BaseLocal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C030497B0000E781A1 /* BaseLocal.swift */; };
+		109DD5C330497B0000E781A1 /* MovimientoFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C230497B0000E781A1 /* MovimientoFila.swift */; };
+		109DD5E530497B0000E781A1 /* IglesiaFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5E430497B0000E781A1 /* IglesiaFila.swift */; };
+		109DD5C530497B0000E781A1 /* OfflineMovimientosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A1 /* OfflineMovimientosRepository.swift */; };
+		109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */; };
 		127515E07FA461AED9B9AAA2 /* IPhoneSecretariaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FBFB6CE7A24648A6454B21 /* IPhoneSecretariaView.swift */; };
 		15C91FF7DBD066465A59F500 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64DF6849516658024DF7E700 /* RootView.swift */; };
 		1AB394125D0FE0449972B430 /* Revision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A5130CEB89DC504039D507 /* Revision.swift */; };
@@ -29,6 +45,8 @@
 		2A5BBBC69A9C79A299379C94 /* IPhoneTesoreriaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDF310999E78BB9F4C5DC6C /* IPhoneTesoreriaView.swift */; };
 		315B546BFD186AE0857B70A4 /* CartasRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C42BB2675434F872163377 /* CartasRepository.swift */; };
 		398720DB6C6BED4910FE81CB /* ReportePDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC33051936AF83903AD7CA7D /* ReportePDF.swift */; };
+		109DD5F130497B0000E781A1 /* AportantePDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5F030497B0000E781A1 /* AportantePDF.swift */; };
+		109DD60530497B0000E781A1 /* CompartirArchivo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD60430497B0000E781A1 /* CompartirArchivo.swift */; };
 		3E7A4932A741293E5F992710 /* CartasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FEF0708FABDD5EE67DBD684 /* CartasView.swift */; };
 		3F39580FC8DCD2F50BAEE42F /* DepositosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D80DC3340868CDE97F34571 /* DepositosRepository.swift */; };
 		403652A610FF38150312BB32 /* Deposito.swift in Sources */ = {isa = PBXBuildFile; fileRef = D850034BD09DE6F36C8D8F88 /* Deposito.swift */; };
@@ -52,11 +70,17 @@
 		775045484B62F4FC8A71BC39 /* MiembroDetalle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE3FA8923729781D4874A242 /* MiembroDetalle.swift */; };
 		7AE96B2F8B37BC0231A8074D /* ServiciosViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84DDEB329C229626C72FFB67 /* ServiciosViewModel.swift */; };
 		7B025E1CADEE96953E7E8F95 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E31171D90F95C88B95D2E62 /* DashboardViewModel.swift */; };
+		109DD5E730497B0000E781A1 /* ConfiguracionIglesiaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5E630497B0000E781A1 /* ConfiguracionIglesiaViewModel.swift */; };
 		8114401D93F3BF7213DA18B4 /* DashboardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3258F1AD72FB1E23580B3A1 /* DashboardRepository.swift */; };
 		83A2416D0993C828CB6DD730 /* Money.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB778DD37F98928D94E7E923 /* Money.swift */; };
 		88E84879B8C99FB6A26BB751 /* DepositosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DCB4FCF82352801FEAD1E3 /* DepositosView.swift */; };
 		89722058A7F23205CC987EEE /* NuevoAportanteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702FA938F4D3C1F9D19815D1 /* NuevoAportanteView.swift */; };
+		109DD5D130497B0000E781A1 /* NuevoParienteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5D030497B0000E781A1 /* NuevoParienteView.swift */; };
+		109DD5F330497B0000E781A1 /* DocumentoAportanteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5F230497B0000E781A1 /* DocumentoAportanteView.swift */; };
+		109DD61530497B0000E781A1 /* ImportarAportantesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD61430497B0000E781A1 /* ImportarAportantesView.swift */; };
+		109DD62330497B0000E781A1 /* ImportarAportesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD62230497B0000E781A1 /* ImportarAportesView.swift */; };
 		8E9B82EB8F95FA5CA6467A05 /* Movimiento.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40DB46BD6CEE79AD620B4082 /* Movimiento.swift */; };
+		109DD5E130497B0000E781A1 /* ConfiguracionIglesia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5E030497B0000E781A1 /* ConfiguracionIglesia.swift */; };
 		947D8B4FC7B6DD3101C1B3D4 /* ReportesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843AA28C65202374FDDF0E75 /* ReportesRepository.swift */; };
 		968540CC70701DD7A0930A77 /* ServiciosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1283425908338B34926D5B4A /* ServiciosRepository.swift */; };
 		98ED8949A394A97DA2A351A7 /* MonthlyBarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DCB9347E5541C6677D9486 /* MonthlyBarChart.swift */; };
@@ -98,9 +122,13 @@
 /* Begin PBXFileReference section */
 		109DD59230497B0000E781A1 /* AccesoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccesoView.swift; sourceTree = "<group>"; };
 		109DD59030497B0000E781A1 /* SesionSupabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SesionSupabase.swift; sourceTree = "<group>"; };
+		109DD5A030497B0000E781A1 /* Navegacion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navegacion.swift; sourceTree = "<group>"; };
+		109DD5A230497B0000E781A1 /* ModoRevision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModoRevision.swift; sourceTree = "<group>"; };
 		109DD58430497A0000E781A1 /* Fechas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fechas.swift; sourceTree = "<group>"; };
 		109DD58230497A0000E781A1 /* Espaciado.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Espaciado.swift; sourceTree = "<group>"; };
 		109DD58030497A0000E781A1 /* Catalogos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalogos.swift; sourceTree = "<group>"; };
+		109DD60030497B0000E781A1 /* CSV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSV.swift; sourceTree = "<group>"; };
+		109DD61030497B0000E781A1 /* CSVLector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVLector.swift; sourceTree = "<group>"; };
 		00CF93CF0E516BCEF91ABCC6 /* KPICard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KPICard.swift; sourceTree = "<group>"; };
 		0443766F8B7F327455F085E3 /* AgendaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgendaViewModel.swift; sourceTree = "<group>"; };
 		056C5CAF9667F55A2373560E /* ReportesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportesViewModel.swift; sourceTree = "<group>"; };
@@ -109,10 +137,22 @@
 		0E05B2C1157251C9D853544F /* DepositosViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosViewModel.swift; sourceTree = "<group>"; };
 		109DD55F304964A800E781A1 /* Supabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Supabase.swift; sourceTree = "<group>"; };
 		109DD5613049665100E781A1 /* SupabaseMovimientosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseMovimientosRepository.swift; sourceTree = "<group>"; };
+		109DD5A430497B0000E781A1 /* AportantesCatalogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AportantesCatalogo.swift; sourceTree = "<group>"; };
+		109DD60230497B0000E781A1 /* ExportadorAportantes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportadorAportantes.swift; sourceTree = "<group>"; };
+		109DD61230497B0000E781A1 /* ImportadorAportantes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportadorAportantes.swift; sourceTree = "<group>"; };
+		109DD62030497B0000E781A1 /* ImportadorAportes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportadorAportes.swift; sourceTree = "<group>"; };
+		109DD5A630497B0000E781A1 /* ComprobantesStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComprobantesStorage.swift; sourceTree = "<group>"; };
+		109DD5E230497B0000E781A1 /* ConfiguracionIglesiaRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracionIglesiaRepository.swift; sourceTree = "<group>"; };
+		109DD5C030497B0000E781A1 /* BaseLocal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BaseLocal.swift; path = Local/BaseLocal.swift; sourceTree = "<group>"; };
+		109DD5C230497B0000E781A1 /* MovimientoFila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MovimientoFila.swift; path = Local/MovimientoFila.swift; sourceTree = "<group>"; };
+		109DD5E430497B0000E781A1 /* IglesiaFila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = IglesiaFila.swift; path = Local/IglesiaFila.swift; sourceTree = "<group>"; };
+		109DD5C430497B0000E781A1 /* OfflineMovimientosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OfflineMovimientosRepository.swift; path = Local/OfflineMovimientosRepository.swift; sourceTree = "<group>"; };
+		109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MotorSincronizacion.swift; path = Local/MotorSincronizacion.swift; sourceTree = "<group>"; };
 		1283425908338B34926D5B4A /* ServiciosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiciosRepository.swift; sourceTree = "<group>"; };
 		12E0985809A88DD8A5848115 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		15A5130CEB89DC504039D507 /* Revision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Revision.swift; sourceTree = "<group>"; };
 		1E31171D90F95C88B95D2E62 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		109DD5E630497B0000E781A1 /* ConfiguracionIglesiaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracionIglesiaViewModel.swift; sourceTree = "<group>"; };
 		2612B3B6C9F8D6A3E73FC6AE /* MovimientosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovimientosView.swift; sourceTree = "<group>"; };
 		28FE7FC5CAF1EF805C4A97DA /* AportanteDetalle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AportanteDetalle.swift; sourceTree = "<group>"; };
 		29B0953C6235B09583D046DD /* DeltaBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeltaBadge.swift; sourceTree = "<group>"; };
@@ -122,6 +162,7 @@
 		38C2EDA0E861A039E4FB28FC /* EditarAsuntoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditarAsuntoView.swift; sourceTree = "<group>"; };
 		3950DC37B05BE96DFDB6A685 /* MiembrosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiembrosView.swift; sourceTree = "<group>"; };
 		40DB46BD6CEE79AD620B4082 /* Movimiento.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Movimiento.swift; sourceTree = "<group>"; };
+		109DD5E030497B0000E781A1 /* ConfiguracionIglesia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracionIglesia.swift; sourceTree = "<group>"; };
 		420C5C5EDCD80B3F67EE7C45 /* AmountText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountText.swift; sourceTree = "<group>"; };
 		467795455C0E441168B94F26 /* RevisarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevisarView.swift; sourceTree = "<group>"; };
 		47B6B48B85CCE8FEDC6FC092 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
@@ -140,6 +181,10 @@
 		679A47FAE8BD5AB800A76194 /* Tamio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tamio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C8C96D1BB6EF88E7492B545 /* MovimientosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovimientosRepository.swift; sourceTree = "<group>"; };
 		702FA938F4D3C1F9D19815D1 /* NuevoAportanteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NuevoAportanteView.swift; sourceTree = "<group>"; };
+		109DD5D030497B0000E781A1 /* NuevoParienteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NuevoParienteView.swift; sourceTree = "<group>"; };
+		109DD5F230497B0000E781A1 /* DocumentoAportanteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentoAportanteView.swift; sourceTree = "<group>"; };
+		109DD61430497B0000E781A1 /* ImportarAportantesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportarAportantesView.swift; sourceTree = "<group>"; };
+		109DD62230497B0000E781A1 /* ImportarAportesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportarAportesView.swift; sourceTree = "<group>"; };
 		721483643253B05BA99D2C12 /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
 		751ECE8206F09510C5374557 /* RegistroRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistroRepository.swift; sourceTree = "<group>"; };
 		804F0337A286564156D330E9 /* MembresiaRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembresiaRepository.swift; sourceTree = "<group>"; };
@@ -159,6 +204,8 @@
 		A8DCB9347E5541C6677D9486 /* MonthlyBarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlyBarChart.swift; sourceTree = "<group>"; };
 		B49002AFC6F8C9B6BA595852 /* RevisarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevisarViewModel.swift; sourceTree = "<group>"; };
 		BC33051936AF83903AD7CA7D /* ReportePDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportePDF.swift; sourceTree = "<group>"; };
+		109DD5F030497B0000E781A1 /* AportantePDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AportantePDF.swift; sourceTree = "<group>"; };
+		109DD60430497B0000E781A1 /* CompartirArchivo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompartirArchivo.swift; sourceTree = "<group>"; };
 		BEC7A54D255D9650FB3D8904 /* Aportante.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Aportante.swift; sourceTree = "<group>"; };
 		CDD0A49E287731D2E23FC9DA /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		CDDF310999E78BB9F4C5DC6C /* IPhoneTesoreriaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPhoneTesoreriaView.swift; sourceTree = "<group>"; };
@@ -190,6 +237,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				109DD5713049700000E781A1 /* Supabase in Frameworks */,
+				109DD5B230497B0000E781A1 /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -225,6 +273,7 @@
 				0443766F8B7F327455F085E3 /* AgendaViewModel.swift */,
 				D6F6E207704664D1A578D94D /* CartasViewModel.swift */,
 				1E31171D90F95C88B95D2E62 /* DashboardViewModel.swift */,
+				109DD5E630497B0000E781A1 /* ConfiguracionIglesiaViewModel.swift */,
 				0E05B2C1157251C9D853544F /* DepositosViewModel.swift */,
 				E4488A0F53ECFBC1ABB43370 /* InformesMembresiaViewModel.swift */,
 				CE7D69422E5BAEDE044AC662 /* MembresiaViewModel.swift */,
@@ -248,6 +297,8 @@
 				A8DCB9347E5541C6677D9486 /* MonthlyBarChart.swift */,
 				556C631D33CF32ED1B99031A /* Pieces.swift */,
 				BC33051936AF83903AD7CA7D /* ReportePDF.swift */,
+				109DD5F030497B0000E781A1 /* AportantePDF.swift */,
+				109DD60430497B0000E781A1 /* CompartirArchivo.swift */,
 				48352BAF0D74F3834F2460BC /* TransactionRow.swift */,
 			);
 			path = Components;
@@ -262,6 +313,7 @@
 				0C0ECAB8AB3DDB7471075342 /* Miembro.swift */,
 				9DACD9F9945ED7749BE68C28 /* Models.swift */,
 				40DB46BD6CEE79AD620B4082 /* Movimiento.swift */,
+				109DD5E030497B0000E781A1 /* ConfiguracionIglesia.swift */,
 				318D735C25A98F16DC683F15 /* Reporte.swift */,
 				15A5130CEB89DC504039D507 /* Revision.swift */,
 				D721980EFFE9CE790379B66C /* Secretaria.swift */,
@@ -280,9 +332,13 @@
 				59A3F1E2883B1BF903DAF0E8 /* PDFExport.swift */,
 				109DD55F304964A800E781A1 /* Supabase.swift */,
 				109DD59030497B0000E781A1 /* SesionSupabase.swift */,
+				109DD5A030497B0000E781A1 /* Navegacion.swift */,
+				109DD5A230497B0000E781A1 /* ModoRevision.swift */,
 				109DD58430497A0000E781A1 /* Fechas.swift */,
 				109DD58230497A0000E781A1 /* Espaciado.swift */,
 				109DD58030497A0000E781A1 /* Catalogos.swift */,
+				109DD60030497B0000E781A1 /* CSV.swift */,
+				109DD61030497B0000E781A1 /* CSVLector.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -311,6 +367,17 @@
 				DFB1B530471B04B6F06D2F58 /* RevisarRepository.swift */,
 				1283425908338B34926D5B4A /* ServiciosRepository.swift */,
 				109DD5613049665100E781A1 /* SupabaseMovimientosRepository.swift */,
+				109DD5A430497B0000E781A1 /* AportantesCatalogo.swift */,
+				109DD60230497B0000E781A1 /* ExportadorAportantes.swift */,
+				109DD61230497B0000E781A1 /* ImportadorAportantes.swift */,
+				109DD62030497B0000E781A1 /* ImportadorAportes.swift */,
+				109DD5A630497B0000E781A1 /* ComprobantesStorage.swift */,
+				109DD5E230497B0000E781A1 /* ConfiguracionIglesiaRepository.swift */,
+				109DD5C030497B0000E781A1 /* BaseLocal.swift */,
+				109DD5C230497B0000E781A1 /* MovimientoFila.swift */,
+				109DD5E430497B0000E781A1 /* IglesiaFila.swift */,
+				109DD5C430497B0000E781A1 /* OfflineMovimientosRepository.swift */,
+				109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -339,6 +406,10 @@
 				2612B3B6C9F8D6A3E73FC6AE /* MovimientosView.swift */,
 				508379647B16819AEDE8CA2B /* NuevaNotaView.swift */,
 				702FA938F4D3C1F9D19815D1 /* NuevoAportanteView.swift */,
+				109DD5D030497B0000E781A1 /* NuevoParienteView.swift */,
+				109DD5F230497B0000E781A1 /* DocumentoAportanteView.swift */,
+				109DD61430497B0000E781A1 /* ImportarAportantesView.swift */,
+				109DD62230497B0000E781A1 /* ImportarAportesView.swift */,
 				9C5228803AB5A63490100EDD /* NuevoCorteView.swift */,
 				D0F9C4EA849CD2D819E3CE13 /* NuevoMovimientoView.swift */,
 				668DD73FABB98B24B2D068DE /* RegistroView.swift */,
@@ -370,6 +441,7 @@
 			name = Tamio;
 			packageProductDependencies = (
 				109DD5703049700000E781A1 /* Supabase */,
+				109DD5B130497B0000E781A1 /* GRDB */,
 			);
 			productName = Tamio;
 			productReference = 679A47FAE8BD5AB800A76194 /* Tamio.app */;
@@ -395,6 +467,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				109DD55E3048D7C300E781A1 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				109DD5B030497B0000E781A1 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E3909DDDCFAAC4C7172B6790 /* Products */;
@@ -441,6 +514,7 @@
 				8114401D93F3BF7213DA18B4 /* DashboardRepository.swift in Sources */,
 				A96600E745462229A9889711 /* DashboardView.swift in Sources */,
 				7B025E1CADEE96953E7E8F95 /* DashboardViewModel.swift in Sources */,
+				109DD5E730497B0000E781A1 /* ConfiguracionIglesiaViewModel.swift in Sources */,
 				210A2ED66E28859D89CDC1BB /* DeltaBadge.swift in Sources */,
 				403652A610FF38150312BB32 /* Deposito.swift in Sources */,
 				3F39580FC8DCD2F50BAEE42F /* DepositosRepository.swift in Sources */,
@@ -457,6 +531,17 @@
 				A8D814FC36E37F8AE45FBA04 /* Localization.swift in Sources */,
 				584A223F70A5D1FF1EFD015E /* MembresiaRepository.swift in Sources */,
 				109DD5623049665100E781A1 /* SupabaseMovimientosRepository.swift in Sources */,
+				109DD5A530497B0000E781A1 /* AportantesCatalogo.swift in Sources */,
+				109DD60330497B0000E781A1 /* ExportadorAportantes.swift in Sources */,
+				109DD61330497B0000E781A1 /* ImportadorAportantes.swift in Sources */,
+				109DD62130497B0000E781A1 /* ImportadorAportes.swift in Sources */,
+				109DD5A730497B0000E781A1 /* ComprobantesStorage.swift in Sources */,
+				109DD5E330497B0000E781A1 /* ConfiguracionIglesiaRepository.swift in Sources */,
+				109DD5C130497B0000E781A1 /* BaseLocal.swift in Sources */,
+				109DD5C330497B0000E781A1 /* MovimientoFila.swift in Sources */,
+				109DD5E530497B0000E781A1 /* IglesiaFila.swift in Sources */,
+				109DD5C530497B0000E781A1 /* OfflineMovimientosRepository.swift in Sources */,
+				109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */,
 				55BE47478958A09E5E13CBCC /* MembresiaView.swift in Sources */,
 				AE47E6BB26592BFAA9D7AD3F /* MembresiaViewModel.swift in Sources */,
 				D44D423A1DA08D77FB0AD17E /* Miembro.swift in Sources */,
@@ -468,6 +553,7 @@
 				83A2416D0993C828CB6DD730 /* Money.swift in Sources */,
 				98ED8949A394A97DA2A351A7 /* MonthlyBarChart.swift in Sources */,
 				8E9B82EB8F95FA5CA6467A05 /* Movimiento.swift in Sources */,
+				109DD5E130497B0000E781A1 /* ConfiguracionIglesia.swift in Sources */,
 				F260ED2F57D185BCE80D352D /* MovimientoDetalle.swift in Sources */,
 				0C89DBA6C761483BB7766DB8 /* MovimientosRepository.swift in Sources */,
 				1E2019B4FB1519DD13F9D54F /* MovimientosView.swift in Sources */,
@@ -475,6 +561,10 @@
 				E59AA377A9C949086FE304A7 /* NavHeader.swift in Sources */,
 				9C8FB139058D943AFD740DFD /* NuevaNotaView.swift in Sources */,
 				89722058A7F23205CC987EEE /* NuevoAportanteView.swift in Sources */,
+				109DD5D130497B0000E781A1 /* NuevoParienteView.swift in Sources */,
+				109DD5F330497B0000E781A1 /* DocumentoAportanteView.swift in Sources */,
+				109DD61530497B0000E781A1 /* ImportarAportantesView.swift in Sources */,
+				109DD62330497B0000E781A1 /* ImportarAportesView.swift in Sources */,
 				6FEEBC949AB1624243BB0C4C /* NuevoCorteView.swift in Sources */,
 				6C7A3A8D85E12BAFF15B3184 /* NuevoMovimientoView.swift in Sources */,
 				0B8D01419956FF26F533080D /* PDFExport.swift in Sources */,
@@ -487,10 +577,16 @@
 				109DD560304964A800E781A1 /* Supabase.swift in Sources */,
 				109DD59330497B0000E781A1 /* AccesoView.swift in Sources */,
 				109DD59130497B0000E781A1 /* SesionSupabase.swift in Sources */,
+				109DD5A130497B0000E781A1 /* Navegacion.swift in Sources */,
+				109DD5A330497B0000E781A1 /* ModoRevision.swift in Sources */,
 				109DD58530497A0000E781A1 /* Fechas.swift in Sources */,
 				109DD58330497A0000E781A1 /* Espaciado.swift in Sources */,
 				109DD58130497A0000E781A1 /* Catalogos.swift in Sources */,
+				109DD60130497B0000E781A1 /* CSV.swift in Sources */,
+				109DD61130497B0000E781A1 /* CSVLector.swift in Sources */,
 				398720DB6C6BED4910FE81CB /* ReportePDF.swift in Sources */,
+				109DD5F130497B0000E781A1 /* AportantePDF.swift in Sources */,
+				109DD60530497B0000E781A1 /* CompartirArchivo.swift in Sources */,
 				947D8B4FC7B6DD3101C1B3D4 /* ReportesRepository.swift in Sources */,
 				47D1BDA9349E3F1F8DA281F1 /* ReportesView.swift in Sources */,
 				05747F6824AE2F891D5F7049 /* ReportesViewModel.swift in Sources */,
@@ -711,6 +807,14 @@
 				minimumVersion = 2.5.1;
 			};
 		};
+		109DD5B030497B0000E781A1 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.29.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -718,6 +822,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 109DD55E3048D7C300E781A1 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		109DD5B130497B0000E781A1 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 109DD5B030497B0000E781A1 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
