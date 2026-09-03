@@ -12,11 +12,21 @@ struct NuevoMovimientoView: View {
     @State private var tipo: TipoMovimiento
     @State private var importe: String
     @State private var categoria: String
+    /// Desglose libre dentro de la categoría ("Otro → Reembolso"). La columna
+    /// existía en Supabase y se conservaba al editar, pero la hoja nunca la
+    /// pedía: no había forma de capturarla.
+    @State private var subcategoria: String
     @State private var fecha: Date
     @State private var metodo: String
     @State private var concepto: String
     // Sección APORTANTE (ingreso)
-    @State private var miembro: String
+    /// Quién aporta. Antes era un `String` elegido de una lista de cinco
+    /// nombres escritos en el código, que no existían en el padrón: no se podía
+    /// capturar a nadie real, y el pie que prometía escribir el nombre de un
+    /// visitante no tenía dónde escribirlo.
+    @State private var aportante: SeleccionAportante
+    @State private var nombreVisitante: String
+    @State private var catalogo: [AportanteBreve] = []
     @State private var darConstanciaAnual: Bool
     // Sección BENEFICIARIO (gasto)
     @State private var pagadoA: String
@@ -26,7 +36,15 @@ struct NuevoMovimientoView: View {
     @State private var notas: String
     @State private var marcadoPendiente: Bool
     @State private var incluidoEnCorte: Bool
+    /// Ruta del comprobante dentro del bucket: es lo que se guarda. Antes aquí
+    /// vivía el nombre del archivo elegido y nada más, así que el documento no
+    /// salía del teléfono.
     @State private var comprobante: String?
+    /// Nombre original, solo para enseñarlo mientras dura esta edición: la ruta
+    /// guardada es un UUID y no dice nada a quien la lee.
+    @State private var nombreComprobante: String?
+    @State private var subiendoComprobante = false
+    @State private var errorComprobante: String?
     @State private var mostrarImportador = false
     /// El importe es el primer campo: se enfoca al presentar la hoja para que
     /// salga el teclado y se lea como editable y no como texto gris estático.
@@ -44,10 +62,12 @@ struct NuevoMovimientoView: View {
         _tipo = State(initialValue: t)
         _importe = State(initialValue: existente.map { Self.aTexto($0.monto) } ?? "")
         _categoria = State(initialValue: existente?.categoria ?? (cats.first ?? ""))
+        _subcategoria = State(initialValue: existente?.subcategoria ?? "")
         _fecha = State(initialValue: existente?.fecha ?? Date())
         _metodo = State(initialValue: existente?.metodo ?? (Catalogos.metodos.first ?? ""))
         _concepto = State(initialValue: existente?.nota ?? "")
-        _miembro = State(initialValue: existente?.miembro ?? Self.sinAsignar)
+        _aportante = State(initialValue: Self.seleccionInicial(existente))
+        _nombreVisitante = State(initialValue: existente?.aportanteNombre ?? "")
         _darConstanciaAnual = State(initialValue: existente?.darConstanciaAnual ?? false)
         _pagadoA = State(initialValue: existente?.pagadoA ?? "")
         _rfc = State(initialValue: existente?.rfc ?? "")
@@ -60,9 +80,45 @@ struct NuevoMovimientoView: View {
 
     private var editando: Bool { existente != nil }
 
-    /// Centinela de "sin aportante". Estaba escrito como literal español en
-    /// tres sitios, y salía sin traducir en el Picker.
+    /// Las tres formas de responder "¿quién aporta?".
+    private enum SeleccionAportante: Hashable {
+        case sinAsignar
+        /// Una ficha del padrón, por su `members.uid`.
+        case miembro(String)
+        /// Alguien sin ficha: un visitante, una aseguradora.
+        case visitante
+    }
+
     private static let sinAsignar = L.t("Sin asignar", "Unassigned")
+    private static let etiquetaVisitante = L.t("Otra persona o entidad…",
+                                               "Someone else…")
+
+    /// Con qué opción se abre la hoja al editar un movimiento existente.
+    private static func seleccionInicial(_ m: Movimiento?) -> SeleccionAportante {
+        guard let m else { return .sinAsignar }
+        if let uid = m.memberUid { return .miembro(uid) }
+        if let nombre = m.aportanteNombre, !nombre.isEmpty { return .visitante }
+        return .sinAsignar
+    }
+
+    /// El catálogo, más la ficha del movimiento que se edita si ya no está en
+    /// él: un `Picker` no puede marcar una opción que no existe entre las suyas.
+    private var opcionesAportante: [AportanteBreve] {
+        guard case .miembro(let uid) = aportante,
+              !catalogo.contains(where: { $0.id == uid }) else { return catalogo }
+        return [AportanteBreve(id: uid, nombre: existente?.miembro ?? uid)] + catalogo
+    }
+
+    /// El nombre a mostrar y guardar, ya resuelto.
+    private var nombreAportante: String? {
+        switch aportante {
+        case .sinAsignar: return nil
+        case .miembro(let uid): return opcionesAportante.first { $0.id == uid }?.nombre
+        case .visitante:
+            let limpio = nombreVisitante.trimmingCharacters(in: .whitespaces)
+            return limpio.isEmpty ? nil : limpio
+        }
+    }
 
     /// Catálogo compartido con la hoja de edición, más el valor vigente si no
     /// está en él: un `Picker` no puede marcar una selección que no exista
@@ -71,9 +127,6 @@ struct NuevoMovimientoView: View {
         Catalogos.conValorVigente(Catalogos.categorias(tipo), categoria)
     }
     private var metodos: [String] { Catalogos.conValorVigente(Catalogos.metodos, metodo) }
-    private var miembros: [String] { [Self.sinAsignar, "María Hernández Ríos",
-                                      "Pedro Salas Aguirre", "Ana Lucía Torres",
-                                      "Familia Ruvalcaba"] }
 
     private var guardadoHabilitado: Bool {
         !importe.isEmpty && (tipo == .ingreso || !pagadoA.isEmpty)
@@ -92,7 +145,7 @@ struct NuevoMovimientoView: View {
                 .onChange(of: tipo) { _, _ in
                     categoria = categorias.first ?? categoria
                 }
-                .onChange(of: miembro) { _, _ in
+                .onChange(of: aportante) { _, _ in
                     if sinAportante { darConstanciaAnual = false }
                 }
 
@@ -122,14 +175,22 @@ struct NuevoMovimientoView: View {
             .fileImporter(isPresented: $mostrarImportador,
                           allowedContentTypes: [.image, .pdf],
                           allowsMultipleSelection: false) { resultado in
-                if case .success(let urls) = resultado, let url = urls.first {
-                    comprobante = url.lastPathComponent
+                switch resultado {
+                case .success(let urls):
+                    if let url = urls.first { Task { await adjuntar(url) } }
+                case .failure(let error):
+                    errorComprobante = error.localizedDescription
                 }
             }
         }
         .hojaGrande()
         .presentationDragIndicator(.visible)
         .onAppear { if !editando { importeEnfocado = true } }
+        .task {
+            // Si falla, el selector se queda con "Sin asignar" y la opción de
+            // escribir el nombre a mano, que sigue sirviendo sin red.
+            catalogo = (try? await catalogoAportantes().activos()) ?? []
+        }
     }
 
     // MARK: - Secciones
@@ -138,6 +199,9 @@ struct NuevoMovimientoView: View {
     private var seccionDetalle: some View {
         Section(header: Text(L.t("DETALLE", "DETAILS"))) {
             pickerCategoria
+            TextField(L.t("Subcategoría · opcional", "Subcategory · optional"),
+                      text: $subcategoria)
+                .autocorrectionDisabled()
             // Para gastos el concepto es requerido y va justo tras la categoría
             if tipo == .gasto {
                 TextField(L.t("Concepto", "Concept"), text: $concepto)
@@ -161,10 +225,18 @@ struct NuevoMovimientoView: View {
         // El pie sobre visitantes describe la fila Aportante, no el toggle, así
         // que va pegado a ella: por eso son dos secciones y no una.
         Section {
-            Picker(L.t("Aportante", "Contributor"), selection: $miembro) {
-                ForEach(miembros, id: \.self) { Text($0).tag($0) }
+            Picker(L.t("Aportante", "Contributor"), selection: $aportante) {
+                Text(Self.sinAsignar).tag(SeleccionAportante.sinAsignar)
+                ForEach(opcionesAportante) { a in
+                    Text(a.nombre).tag(SeleccionAportante.miembro(a.id))
+                }
+                Text(Self.etiquetaVisitante).tag(SeleccionAportante.visitante)
             }
             .pickerStyle(.menu)
+            if case .visitante = aportante {
+                TextField(L.t("Nombre", "Name"), text: $nombreVisitante)
+                    .autocorrectionDisabled()
+            }
         } header: {
             Text(L.t("APORTANTE", "CONTRIBUTOR"))
         } footer: {
@@ -182,8 +254,9 @@ struct NuevoMovimientoView: View {
         }
     }
 
-    /// No hay aportante al que emitir constancia.
-    private var sinAportante: Bool { miembro == Self.sinAsignar }
+    /// No hay aportante al que emitir constancia. Un visitante con nombre sí
+    /// cuenta: la constancia se emite a quien dio el dinero, tenga ficha o no.
+    private var sinAportante: Bool { nombreAportante == nil }
 
     /// El catálogo de gastos pasa de una decena, así que ahí el Picker empuja
     /// una pantalla con lista y palomitas —el mismo patrón que la hoja de
@@ -225,8 +298,14 @@ struct NuevoMovimientoView: View {
         Section {
             Toggle(L.t("Se repite cada mes", "Repeats monthly"), isOn: $repiteMensual)
             Button { mostrarImportador = true } label: {
-                Label(comprobante ?? L.t("Adjuntar comprobante", "Attach receipt"),
+                Label(etiquetaComprobante,
                       systemImage: comprobante == nil ? "paperclip" : "doc.fill")
+            }
+            .disabled(subiendoComprobante)
+            if let errorComprobante {
+                Text(errorComprobante)
+                    .font(.caption)
+                    .foregroundStyle(Paleta.negativo)
             }
             DatePicker(L.t("Hora", "Time"), selection: $fecha, displayedComponents: .hourAndMinute)
             TextField(L.t("Notas · opcional", "Notes · optional"), text: $notas, axis: .vertical)
@@ -287,11 +366,28 @@ struct NuevoMovimientoView: View {
         return tipo == .ingreso ? L.t("Nuevo ingreso", "New income") : L.t("Nuevo gasto", "New expense")
     }
 
+    /// Los dos campos del aportante son excluyentes: o ficha del padrón, o
+    /// nombre suelto. Para un gasto no aplica ninguno.
+    private var memberUidElegido: String? {
+        guard tipo == .ingreso, case .miembro(let uid) = aportante else { return nil }
+        return uid
+    }
+
+    private var aportanteNombreElegido: String? {
+        guard tipo == .ingreso, case .visitante = aportante else { return nil }
+        return nombreAportante
+    }
+
+    private var subcategoriaLimpia: String? {
+        let limpio = subcategoria.trimmingCharacters(in: .whitespaces)
+        return limpio.isEmpty ? nil : limpio
+    }
+
     private func armarMovimiento() -> Movimiento {
         let f = DateFormatter(); f.dateFormat = "HH:mm"
         let persona: String?
         if tipo == .ingreso {
-            persona = miembro != Self.sinAsignar ? miembro : nil
+            persona = nombreAportante
         } else {
             persona = pagadoA.isEmpty ? nil : pagadoA
         }
@@ -306,8 +402,8 @@ struct NuevoMovimientoView: View {
             hora: f.string(from: fecha),
             fecha: fecha,
             registradoPor: "Iván García",
-            miembro: tipo == .ingreso && !sinAportante ? miembro : nil,
-            categoriaCompleta: categoria,
+            miembro: tipo == .ingreso ? nombreAportante : nil,
+            categoriaCompleta: subcategoriaLimpia.map { "\(categoria) · \($0)" } ?? categoria,
             nota: concepto.isEmpty ? nil : concepto,
             sinDepositar: existente?.sinDepositar ?? (tipo == .ingreso),
             comprobante: comprobante,
@@ -321,8 +417,43 @@ struct NuevoMovimientoView: View {
             marcadoPendiente: tipo == .gasto && marcadoPendiente,
             incluidoEnCorte: incluidoEnCorte,
             darConstanciaAnual: tipo == .ingreso && darConstanciaAnual,
-            repiteMensual: repiteMensual
+            repiteMensual: repiteMensual,
+            // Se conservan los del movimiento original: la pantalla no los
+            // edita, y perderlos aquí los borraría también en el servidor.
+            // El `member_uid` solo se mantiene si el aportante sigue siendo el
+            // mismo — todavía no se resuelve nombre → uid, y dejar el vínculo
+            // viejo apuntando a otra persona sería peor que no tenerlo.
+            memberUid: memberUidElegido,
+            subcategoria: subcategoriaLimpia,
+            aportanteNombre: aportanteNombreElegido
         )
+    }
+
+    private var etiquetaComprobante: String {
+        if subiendoComprobante { return L.t("Subiendo…", "Uploading…") }
+        if let nombreComprobante { return nombreComprobante }
+        if comprobante != nil { return L.t("Comprobante adjunto", "Receipt attached") }
+        return L.t("Adjuntar comprobante", "Attach receipt")
+    }
+
+    /// Sube el archivo antes de guardar el movimiento. Si la subida falla se
+    /// dice y no se deja ninguna ruta: es preferible un movimiento sin
+    /// comprobante que uno que dice tenerlo y apunta a un archivo inexistente
+    /// —que es justo lo que pasaba antes con el nombre suelto.
+    @MainActor
+    private func adjuntar(_ url: URL) async {
+        subiendoComprobante = true
+        errorComprobante = nil
+        do {
+            comprobante = try await almacenComprobantes().subir(url)
+            nombreComprobante = url.lastPathComponent
+        } catch {
+            comprobante = nil
+            nombreComprobante = nil
+            errorComprobante = L.t("No se pudo subir el comprobante: \(error.localizedDescription)",
+                                   "Couldn't upload the receipt: \(error.localizedDescription)")
+        }
+        subiendoComprobante = false
     }
 
     private func guardar() {
@@ -335,10 +466,12 @@ struct NuevoMovimientoView: View {
         // Reinicia el formulario sin cerrar la hoja
         importe = ""
         categoria = categorias.first ?? ""
+        subcategoria = ""
         fecha = Date()
         metodo = "Efectivo"
         concepto = ""
-        miembro = Self.sinAsignar
+        aportante = .sinAsignar
+        nombreVisitante = ""
         darConstanciaAnual = false
         pagadoA = ""
         rfc = ""
@@ -347,6 +480,8 @@ struct NuevoMovimientoView: View {
         marcadoPendiente = false
         incluidoEnCorte = true
         comprobante = nil
+        nombreComprobante = nil
+        errorComprobante = nil
         // Obtiene el siguiente folio del repositorio para evitar duplicados; si no
         // hay callback (modo standalone), incrementa localmente como fallback.
         if let onNuevoFolio {
