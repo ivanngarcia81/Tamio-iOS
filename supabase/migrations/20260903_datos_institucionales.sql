@@ -1,0 +1,20 @@
+-- Aplicada el 2026-09-03. Ver Tamio/Models/ConfiguracionIglesia.swift.
+alter table public.iglesias
+    add column if not exists direccion          text,
+    add column if not exists ciudad             text,
+    add column if not exists estado             text,
+    add column if not exists pais               text,
+    add column if not exists codigo_postal      text,
+    add column if not exists id_fiscal          text,
+    add column if not exists telefono           text,
+    add column if not exists correo             text,
+    add column if not exists moneda             text default 'MXN',
+    add column if not exists pie_institucional  text,
+    add column if not exists pastor_nombre      text,
+    add column if not exists pastor_cargo       text default 'Pastor',
+    add column if not exists tesorero_nombre    text,
+    add column if not exists tesorero_cargo     text default 'Tesorero',
+    add column if not exists secretario_nombre  text,
+    add column if not exists secretario_cargo   text default 'Secretario',
+    add column if not exists imprimir_firmas    boolean not null default true,
+    add column if not exists updated_at         timestamptz not null default now();
