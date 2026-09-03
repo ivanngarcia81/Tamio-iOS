@@ -220,6 +220,7 @@ private struct AjustesCuentaView: View {
                     Text(L.t("Cerrar sesión", "Sign out")).foregroundStyle(Paleta.negativo)
                         .font(.subheadline).frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .buttonStyle(.plain)
                 .disabled(true).opacity(0.4)
             } footer: {
                 Text(L.t("Cerrar sesión no borra nada del aparato: al volver a entrar, todo sigue donde estaba.",
@@ -845,6 +846,7 @@ private struct AjustesZonaView: View {
                     Text(L.t("Continuar…", "Continue…")).foregroundStyle(Paleta.negativo).font(.subheadline)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .buttonStyle(.plain)
                 .disabled(true).opacity(0.4)
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
@@ -862,6 +864,7 @@ private struct AjustesZonaView: View {
                     Text(L.t("Continuar…", "Continue…")).foregroundStyle(Paleta.negativo).font(.subheadline)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .buttonStyle(.plain)
                 .disabled(true).opacity(0.4)
             } footer: {
                 Text(L.t("Solo un administrador puede borrar, y hay que escribir el nombre de la iglesia para confirmar.",

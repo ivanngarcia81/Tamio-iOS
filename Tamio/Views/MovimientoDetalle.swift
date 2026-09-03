@@ -195,10 +195,9 @@ struct MovimientoDetalle: View {
         }
     }
 
+    /// Mismo formato que las filas de campo del detalle de aprobación. Antes
+    /// esta decía "September 3, 2026, 12:05" y aquella "Aug 30, 2026".
     private var fechaLarga: String {
-        let f = DateFormatter()
-        f.locale = Locale.current
-        f.dateFormat = L.esEspanol ? "d 'de' MMMM 'de' yyyy" : "MMMM d, yyyy"
-        return "\(f.string(from: m.fecha)), \(m.hora)"
+        Fechas.cortaConHora(m.fecha, hora: m.hora)
     }
 }

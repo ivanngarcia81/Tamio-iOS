@@ -62,6 +62,10 @@ struct AccionRevision: Identifiable {
     let label: String
     let kind: AccionKind
     var prominente: Bool = false
+    /// La acción solo lleva a otra pantalla; no resuelve el pendiente. Se
+    /// dibuja distinto: aprobar y navegar no pueden verse igual, y menos
+    /// apiladas una tras otra.
+    var navegacion: Bool = false
 }
 
 /// Resalte de un campo del detalle (verde para montos, rojo para faltantes).

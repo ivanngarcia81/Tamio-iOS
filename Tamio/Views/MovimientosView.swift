@@ -262,6 +262,10 @@ struct MovimientosView: View {
             List {
                 Section(L.t("CATEGORÍA", "CATEGORY")) {
                     ForEach(vm.categoriasChip, id: \.self) { c in
+                        // `.buttonStyle(.plain)`: sin él el estilo automático del
+                        // Button dentro del List pinta el label con el tint
+                        // heredado del TabView, por encima del `.primary` que ya
+                        // llevaba escrito, y las opciones salían todas en verde.
                         Button {
                             vm.filtroCategoria = (vm.filtroCategoria == c) ? nil : c
                         } label: {
@@ -274,7 +278,9 @@ struct MovimientosView: View {
                                         .fontWeight(.semibold)
                                 }
                             }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
                 }
                 Section(L.t("ESTADO", "STATUS")) {

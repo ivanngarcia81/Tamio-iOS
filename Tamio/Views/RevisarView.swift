@@ -21,7 +21,8 @@ struct RevisarView: View {
                 listaPhone
                     .background(Color(.systemGroupedBackground))
                     .navigationDestination(item: $abierto) { a in
-                        detalle(a).navigationTitle(a.tipo.etiqueta).navigationBarTitleDisplayMode(.inline)
+                        // Barra vacía: el H1 del detalle ya dice el asunto.
+                        detalle(a).navigationTitle("").navigationBarTitleDisplayMode(.inline)
                     }
             }
         }
@@ -248,12 +249,14 @@ struct RevisarView: View {
     private func detalle(_ a: Revision) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text(a.archivado ? L.t("ARCHIVADO", "ARCHIVED") : L.t("REQUIERE REVISIÓN", "NEEDS REVIEW"))
-                    .font(.caption2.weight(.bold)).foregroundStyle(Paleta.negativo)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Paleta.negativoFill, in: Capsule())
+                // Un solo chip, y con la categoría concreta del pendiente
+                // ("Espera visto bueno", "Duplicado probable"), que es la que
+                // era el título hasta ahora. Naranja y en formato normal, como
+                // los chips de las listas: el rojo queda para lo que resta
+                // dinero o borra.
+                Pill(texto: a.tipo.etiqueta, color: a.archivado ? .secondary : Paleta.aviso)
 
-                Text(a.tipo.etiqueta).font(.title.weight(.bold))
+                Text(a.concepto).font(.title.weight(.bold))
                 Text(a.descripcion).font(.subheadline).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -277,7 +280,18 @@ struct RevisarView: View {
     private func acciones(_ a: Revision) -> some View {
         HStack(spacing: 10) {
             ForEach(a.acciones) { ac in
-                if ac.prominente {
+                if ac.navegacion {
+                    // Solo lleva a otro lado: chevron y tint neutro. El verde
+                    // prominente queda para lo que resuelve el pendiente.
+                    Button { activar(ac, a) } label: {
+                        HStack(spacing: 4) {
+                            Text(ac.label)
+                            Image(systemName: "chevron.right").font(.caption2)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(Color.secondary)
+                } else if ac.prominente {
                     Button { activar(ac, a) } label: { Text(ac.label).fontWeight(.semibold) }
                         .buttonStyle(.borderedProminent).tint(Paleta.brand)
                 } else {
@@ -294,7 +308,7 @@ struct RevisarView: View {
         switch ac.kind {
         case .editar: editando = a
         case .pedir: Task { await vm.pedirDato(a) }
-        default: Task { await vm.resolver(a, kind: ac.kind) }
+        case .aprobar, .devolver, .resolver: Task { await vm.resolver(a, kind: ac.kind) }
         }
     }
 

@@ -6,19 +6,15 @@ import Foundation
 /// Aquí vive el único, y sigue al idioma del sistema (`Locale.current`), como
 /// el resto de la app desde que se quitaron los `es_MX` forzados.
 enum Fechas {
-    /// "3 de septiembre de 2026" · "September 3, 2026".
-    static func detalle(_ d: Date) -> String {
-        fmt(L.t("d 'de' MMMM 'de' yyyy", "MMMM d, yyyy")).string(from: d)
-    }
-
-    /// "3 de septiembre de 2026, 12:05" · "September 3, 2026, 12:05".
-    static func detalleConHora(_ d: Date) -> String {
-        fmt(L.t("d 'de' MMMM 'de' yyyy, HH:mm", "MMMM d, yyyy, HH:mm")).string(from: d)
-    }
-
-    /// "28 ago 2026" · "Aug 28, 2026" — forma corta, para campos y filas.
+    /// "28 ago 2026" · "Aug 28, 2026" — la forma de las filas de campo.
     static func corta(_ d: Date) -> String {
         fmt(L.t("d MMM yyyy", "MMM d, yyyy")).string(from: d)
+    }
+
+    /// "28 ago 2026, 12:05" · "Aug 28, 2026, 12:05" — forma corta con hora,
+    /// para la fila "Fecha y hora" del detalle de transacción.
+    static func cortaConHora(_ d: Date, hora: String) -> String {
+        "\(corta(d)), \(hora)"
     }
 
     private static func fmt(_ formato: String) -> DateFormatter {

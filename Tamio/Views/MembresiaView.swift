@@ -301,48 +301,20 @@ struct MembresiaView: View {
         NavigationStack {
             List {
                 Section(L.t("ESTADO", "STATUS")) {
-                    Button { vm.filtroEstado = nil } label: {
-                        HStack {
-                            Text(L.t("Todos", "All")).foregroundStyle(.primary)
-                            Spacer()
-                            if vm.filtroEstado == nil {
-                                Image(systemName: "checkmark").foregroundStyle(Paleta.brand).fontWeight(.semibold)
-                            }
-                        }
+                    filaFiltro(L.t("Todos", "All"), activo: vm.filtroEstado == nil) {
+                        vm.filtroEstado = nil
                     }
                     ForEach([EstadoMiembro.activo, .nuevo, .recibido, .traslado, .baja], id: \.self) { e in
-                        Button { vm.filtroEstado = e } label: {
-                            HStack {
-                                Text(e.etiqueta).foregroundStyle(.primary)
-                                Spacer()
-                                if vm.filtroEstado == e {
-                                    Image(systemName: "checkmark").foregroundStyle(Paleta.brand).fontWeight(.semibold)
-                                }
-                            }
-                        }
+                        filaFiltro(e.etiqueta, activo: vm.filtroEstado == e) { vm.filtroEstado = e }
                     }
                 }
                 if !vm.ministeriosDisponibles.isEmpty {
                     Section(L.t("MINISTERIO", "MINISTRY")) {
-                        Button { vm.filtroMinisterio = nil } label: {
-                            HStack {
-                                Text(L.t("Todos", "All")).foregroundStyle(.primary)
-                                Spacer()
-                                if vm.filtroMinisterio == nil {
-                                    Image(systemName: "checkmark").foregroundStyle(Paleta.brand).fontWeight(.semibold)
-                                }
-                            }
+                        filaFiltro(L.t("Todos", "All"), activo: vm.filtroMinisterio == nil) {
+                            vm.filtroMinisterio = nil
                         }
                         ForEach(vm.ministeriosDisponibles, id: \.self) { min in
-                            Button { vm.filtroMinisterio = min } label: {
-                                HStack {
-                                    Text(min).foregroundStyle(.primary)
-                                    Spacer()
-                                    if vm.filtroMinisterio == min {
-                                        Image(systemName: "checkmark").foregroundStyle(Paleta.brand).fontWeight(.semibold)
-                                    }
-                                }
-                            }
+                            filaFiltro(min, activo: vm.filtroMinisterio == min) { vm.filtroMinisterio = min }
                         }
                     }
                 }
@@ -365,7 +337,29 @@ struct MembresiaView: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
+    }
+
+    /// Una opción de la hoja de filtros. Va con `.buttonStyle(.plain)`: sin él,
+    /// el estilo automático del `Button` dentro del `List` pinta el label con
+    /// el tint heredado del TabView, por encima del `.foregroundStyle(.primary)`
+    /// que ya llevaba escrito, y las seis opciones salían en verde de marca
+    /// —también las NO seleccionadas—, así que no se distinguía lo elegido de
+    /// lo disponible. La palomita queda como único indicador.
+    private func filaFiltro(_ texto: String, activo: Bool,
+                            _ accion: @escaping () -> Void) -> some View {
+        Button(action: accion) {
+            HStack {
+                Text(texto).foregroundStyle(.primary)
+                Spacer()
+                if activo {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(Paleta.brand).fontWeight(.semibold)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func colorPct(_ p: Int) -> Color {
