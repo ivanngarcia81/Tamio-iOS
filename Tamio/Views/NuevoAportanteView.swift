@@ -18,9 +18,10 @@ struct NuevoAportanteView: View {
     @State private var estadoCivil: String
     @State private var idFiscal: String
     @State private var congregaDesde: String
-    @State private var bautismo: String
-    @State private var ministerios: String
-    @State private var cargos: String
+    /// Bautismo, ministerios y cargos ya no se editan aquí: son del padrón, y
+    /// quien lo lleva es Secretaría. Seguían apareciendo en una hoja de
+    /// Tesorería, donde nadie va a mantenerlos.
+    @State private var frecuencia: FrecuenciaAporte
 
     init(existente: Aportante?, onGuardar: @escaping (Aportante) -> Void) {
         self.existente = existente
@@ -35,9 +36,7 @@ struct NuevoAportanteView: View {
         _estadoCivil = State(initialValue: existente?.estadoCivil ?? "")
         _idFiscal = State(initialValue: existente?.idFiscal ?? "")
         _congregaDesde = State(initialValue: existente?.congregaDesde ?? "")
-        _bautismo = State(initialValue: existente?.bautismo ?? "")
-        _ministerios = State(initialValue: existente?.ministerios ?? "")
-        _cargos = State(initialValue: existente?.cargos ?? "")
+        _frecuencia = State(initialValue: existente?.frecuencia ?? .semanal)
     }
 
     private var editando: Bool { existente != nil }
@@ -52,6 +51,9 @@ struct NuevoAportanteView: View {
                         ForEach(roles, id: \.self) { Text($0).tag($0) }
                     }
                     TextField(L.t("Miembro desde", "Member since"), text: $miembroDesde)
+                    Picker(L.t("Aporta", "Gives"), selection: $frecuencia) {
+                        ForEach(FrecuenciaAporte.allCases) { Text($0.etiqueta).tag($0) }
+                    }
                 }
                 Section {
                     TextField(L.t("Teléfono", "Phone"), text: $telefono).keyboardType(.phonePad)
@@ -63,9 +65,6 @@ struct NuevoAportanteView: View {
                     TextField(L.t("Dirección", "Address"), text: $direccion)
                     TextField(L.t("Estado civil", "Marital status"), text: $estadoCivil)
                     TextField(L.t("Congrega desde", "Attends since"), text: $congregaDesde)
-                    TextField(L.t("Bautismo", "Baptism"), text: $bautismo)
-                    TextField(L.t("Ministerios", "Ministries"), text: $ministerios)
-                    TextField(L.t("Cargos", "Roles"), text: $cargos)
                 }
             }
             .navigationTitle(editando ? L.t("Editar aportante", "Edit giver") : L.t("Nuevo aportante", "New giver"))
@@ -88,19 +87,15 @@ struct NuevoAportanteView: View {
         let a = Aportante(
             id: existente?.id ?? "",
             nombre: nombre, estado: existente?.estado ?? .activo, rol: rol, miembroDesde: miembroDesde,
-            bautizadoAnio: L.t("Bautizado \(miembroDesde)", "Baptized \(miembroDesde)"),
-            ministerios: ministerios, cargos: cargos,
             telefono: telefono, correo: correo, nacimiento: nacimiento,
             direccion: direccion, estadoCivil: estadoCivil, idFiscal: idFiscal,
-            congregaDesde: congregaDesde, bautismo: bautismo,
+            congregaDesde: congregaDesde,
+            frecuencia: frecuencia,
             aportesTotal: existente?.aportesTotal ?? 0,
             aportesPromedio: existente?.aportesPromedio ?? L.t("Sin aportes aún", "No giving yet"),
             aportesSerie: existente?.aportesSerie ?? [],
             aportes: existente?.aportes ?? [],
-            familia: existente?.familia ?? [],
-            serviciosRegistrados: existente?.serviciosRegistrados ?? 0,
-            presencias: existente?.presencias ?? "0 · 0%",
-            ultimaVisita: existente?.ultimaVisita ?? "—"
+            familia: existente?.familia ?? []
         )
         onGuardar(a)
         dismiss()

@@ -11,8 +11,13 @@ struct MiembroDetalle: View {
     /// Filtra la lista de miembros por el indicador tocado. Solo se cablea en
     /// compacto; en iPad la rejilla sigue siendo texto, como hasta ahora.
     var onFiltrarAccion: ((FiltroAccion) -> Void)? = nil
+    /// Alta y baja de parentescos. El padrón es su dueño, así que se editan
+    /// aquí y en la ficha del aportante solo se leen.
+    var onAgregarPariente: ((Pariente) -> Void)? = nil
+    var onQuitarPariente: ((String) -> Void)? = nil
 
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var mostrarNuevoPariente = false
 
     var body: some View {
         ScrollView {
@@ -228,6 +233,46 @@ struct MiembroDetalle: View {
         }
     }
 
+    /// Los parentescos del miembro. El botón de añadir estaba en la ficha del
+    /// aportante (Tesorería) y encima deshabilitado: ni se podía usar, ni era
+    /// el sitio. Aquí sí, porque el padrón es de Secretaría.
+    private var tarjetaFamilia: some View {
+        Tarjeta {
+            VStack(alignment: .leading, spacing: 12) {
+                TituloSeccion(texto: L.t("FAMILIA", "FAMILY"))
+                if miembro.familia.isEmpty {
+                    Text(L.t("Sin parentescos registrados.", "No family links yet."))
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                ForEach(miembro.familia) { p in
+                    HStack(spacing: 10) {
+                        Text(p.relacion).font(.subheadline).foregroundStyle(.secondary)
+                            .frame(width: 90, alignment: .leading)
+                        Text(p.nombre).font(.subheadline)
+                        Spacer()
+                        if let onQuitarPariente {
+                            Button(role: .destructive) { onQuitarPariente(p.id) } label: {
+                                Image(systemName: "minus.circle")
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Paleta.negativo)
+                        }
+                    }
+                }
+                if onAgregarPariente != nil {
+                    Divider()
+                    Button { mostrarNuevoPariente = true } label: {
+                        Label(L.t("Añadir pariente", "Add relative"), systemImage: "plus")
+                            .font(.subheadline)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $mostrarNuevoPariente) {
+            NuevoParienteView { p in onAgregarPariente?(p) }
+        }
+    }
+
     private func stat(_ titulo: String, _ valor: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(titulo).font(.caption2).foregroundStyle(.secondary)
@@ -256,6 +301,7 @@ struct MiembroDetalle: View {
                     }
                 }
             }
+            tarjetaFamilia
             Tarjeta {
                 VStack(alignment: .leading, spacing: 12) {
                     TituloSeccion(texto: L.t("MOVIMIENTOS DE MEMBRESÍA", "MEMBERSHIP HISTORY"))

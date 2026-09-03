@@ -4,8 +4,51 @@ import Foundation
 struct Aporte: Identifiable {
     let id: String
     let concepto: String   // "Diezmo", "Misiones"
-    let fecha: String      // "27 ago"
+    /// Fecha real, no el texto ya formateado. Antes era un `String` como
+    /// "27 ago": servía para pintarlo y para nada más — con eso no se puede
+    /// saber cuánto lleva alguien sin aportar.
+    let fecha: Date
     let monto: Centavos
+}
+
+/// Cada cuánto se espera que aporte una persona.
+///
+/// Es por persona y no una regla de la iglesia porque no todos dan igual: hay
+/// quien diezma cada semana y quien lo hace al cobrar, una vez al mes.
+enum FrecuenciaAporte: String, CaseIterable, Identifiable, Hashable {
+    case semanal, quincenal, mensual, ocasional
+
+    var id: String { rawValue }
+
+    var etiqueta: String {
+        switch self {
+        case .semanal:   return L.t("Semanal", "Weekly")
+        case .quincenal: return L.t("Quincenal", "Biweekly")
+        case .mensual:   return L.t("Mensual", "Monthly")
+        case .ocasional: return L.t("Ocasional", "Occasional")
+        }
+    }
+
+    /// Días que dura un periodo. `nil` en "ocasional": a quien da de forma
+    /// suelta no se le puede reprochar un retraso, así que no se le vigila.
+    var dias: Int? {
+        switch self {
+        case .semanal:   return 7
+        case .quincenal: return 14
+        case .mensual:   return 30
+        case .ocasional: return nil
+        }
+    }
+
+    /// Nombre del periodo en plural, para los textos ("3 semanas sin aportar").
+    func periodos(_ n: Int) -> String {
+        switch self {
+        case .semanal:   return L.t("\(n) semanas", "\(n) weeks")
+        case .quincenal: return L.t("\(n) quincenas", "\(n) biweekly periods")
+        case .mensual:   return L.t("\(n) meses", "\(n) months")
+        case .ocasional: return ""
+        }
+    }
 }
 
 /// Un mes de la gráfica de aportes.
@@ -31,10 +74,8 @@ struct Aportante: Identifiable, Hashable {
     let rol: String            // "diezmo" / "donador" — para el subtítulo de la lista
     let miembroDesde: String   // "2018"
 
-    // Ficha.
-    let bautizadoAnio: String  // "Bautizado 2018"
-    let ministerios: String    // "Música · Medios"
-    let cargos: String         // "Diácono"
+    // Ficha. Bautismo, ministerios y cargos NO viven aquí: son del padrón, que
+    // lleva Secretaría. Están en `Miembro`, sobre la misma fila de `members`.
     let telefono: String
     let correo: String
     let nacimiento: String
@@ -42,7 +83,8 @@ struct Aportante: Identifiable, Hashable {
     let estadoCivil: String
     let idFiscal: String
     let congregaDesde: String  // "2016"
-    let bautismo: String       // "9 dic 2018"
+    /// Ritmo con el que se espera que aporte, para medir su constancia.
+    let frecuencia: FrecuenciaAporte
 
     // Aportes.
     let aportesTotal: Centavos
@@ -53,13 +95,50 @@ struct Aportante: Identifiable, Hashable {
     // Familia.
     let familia: [Pariente]
 
-    // Asistencia.
-    let serviciosRegistrados: Int
-    let presencias: String        // "30 · 88%"
-    let ultimaVisita: String      // "23 ago 2026"
 
     /// Los tres aportes más recientes, para el resumen.
     var aportesRecientes: [Aporte] { Array(aportes.prefix(3)) }
+
+    // MARK: - Constancia
+    //
+    // El equivalente en Tesorería de lo que la asistencia es en Secretaría: a
+    // la secretaria le importa quién lleva tres domingos sin venir; al tesorero,
+    // quién diezma cada semana y lleva tres semanas sin hacerlo. Un aportante
+    // constante que desaparece es o alguien que se alejó, o un cobro
+    // traspapelado: las dos cosas se quieren ver.
+
+    /// A la tercera falta se avisa.
+    static let periodosParaAvisar = 3
+
+    var ultimoAporte: Date? { aportes.map(\.fecha).max() }
+
+    /// Periodos completos transcurridos desde el último aporte. `nil` cuando no
+    /// hay ritmo que vigilar (ocasional) o cuando la persona no ha aportado
+    /// nunca, que no es un retraso sino otra cosa.
+    var periodosSinAportar: Int? {
+        guard let dias = frecuencia.dias, let ultimo = ultimoAporte else { return nil }
+        let transcurridos = Calendar.current.dateComponents([.day], from: ultimo, to: Date()).day ?? 0
+        return max(0, transcurridos / dias)
+    }
+
+    var atrasadoEnAportes: Bool {
+        (periodosSinAportar ?? 0) >= Self.periodosParaAvisar
+    }
+
+    /// En cuántos de los últimos periodos hubo aporte. Da contexto al retraso:
+    /// no es lo mismo fallar tres veces tras un año perfecto que fallar siempre.
+    func constanciaReciente(periodos: Int = 6) -> (conAporte: Int, total: Int)? {
+        guard let dias = frecuencia.dias else { return nil }
+        let cal = Calendar.current
+        let hoy = Date()
+        var cumplidos = 0
+        for i in 0..<periodos {
+            guard let fin = cal.date(byAdding: .day, value: -dias * i, to: hoy),
+                  let inicio = cal.date(byAdding: .day, value: -dias, to: fin) else { continue }
+            if aportes.contains(where: { $0.fecha > inicio && $0.fecha <= fin }) { cumplidos += 1 }
+        }
+        return (cumplidos, periodos)
+    }
 
     /// Subtítulo de la fila: "Miembro desde 2018 · diezmo".
     var subtitulo: String {

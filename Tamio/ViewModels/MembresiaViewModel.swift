@@ -51,6 +51,18 @@ final class MembresiaViewModel {
     }
 
     @MainActor
+    func agregarPariente(miembroId: String, pariente: Pariente) {
+        guard let idx = items.firstIndex(where: { $0.id == miembroId }) else { return }
+        items[idx].familia.append(pariente)
+    }
+
+    @MainActor
+    func quitarPariente(miembroId: String, parienteId: String) {
+        guard let idx = items.firstIndex(where: { $0.id == miembroId }) else { return }
+        items[idx].familia.removeAll { $0.id == parienteId }
+    }
+
+    @MainActor
     func cargar() async {
         resumen    = await repo.resumen()
         asistencia = await repo.asistenciaResumen()

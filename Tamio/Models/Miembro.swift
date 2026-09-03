@@ -55,6 +55,10 @@ struct Miembro: Identifiable, Hashable {
     let expediente: [ItemExpediente]
     let movimientos: [MovMembresia]
     var seguimientoNotas: [SeguimientoNota] = []
+    /// Parentescos del padrón. Viven aquí, en Secretaría, porque es quien los
+    /// conoce y los mantiene; Tesorería solo los consulta en la ficha del
+    /// aportante (para la constancia anual conjunta de un matrimonio).
+    var familia: [Pariente] = []
 
     var iniciales: String {
         let partes = nombre.split(separator: " ")

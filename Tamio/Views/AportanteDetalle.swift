@@ -1,7 +1,7 @@
 import SwiftUI
 import Charts
 
-/// Ficha del aportante: cabecera, sub-pestañas Datos/Aportes/Familia/Asistencia,
+/// Ficha del aportante: cabecera, sub-pestañas Datos/Aportes/Familia/Constancia,
 /// tarjeta de datos y tarjeta de aportes con gráfica, selector de año e
 /// historial. Layout seguro (sin el combo que colgaba la app).
 struct AportanteDetalle: View {
@@ -13,10 +13,7 @@ struct AportanteDetalle: View {
     @State private var confirmarEliminar = false
 
     /// Texto de la constancia anual, para compartir/exportar.
-    private var constanciaTexto: String {
-        L.t("Constancia de aportaciones \(anio)\n\(a.nombre)\nID fiscal: \(a.idFiscal)\nTotal aportado: \(Money.fmt(a.aportesTotal)) MXN\nIglesia Getsemaní, Monterrey, N.L.",
-            "\(anio) Giving statement\n\(a.nombre)\nTax ID: \(a.idFiscal)\nTotal given: \(Money.fmt(a.aportesTotal)) MXN\nIglesia Getsemaní, Monterrey, N.L.")
-    }
+    @State private var documento: DocumentoAportanteView.Tipo?
 
     var body: some View {
         ScrollView {
@@ -26,7 +23,7 @@ struct AportanteDetalle: View {
                     Text(L.t("Datos", "Details")).tag(0)
                     Text(L.t("Aportes", "Giving")).tag(1)
                     Text(L.t("Familia", "Family")).tag(2)
-                    Text(L.t("Asistencia", "Attendance")).tag(3)
+                    Text(L.t("Constancia", "Consistency")).tag(3)
                 }
                 .pickerStyle(.segmented)
 
@@ -43,6 +40,9 @@ struct AportanteDetalle: View {
         }
         .colchonInferior()
         .background(Color(.systemGroupedBackground))
+        .sheet(item: $documento) { tipo in
+            DocumentoAportanteView(aportante: a, tipo: tipo)
+        }
     }
 
     // MARK: - Cabecera
@@ -67,15 +67,40 @@ struct AportanteDetalle: View {
     private var info: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(a.nombre).font(.title.weight(.bold)).lineLimit(2).minimumScaleFactor(0.8)
+            // Antes aquí salían el año de bautismo y los ministerios: son del
+            // padrón, que lleva Secretaría, y no le dicen nada al tesorero.
             HStack(spacing: 8) {
                 Pill(texto: a.estado.etiqueta, color: a.estado.color)
-                Text(a.bautizadoAnio).font(.caption).foregroundStyle(.secondary)
-                Text("·").foregroundStyle(.secondary)
                 Text(a.rol).font(.caption).foregroundStyle(.secondary)
                 Text("·").foregroundStyle(.secondary)
-                Text(a.ministerios).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                Text(L.t("Aporta \(a.frecuencia.etiqueta.lowercased())",
+                         "Gives \(a.frecuencia.etiqueta.lowercased())"))
+                    .font(.caption).foregroundStyle(.secondary)
+                if a.atrasadoEnAportes {
+                    Pill(texto: L.t("Sin aportar", "Lapsed"), color: Paleta.aviso)
+                }
             }
         }
+    }
+
+    /// Antes aquí había un `ShareLink` que compartía **cinco líneas de texto**
+    /// pese a que el botón decía "(PDF)". Ahora son dos documentos de verdad.
+    private var menuDocumentos: some View {
+        Menu {
+            Button {
+                documento = .reporte
+            } label: {
+                Label(L.t("Reporte de aportes…", "Giving report…"), systemImage: "doc.text")
+            }
+            Button {
+                documento = .constancia
+            } label: {
+                Label(L.t("Constancia anual…", "Annual statement…"), systemImage: "doc.badge.gearshape")
+            }
+        } label: {
+            Label(L.t("Documentos", "Documents"), systemImage: "doc.text").fontWeight(.semibold)
+        }
+        .buttonStyle(.borderedProminent).tint(Paleta.brand)
     }
 
     private var eliminarBoton: some View {
@@ -99,10 +124,7 @@ struct AportanteDetalle: View {
                     .buttonStyle(.bordered)
                     .tint(Color.secondary)
                 eliminarBoton
-                ShareLink(item: constanciaTexto) {
-                    Label(L.t("Constancia anual (PDF)", "Annual receipt (PDF)"), systemImage: "doc.text").fontWeight(.semibold)
-                }
-                .buttonStyle(.borderedProminent).tint(Paleta.brand)
+                menuDocumentos
             }
             // Estrecho (iPhone): Edit+Delete arriba, PDF abajo
             VStack(alignment: .leading, spacing: 8) {
@@ -112,10 +134,7 @@ struct AportanteDetalle: View {
                         .tint(Color.secondary)
                     eliminarBoton
                 }
-                ShareLink(item: constanciaTexto) {
-                    Label(L.t("Constancia anual (PDF)", "Annual receipt (PDF)"), systemImage: "doc.text").fontWeight(.semibold)
-                }
-                .buttonStyle(.borderedProminent).tint(Paleta.brand)
+                menuDocumentos
             }
         }
     }
@@ -127,7 +146,7 @@ struct AportanteDetalle: View {
         switch subtab {
         case 1: tarjetaAportesCompleto
         case 2: tarjetaFamilia
-        case 3: tarjetaAsistencia
+        case 3: tarjetaConstancia
         default: tarjetaDatos
         }
     }
@@ -146,24 +165,65 @@ struct AportanteDetalle: View {
                     if i < a.familia.count - 1 { Divider() }
                 }
                 Divider()
-                Button { } label: {
-                    Label(L.t("Añadir pariente", "Add relative"), systemImage: "plus")
-                        .font(.subheadline)
-                }
-                .padding(.vertical, 10)
-                .disabled(true).opacity(0.4)
+                // El parentesco lo mantiene Secretaría, que es quien lleva el
+                // padrón. Aquí se consulta —sirve para la constancia anual
+                // conjunta de un matrimonio— pero no se edita: un dato con dos
+                // dueños acaba desactualizado en los dos sitios.
+                Text(L.t("Los parentescos se editan en Secretaría · Miembros.",
+                         "Family links are managed in Secretary · Members."))
+                    .font(.caption).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 10)
             }
         }
     }
 
-    private var tarjetaAsistencia: some View {
+    /// Sustituye a la antigua pestaña "Asistencia", que era dato de Secretaría.
+    /// Aquí la pregunta equivalente es la del tesorero: ¿esta persona sigue
+    /// aportando con el ritmo que se le conoce?
+    private var tarjetaConstancia: some View {
         Tarjeta {
             VStack(spacing: 0) {
-                filaDato(L.t("Servicios registrados", "Services logged"), "\(a.serviciosRegistrados)")
-                Divider(); filaDato(L.t("Presencias", "Attended"), a.presencias)
-                Divider(); filaDato(L.t("Última visita", "Last visit"), a.ultimaVisita)
+                filaDato(L.t("Ritmo esperado", "Expected rhythm"), a.frecuencia.etiqueta)
+                Divider()
+                filaDato(L.t("Último aporte", "Last gift"), textoUltimoAporte)
+                if let reciente = a.constanciaReciente() {
+                    Divider()
+                    filaDato(L.t("Últimos \(reciente.total) periodos", "Last \(reciente.total) periods"),
+                             L.t("\(reciente.conAporte) con aporte", "\(reciente.conAporte) with a gift"))
+                }
+                if let atraso = a.periodosSinAportar, atraso > 0 {
+                    Divider()
+                    HStack {
+                        Text(L.t("Sin aportar", "Lapsed"))
+                            .font(.subheadline).foregroundStyle(.secondary)
+                        Spacer()
+                        Text(a.frecuencia.periodos(atraso))
+                            .font(.subheadline.weight(.semibold))
+                            // El color solo cuando de verdad hay que mirarlo: si
+                            // todo lo que se retrasa se pinta de naranja, deja
+                            // de significar nada.
+                            .foregroundStyle(a.atrasadoEnAportes ? Paleta.aviso : .primary)
+                    }
+                    .padding(.vertical, 10)
+                }
+                if a.frecuencia == .ocasional {
+                    Divider()
+                    Text(L.t("Aporta de forma ocasional, así que no se vigila su constancia.",
+                             "Gives occasionally, so consistency isn't tracked."))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 10)
+                }
             }
         }
+    }
+
+    private var textoUltimoAporte: String {
+        guard let fecha = a.ultimoAporte else {
+            return L.t("Nunca ha aportado", "No gifts yet")
+        }
+        return Fechas.corta(fecha)
     }
 
     private var tarjetaAportesCompleto: some View {
@@ -171,7 +231,7 @@ struct AportanteDetalle: View {
             VStack(spacing: 0) {
                 ForEach(Array(a.aportes.enumerated()), id: \.element.id) { i, ap in
                     HStack {
-                        Text(ap.fecha).font(.subheadline).foregroundStyle(.secondary)
+                        Text(Fechas.corta(ap.fecha)).font(.subheadline).foregroundStyle(.secondary)
                             .frame(width: 120, alignment: .leading)
                         Text(ap.concepto).font(.subheadline)
                         Spacer()
@@ -197,9 +257,7 @@ struct AportanteDetalle: View {
                 Divider(); filaDato(L.t("ID fiscal", "Tax ID"), a.idFiscal)
                 Divider(); filaDato(L.t("Miembro desde", "Member since"), a.miembroDesde)
                 Divider(); filaDato(L.t("Congrega desde", "Attends since"), a.congregaDesde)
-                Divider(); filaDato(L.t("Bautismo", "Baptism"), a.bautismo)
-                Divider(); filaDato(L.t("Ministerios", "Ministries"), a.ministerios)
-                Divider(); filaDato(L.t("Cargos", "Roles"), a.cargos)
+                Divider(); filaDato(L.t("Aporta", "Gives"), a.frecuencia.etiqueta)
             }
         }
     }
@@ -239,7 +297,7 @@ struct AportanteDetalle: View {
 
                 ForEach(Array(a.aportesRecientes.enumerated()), id: \.element.id) { i, ap in
                     HStack {
-                        Text("\(ap.concepto) · \(ap.fecha)").font(.subheadline)
+                        Text("\(ap.concepto) · \(Fechas.corta(ap.fecha))").font(.subheadline)
                         Spacer()
                         Text(Money.fmt(ap.monto)).font(.subheadline.weight(.semibold)).monospacedDigit()
                     }

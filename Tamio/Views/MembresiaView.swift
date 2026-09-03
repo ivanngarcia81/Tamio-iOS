@@ -34,6 +34,12 @@ struct MembresiaView: View {
                                            vm.filtroAccion = filtro
                                            subtab = 0
                                            abierto = nil
+                                       },
+                                       onAgregarPariente: { p in
+                                           vm.agregarPariente(miembroId: m.id, pariente: p)
+                                       },
+                                       onQuitarPariente: { id in
+                                           vm.quitarPariente(miembroId: m.id, parienteId: id)
                                        })
                             .background(Color(.systemGroupedBackground))
                             .navigationBarTitleDisplayMode(.inline)
@@ -97,6 +103,12 @@ struct MembresiaView: View {
                                onFiltrarAccion: { filtro in
                                    vm.filtroAccion = filtro
                                    subtab = 0
+                               },
+                               onAgregarPariente: { p in
+                                   vm.agregarPariente(miembroId: m.id, pariente: p)
+                               },
+                               onQuitarPariente: { id in
+                                   vm.quitarPariente(miembroId: m.id, parienteId: id)
                                })
             } else {
                 ContentUnavailableView(L.t("Selecciona un miembro", "Select a member"),
