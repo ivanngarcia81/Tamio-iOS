@@ -40,7 +40,7 @@ struct ServiciosView: View {
                 Button { mostrarNuevo = true } label: {
                     HStack(spacing: 5) { Image(systemName: "plus"); Text(L.t("Nuevo", "New")) }
                         .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                         .background(Paleta.brand, in: Capsule())
                 }
             }
@@ -70,22 +70,18 @@ struct ServiciosView: View {
 
     @ViewBuilder
     private var listaColumna: some View {
-        if sizeClass == .regular {
-            listaColumnaCore.listStyle(.plain)
-        } else {
-            listaColumnaCore.listStyle(.insetGrouped)
-        }
+        // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
+        listaColumnaCore
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
     }
 
     @ViewBuilder
     private var listaColumnaCore: some View {
-        let rowBG: Color = sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)
         List {
             Section {
                 ForEach(vm.lista) { s in
                     filaServicio(s)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(rowBG)
                         .contentShape(Rectangle())
                         .onTapGesture { abrir(s) }
                 }
@@ -121,9 +117,8 @@ struct ServiciosView: View {
             Pill(texto: s.estadoRoster.etiqueta, color: s.estadoRoster.color)
                 .fixedSize()
         }
-        .padding(.horizontal, 16).padding(.vertical, 11)
-        .background(sel ? Paleta.brandFill : (sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)))
-        .overlay(alignment: .leading) { if sel { Rectangle().fill(Paleta.brand).frame(width: 3) } }
+        .padding(.vertical, 11)
+        .filaDeLista(seleccionada: sel, tarjeta: sizeClass != .regular)
     }
 
     // MARK: - Detalle
@@ -144,14 +139,14 @@ struct ServiciosView: View {
                         Text(L.t("Tomar asistencia", "Take attendance"))
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(Paleta.brand)
-                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .padding(.horizontal, Esp.chip).padding(.vertical, 8)
                             .background(Paleta.brandFill, in: Capsule())
                     }
                     Button { mostrarAsignar = true } label: {
                         Text(L.t("Asignar", "Assign"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .padding(.horizontal, Esp.chip).padding(.vertical, 8)
                             .background(Paleta.brand, in: Capsule())
                     }
                     Spacer()
@@ -729,7 +724,7 @@ private struct TomarAsistenciaSheet: View {
                             }
                         }
                         .frame(height: 8)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, Esp.tarjeta)
 
                         Text("\(Int(pct * 100))% \(L.t("de", "of")) \(total) \(L.t("en roster", "in roster"))")
                             .font(.subheadline).foregroundStyle(.secondary)

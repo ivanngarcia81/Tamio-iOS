@@ -49,11 +49,11 @@ struct MiembroDetalle: View {
             Text("\(valor)").font(.title2.weight(.bold)).monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(Esp.chip)
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(alignment: .top) {
-            RoundedRectangle(cornerRadius: 2).fill(color).frame(height: 3).padding(.horizontal, 10)
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(height: 3).padding(.horizontal, Esp.hueco)
         }
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.separator.opacity(0.6), lineWidth: 0.5))
     }

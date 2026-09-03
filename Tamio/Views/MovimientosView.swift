@@ -72,7 +72,7 @@ struct MovimientosView: View {
                     HStack(spacing: 5) { Image(systemName: "plus"); Text(L.t("Nuevo", "New")) }
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                         .background(Paleta.brand, in: Capsule())
                 }
             }
@@ -153,22 +153,19 @@ struct MovimientosView: View {
 
     @ViewBuilder
     private var lista: some View {
-        if sizeClass == .regular {
-            listaCuerpo.listStyle(.plain)
-        } else {
-            listaCuerpo.listStyle(.insetGrouped)
-        }
+        // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
+        listaCuerpo
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
     }
 
     @ViewBuilder
     private var listaCuerpo: some View {
-        let rowBG: Color = sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)
         List {
             ForEach(vm.grupos, id: \.encabezado) { grupo in
                 Section {
                     ForEach(grupo.items) { m in
                         filaContenido(m)
-                            .listRowBackground(rowBG)
                             .contentShape(Rectangle())
                             .onTapGesture { abrir(m) }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -217,7 +214,7 @@ struct MovimientosView: View {
                 }
             }
             .font(.subheadline)
-            .padding(.horizontal, 10).padding(.vertical, 7)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
             .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 9))
 
             HStack(spacing: 8) {
@@ -226,7 +223,7 @@ struct MovimientosView: View {
                 botonFiltros
             }
         }
-        .padding(12)
+        .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
     }
 
     // MARK: - Filtros
@@ -250,7 +247,7 @@ struct MovimientosView: View {
             }
             .font(.subheadline.weight(.medium))
             .foregroundStyle(filtrosActivos > 0 ? Paleta.brand : .primary)
-            .padding(.horizontal, 13).padding(.vertical, 7)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
             .background(Capsule().fill(filtrosActivos > 0 ? Paleta.brandFill : Color(.secondarySystemFill)))
             .overlay(Capsule().stroke(filtrosActivos > 0 ? Paleta.brandStroke : Color.clear, lineWidth: 1))
         }
@@ -319,7 +316,7 @@ struct MovimientosView: View {
             }
             .font(.subheadline.weight(.medium))
             .foregroundStyle(seleccionado ? Paleta.brand : .primary)
-            .padding(.horizontal, 13).padding(.vertical, 7)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
             .background(Capsule().fill(seleccionado ? Paleta.brandFill : Color(.secondarySystemFill)))
             .overlay(Capsule().stroke(seleccionado ? Paleta.brandStroke : Color.clear, lineWidth: 1))
         }
@@ -350,18 +347,13 @@ struct MovimientosView: View {
                     Text(L.t("Sin depositar", "Not deposited"))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(Paleta.aviso)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
                         .background(Paleta.avisoFill, in: Capsule())
                 }
             }
         }
         .padding(.vertical, 6)
-        .background(esSel ? Paleta.brandFill : Color.clear,
-                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(alignment: .leading) {
-            if esSel { Rectangle().fill(Paleta.brand).frame(width: 3) }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .filaDeLista(seleccionada: esSel, tarjeta: sizeClass != .regular)
     }
 
     private var pieLista: some View {
@@ -374,6 +366,6 @@ struct MovimientosView: View {
         }
         .font(.caption)
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
     }
 }

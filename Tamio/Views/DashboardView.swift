@@ -29,7 +29,7 @@ struct DashboardView: View {
                         }
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, Esp.chip)
                         .padding(.vertical, 7)
                         .background(Paleta.brand, in: Capsule())
                     }
@@ -291,7 +291,7 @@ struct DashboardView: View {
                     if i < d.ingresosPorCategoria.count - 1 { Divider() }
                 }
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, Esp.tarjeta)
             .padding(.vertical, 4)
             .background(Color(.secondarySystemGroupedBackground),
                         in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -337,7 +337,7 @@ struct DashboardView: View {
                 Text(accion).font(.subheadline).foregroundStyle(Paleta.enlace)
             }
             VStack(spacing: 0) { contenido() }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, Esp.tarjeta)
                 .padding(.vertical, 4)
                 .background(Color(.secondarySystemGroupedBackground),
                             in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -384,7 +384,7 @@ struct DashboardView: View {
                 Text(accion).font(.subheadline).foregroundStyle(Paleta.enlace)
             }
             VStack(spacing: 0) { contenido() }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, Esp.tarjeta)
                 .padding(.vertical, 4)
                 .background(Color(.secondarySystemGroupedBackground),
                             in: RoundedRectangle(cornerRadius: 16, style: .continuous))

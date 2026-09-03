@@ -53,7 +53,7 @@ struct MiembrosView: View {
                 Button { hoja = .nueva } label: {
                     HStack(spacing: 5) { Image(systemName: "plus"); Text(L.t("Nuevo", "New")) }
                         .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                         .background(Paleta.brand, in: Capsule())
                 }
             }
@@ -81,7 +81,7 @@ struct MiembrosView: View {
                     }
                 }
                 .font(.subheadline)
-                .padding(.horizontal, 10).padding(.vertical, 7)
+                .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                 .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 9))
 
                 Picker(L.t("Filtro", "Filter"), selection: $vm.filtro) {
@@ -91,7 +91,7 @@ struct MiembrosView: View {
                 }
                 .pickerStyle(.segmented)
             }
-            .padding(12)
+            .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
             Divider()
 
             listaMiembros
@@ -103,27 +103,23 @@ struct MiembrosView: View {
                 Text("\(Money.fmt(vm.total)) MXN").monospacedDigit().fontWeight(.semibold)
             }
             .font(.caption).foregroundStyle(.secondary)
-            .padding(.horizontal, 16).padding(.vertical, 10)
+            .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
         }
     }
 
     @ViewBuilder
     private var listaMiembros: some View {
-        if sizeClass == .regular {
-            listaMiembrosCuerpo.listStyle(.plain)
-        } else {
-            listaMiembrosCuerpo.listStyle(.insetGrouped)
-        }
+        // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
+        listaMiembrosCuerpo
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
     }
 
     @ViewBuilder
     private var listaMiembrosCuerpo: some View {
-        let rowBG: Color = sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)
         List {
             ForEach(vm.itemsFiltrados) { a in
                 fila(a)
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(rowBG)
                     .contentShape(Rectangle())
                     .onTapGesture { abrir(a) }
             }
@@ -148,14 +144,13 @@ struct MiembrosView: View {
                 if a.estado == .traslado {
                     Text(L.t("Traslado", "Transfer"))
                         .font(.caption2.weight(.semibold)).foregroundStyle(Paleta.aviso)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
                         .background(Paleta.avisoFill, in: Capsule())
                 }
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(esSel ? Paleta.brandFill : rowBG)
-        .overlay(alignment: .leading) { if esSel { Rectangle().fill(Paleta.brand).frame(width: 3) } }
+        .padding(.vertical, 10)
+        .filaDeLista(seleccionada: esSel, tarjeta: sizeClass != .regular)
     }
 
     private func abrir(_ a: Aportante) {

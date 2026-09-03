@@ -10,7 +10,7 @@ struct Pill: View {
         Text(texto)
             .font(.caption.weight(.semibold))
             .foregroundStyle(color)
-            .padding(.horizontal, 9)
+            .padding(.horizontal, Esp.chip)
             .padding(.vertical, 3)
             .background(color.opacity(0.15), in: Capsule())
     }

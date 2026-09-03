@@ -41,7 +41,7 @@ struct AgendaView: View {
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 14).padding(.vertical, 7)
+                    .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                     .background(Paleta.brand, in: Capsule())
                 }
             }
@@ -69,7 +69,7 @@ struct AgendaView: View {
                 Text(L.t("Lista", "List")).tag(2)
             }
             .pickerStyle(.segmented)
-            .padding(.horizontal, 16).padding(.vertical, 10)
+            .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
 
             navMes
             Divider()
@@ -109,7 +109,7 @@ struct AgendaView: View {
             }
             .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 8).padding(.bottom, 4)
+        .padding(.horizontal, Esp.hueco).padding(.bottom, 4)
     }
 
     // MARK: - Vista Mes
@@ -125,7 +125,7 @@ struct AgendaView: View {
                             .frame(maxWidth: .infinity)
                     }
                 }
-                .padding(.horizontal, 8).padding(.vertical, 4)
+                .padding(.horizontal, Esp.hueco).padding(.vertical, 4)
 
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7),
@@ -138,7 +138,7 @@ struct AgendaView: View {
                         celdaDia(dia)
                     }
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, Esp.hueco)
             }
         }
     }
@@ -204,7 +204,7 @@ struct AgendaView: View {
                     VStack(spacing: 6) {
                         ForEach(evs) { ev in tarjetaEventoCompacta(ev) }
                     }
-                    .padding(12)
+                    .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
                 }
             }
         }
@@ -275,12 +275,12 @@ struct AgendaView: View {
                                     in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .stroke(Color(.separator), lineWidth: 0.75))
-                        .padding(.horizontal, 12).padding(.bottom, 8)
+                        .padding(.horizontal, Esp.pantalla).padding(.bottom, 8)
                     } header: {
                         Text(etiquetaDiaLista(grupo.dia))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .padding(.horizontal, Esp.pantalla).padding(.vertical, 6)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color(.systemGroupedBackground).opacity(0.95))
                     }
@@ -311,7 +311,7 @@ struct AgendaView: View {
                     .font(.caption).foregroundStyle(Paleta.brand)
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 10)
+        .padding(.horizontal, Esp.fila).padding(.vertical, 10)
     }
 
     // MARK: - Columna detalle del día (derecha)
@@ -410,7 +410,7 @@ struct AgendaView: View {
                     .foregroundStyle(Paleta.brand)
             }
         }
-        .padding(.horizontal, 10).padding(.vertical, 7)
+        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
         .background(Color(.secondarySystemBackground),
                     in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
@@ -594,7 +594,7 @@ private struct NuevoEventoSheet: View {
                             } label: {
                                 Text(op)
                                     .font(.subheadline)
-                                    .padding(.horizontal, 12).padding(.vertical, 7)
+                                    .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                                     .background(sel ? Paleta.brand : Color(.tertiarySystemFill),
                                                 in: Capsule())
                                     .foregroundStyle(sel ? .white : .primary)

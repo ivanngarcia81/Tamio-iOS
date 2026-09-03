@@ -34,7 +34,7 @@ private struct SidebarRow: View {
                         }
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Esp.pantalla)
             .padding(.vertical, 9)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -52,7 +52,7 @@ private struct SidebarSectionTitle: View {
         Text(texto)
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Esp.pantalla)
             .padding(.top, 14)
             .padding(.bottom, 2)
     }
@@ -79,7 +79,7 @@ struct Sidebar: View {
                     SidebarSectionTitle(texto: L.t("SECRETARÍA", "SECRETARY"))
                     grupo(secretaria)
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, Esp.hueco)
             }
 
             Divider()
@@ -138,7 +138,7 @@ struct Sidebar: View {
             Spacer(minLength: 4)
             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, Esp.pantalla)
         .padding(.top, 8)
         .padding(.bottom, 12)
     }
@@ -150,10 +150,10 @@ struct Sidebar: View {
             Spacer()
             Text("⌘K").font(.caption2).foregroundStyle(.tertiary)
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, Esp.chip)
         .padding(.vertical, 8)
         .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-        .padding(.horizontal, 12)
+        .padding(.horizontal, Esp.pantalla)
         .padding(.bottom, 8)
     }
 
@@ -178,10 +178,10 @@ struct Sidebar: View {
                 Spacer(minLength: 4)
                 Circle().fill(Paleta.brand).frame(width: 8, height: 8)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Esp.pantalla)
             .padding(.top, 6)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, Esp.hueco)
         .padding(.vertical, 8)
     }
 }

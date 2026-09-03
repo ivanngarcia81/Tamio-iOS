@@ -298,7 +298,7 @@ struct CorteDetalle: View {
             VStack(spacing: 0) {
                 Divider()
                 botonDepositar
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, Esp.pantalla)
                     .padding(.top, 12)
                     .padding(.bottom, 8)
             }

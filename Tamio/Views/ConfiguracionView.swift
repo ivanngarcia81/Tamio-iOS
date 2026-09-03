@@ -90,7 +90,7 @@ private struct GrupoConf<C: View>: View {
                     .tracking(0.5)
                     .textCase(.uppercase)
                     .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, Esp.hueco)
             }
             VStack(spacing: 0) {
                 contenido
@@ -102,7 +102,7 @@ private struct GrupoConf<C: View>: View {
                     .font(.system(size: 12.5))
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, Esp.hueco)
             }
         }
     }
@@ -173,7 +173,7 @@ private struct FilaConf: View {
             }
         }
         .frame(minHeight: 50)
-        .padding(.horizontal, 18)
+        .padding(.horizontal, Esp.pantalla)
         .contentShape(Rectangle())
     }
 }
@@ -194,7 +194,7 @@ private struct FilaEditable: View {
                 .multilineTextAlignment(.trailing)
         }
         .frame(minHeight: 50)
-        .padding(.horizontal, 18)
+        .padding(.horizontal, Esp.pantalla)
     }
 }
 
@@ -233,7 +233,7 @@ struct ConfiguracionView: View {
                     .tracking(-0.6)
                 Spacer()
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, Esp.pantalla)
             .padding(.top, 16)
             .padding(.bottom, 10)
 
@@ -257,7 +257,7 @@ struct ConfiguracionView: View {
                             Image(systemName: "chevron.right")
                                 .font(.caption2).foregroundStyle(.tertiary)
                         }
-                        .padding(.horizontal, 12)
+                        .padding(.horizontal, Esp.fila)
                         .frame(minHeight: 52)
                         .background(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -265,7 +265,7 @@ struct ConfiguracionView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, Esp.pantalla)
                     .padding(.bottom, 20)
 
                     grupoSidebar(titulo: L.t("IGLESIA", "CHURCH"),
@@ -296,7 +296,7 @@ struct ConfiguracionView: View {
                         .foregroundStyle(seccion == .zona ? Color(hex: 0xFF3B30) : .primary)
                     Spacer()
                 }
-                .padding(.horizontal, 10)
+                .padding(.horizontal, Esp.chip)
                 .frame(minHeight: 44)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -304,7 +304,7 @@ struct ConfiguracionView: View {
                 )
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 14)
+            .padding(.horizontal, Esp.pantalla)
             .padding(.vertical, 10)
         }
     }
@@ -316,7 +316,7 @@ struct ConfiguracionView: View {
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(.tertiary)
-                .padding(.horizontal, 22)
+                .padding(.horizontal, Esp.pantalla)
                 .padding(.bottom, 1)
             ForEach(items) { s in
                 Button { seccion = s } label: {
@@ -335,7 +335,7 @@ struct ConfiguracionView: View {
                             .lineLimit(1)
                         Spacer()
                     }
-                    .padding(.horizontal, 10)
+                    .padding(.horizontal, Esp.chip)
                     .frame(minHeight: 44)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -343,7 +343,7 @@ struct ConfiguracionView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 14)
+                .padding(.horizontal, Esp.pantalla)
             }
         }
     }
@@ -382,7 +382,7 @@ struct ConfiguracionView: View {
                         Spacer()
                         Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, Esp.fila)
                     .frame(minHeight: 44)
                 }
             }
@@ -440,7 +440,7 @@ private struct SeccionCuenta: View {
                             .foregroundStyle(.secondary)
                     }
                     .frame(minHeight: 50)
-                    .padding(.horizontal, 18)
+                    .padding(.horizontal, Esp.pantalla)
                 }
 
                 // Aplicación
@@ -470,7 +470,7 @@ private struct SeccionCuenta: View {
                              "Signing out doesn't delete anything from the device."))
                         .font(.system(size: 12.5))
                         .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 8)
+                        .padding(.horizontal, Esp.hueco)
                 }
             }
             .padding(24)
@@ -522,7 +522,7 @@ private struct SeccionIglesia: View {
                                 .font(.caption2).foregroundStyle(.tertiary)
                         }
                         .frame(minHeight: 64)
-                        .padding(.horizontal, 18)
+                        .padding(.horizontal, Esp.pantalla)
                     }
                     .buttonStyle(.plain)
                 }
@@ -549,7 +549,7 @@ private struct SeccionIglesia: View {
                         TextField(L.t("p. ej. 12-3456789", "e.g. 12-3456789"), text: $einFiscal)
                             .font(.system(size: 16))
                     }
-                    .padding(.horizontal, 18)
+                    .padding(.horizontal, Esp.pantalla)
                     .padding(.vertical, 12)
                     Divider()
                     FilaConf(label: L.t("Moneda", "Currency"),
@@ -599,14 +599,14 @@ private struct SeccionInstitucion: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                         Divider()
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, Esp.tarjeta)
                     .padding(.vertical, 20)
                 }
                 Text(L.t("Así se ve el membrete de los PDF con lo que hay escrito abajo.",
                          "This is how the PDF letterhead looks with what's written below."))
                     .font(.system(size: 12.5))
                     .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, Esp.hueco)
                     .padding(.top, -16)
 
                 // Datos
@@ -624,7 +624,7 @@ private struct SeccionInstitucion: View {
                                 .lineLimit(1)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 18)
+                        .padding(.horizontal, Esp.pantalla)
                         .padding(.vertical, 11)
                         if idx < membreteItems.count - 1 { Divider() }
                     }
@@ -655,7 +655,7 @@ private struct SeccionInstitucion: View {
                             .font(.caption2).foregroundStyle(.tertiary)
                     }
                     .frame(minHeight: 64)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, Esp.pantalla)
                 }
             }
             .padding(24)
@@ -703,7 +703,7 @@ private struct SeccionTesorero: View {
                                 .font(.system(size: 16)).foregroundStyle(.tertiary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 18).padding(.vertical, 11)
+                        .padding(.horizontal, Esp.pantalla).padding(.vertical, 11)
                         Divider()
                         FilaConf(label: L.t("Teléfono (opcional)", "Phone (optional)"),
                                  valor: L.t("Número de teléfono", "Phone number"),
@@ -725,7 +725,7 @@ private struct SeccionTesorero: View {
                                         .font(.system(size: 15))
                                 }
                                 .foregroundStyle(Paleta.aviso)
-                                .padding(.horizontal, 20).padding(.vertical, 10)
+                                .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
                                 .background(Paleta.avisoFill,
                                             in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay(
@@ -738,7 +738,7 @@ private struct SeccionTesorero: View {
                                 .font(.caption2).foregroundStyle(.tertiary)
                         }
                         .frame(minHeight: 64)
-                        .padding(.horizontal, 18).padding(.vertical, 10)
+                        .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
                     }
                 }
             }
@@ -777,7 +777,7 @@ private struct SeccionAcceso: View {
                                 .font(.system(size: 16)).foregroundStyle(.primary)
                             Spacer()
                         }
-                        .frame(minHeight: 54).padding(.horizontal, 18)
+                        .frame(minHeight: 54).padding(.horizontal, Esp.pantalla)
                     }
                     .buttonStyle(.plain)
                 }
@@ -846,7 +846,7 @@ private struct SeccionAcceso: View {
                         Spacer()
                         Toggle("", isOn: $padronVisible).labelsHidden().tint(Paleta.brand)
                     }
-                    .padding(.horizontal, 18).padding(.vertical, 14)
+                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
                 }
             }
             .padding(24)
@@ -933,7 +933,7 @@ private struct SeccionCategorias: View {
                                 .font(.system(size: 15)).foregroundStyle(.secondary)
                         }
                         .frame(minHeight: 50)
-                        .padding(.horizontal, 18)
+                        .padding(.horizontal, Esp.pantalla)
                         if idx < cats.count - 1 { Divider() }
                     }
                     Divider()
@@ -945,7 +945,7 @@ private struct SeccionCategorias: View {
                             Text(labelNueva).font(.system(size: 16)).foregroundStyle(.primary)
                             Spacer()
                         }
-                        .frame(minHeight: 52).padding(.horizontal, 18)
+                        .frame(minHeight: 52).padding(.horizontal, Esp.pantalla)
                     }
                     .buttonStyle(.plain)
                 }
@@ -996,7 +996,7 @@ private struct SeccionPreferencias: View {
                                         .foregroundStyle(Paleta.brand)
                                 }
                             }
-                            .frame(minHeight: 52).padding(.horizontal, 18)
+                            .frame(minHeight: 52).padding(.horizontal, Esp.pantalla)
                         }
                         .buttonStyle(.plain)
                         if idx < temas.count - 1 { Divider() }
@@ -1024,7 +1024,7 @@ private struct SeccionPreferencias: View {
                             }
                         }
                     }
-                    .frame(minHeight: 60).padding(.horizontal, 18)
+                    .frame(minHeight: 60).padding(.horizontal, Esp.pantalla)
                 }
 
                 // Idioma y texto
@@ -1047,7 +1047,7 @@ private struct SeccionPreferencias: View {
                             Text("A").font(.system(size: 21)).foregroundStyle(.tertiary)
                         }
                     }
-                    .padding(.horizontal, 18).padding(.vertical, 12)
+                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 12)
                 }
 
                 // Sonido
@@ -1062,7 +1062,7 @@ private struct SeccionPreferencias: View {
                         }
                     }
                     .tint(Paleta.brand)
-                    .padding(.horizontal, 18).padding(.vertical, 14)
+                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
                 }
             }
             .padding(24)
@@ -1093,7 +1093,7 @@ private struct SeccionZona: View {
                             .font(.system(size: 14.5)).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.horizontal, 20).padding(.vertical, 18)
+                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 18)
                     Divider()
                     Button { ultimoRespaldo = L.t("Hoy 9:41", "Today 9:41") } label: {
                         Text(L.t("Respaldar ahora", "Backup now"))
@@ -1125,7 +1125,7 @@ private struct SeccionZona: View {
                             .font(.system(size: 13.5)).foregroundStyle(.tertiary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 18).padding(.vertical, 14)
+                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
                 }
 
                 // Restaurar
@@ -1144,7 +1144,7 @@ private struct SeccionZona: View {
                             Image(systemName: "chevron.right")
                                 .font(.caption2).foregroundStyle(.tertiary)
                         }
-                        .padding(.horizontal, 18).padding(.vertical, 14)
+                        .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
                     }
                     .buttonStyle(.plain)
                 }
@@ -1159,13 +1159,13 @@ private struct SeccionZona: View {
                             Image(systemName: "chevron.right")
                                 .font(.caption2).foregroundStyle(.tertiary)
                         }
-                        .frame(minHeight: 50).padding(.horizontal, 18)
+                        .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
                     }
                     .buttonStyle(.plain)
                     Text(L.t("Borrar los datos locales no afecta el respaldo en iCloud ni lo que vean los demás usuarios de la iglesia.",
                              "Erasing local data doesn't affect the iCloud backup or what other church users see."))
                         .font(.system(size: 12.5)).foregroundStyle(.tertiary)
-                        .padding(.horizontal, 18).padding(.bottom, 14)
+                        .padding(.horizontal, Esp.pantalla).padding(.bottom, 14)
                 }
             }
             .padding(24)

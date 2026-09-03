@@ -34,7 +34,7 @@ struct InformesMembresiaView: View {
     private var listaColumna: some View {
         VStack(alignment: .leading, spacing: 0) {
             TituloSeccion(texto: L.t("INFORMES", "REPORTS"))
-                .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 8)
+                .padding(.horizontal, Esp.pantalla).padding(.top, 14).padding(.bottom, 8)
 
             ForEach(Array(informes.enumerated()), id: \.offset) { idx, informe in
                 let sel = idx == vm.informeSeleccionado
@@ -51,11 +51,11 @@ struct InformesMembresiaView: View {
                         if idx == 3 && alertasSeguimiento > 0 {
                             Text("\(alertasSeguimiento)")
                                 .font(.caption2.weight(.semibold)).foregroundStyle(.white)
-                                .padding(.horizontal, 7).padding(.vertical, 2)
+                                .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
                                 .background(Paleta.badge, in: Capsule())
                         }
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .padding(.horizontal, Esp.fila).padding(.vertical, 10)
                     .background(sel ? Paleta.brandFill : Color.clear)
                     .overlay(alignment: .leading) {
                         if sel { Rectangle().fill(Paleta.brand).frame(width: 3) }
@@ -121,17 +121,17 @@ struct InformesMembresiaView: View {
                             if idx == 3 && alertasSeguimiento > 0 {
                                 Text("\(alertasSeguimiento)")
                                     .font(.caption2.weight(.bold)).foregroundStyle(.white)
-                                    .padding(.horizontal, 5).padding(.vertical, 1)
+                                    .padding(.horizontal, Esp.hueco).padding(.vertical, 1)
                                     .background(Paleta.badge, in: Capsule())
                             }
                         }
-                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                         .background(sel ? Paleta.brand : Color(.tertiarySystemFill), in: Capsule())
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 20).padding(.top, 4)
+            .padding(.horizontal, Esp.pantalla).padding(.top, 4)
         }
     }
 
@@ -155,7 +155,7 @@ struct InformesMembresiaView: View {
                     }
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Paleta.brand)
-                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .padding(.horizontal, Esp.chip).padding(.vertical, 6)
                     .background(Paleta.brandFill, in: Capsule())
                 }
 
@@ -168,7 +168,7 @@ struct InformesMembresiaView: View {
                             Image(systemName: "calendar").font(.caption2)
                         }
                         .font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 5)
                         .background(Capsule().fill(Color(.tertiarySystemFill)))
                     }
                     .buttonStyle(.plain)
@@ -202,7 +202,7 @@ struct InformesMembresiaView: View {
                     Text(String(año))
                         .font(.caption.weight(sel ? .semibold : .medium))
                         .foregroundStyle(sel ? Paleta.brand : .secondary)
-                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 4)
                         .background(
                             sel ? Paleta.brandFill : Color(.tertiarySystemFill),
                             in: Capsule()
@@ -222,7 +222,7 @@ struct InformesMembresiaView: View {
                         Text(InformesMembresiaViewModel.nombreMes(m))
                             .font(.caption.weight(sel ? .semibold : .medium))
                             .foregroundStyle(sel ? .white : .secondary)
-                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .padding(.horizontal, Esp.chip).padding(.vertical, 4)
                             .background(sel ? Paleta.brand : Color(.tertiarySystemFill), in: Capsule())
                     }
                     .buttonStyle(.plain)
@@ -239,7 +239,7 @@ struct InformesMembresiaView: View {
                     Text("Q\(q)")
                         .font(.caption.weight(sel ? .semibold : .medium))
                         .foregroundStyle(sel ? .white : .secondary)
-                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 4)
                         .background(sel ? Paleta.brand : Color(.tertiarySystemFill), in: Capsule())
                 }
                 .buttonStyle(.plain)
@@ -278,13 +278,13 @@ struct InformesMembresiaView: View {
                         Button { imprimirInforme() } label: {
                             Label(L.t("Imprimir / PDF", "Print / PDF"), systemImage: "printer")
                                 .font(.subheadline.weight(.medium)).foregroundStyle(Paleta.brand)
-                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .padding(.horizontal, Esp.chip).padding(.vertical, 6)
                                 .background(Paleta.brandFill, in: Capsule())
                         }
                         Button { prepararCSV() } label: {
                             Label(L.t("Exportar (CSV)", "Export (CSV)"), systemImage: "square.and.arrow.up")
                                 .font(.subheadline.weight(.medium)).foregroundStyle(Paleta.brand)
-                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .padding(.horizontal, Esp.chip).padding(.vertical, 6)
                                 .background(Paleta.brandFill, in: Capsule())
                         }
                         Spacer()

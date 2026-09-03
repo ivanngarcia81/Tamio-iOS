@@ -39,7 +39,7 @@ struct ActasView: View {
                 Button { mostrarNueva = true } label: {
                     HStack(spacing: 5) { Image(systemName: "plus"); Text(L.t("Nuevo", "New")) }
                         .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                         .background(Paleta.brand, in: Capsule())
                 }
             }
@@ -72,7 +72,7 @@ struct ActasView: View {
                 chipFiltro("2026", desplegable: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Esp.pantalla)
             .padding(.vertical, 10)
             Divider()
 
@@ -82,21 +82,17 @@ struct ActasView: View {
 
     @ViewBuilder
     private var listaActas: some View {
-        if sizeClass == .regular {
-            listaActasCuerpo.listStyle(.plain)
-        } else {
-            listaActasCuerpo.listStyle(.insetGrouped)
-        }
+        // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
+        listaActasCuerpo
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
     }
 
     @ViewBuilder
     private var listaActasCuerpo: some View {
-        let rowBG: Color = sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)
         List {
             ForEach(vm.lista) { acta in
                 filaActa(acta)
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(rowBG)
                     .contentShape(Rectangle())
                     .onTapGesture { abrir(acta) }
             }
@@ -121,9 +117,8 @@ struct ActasView: View {
             Spacer(minLength: 6)
             Pill(texto: acta.estado.etiqueta, color: acta.estado.color)
         }
-        .padding(.horizontal, 16).padding(.vertical, 11)
-        .background(sel ? Paleta.brandFill : (sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)))
-        .overlay(alignment: .leading) { if sel { Rectangle().fill(Paleta.brand).frame(width: 3) } }
+        .padding(.vertical, 11)
+        .filaDeLista(seleccionada: sel, tarjeta: sizeClass != .regular)
     }
 
     // MARK: - Detalle
@@ -144,7 +139,7 @@ struct ActasView: View {
                             Text(L.t("Recopilar firmas", "Collect signatures"))
                                 .font(.subheadline.weight(.medium)).lineLimit(1)
                                 .foregroundStyle(Paleta.brand)
-                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .padding(.horizontal, Esp.chip).padding(.vertical, 6)
                                 .background(Paleta.brandFill, in: Capsule())
                         }
                         .fixedSize()
@@ -152,7 +147,7 @@ struct ActasView: View {
                             Text(L.t("Cerrar acta", "Close minutes"))
                                 .font(.subheadline.weight(.semibold)).lineLimit(1)
                                 .foregroundStyle(.white)
-                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .padding(.horizontal, Esp.chip).padding(.vertical, 6)
                                 .background(Paleta.brand, in: Capsule())
                         }
                         .fixedSize()
@@ -221,7 +216,7 @@ struct ActasView: View {
             Rectangle()
                 .fill(Color(.separator))
                 .frame(height: 0.5)
-                .padding(.horizontal, 12)
+                .padding(.horizontal, Esp.pantalla)
             Text(titulo)
                 .font(.caption).foregroundStyle(.secondary)
         }
@@ -236,7 +231,7 @@ struct ActasView: View {
             if desplegable { Image(systemName: "chevron.down").font(.caption2) }
         }
         .font(.caption.weight(.medium)).foregroundStyle(.secondary)
-        .padding(.horizontal, 10).padding(.vertical, 5)
+        .padding(.horizontal, Esp.chip).padding(.vertical, 5)
         .background(Capsule().fill(Color(.tertiarySystemFill)))
     }
 

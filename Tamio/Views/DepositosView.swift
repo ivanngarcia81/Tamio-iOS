@@ -13,7 +13,6 @@ struct DepositosView: View {
             if geo.size.width >= 640 {
                 HStack(spacing: 0) {
                     listaColumna(wide: true)
-                        .listStyle(.plain)
                         .frame(width: 340)
                         .background(.regularMaterial)
                     Divider()
@@ -28,7 +27,6 @@ struct DepositosView: View {
                 }
             } else {
                 listaColumna(wide: false)
-                    .listStyle(.insetGrouped)
                     .background(.regularMaterial)
                     .navigationDestination(item: $abierto) { c in
                         // Siempre el corte fresco del VM, para reflejar las
@@ -55,7 +53,7 @@ struct DepositosView: View {
                     HStack(spacing: 5) { Image(systemName: "plus"); Text(L.t("Nuevo", "New")) }
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                         .background(Paleta.brand, in: Capsule())
                 }
             }
@@ -94,15 +92,13 @@ struct DepositosView: View {
                 Text(L.t("Depositados", "Deposited")).tag(EstadoDeposito.depositado)
             }
             .pickerStyle(.segmented)
-            .padding(12)
+            .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
             Divider()
 
             List {
                 Section {
                     ForEach(vm.items) { c in
-                        fila(c)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(wide ? Color.clear : Color(.secondarySystemGroupedBackground))
+                        fila(c, tarjeta: !wide)
                     }
                 }
                 if vm.estado == .pendiente {
@@ -115,10 +111,11 @@ struct DepositosView: View {
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
         }
     }
 
-    private func fila(_ c: Corte) -> some View {
+    private func fila(_ c: Corte, tarjeta: Bool) -> some View {
         let esSel = c.id == vm.seleccionId
         return Button {
             vm.seleccionId = c.id
@@ -136,18 +133,15 @@ struct DepositosView: View {
                         Text(L.t("Sin depositar", "Not deposited"))
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(Paleta.aviso)
-                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
                             .background(Paleta.avisoFill, in: Capsule())
                     }
                 }
             }
-            .padding(.horizontal, 16).padding(.vertical, 12)
-            .background(esSel ? Paleta.brandFill : .clear)
-            .overlay(alignment: .leading) {
-                if esSel { Rectangle().fill(Paleta.brand).frame(width: 3) }
-            }
+            .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .filaDeLista(seleccionada: esSel, tarjeta: tarjeta)
     }
 }

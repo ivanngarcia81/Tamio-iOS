@@ -717,7 +717,7 @@ private struct AjustesPreferenciasView: View {
                                 Text(t)
                                     .font(.caption2.weight(act ? .semibold : .regular))
                                     .foregroundStyle(act ? .white : .primary)
-                                    .padding(.horizontal, 6).padding(.vertical, 5)
+                                    .padding(.horizontal, Esp.hueco).padding(.vertical, 5)
                                     .background(act ? Paleta.brand : Color(.tertiarySystemFill), in: Capsule())
                             }
                             .buttonStyle(.plain)

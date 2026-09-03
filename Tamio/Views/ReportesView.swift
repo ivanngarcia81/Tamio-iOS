@@ -29,22 +29,18 @@ struct ReportesView: View {
 
     @ViewBuilder
     private var listaColumna: some View {
-        if sizeClass == .regular {
-            listaColumnaCore.listStyle(.plain)
-        } else {
-            listaColumnaCore.listStyle(.insetGrouped)
-        }
+        // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
+        listaColumnaCore
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
     }
 
     @ViewBuilder
     private var listaColumnaCore: some View {
-        let rowBG: Color = sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)
         List {
             Section {
                 ForEach(vm.tipos) { t in
                     filaReporte(t)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(rowBG)
                         .contentShape(Rectangle())
                         .onTapGesture { vm.seleccionId = t.id }
                 }
@@ -58,14 +54,13 @@ struct ReportesView: View {
 
     private func filaReporte(_ t: ReporteTipo) -> some View {
         let sel = t.id == vm.seleccionId
-        let rowBG: Color = sizeClass == .regular ? Color.clear : Color(.secondarySystemGroupedBackground)
         return VStack(alignment: .leading, spacing: 2) {
             Text(t.titulo).font(.subheadline.weight(.semibold)).foregroundStyle(sel ? Paleta.brand : .primary)
             Text(t.subtitulo).font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16).padding(.vertical, 12)
-        .background(sel ? Paleta.brandFill : rowBG)
+        .padding(.vertical, 12)
+        .filaDeLista(seleccionada: sel, tarjeta: sizeClass != .regular)
     }
 
     // MARK: - Vista previa
@@ -140,7 +135,7 @@ struct ReportesView: View {
     private func chipFiltro(_ t: String) -> some View {
         HStack(spacing: 4) { Text(t); Image(systemName: "chevron.down").font(.caption2) }
             .font(.subheadline).foregroundStyle(.primary)
-            .padding(.horizontal, 12).padding(.vertical, 7)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
             .background(Color(.tertiarySystemFill), in: Capsule())
     }
 
@@ -175,7 +170,7 @@ struct ReportesView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(alignment: .top) { RoundedRectangle(cornerRadius: 2).fill(color).frame(height: 3).padding(.horizontal, 12) }
+        .overlay(alignment: .top) { RoundedRectangle(cornerRadius: 2).fill(color).frame(height: 3).padding(.horizontal, Esp.chip) }
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color(.separator), lineWidth: 0.75))
     }
 

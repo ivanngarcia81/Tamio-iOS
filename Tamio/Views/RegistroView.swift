@@ -82,7 +82,7 @@ struct RegistroView: View {
             Text(L.t("Ves todo: administrador", "Seeing all: administrator"))
                 .font(.caption2).foregroundStyle(.tertiary)
         }
-        .padding(.horizontal, 16).padding(.vertical, 12)
+        .padding(.horizontal, Esp.pantalla).padding(.vertical, 12)
     }
 
     private func pastilla(_ f: FiltroRegistro) -> some View {
@@ -94,7 +94,7 @@ struct RegistroView: View {
             }
             .font(.footnote.weight(sel ? .semibold : .regular))
             .foregroundStyle(sel ? Color(.systemBackground) : .primary)
-            .padding(.horizontal, 11).padding(.vertical, 6)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 6)
             .background(sel ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color(.tertiarySystemFill)),
                         in: Capsule())
         }
@@ -107,7 +107,7 @@ struct RegistroView: View {
             Spacer()
             Text(L.t("\(n) apuntes", "\(n) entries")).font(.caption2).foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 16).padding(.vertical, 6)
+        .padding(.horizontal, Esp.pantalla).padding(.vertical, 6)
         .background(.regularMaterial)
     }
 
@@ -125,7 +125,7 @@ struct RegistroView: View {
                     HStack(spacing: 6) {
                         if a.esNota {
                             Text("NOTA").font(.caption2.weight(.bold)).foregroundStyle(Paleta.aviso)
-                                .padding(.horizontal, 5).padding(.vertical, 1)
+                                .padding(.horizontal, Esp.hueco).padding(.vertical, 1)
                                 .background(Paleta.avisoFill, in: RoundedRectangle(cornerRadius: 4))
                         }
                         Text(meta(a)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -133,7 +133,7 @@ struct RegistroView: View {
                 }
                 Spacer(minLength: 6)
             }
-            .padding(.horizontal, 16).padding(.vertical, 11)
+            .padding(.horizontal, Esp.fila).padding(.vertical, 11)
             .background(fondoFila(a, sel: sel))
             .overlay(alignment: .leading) {
                 if sel { Rectangle().fill(Paleta.brand).frame(width: 3) }
@@ -254,7 +254,7 @@ struct RegistroView: View {
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(alignment: .top) {
-            RoundedRectangle(cornerRadius: 2).fill(acento).frame(height: 3).padding(.horizontal, 12)
+            RoundedRectangle(cornerRadius: 2).fill(acento).frame(height: 3).padding(.horizontal, Esp.chip)
         }
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.separator.opacity(0.6), lineWidth: 0.5))
     }

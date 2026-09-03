@@ -35,7 +35,7 @@ struct CartasView: View {
                 Button { mostrarNueva = true } label: {
                     HStack(spacing: 5) { Image(systemName: "plus"); Text(L.t("Nuevo", "New")) }
                         .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                         .background(Paleta.brand, in: Capsule())
                 }
             }
@@ -80,26 +80,18 @@ struct CartasView: View {
 
     @ViewBuilder
     private var listaColumna: some View {
-        if sizeClass == .regular {
-            listaColumnaCore.listStyle(.plain)
-        } else {
-            listaColumnaCore.listStyle(.insetGrouped)
-        }
+        // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
+        listaColumnaCore
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
     }
 
     @ViewBuilder
     private var listaColumnaCore: some View {
-        let rowBG: Color = sizeClass == .regular ? Color(.systemBackground) : Color(.secondarySystemGroupedBackground)
         List {
             Section {
                 ForEach(TipoPlantilla.allCases) { tipo in
                     filaTipo(tipo)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(
-                            tipo == vm.plantillaSeleccionada
-                                ? Paleta.brandFill
-                                : rowBG
-                        )
                 }
             } header: {
                 Text(L.t("Plantillas", "Templates"))
@@ -109,8 +101,6 @@ struct CartasView: View {
             Section {
                 ForEach(vm.emitidas) { carta in
                     filaEmitida(carta)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(rowBG)
                 }
             } header: {
                 Text(L.t("Emitidas este mes", "Issued this month"))
@@ -146,12 +136,10 @@ struct CartasView: View {
                 Image(systemName: "chevron.right")
                     .font(.caption2).foregroundStyle(.tertiary)
             }
-            .padding(.horizontal, 16).padding(.vertical, 10)
-            .overlay(alignment: .leading) {
-                if sel { Rectangle().fill(Paleta.brand).frame(width: 3) }
-            }
+            .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
+        .filaDeLista(seleccionada: sel, tarjeta: sizeClass != .regular)
     }
 
     private func filaEmitida(_ carta: CartaEmitida) -> some View {
@@ -164,7 +152,8 @@ struct CartasView: View {
                 .font(.subheadline).lineLimit(1)
             Spacer()
         }
-        .padding(.horizontal, 16).padding(.vertical, 9)
+        .padding(.vertical, 9)
+        .filaDeLista(seleccionada: false, tarjeta: sizeClass != .regular)
     }
 
     // MARK: - Detalle
@@ -182,7 +171,7 @@ struct CartasView: View {
                         Text(L.t("Vista previa", "Preview"))
                             .font(.subheadline.weight(.medium)).lineLimit(1)
                             .foregroundStyle(Paleta.brand)
-                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .padding(.horizontal, Esp.chip).padding(.vertical, 6)
                             .background(Paleta.brandFill, in: Capsule())
                     }
                     .fixedSize()
@@ -190,7 +179,7 @@ struct CartasView: View {
                         Text(L.t("Firmar y enviar", "Sign & send"))
                             .font(.subheadline.weight(.semibold)).lineLimit(1)
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .padding(.horizontal, Esp.chip).padding(.vertical, 6)
                             .background(Paleta.brand, in: Capsule())
                     }
                     .fixedSize()
@@ -513,7 +502,7 @@ private struct NuevaCartaSheet: View {
                         } label: {
                             Text(firmante)
                                 .font(.subheadline)
-                                .padding(.horizontal, 14).padding(.vertical, 7)
+                                .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                                 .background(sel ? Paleta.brand : Color(.tertiarySystemFill),
                                             in: Capsule())
                                 .foregroundStyle(sel ? .white : .primary)

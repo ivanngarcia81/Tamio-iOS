@@ -1,0 +1,82 @@
+import SwiftUI
+
+/// **La escala de espaciado de la app.** Sin valores intermedios.
+///
+/// Antes había quince márgenes horizontales distintos repartidos en 138 usos
+/// —16, 12, 18, 14, 13, 11, 10, 9…—, y diferencias de uno o dos puntos no son
+/// decisiones de diseño sino deriva: son la razón por la que los bordes no se
+/// alineaban entre las secciones de una misma pantalla.
+///
+/// 16 pt es el valor más usado y el margen estándar de iOS, así que es el que
+/// rompe menos. Los tres roles —margen de pantalla, interior de tarjeta,
+/// interior de fila— comparten número pero no significado: se nombran aparte
+/// para que un cambio de uno no arrastre a los otros.
+enum Esp {
+    /// Margen lateral de pantalla. El borde contra el que todo se alinea.
+    static let pantalla: CGFloat = 16
+    /// Padding interior de una tarjeta.
+    static let tarjeta: CGFloat = 16
+    /// Padding interior de una fila de lista.
+    static let fila: CGFloat = 16
+    /// Padding interior de una píldora o chip.
+    static let chip: CGFloat = 12
+    /// Separación entre elementos hermanos.
+    static let hueco: CGFloat = 8
+
+    /// Radio de la tarjeta de fila, para que el fondo, el recorte y la barra de
+    /// selección compartan el mismo.
+    static let radioFila: CGFloat = 10
+}
+
+extension View {
+    /// Cierra una fila de lista: margen, fondo de tarjeta y estado seleccionado.
+    ///
+    /// **Por qué existe.** Las ocho listas de la app usaban
+    /// `sizeClass == .regular ? .plain : .insetGrouped`. En iPhone,
+    /// `insetGrouped` aplica su propio inset lateral —unos 20 pt— que no
+    /// respeta el padding del contenedor, así que las tarjetas de la lista
+    /// quedaban un escalón más metidas que la cabecera y el pie de la misma
+    /// pantalla, que sí lo respetan. Ahora las ocho van en `.plain` y el margen
+    /// lo pone la app, con `Esp.pantalla`, en un solo sitio.
+    ///
+    /// Es también el arreglo de fondo del rectángulo plano que asomaba al
+    /// deslizar y de la barra de selección que se salía por la esquina: los
+    /// tres eran el mismo conflicto entre `insetGrouped` y una tarjeta dibujada
+    /// a mano.
+    ///
+    /// - Parameters:
+    ///   - seleccionada: pinta el fondo de selección y la barra lateral.
+    ///   - tarjeta: en compacto la fila **es** una tarjeta sobre el fondo
+    ///     agrupado; en la columna de iPad va transparente sobre el material de
+    ///     la columna, con separador, como hasta ahora.
+    func filaDeLista(seleccionada: Bool, tarjeta: Bool) -> some View {
+        modifier(FilaDeLista(seleccionada: seleccionada, tarjeta: tarjeta))
+    }
+}
+
+private struct FilaDeLista: ViewModifier {
+    let seleccionada: Bool
+    let tarjeta: Bool
+
+    func body(content: Content) -> some View {
+        let forma = RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous)
+        return content
+            .padding(.horizontal, tarjeta ? Esp.fila : Esp.pantalla)
+            .background(fondo, in: forma)
+            .overlay(alignment: .leading) {
+                if seleccionada { Rectangle().fill(Paleta.brand).frame(width: 3) }
+            }
+            // Recorta fondo y barra al mismo radio: sueltos, la barra se salía
+            // por la esquina de la tarjeta.
+            .clipShape(forma)
+            .padding(.horizontal, tarjeta ? Esp.pantalla : 0)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(tarjeta ? .hidden : .automatic)
+    }
+
+    private var fondo: Color {
+        if seleccionada { return Paleta.brandFill }
+        return tarjeta ? Color(.secondarySystemGroupedBackground) : .clear
+    }
+}

@@ -35,7 +35,7 @@ struct RevisarView: View {
                 Button { Task { await vm.aprobarTodo() } } label: {
                     Text(L.t("Aprobar todo", "Approve all"))
                         .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                         .background(Paleta.brand, in: Capsule())
                 }
                 .disabled(vm.porRevisarCount == 0)
@@ -64,9 +64,9 @@ struct RevisarView: View {
                 Button(L.t("Deshacer", "Undo")) { Task { await vm.deshacer() } }
                     .font(.subheadline.weight(.semibold)).foregroundStyle(Paleta.brand)
             }
-            .padding(.horizontal, 16).padding(.vertical, 12)
+            .padding(.horizontal, Esp.tarjeta).padding(.vertical, 12)
             .background(Color(.label), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .padding(.horizontal, 24).padding(.bottom, 16)
+            .padding(.horizontal, Esp.pantalla).padding(.bottom, 16)
             .frame(maxWidth: 520)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .task(id: t.id) {
@@ -85,7 +85,7 @@ struct RevisarView: View {
             LazyVStack(spacing: 12) {
                 ForEach(vm.visibles) { filaTargeta($0) }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, Esp.pantalla)
             .padding(.vertical, 8)
         }
         .colchonInferior()
@@ -118,10 +118,10 @@ struct RevisarView: View {
                     Text(a.tipo.etiquetaCorta)
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(a.tipo.color)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .padding(.horizontal, Esp.hueco).padding(.vertical, 3)
                         .background(a.tipo.color.opacity(0.12), in: Capsule())
                 }
-                .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 12)
+                .padding(.horizontal, Esp.tarjeta).padding(.top, 14).padding(.bottom, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
@@ -132,7 +132,7 @@ struct RevisarView: View {
             HStack(spacing: 8) {
                 botonesTargeta(a)
             }
-            .padding(.horizontal, 12).padding(.vertical, 4)
+            .padding(.horizontal, Esp.tarjeta).padding(.vertical, 4)
         }
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
@@ -212,10 +212,10 @@ struct RevisarView: View {
                     Text(a.tipo.etiquetaCorta)
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .padding(.horizontal, Esp.hueco).padding(.vertical, 3)
                         .background(Paleta.brand, in: Capsule())
                 }
-                .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
+                .padding(.horizontal, Esp.tarjeta).padding(.top, 14).padding(.bottom, 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
@@ -227,14 +227,14 @@ struct RevisarView: View {
                         Text(ac.label)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(ac.prominente ? .white : Paleta.brand)
-                            .padding(.horizontal, 14).padding(.vertical, 7)
+                            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                             .background(ac.prominente ? Paleta.brand : Color.clear, in: Capsule())
                             .overlay(Capsule().stroke(ac.prominente ? Color.clear : Paleta.brand, lineWidth: 1.5))
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 16).padding(.bottom, 14)
+            .padding(.horizontal, Esp.tarjeta).padding(.bottom, 14)
 
             Divider().padding(.leading, 16)
         }
@@ -380,7 +380,7 @@ struct RevisarView: View {
         .padding(16)
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(alignment: .top) { RoundedRectangle(cornerRadius: 2).fill(acento).frame(height: 3).padding(.horizontal, 12) }
+        .overlay(alignment: .top) { RoundedRectangle(cornerRadius: 2).fill(acento).frame(height: 3).padding(.horizontal, Esp.chip) }
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.separator.opacity(0.6), lineWidth: 0.5))
     }
 }
