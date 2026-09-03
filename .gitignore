@@ -48,3 +48,9 @@ playground.xcworkspace
 *.mobileprovision
 Secrets.swift
 Config.xcconfig
+
+# Herramientas de asistente (configuración local, no del proyecto)
+.claude/
+.agents/
+.mcp.json
+skills-lock.json
