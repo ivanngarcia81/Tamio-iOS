@@ -129,6 +129,30 @@ final class BaseLocal {
                 t.column("actualizadoEn", .text)
             }
         }
+        m.registerMigration("v3_aportantes") { db in
+            // Espejo de `members`. Ojo: aquí NO se guardan los aportes de cada
+            // persona. Un aporte no es una entidad aparte: es un ingreso de
+            // `movimiento` que lleva su `memberUid`. Guardarlos dos veces sería
+            // pedir que se contradigan.
+            try db.create(table: "aportante") { t in
+                t.primaryKey("id", .text)
+                t.column("nombre", .text).notNull()
+                t.column("estado", .text).notNull().defaults(to: "activo")
+                t.column("telefono", .text).notNull().defaults(to: "")
+                t.column("correo", .text).notNull().defaults(to: "")
+                t.column("nacimiento", .text).notNull().defaults(to: "")
+                t.column("direccion", .text).notNull().defaults(to: "")
+                t.column("estadoCivil", .text).notNull().defaults(to: "")
+                t.column("idFiscal", .text).notNull().defaults(to: "")
+                t.column("miembroDesde", .text).notNull().defaults(to: "")
+                t.column("congregaDesde", .text).notNull().defaults(to: "")
+                t.column("frecuencia", .text).notNull().defaults(to: "ocasional")
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+            try db.create(index: "idx_aportante_borrado", on: "aportante",
+                          columns: ["borrado"])
+        }
         return m
     }
 
@@ -140,6 +164,7 @@ final class BaseLocal {
             try db.execute(sql: "delete from outbox")
             try db.execute(sql: "delete from syncEstado")
             try db.execute(sql: "delete from iglesia")
+            try db.execute(sql: "delete from aportante")
         }
     }
 }

@@ -31,6 +31,8 @@
 		109DD5E330497B0000E781A1 /* ConfiguracionIglesiaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5E230497B0000E781A1 /* ConfiguracionIglesiaRepository.swift */; };
 		109DD5C130497B0000E781A1 /* BaseLocal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C030497B0000E781A1 /* BaseLocal.swift */; };
 		109DD5C330497B0000E781A1 /* MovimientoFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C230497B0000E781A1 /* MovimientoFila.swift */; };
+		109DD63330497B0000E781A1 /* OfflineMiembrosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD63230497B0000E781A1 /* OfflineMiembrosRepository.swift */; };
+		109DD63130497B0000E781A1 /* AportanteFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD63030497B0000E781A1 /* AportanteFila.swift */; };
 		109DD5E530497B0000E781A1 /* IglesiaFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5E430497B0000E781A1 /* IglesiaFila.swift */; };
 		109DD5C530497B0000E781A1 /* OfflineMovimientosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A1 /* OfflineMovimientosRepository.swift */; };
 		109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */; };
@@ -145,6 +147,8 @@
 		109DD5E230497B0000E781A1 /* ConfiguracionIglesiaRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracionIglesiaRepository.swift; sourceTree = "<group>"; };
 		109DD5C030497B0000E781A1 /* BaseLocal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BaseLocal.swift; path = Local/BaseLocal.swift; sourceTree = "<group>"; };
 		109DD5C230497B0000E781A1 /* MovimientoFila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MovimientoFila.swift; path = Local/MovimientoFila.swift; sourceTree = "<group>"; };
+		109DD63230497B0000E781A1 /* OfflineMiembrosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OfflineMiembrosRepository.swift; path = Local/OfflineMiembrosRepository.swift; sourceTree = "<group>"; };
+		109DD63030497B0000E781A1 /* AportanteFila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AportanteFila.swift; path = Local/AportanteFila.swift; sourceTree = "<group>"; };
 		109DD5E430497B0000E781A1 /* IglesiaFila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = IglesiaFila.swift; path = Local/IglesiaFila.swift; sourceTree = "<group>"; };
 		109DD5C430497B0000E781A1 /* OfflineMovimientosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OfflineMovimientosRepository.swift; path = Local/OfflineMovimientosRepository.swift; sourceTree = "<group>"; };
 		109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MotorSincronizacion.swift; path = Local/MotorSincronizacion.swift; sourceTree = "<group>"; };
@@ -375,6 +379,8 @@
 				109DD5E230497B0000E781A1 /* ConfiguracionIglesiaRepository.swift */,
 				109DD5C030497B0000E781A1 /* BaseLocal.swift */,
 				109DD5C230497B0000E781A1 /* MovimientoFila.swift */,
+				109DD63230497B0000E781A1 /* OfflineMiembrosRepository.swift */,
+				109DD63030497B0000E781A1 /* AportanteFila.swift */,
 				109DD5E430497B0000E781A1 /* IglesiaFila.swift */,
 				109DD5C430497B0000E781A1 /* OfflineMovimientosRepository.swift */,
 				109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */,
@@ -539,6 +545,8 @@
 				109DD5E330497B0000E781A1 /* ConfiguracionIglesiaRepository.swift in Sources */,
 				109DD5C130497B0000E781A1 /* BaseLocal.swift in Sources */,
 				109DD5C330497B0000E781A1 /* MovimientoFila.swift in Sources */,
+				109DD63330497B0000E781A1 /* OfflineMiembrosRepository.swift in Sources */,
+				109DD63130497B0000E781A1 /* AportanteFila.swift in Sources */,
 				109DD5E530497B0000E781A1 /* IglesiaFila.swift in Sources */,
 				109DD5C530497B0000E781A1 /* OfflineMovimientosRepository.swift in Sources */,
 				109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */,

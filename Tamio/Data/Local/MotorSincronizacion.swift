@@ -39,6 +39,7 @@ final class MotorSincronizacion {
         do {
             try await subirPendientes()
             try await bajarCambios()
+            try await bajarAportantes()
             try await bajarIglesia()
             ultimaSincronizacion = Date()
             estado = .reposo
@@ -86,6 +87,10 @@ final class MotorSincronizacion {
             try await subirIglesia(op.registroId)
             return
         }
+        if op.entidad == "aportante" {
+            try await subirAportante(op)
+            return
+        }
         guard let fila = try await cola.read({ db in
             try MovimientoFila.fetchOne(db, key: op.registroId)
         }) else { return }
@@ -118,6 +123,128 @@ final class MotorSincronizacion {
         _ = try await cola.write { db in
             try db.execute(sql: "update movimiento set folioProvisional = 0 where id = ?",
                            arguments: [id])
+        }
+    }
+
+    // MARK: - Aportantes
+
+    private struct AportanteEscritura: Encodable {
+        let uid: String
+        let churchId: String
+        let nombre: String
+        let telefono: String?
+        let email: String?
+        let rfc: String?
+        let direccion: String?
+        let estadoCivil: String?
+        let fechaNacimiento: String?
+        let fechaIngreso: String?
+        let fechaCongregacion: String?
+        let estadoMembresia: String
+        let frecuenciaAporte: String
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, nombre, telefono, email, rfc, direccion, deleted
+            case churchId          = "church_id"
+            case estadoCivil       = "estado_civil"
+            case fechaNacimiento   = "fecha_nacimiento"
+            case fechaIngreso      = "fecha_ingreso"
+            case fechaCongregacion = "fecha_congregacion"
+            case estadoMembresia   = "estado_membresia"
+            case frecuenciaAporte  = "frecuencia_aporte"
+        }
+    }
+
+    private func subirAportante(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try AportanteFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+
+        let cuerpo = AportanteEscritura(
+            uid: fila.id, churchId: churchIdActivo, nombre: fila.nombre,
+            telefono: fila.telefono, email: fila.correo, rfc: fila.idFiscal,
+            direccion: fila.direccion, estadoCivil: fila.estadoCivil,
+            fechaNacimiento: fila.nacimiento, fechaIngreso: fila.miembroDesde,
+            fechaCongregacion: fila.congregaDesde, estadoMembresia: fila.estado,
+            frecuenciaAporte: fila.frecuencia,
+            deleted: op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("members").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("members").update(cuerpo)
+                .eq("uid", value: fila.id)
+                .eq("church_id", value: churchIdActivo)
+                .execute()
+        case .none:
+            return
+        }
+    }
+
+    private func bajarAportantes() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let nombre: String?
+            let telefono, email, rfc, direccion: String?
+            let estadoCivil, fechaNacimiento, fechaIngreso, fechaCongregacion: String?
+            let estadoMembresia, frecuenciaAporte: String?
+            let updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, nombre, telefono, email, rfc, direccion, deleted
+                case estadoCivil       = "estado_civil"
+                case fechaNacimiento   = "fecha_nacimiento"
+                case fechaIngreso      = "fecha_ingreso"
+                case fechaCongregacion = "fecha_congregacion"
+                case estadoMembresia   = "estado_membresia"
+                case frecuenciaAporte  = "frecuencia_aporte"
+                case updatedAt         = "updated_at"
+            }
+        }
+
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'aportante'")
+        }
+        var consulta = supabase.from("members").select()
+            .eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true)
+            .limit(500)
+            .execute()
+            .value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                let pendiente = try OperacionPendiente
+                    .filter(Column("entidad") == "aportante" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if pendiente { continue }
+
+                var a = Aportante(
+                    id: r.uid, nombre: r.nombre ?? "",
+                    estado: AportanteFila.estado(r.estadoMembresia ?? "activo"),
+                    rol: "", miembroDesde: r.fechaIngreso ?? "",
+                    telefono: r.telefono ?? "", correo: r.email ?? "",
+                    nacimiento: r.fechaNacimiento ?? "", direccion: r.direccion ?? "",
+                    estadoCivil: r.estadoCivil ?? "", idFiscal: r.rfc ?? "",
+                    congregaDesde: r.fechaCongregacion ?? "",
+                    frecuencia: FrecuenciaAporte(rawValue: r.frecuenciaAporte ?? "") ?? .ocasional,
+                    aportesTotal: 0, aportesPromedio: "", aportesSerie: [],
+                    aportes: [], familia: [])
+                a.id = r.uid
+                try AportanteFila(a, actualizadoEn: r.updatedAt,
+                                  borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('aportante', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
         }
     }
 

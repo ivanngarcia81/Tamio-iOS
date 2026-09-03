@@ -14,7 +14,7 @@ final class MiembrosViewModel {
     /// Deja en la lista solo a quien lleva tres periodos o más sin aportar.
     var soloAtrasados = false
 
-    init(repo: MiembrosRepository = MockMiembrosRepository()) {
+    init(repo: MiembrosRepository = repositorioMiembros()) {
         self.repo = repo
     }
 
