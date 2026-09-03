@@ -7,7 +7,14 @@ protocol AgendaRepository {
 struct MockAgendaRepository: AgendaRepository {
     func eventos() async throws -> [EventoAgenda] {
         try? await Task.sleep(nanoseconds: 100_000_000)
-        return [
+        return Self.semilla
+    }
+
+    /// Compromisos sin completar del mes. La sidebar del iPad y el hub de
+    /// Secretaría lo leen de aquí en vez de llevar cada uno su propio número.
+    static var pendientesCount: Int { semilla.filter { !$0.completado }.count }
+
+    private static let semilla: [EventoAgenda] = [
             EventoAgenda(id: 1,  dia: 2,  hora: "10:00", titulo: L.t("Culto matutino", "Morning service"),             descripcion: L.t("roster completo", "full roster"),                     tipo: .culto,    completado: true),
             EventoAgenda(id: 2,  dia: 5,  hora: "19:30", titulo: L.t("Reunión de oración", "Prayer meeting"),          descripcion: "",                                                        tipo: .reunion,  completado: true),
             EventoAgenda(id: 3,  dia: 9,  hora: "10:00", titulo: L.t("Culto matutino", "Morning service"),             descripcion: L.t("roster completo", "full roster"),                     tipo: .culto,    completado: true),
@@ -23,6 +30,5 @@ struct MockAgendaRepository: AgendaRepository {
             EventoAgenda(id: 13, dia: 23, hora: nil,     titulo: L.t("Depósito bancario", "Bank deposit"),             descripcion: L.t("Banorte · 14 movimientos sin depositar", "Banorte · 14 undeposited transactions"), tipo: .deposito, completado: false),
             EventoAgenda(id: 14, dia: 26, hora: nil,     titulo: L.t("Carta de traslado · J. Medina", "Transfer letter · J. Medina"), descripcion: L.t("Pendiente de firma del pastor", "Awaiting pastor's signature"), tipo: .carta, completado: false),
             EventoAgenda(id: 15, dia: 26, hora: "19:30", titulo: L.t("Reunión de oración", "Prayer meeting"),          descripcion: "",                                                        tipo: .reunion,  completado: false),
-        ]
-    }
+    ]
 }

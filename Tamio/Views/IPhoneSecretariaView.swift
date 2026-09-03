@@ -5,6 +5,8 @@ import SwiftUI
 struct IPhoneSecretariaView: View {
     /// Mismas cifras que encabezan Membresía, no un número propio.
     private let padron = MockMembresiaRepository.resumenPadron
+    /// Mismo conteo que muestra la Agenda y el badge de la sidebar del iPad.
+    private let agendaPendientes = MockAgendaRepository.pendientesCount
 
     var body: some View {
         List {
@@ -31,8 +33,8 @@ struct IPhoneSecretariaView: View {
                 NavigationLink { AgendaView() } label: {
                     HubRow(icono: "calendar", color: Color(hex: 0x0D9488),
                            titulo: L.t("Agenda", "Calendar"),
-                           subtitulo: L.t("\(L.mesEnCurso) · 7 compromisos",
-                                          "\(L.mesEnCurso) · 7 events"))
+                           subtitulo: L.t("\(L.mesEnCurso) · \(agendaPendientes) compromisos",
+                                          "\(L.mesEnCurso) · \(agendaPendientes) events"))
                 }
                 NavigationLink { ServiciosView() } label: {
                     HubRow(icono: "checklist", color: Paleta.aviso,

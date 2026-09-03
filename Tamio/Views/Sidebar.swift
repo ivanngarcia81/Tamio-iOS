@@ -95,15 +95,20 @@ struct Sidebar: View {
         }
     }
 
+    // Los badges salen de los mismos repositorios que alimentan cada
+    // pantalla. Antes eran tres números escritos a mano —248, 10 y 4—
+    // que no coincidían con lo que la pantalla acababa mostrando.
     // id, título, icono, badge, badgeRojo
     private var tesoreria: [(String, String, String, Int?, Bool)] {
         [
             ("ingresos", L.t("Ingresos", "Income"), "arrow.down", nil, false),
             ("gastos", L.t("Gastos", "Expenses"), "arrow.up", nil, false),
-            ("miembros", L.t("Atribuyentes", "Contributors"), "person.2", 248, false),
+            ("miembros", L.t("Atribuyentes", "Contributors"), "person.2",
+             MockMiembrosRepository.activosCount, false),
             ("reportes", L.t("Reportes", "Reports"), "chart.bar", nil, false),
             ("depositos", L.t("Depósitos", "Deposits"), "building.columns", nil, false),
-            ("porRevisar", L.t("Por revisar", "To review"), "tray", 10, true),
+            ("porRevisar", L.t("Por revisar", "To review"), "tray",
+             MockRevisarRepository.porRevisarCount, true),
         ]
     }
 
@@ -114,7 +119,8 @@ struct Sidebar: View {
             ("servicios", L.t("Registro de servicios", "Service log"), "book", nil, false),
             ("cartas", L.t("Cartas y traslados", "Letters & transfers"), "envelope", nil, false),
             ("informes", L.t("Informes de membresía", "Membership reports"), "doc.plaintext", nil, false),
-            ("agenda", L.t("Agenda", "Calendar"), "calendar", 4, false),
+            ("agenda", L.t("Agenda", "Calendar"), "calendar",
+             MockAgendaRepository.pendientesCount, false),
         ]
     }
 

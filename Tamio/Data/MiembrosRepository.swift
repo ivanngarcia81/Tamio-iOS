@@ -15,6 +15,10 @@ struct MockMiembrosRepository: MiembrosRepository {
     private static var almacen: [Aportante] = MockMiembrosRepository.todos
     private static var siguienteId: Int = (MockMiembrosRepository.todos.map(\.id).max() ?? 0) + 1
 
+    /// Aportantes activos, los que lista la pantalla por defecto. La sidebar
+    /// del iPad lo lee para su badge, que antes era un 248 escrito a mano.
+    static var activosCount: Int { almacen.filter { $0.estado != .baja }.count }
+
     func lista(filtro: FiltroMiembro) async throws -> [Aportante] {
         try? await Task.sleep(nanoseconds: 120_000_000)
         switch filtro {
