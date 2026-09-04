@@ -168,16 +168,7 @@ struct MiembrosView: View {
     @ViewBuilder
     private var barraInferior: some View {
         if compacto {
-            HStack(spacing: Esp.hueco) {
-                botonNuevo
-                Spacer(minLength: Esp.hueco)
-                resumenPie
-                    .padding(.horizontal, Esp.chip)
-                    .padding(.vertical, 8)
-                    .glassEffect(.regular, in: .capsule)
-            }
-            .padding(.horizontal, Esp.pantalla)
-            .padding(.bottom, Esp.hueco)
+            BarraInferior { botonNuevo } resumen: { resumenPie }
         }
     }
 

@@ -203,22 +203,7 @@ struct MovimientosView: View {
     @ViewBuilder
     private var barraInferior: some View {
         if compacto {
-            HStack(spacing: Esp.hueco) {
-                botonNuevo
-
-                Spacer(minLength: Esp.hueco)
-
-                // Cápsula de material, pero SIN estilo de botón: el resumen
-                // informa y no se toca, y darle apariencia de control mentiría
-                // sobre eso. El material está para que las filas se difuminen
-                // por debajo al desplazarse.
-                resumenPie
-                    .padding(.horizontal, Esp.chip)
-                    .padding(.vertical, 8)
-                    .glassEffect(.regular, in: .capsule)
-            }
-            .padding(.horizontal, Esp.pantalla)
-            .padding(.bottom, Esp.hueco)
+            BarraInferior { botonNuevo } resumen: { resumenPie }
         }
     }
 

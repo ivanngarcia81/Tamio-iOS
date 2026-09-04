@@ -182,3 +182,73 @@ struct HojaCartaEscalada<Contenido: View>: View {
             .onPreferenceChange(AnchoDisponibleKey.self) { anchoDisponible = $0 }
     }
 }
+
+/// **La barra inferior del teléfono**: una acción a la izquierda, un resumen en
+/// cápsula de glass a la derecha.
+///
+/// **Por qué es un componente.** Estaba escrita dos veces, en `MovimientosView`
+/// y en `MiembrosView`, con el mismo `HStack`, los mismos `Esp.hueco` /
+/// `Esp.chip` / `Esp.pantalla` y el mismo `glassEffect`. Dos copias todavía se
+/// sostienen; con Depósitos serían tres, y a partir de ahí las barras empiezan
+/// a separarse una de otra sin que nadie lo decida — que es exactamente cómo
+/// aparecieron los quince espaciados y los siete anchos de columna que ya
+/// hicieron falta unificar.
+///
+/// **Va con `safeAreaInset` y no con `ToolbarItem(placement: .bottomBar)`**,
+/// que sería lo natural, por una razón medida en pantalla: dentro del `TabView`
+/// de iPhone la barra inferior del sistema queda DEBAJO de la barra de pestañas
+/// flotante de iOS 26 y no se ve ninguna de las dos. Con `safeAreaInset` se
+/// apila por encima. Esa llamada la hace cada pantalla; aquí vive la forma.
+///
+/// **A la izquierda va la acción, no la lupa.** La lupa la genera `.searchable`
+/// y la coloca el sistema arriba; una pantalla sin buscador —Depósitos— no
+/// tiene nada que poner ahí salvo su propia acción.
+struct BarraInferior<Lider: View, Resumen: View>: View {
+    private let lider: Lider
+    private let resumen: Resumen
+    /// Un resumen vacío no debe dejar una cápsula de glass flotando sola.
+    private let conResumen: Bool
+
+    init(@ViewBuilder lider: () -> Lider,
+         @ViewBuilder resumen: () -> Resumen) {
+        self.lider = lider()
+        self.resumen = resumen()
+        self.conResumen = true
+    }
+
+    var body: some View {
+        HStack(spacing: Esp.hueco) {
+            lider
+            Spacer(minLength: Esp.hueco)
+            if conResumen {
+                // Cápsula de material, pero SIN estilo de botón: el resumen
+                // informa y no se toca, y darle apariencia de control mentiría
+                // sobre eso. El material está para que las filas se difuminen
+                // por debajo al desplazarse.
+                resumen
+                    .padding(.horizontal, Esp.chip)
+                    .padding(.vertical, 8)
+                    .glassEffect(.regular, in: .capsule)
+            }
+        }
+        .padding(.horizontal, Esp.pantalla)
+        .padding(.bottom, Esp.hueco)
+    }
+}
+
+extension BarraInferior where Resumen == EmptyView {
+    /// Barra con acción y sin resumen.
+    init(@ViewBuilder lider: () -> Lider) {
+        self.init(lider: lider, resumen: { EmptyView() }, conResumen: false)
+    }
+}
+
+extension BarraInferior {
+    fileprivate init(@ViewBuilder lider: () -> Lider,
+                     @ViewBuilder resumen: () -> Resumen,
+                     conResumen: Bool) {
+        self.lider = lider()
+        self.resumen = resumen()
+        self.conResumen = conResumen
+    }
+}
