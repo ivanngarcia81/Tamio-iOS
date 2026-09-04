@@ -182,8 +182,12 @@ struct MovimientosView: View {
             // y su menú mezclaba elegir periodo con abrir filtros, que no
             // tienen nada que ver. Ahora caben porque la lupa y el `+` se
             // fueron abajo.
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                selectorMes
+            // **Un solo control, no dos.** El mes y los filtros son la misma
+            // pregunta —qué recorte de la lista estoy viendo— y ocupaban dos
+            // cápsulas seguidas. Ahora el botón DICE el mes, que es lo que
+            // tiene que seguir viéndose arriba, y al pulsarlo la hoja abre con
+            // el mes dentro, encima de la categoría y el estado.
+            ToolbarItem(placement: .topBarTrailing) {
                 botonFiltros
             }
         }
@@ -484,11 +488,15 @@ struct MovimientosView: View {
     /// cuánto. Esa señal no se puede perder: un filtro puesto explica una lista
     /// vacía, y sin ella el usuario no tiene forma de saber por qué.
     ///
-    /// En el teléfono va solo el icono de deslizadores, que es el símbolo del
-    /// sistema para esto; en iPad cabe la palabra.
+    /// **En el teléfono el botón dice el mes.** Al fundirse con el selector, el
+    /// icono a secas habría escondido el único sitio donde se leía qué mes se
+    /// está viendo, y eso es justo lo que la barra existe para decir. En iPad
+    /// siguen siendo dos controles: allí hay ancho y la cabecera de la columna
+    /// tiene sitio para los dos.
     private var botonFiltros: some View {
         Button { mostrarFiltros = true } label: {
             HStack(spacing: 5) {
+                if compacto { Text(etiquetaMesCorta).lineLimit(1) }
                 Image(systemName: "line.3.horizontal.decrease")
                 if !compacto { Text(L.t("Filtros", "Filters")) }
                 if filtrosActivos > 0 { contador(filtrosActivos) }
@@ -496,8 +504,31 @@ struct MovimientosView: View {
             .font(.subheadline.weight(.medium))
         }
         .buttonStyle(.glass)
-        .tint(filtrosActivos > 0 ? Paleta.brand : nil)
-        .accessibilityLabel(L.t("Filtros", "Filters"))
+        .tint(filtrosActivos > 0 || (compacto && vm.mes == nil) ? Paleta.brand : nil)
+        .accessibilityLabel(compacto
+                            ? L.t("Periodo y filtros: \(etiquetaMes)", "Period and filters: \(etiquetaMes)")
+                            : L.t("Filtros", "Filters"))
+    }
+
+    /// Una opción de la hoja de filtros. `.buttonStyle(.plain)` por lo mismo
+    /// que las de categoría: sin él el `Button` dentro del `List` pinta el
+    /// label con el tint heredado del `TabView` y las opciones salen todas en
+    /// verde.
+    private func filaFiltro(_ texto: String, marcada: Bool,
+                            _ accion: @escaping () -> Void) -> some View {
+        Button(action: accion) {
+            HStack {
+                Text(texto).foregroundStyle(.primary)
+                Spacer()
+                if marcada {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(Paleta.brand)
+                        .fontWeight(.semibold)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func contador(_ n: Int) -> some View {
@@ -511,6 +542,18 @@ struct MovimientosView: View {
     private var filtrosSheet: some View {
         NavigationStack {
             List {
+                // El periodo va PRIMERO: es el recorte más grande, el que
+                // decide de qué mes se está hablando antes que de qué
+                // categoría. En iPad esta sección no aparece porque allí el
+                // mes tiene su propio selector en la cabecera de la columna.
+                if compacto {
+                    Section(L.t("PERIODO", "PERIOD")) {
+                        ForEach(vm.mesesDisponibles, id: \.self) { m in
+                            filaFiltro(Fechas.mes(m), marcada: vm.mes == m) { vm.mes = m }
+                        }
+                        filaFiltro(Self.todosLosMeses, marcada: vm.mes == nil) { vm.mes = nil }
+                    }
+                }
                 Section(L.t("CATEGORÍA", "CATEGORY")) {
                     ForEach(vm.categoriasChip, id: \.self) { c in
                         // `.buttonStyle(.plain)`: sin él el estilo automático del
@@ -550,7 +593,8 @@ struct MovimientosView: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle(L.t("Filtros", "Filters"))
+            .navigationTitle(compacto ? L.t("Periodo y filtros", "Period & filters")
+                                      : L.t("Filtros", "Filters"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
