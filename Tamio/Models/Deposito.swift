@@ -22,6 +22,21 @@ enum AccionChequeo {
     case cambiarPeriodo
 }
 
+/// **Cómo verificó la segunda persona.** La diferencia no es cosmética, y por
+/// eso el modo se guarda:
+///
+/// - `conteo` — volvió a contar el dinero y trae SU cifra. Compara el efectivo
+///   físico contra lo registrado: es el único control de la app que hace eso.
+/// - `revision` — revisó el registro. Es lo único que cabe cuando la firma
+///   llega días después y el dinero ya está en el banco: puede decir que lo
+///   apuntado es coherente consigo mismo, no que el dinero estuviera.
+///
+/// Viene de la app web (migración 47), no se inventa aquí. **Ojo:** no describe
+/// el canal —si firmó en este teléfono o en el suyo—, sino QUÉ verificó.
+enum ModoSegundaFirma: String {
+    case conteo, revision
+}
+
 /// Un ítem del checklist "Antes de depositar".
 struct Chequeo: Identifiable {
     let id: Int
@@ -98,15 +113,18 @@ struct Corte: Identifiable, Hashable {
     // `segundaConteo` es un importe y no un booleano: es SU cuenta, para poder
     // compararla contra `montoTotal`, que la app calcula sola.
     //
-    // El conteo va A CIEGAS —el asistente no ve el total antes de escribir el
-    // suyo, o el control se vuelve un sello— y firma `presencial`: en el mismo
-    // teléfono, que es como se hace cuando los dos están contando la mesa.
-    // Las columnas ya existen en Supabase; la app todavía no las enseña.
+    // El conteo va A CIEGAS: la pantalla le pide su cifra sin enseñarle el
+    // total. Si lo ve antes, la mano tiende a escribirlo y el control se vuelve
+    // un sello.
+    //
+    // Las columnas y la doctrina vienen de la app web (migración 47); esto es
+    // el mismo control, no uno nuevo. La app todavía no lo enseña.
 
     var dobleFirmaPedida: Bool = false
     var segundaFirma: String? = nil
     var segundaFirmaRol: String? = nil
     var segundaFirmaEn: String? = nil
+    /// Ver `ModoSegundaFirma`. Se guarda como texto por ser lo que viaja.
     var segundaFirmaModo: String? = nil
     /// El importe que contó el asistente, en centavos.
     var segundaConteo: Centavos? = nil
@@ -115,6 +133,15 @@ struct Corte: Identifiable, Hashable {
     /// `nil` mientras no haya segundo conteo. Cero es que cuadra.
     var diferenciaConteo: Centavos? {
         segundaConteo.map { $0 - montoTotal }
+    }
+
+    /// Hay cifra del asistente y NO cuadra con el corte.
+    var conteoDescuadra: Bool { (diferenciaConteo ?? 0) != 0 && segundaConteo != nil }
+
+    /// **La firma está dada solo si hay nombre.** Puede haber conteo sin firma:
+    /// es lo que pasa cuando no cuadra.
+    var tieneSegundaFirma: Bool {
+        !(segundaFirma?.trimmingCharacters(in: .whitespaces).isEmpty ?? true)
     }
 
     // MARK: - Derivados
