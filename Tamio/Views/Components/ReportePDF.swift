@@ -39,6 +39,87 @@ struct ReporteHojaPDF: View {
             .padding(Esp.tarjeta)
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(.secondary.opacity(0.3)))
 
+            // **Lo que el documento deja fuera, dicho en el documento.** Solo
+            // entra lo aprobado; un reporte que se firma no puede callar que
+            // hay movimientos del mes esperando visto bueno.
+            if e.pendientes > 0 {
+                Text(e.pendientes == 1
+                     ? L.t("No incluye 1 movimiento del periodo que espera visto bueno.",
+                           "Excludes 1 transaction from this period awaiting approval.")
+                     : L.t("No incluye \(e.pendientes) movimientos del periodo que esperan visto bueno.",
+                           "Excludes \(e.pendientes) transactions from this period awaiting approval."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            // Ingresos y egresos por categoría. El % se mide contra el INGRESO
+            // del periodo en las dos tablas: "los servicios fueron el 13% de lo
+            // que entró" informa; "% de lo que gastamos" no dice nada nuevo. Es
+            // la regla de la app web, escrita en su propio export.
+            tablaCategorias(L.t("Ingresos del periodo", "Period income"),
+                            e.composicion, total: e.ingresosMes, color: Paleta.brand,
+                            vacia: L.t("Sin ingresos registrados", "No income recorded"))
+            tablaCategorias(L.t("Gastos del periodo", "Period expenses"),
+                            e.gastosPorCategoria, total: e.gastosMes, color: Paleta.negativo,
+                            base: e.ingresosMes,
+                            vacia: L.t("Sin gastos registrados", "No expenses recorded"))
+
+            // **La ecuación contable**: saldo anterior + ingresos − egresos =
+            // saldo final. Sin ella el documento daba el resultado suelto de un
+            // mes y lo llamaba estado financiero, y el saldo de apertura que se
+            // teclea en Ajustes no aparecía en ningún papel.
+            Text(L.t("Saldo de tesorería", "Treasury balance")).font(.headline)
+            VStack(spacing: 0) {
+                filaSaldo(L.t("Saldo anterior", "Previous balance"), e.saldoAnterior)
+                Divider()
+                filaSaldo(L.t("Total de ingresos", "Total income"), e.ingresosMes)
+                Divider()
+                filaSaldo(L.t("Menos egresos", "Less expenses"), -e.gastosMes)
+                Divider()
+                filaSaldo(L.t("Saldo final", "Ending balance"), e.saldoFinal, negrita: true,
+                          color: e.saldoFinal < 0 ? Paleta.negativo : Paleta.brand)
+            }
+            .padding(Esp.tarjeta)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(.secondary.opacity(0.3)))
+
+            // Depósitos bancarios del periodo.
+            if !e.depositos.isEmpty {
+                Text(L.t("Depósitos bancarios", "Bank deposits")).font(.headline)
+                VStack(spacing: 0) {
+                    HStack {
+                        Text(L.t("FECHA", "DATE")).frame(width: 120, alignment: .leading)
+                        Text(L.t("BANCO", "BANK")).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(L.t("MONTO", "AMOUNT")).frame(width: 120, alignment: .trailing)
+                    }
+                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+                    Divider()
+                    ForEach(e.depositos) { d in
+                        HStack {
+                            Text(Fechas.diaLegible(d.fecha))
+                                .frame(width: 120, alignment: .leading)
+                            Text(d.referencia.isEmpty ? d.cuenta : "\(d.cuenta) · \(d.referencia)")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text(Money.fmt(d.monto)).frame(width: 120, alignment: .trailing)
+                        }
+                        .font(.subheadline).monospacedDigit()
+                        .padding(.vertical, 7)
+                        Divider()
+                    }
+                    HStack {
+                        Text(L.t("Total depositado", "Total deposited")).fontWeight(.semibold)
+                        Spacer()
+                        Text(Money.fmt(e.depositosTotal)).fontWeight(.semibold).monospacedDigit()
+                    }
+                    .font(.subheadline).padding(.vertical, 7)
+                }
+                // Sin esta línea, un total de depósitos mayor que el ingreso del
+                // mes se lee como un descuadre. No lo es: un depósito puede
+                // llevar al banco efectivo que se recibió en meses anteriores.
+                Text(L.t("Los depósitos mueven efectivo de la caja al banco: no son ingresos y no entran en el saldo. Pueden incluir dinero recibido en periodos anteriores.",
+                         "Deposits move cash from the box to the bank: they are not income and are not part of the balance. They may include money received in earlier periods."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             // Tabla mensual
             Text(L.t("Resumen mensual", "Monthly summary")).font(.headline)
             VStack(spacing: 0) {
@@ -74,6 +155,61 @@ struct ReporteHojaPDF: View {
         .frame(width: PDFExport.anchoCarta, alignment: .leading)
         .background(.white)
         .environment(\.colorScheme, .light)   // el PDF siempre en claro
+    }
+
+    /// Una tabla de categorías con su porcentaje. `base` es contra qué se mide
+    /// el %: por omisión el propio total, y el ingreso del periodo en la tabla
+    /// de gastos.
+    @ViewBuilder
+    private func tablaCategorias(_ titulo: String, _ filas: [CategoriaMonto],
+                                 total: Centavos, color: Color,
+                                 base: Centavos? = nil, vacia: String) -> some View {
+        Text(titulo).font(.headline)
+        VStack(spacing: 0) {
+            if filas.isEmpty {
+                HStack {
+                    Text(vacia).font(.subheadline).foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.vertical, 7)
+            }
+            ForEach(filas) { c in
+                HStack {
+                    Text(c.nombre).frame(maxWidth: .infinity, alignment: .leading)
+                    Text(Money.fmt(c.monto)).foregroundStyle(color).frame(width: 120, alignment: .trailing)
+                    Text(pct(c.monto, de: base ?? total)).foregroundStyle(.secondary)
+                        .frame(width: 60, alignment: .trailing)
+                }
+                .font(.subheadline).monospacedDigit()
+                .padding(.vertical, 7)
+                Divider()
+            }
+            HStack {
+                Text(titulo).fontWeight(.semibold)
+                Spacer()
+                Text(Money.fmt(total)).fontWeight(.semibold).monospacedDigit()
+                    .frame(width: 120, alignment: .trailing)
+                Text("").frame(width: 60)
+            }
+            .font(.subheadline).padding(.vertical, 7)
+        }
+    }
+
+    private func pct(_ parte: Centavos, de total: Centavos) -> String {
+        guard total > 0 else { return "—" }
+        return "\(Int((Double(parte) / Double(total) * 100).rounded()))%"
+    }
+
+    private func filaSaldo(_ label: String, _ monto: Centavos,
+                           negrita: Bool = false, color: Color = .primary) -> some View {
+        HStack {
+            Text(label).font(negrita ? .body.weight(.semibold) : .body)
+            Spacer()
+            Text(Money.fmt(monto))
+                .font((negrita ? Font.title3 : Font.body).weight(negrita ? .semibold : .regular))
+                .monospacedDigit().foregroundStyle(color)
+        }
+        .padding(.vertical, 8)
     }
 
     private func filaResumen(_ label: String, _ monto: Centavos, _ color: Color, negrita: Bool = false) -> some View {

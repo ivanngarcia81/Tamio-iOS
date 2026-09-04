@@ -82,8 +82,8 @@ struct OfflineDepositosRepository: DepositosRepository {
             corte.depositoId = deposito.id
             corte.fecha = deposito.fecha
             corte.periodo = deposito.periodo
-            corte.descripcion = L.t("Depositado el \(deposito.fecha)",
-                                    "Deposited \(deposito.fecha)")
+            corte.descripcion = L.t("Depositado el \(Fechas.diaLegible(deposito.fecha))",
+                                    "Deposited \(Fechas.diaLegible(deposito.fecha))")
             try corte.update(db)
             try Self.encolar(db, entidad: "corte", id: corteId, operacion: .actualizar)
         }

@@ -553,14 +553,14 @@ struct CorteDetalle: View {
             if corte.sinDepositar {
                 Button { mostrarFecha = true } label: {
                     HStack(spacing: 4) {
-                        Text(corte.registro.fecha).font(.subheadline)
+                        Text(Fechas.diaLegible(corte.registro.fecha)).font(.subheadline)
                         Image(systemName: "calendar").font(.caption2)
                     }
                     .foregroundStyle(Paleta.enlace)
                 }
                 .buttonStyle(.plain)
             } else {
-                Text(corte.registro.fecha).font(.subheadline)
+                Text(Fechas.diaLegible(corte.registro.fecha)).font(.subheadline)
             }
         }
         .padding(.vertical, 9)

@@ -347,6 +347,26 @@ final class BaseLocal {
             }
         }
 
+
+        // **Y la fecha, por lo mismo.** `cortes.fecha` y
+        // `depositos_bancarios.fecha` guardaban "Lunes 17 de agosto": una
+        // frase en una columna de fecha, donde el resto de las filas de
+        // Supabase están en ISO. Así no se puede ordenar ni comparar, y la app
+        // web hace las dos cosas con ella.
+        m.registerMigration("v13_fechaClave") { db in
+            for tabla in ["corte", "deposito"] {
+                let filas = try Row.fetchAll(db, sql: "SELECT id, fecha FROM \(tabla)")
+                for fila in filas {
+                    let id: String = fila["id"]
+                    let fecha: String = fila["fecha"] ?? ""
+                    guard !fecha.isEmpty, Fechas.desdeTexto(fecha) == nil,
+                          let d = Fechas.desdeSemilla(fecha) else { continue }
+                    try db.execute(sql: "UPDATE \(tabla) SET fecha = ? WHERE id = ?",
+                                   arguments: [Fechas.claveDia(d), id])
+                }
+            }
+        }
+
         return m
     }
 

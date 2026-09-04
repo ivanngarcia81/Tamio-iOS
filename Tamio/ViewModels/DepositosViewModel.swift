@@ -215,10 +215,11 @@ final class DepositosViewModel {
         }
     }
 
-    static func textoFecha(_ fecha: Date) -> String {
-        let formato = L.esEspanol ? "EEEE d 'de' MMMM" : "EEEE, MMM d"
-        return L.formateador(formato).string(from: fecha).capitalized
-    }
+    /// La fecha con la que se GUARDA un corte o un depósito. Devolvía
+    /// "Lunes 17 de agosto", que acababa en dos columnas de fecha de Supabase
+    /// donde el resto de las filas están en ISO. Lo que se enseña sale de
+    /// `Fechas.diaLegible`.
+    static func textoFecha(_ fecha: Date) -> String { Fechas.claveDia(fecha) }
 
     static var periodoActual: String { periodo(Date()) }
 

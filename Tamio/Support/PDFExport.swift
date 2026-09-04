@@ -17,8 +17,13 @@ import UIKit
 /// Se usa para "Vista previa PDF" y "Compartir" de los reportes. Cuando entre el
 /// motor, la vista imprimible se alimenta de los mismos datos: esto no cambia.
 enum PDFExport {
-    /// Ancho de página carta en puntos (8.5" × 72). La altura la fija el contenido.
+    /// Ancho de página carta en puntos (8.5" × 72).
     static let anchoCarta: CGFloat = 612
+    /// Alto de página carta (11" × 72). **Antes no existía**: el PDF se
+    /// generaba como UNA página con la altura del contenido, así que un
+    /// documento de tres pantallas salía como una tira de papel de metro y
+    /// medio. En pantalla no se nota; al imprimirlo, sí.
+    static let altoCarta: CGFloat = 792
 
     @MainActor
     static func render(_ contenido: some View, nombre: String) -> URL? {
@@ -27,11 +32,22 @@ enum PDFExport {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(nombre).pdf")
         var ok = false
         renderer.render { size, dibujar in
-            var caja = CGRect(x: 0, y: 0, width: size.width, height: size.height)
+            var caja = CGRect(x: 0, y: 0, width: anchoCarta, height: altoCarta)
             guard let ctx = CGContext(url as CFURL, mediaBox: &caja, nil) else { return }
-            ctx.beginPDFPage(nil)
-            dibujar(ctx)
-            ctx.endPDFPage()
+            // **El contenido se reparte en páginas de tamaño carta.** El PDF va
+            // en coordenadas con el origen abajo, así que la página 0 es la
+            // banda MÁS ALTA del contenido: se desplaza el dibujo entero hacia
+            // abajo y cada página enseña su franja. La última puede quedar con
+            // blanco al pie, que es lo que hace cualquier documento.
+            let paginas = max(1, Int(ceil(size.height / altoCarta)))
+            for p in 0..<paginas {
+                ctx.beginPDFPage(nil)
+                ctx.saveGState()
+                ctx.translateBy(x: 0, y: altoCarta * CGFloat(p + 1) - size.height)
+                dibujar(ctx)
+                ctx.restoreGState()
+                ctx.endPDFPage()
+            }
             ctx.closePDF()
             ok = true
         }

@@ -201,7 +201,7 @@ struct MockDepositosRepository: DepositosRepository {
         Self.almacen[i].estado = .depositado
         Self.almacen[i].deposito = deposito
         Self.almacen[i].descripcion = L.t(
-            "Depositado el \(deposito.fecha)", "Deposited \(deposito.fecha)")
+            "Depositado el \(Fechas.diaLegible(deposito.fecha))", "Deposited \(Fechas.diaLegible(deposito.fecha))")
         // Al cerrarse el corte, sus movimientos dejan de ser efectivo en caja.
         PuenteCortes.registrar(corte: corteId, estado: .depositado)
     }
@@ -256,7 +256,7 @@ struct MockDepositosRepository: DepositosRepository {
                 estado: .pendiente,
                 movimientos: [],
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
-                                           fecha: L.t("Lunes 7 de septiembre", "Monday, Sep 7"),
+                                           fecha: "2026-09-07",
                                            periodo: "2026-09"),
                 registradoPor: "Iván García",
                 dobleFirmaPedida: true
@@ -269,7 +269,7 @@ struct MockDepositosRepository: DepositosRepository {
                 estado: .pendiente,
                 movimientos: [],
                 registro: RegistroDeposito(cuenta: "Chase ··7730",
-                                           fecha: L.t("Jueves 3 de septiembre", "Thursday, Sep 3"),
+                                           fecha: "2026-09-03",
                                            periodo: "2026-09")
             ),
             Corte(
@@ -280,7 +280,7 @@ struct MockDepositosRepository: DepositosRepository {
                 estado: .pendiente,
                 movimientos: [],
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
-                                           fecha: L.t("Lunes 7 de septiembre", "Monday, Sep 7"),
+                                           fecha: "2026-09-07",
                                            periodo: "2026-09")
             ),
         ]
@@ -295,11 +295,11 @@ struct MockDepositosRepository: DepositosRepository {
                 estado: .depositado,
                 movimientos: [],
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
-                                           fecha: L.t("Lunes 17 de agosto", "Monday, Aug 17"),
+                                           fecha: "2026-08-17",
                                            periodo: "2026-08"),
                 deposito: DepositoBancario(
                     id: "d10",
-                    fecha: L.t("Lunes 17 de agosto", "Monday, Aug 17"),
+                    fecha: "2026-08-17",
                     periodo: "2026-08",
                     monto: 14_320_00,
                     cuenta: "Banorte ··4821",

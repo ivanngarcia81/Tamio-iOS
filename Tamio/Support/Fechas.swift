@@ -194,4 +194,33 @@ enum Fechas {
         guard let mes, let anio else { return nil }
         return String(format: "%04d-%02d", anio, mes)
     }
+
+    /// **La fecha de un día, en clave estable (`"2026-08-17"`).** Igual que
+    /// `clavePeriodo`, es un contrato: viaja a `cortes.fecha` y a
+    /// `depositos_bancarios.fecha`, donde todas las filas de Supabase están
+    /// en ISO. Se escribía con el mes en palabras —"Lunes 17 de agosto"—, así
+    /// que la columna de fecha guardaba una frase: no se podía ordenar, ni
+    /// comparar, ni volver a leer como fecha, y la app web la usa para las dos
+    /// cosas (`substr(fecha, 1, 10) <= ?`).
+    static func claveDia(_ d: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: d)
+    }
+
+    /// Una fecha guardada, escrita para leer. Acepta la clave ISO y, para lo
+    /// que quedó de antes, el texto de la semilla; si no reconoce nada
+    /// devuelve lo que le dieron.
+    /// **Se formatea en UTC a propósito.** Una fecha de DÍA se guarda como
+    /// "2026-08-17" y se lee como medianoche UTC; formatearla en la zona del
+    /// aparato la corría al día anterior en cualquier huso al oeste de
+    /// Greenwich — que es donde está la iglesia. Un depósito del 17 salía
+    /// impreso como 16.
+    static func diaLegible(_ texto: String) -> String {
+        guard let d = desdeTexto(texto) ?? desdeSemilla(texto) else { return texto }
+        let f = L.formateador(L.t("d MMM yyyy", "MMM d, yyyy"))
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f.string(from: d)
+    }
 }
