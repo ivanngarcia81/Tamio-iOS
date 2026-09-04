@@ -131,11 +131,12 @@ struct AgendaView: View {
                     columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7),
                     spacing: 0
                 ) {
-                    ForEach(0 ..< vm.primerDiaOffset, id: \.self) { _ in
-                        Color.clear.frame(height: 54)
-                    }
-                    ForEach(1 ... max(1, vm.diasEnMes), id: \.self) { dia in
-                        celdaDia(dia)
+                    ForEach(vm.celdasDelMes) { celda in
+                        if let dia = celda.dia {
+                            celdaDia(dia)
+                        } else {
+                            Color.clear.frame(height: 54)
+                        }
                     }
                 }
                 .padding(.horizontal, Esp.hueco)

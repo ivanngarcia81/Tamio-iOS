@@ -32,6 +32,24 @@ final class AgendaViewModel {
         return cal.component(.weekday, from: primero) - 1
     }
 
+    /// Una celda de la cuadrícula del mes: un día, o un hueco antes del día 1.
+    /// Los huecos llevan id negativo para que **no se crucen con los días**.
+    struct CeldaMes: Identifiable {
+        let id: Int
+        let dia: Int?
+    }
+
+    /// La cuadrícula entera, en un solo recorrido. Antes eran dos `ForEach`
+    /// hermanos dentro del mismo `LazyVGrid`, los dos con `id: \.self` sobre
+    /// enteros: los huecos usaban 0…5 y los días 1…31, así que los ids 1 a 5
+    /// estaban repetidos y la cuadrícula se quedaba con una sola celda por id.
+    /// Los cinco primeros días del mes no se dibujaban: en agosto de 2026, que
+    /// empieza en sábado, el mes arrancaba visualmente en el 6.
+    var celdasDelMes: [CeldaMes] {
+        (0..<primerDiaOffset).map { CeldaMes(id: -($0 + 1), dia: nil) }
+        + (1...max(1, diasEnMes)).map { CeldaMes(id: $0, dia: $0) }
+    }
+
     var etiquetaMes: String {
         let fmt = DateFormatter()
         fmt.dateFormat = "MMMM yyyy"
