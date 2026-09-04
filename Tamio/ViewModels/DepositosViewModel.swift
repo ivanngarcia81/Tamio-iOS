@@ -25,6 +25,10 @@ final class DepositosViewModel {
     }
     private(set) var items: [Corte] = []
     private(set) var pendientesTotal: Int = 0   // siempre refleja los pendientes reales
+    /// Cuánto dinero está sin depositar ahora mismo. Es el dato que justifica
+    /// que la pantalla exista, así que viaja con el conteo: un número de cortes
+    /// no dice si lo que espera en caja son $300 o $15,000.
+    private(set) var pendientesMonto: Centavos = 0
     var seleccionId: String?
 
     /// Cuentas bancarias donde se puede depositar. **Vienen del repositorio**,
@@ -48,6 +52,7 @@ final class DepositosViewModel {
         // independientemente de la pestaña activa (pendientes vs. depositados).
         let todosLospendientes = (try? await repo.cortes(estado: .pendiente)) ?? []
         pendientesTotal = todosLospendientes.count
+        pendientesMonto = todosLospendientes.reduce(0) { $0 + $1.montoTotal }
         cuentas = (try? await repo.cuentas()) ?? []
     }
 
