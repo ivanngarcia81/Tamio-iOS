@@ -21,6 +21,22 @@ struct ConfiguracionIglesia: Equatable {
     /// Unidos. Se cambia en Ajustes · Iglesia.
     var moneda: String = "USD"
     var pieInstitucional: String = ""
+    /// **El saldo de apertura, en centavos.** El dinero que la tesorería ya
+    /// tenía antes del primer movimiento registrado.
+    ///
+    /// Era un `@State` de la pantalla de Ajustes: se tecleaba, se veía escrito,
+    /// y al salir se perdía. Ahora se guarda y se sincroniza
+    /// (`iglesias.saldo_inicial`, migración del 2026-09-04).
+    ///
+    /// **Todavía no entra en ninguna cifra, y es a propósito.** Lo que Tamio
+    /// llama "saldo en caja" es el EFECTIVO SIN DEPOSITAR —lo contado se
+    /// deposita íntegro, así que es lo recibido en efectivo que ningún corte
+    /// depositado reclama— y un saldo de apertura no es efectivo de ofrenda
+    /// esperando ir al banco: sumárselo falsearía justo la cifra que le dice al
+    /// tesorero cuánto dinero tiene delante. Su sitio es el saldo acumulado del
+    /// estado financiero, que hoy no existe: Reportes enseña balance por mes y
+    /// sigue con cifras escritas a mano.
+    var saldoInicial: Centavos = 0
 
     var pastorNombre: String = ""
     var pastorCargo: String = "Pastor"

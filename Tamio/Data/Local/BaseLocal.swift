@@ -300,6 +300,14 @@ final class BaseLocal {
             }
         }
 
+        // **El saldo de apertura.** Era un `@State` de Ajustes que se perdía al
+        // salir de la pantalla. La columna de Supabase se creó el 2026-09-04.
+        m.registerMigration("v10_saldoInicial") { db in
+            try db.alter(table: "iglesia") { t in
+                t.add(column: "saldoInicial", .integer).notNull().defaults(to: 0)
+            }
+        }
+
         return m
     }
 

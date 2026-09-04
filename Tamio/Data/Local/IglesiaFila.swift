@@ -17,6 +17,7 @@ struct IglesiaFila: Codable, FetchableRecord, PersistableRecord {
     var correo: String
     var moneda: String
     var pieInstitucional: String
+    var saldoInicial: Int
     var pastorNombre: String
     var pastorCargo: String
     var tesoreroNombre: String
@@ -44,6 +45,7 @@ struct IglesiaFila: Codable, FetchableRecord, PersistableRecord {
         correo = c.correo
         moneda = c.moneda
         pieInstitucional = c.pieInstitucional
+        saldoInicial = c.saldoInicial
         pastorNombre = c.pastorNombre
         pastorCargo = c.pastorCargo
         tesoreroNombre = c.tesoreroNombre
@@ -65,6 +67,7 @@ struct IglesiaFila: Codable, FetchableRecord, PersistableRecord {
             pais: pais, codigoPostal: codigoPostal, idFiscal: idFiscal,
             telefono: telefono, correo: correo, moneda: moneda,
             pieInstitucional: pieInstitucional,
+            saldoInicial: saldoInicial,
             pastorNombre: pastorNombre, pastorCargo: pastorCargo,
             tesoreroNombre: tesoreroNombre, tesoreroCargo: tesoreroCargo,
             secretarioNombre: secretarioNombre, secretarioCargo: secretarioCargo,

@@ -333,6 +333,7 @@ final class MotorSincronizacion {
             let nombre, direccion, ciudad, estado, pais: String
             let codigoPostal, idFiscal, telefono, correo, moneda: String
             let pieInstitucional: String
+            let saldoInicial: Int
             let pastorNombre, pastorCargo: String
             let tesoreroNombre, tesoreroCargo: String
             let secretarioNombre, secretarioCargo: String
@@ -342,6 +343,7 @@ final class MotorSincronizacion {
                 case codigoPostal      = "codigo_postal"
                 case idFiscal          = "id_fiscal"
                 case pieInstitucional  = "pie_institucional"
+                case saldoInicial      = "saldo_inicial"
                 case pastorNombre      = "pastor_nombre"
                 case pastorCargo       = "pastor_cargo"
                 case tesoreroNombre    = "tesorero_nombre"
@@ -360,6 +362,7 @@ final class MotorSincronizacion {
                 estado: c.estado, pais: c.pais, codigoPostal: c.codigoPostal,
                 idFiscal: c.idFiscal, telefono: c.telefono, correo: c.correo,
                 moneda: c.moneda, pieInstitucional: c.pieInstitucional,
+                saldoInicial: c.saldoInicial,
                 pastorNombre: c.pastorNombre, pastorCargo: c.pastorCargo,
                 tesoreroNombre: c.tesoreroNombre, tesoreroCargo: c.tesoreroCargo,
                 secretarioNombre: c.secretarioNombre, secretarioCargo: c.secretarioCargo,
@@ -380,6 +383,7 @@ final class MotorSincronizacion {
             let direccion, ciudad, estado, pais: String?
             let codigoPostal, idFiscal, telefono, correo, moneda: String?
             let pieInstitucional: String?
+            let saldoInicial: Int?
             let pastorNombre, pastorCargo: String?
             let tesoreroNombre, tesoreroCargo: String?
             let secretarioNombre, secretarioCargo: String?
@@ -395,6 +399,7 @@ final class MotorSincronizacion {
                 case codigoPostal      = "codigo_postal"
                 case idFiscal          = "id_fiscal"
                 case pieInstitucional  = "pie_institucional"
+                case saldoInicial      = "saldo_inicial"
                 case pastorNombre      = "pastor_nombre"
                 case pastorCargo       = "pastor_cargo"
                 case tesoreroNombre    = "tesorero_nombre"
@@ -431,6 +436,7 @@ final class MotorSincronizacion {
         c.correo = r.correo ?? ""
         c.moneda = r.moneda ?? Catalogos.monedaPorDefecto.codigo
         c.pieInstitucional = r.pieInstitucional ?? ""
+        c.saldoInicial = r.saldoInicial ?? 0
         c.pastorNombre = r.pastorNombre ?? ""
         c.pastorCargo = r.pastorCargo ?? "Pastor"
         c.tesoreroNombre = r.tesoreroNombre ?? ""

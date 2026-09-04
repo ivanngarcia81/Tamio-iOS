@@ -15,7 +15,6 @@ struct IPhoneAjustesView: View {
     /// Nueva Vida" y el iPad "Iglesia Getsemaní".
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
-    @State private var cfgApertura = ""
     @State private var invEmail    = ""
     @State private var invNom      = ""
     @State private var invRol      = "Tesorero"
@@ -138,7 +137,7 @@ struct IPhoneAjustesView: View {
                                estado: $cfg.config.estado, pais: $cfg.config.pais,
                                cp: $cfg.config.codigoPostal,
                                ein: $cfg.config.idFiscal, moneda: $cfg.config.moneda,
-                               apertura: $cfgApertura)
+                               apertura: $cfg.config.saldoInicial)
         case .institucion:
             AjustesInstitucionView(nombreIglesia: cfg.config.nombre,
                                    dir: $cfg.config.direccion, estado2: $cfg.config.ciudad,
@@ -280,7 +279,11 @@ private struct AjustesIglesiaView: View {
     @Binding var cp: String
     @Binding var ein: String
     @Binding var moneda: String
-    @Binding var apertura: String
+    /// En centavos, como todo el dinero de la app. Era un `String` suelto que
+    /// no salía de la pantalla: se tecleaba "5000", se veía escrito, y al salir
+    /// se perdía. Y como texto libre, "cinco mil" era un valor válido.
+    @Binding var apertura: Centavos
+    @State private var aperturaTexto = ""
 
     var body: some View {
         List {
@@ -320,18 +323,48 @@ private struct AjustesIglesiaView: View {
                         }
                     }.labelsHidden()
                 }
-                campoF(L.t("Saldo de apertura", "Opening balance"), $apertura, "0.00")
+                HStack {
+                    Text(L.t("Saldo de apertura", "Opening balance"))
+                        .font(.subheadline).foregroundStyle(.secondary)
+                        .frame(maxWidth: 160, alignment: .leading)
+                    TextField("0.00", text: $aperturaTexto)
+                        .font(.subheadline).multilineTextAlignment(.trailing)
+                        .keyboardType(.decimalPad)
+                        // Al salir del campo: lo tecleado se convierte a
+                        // centavos y se vuelve a escribir ya formateado, así
+                        // que lo que queda en pantalla es exactamente lo que
+                        // se guardó. Si no se entiende, se deja lo anterior en
+                        // vez de guardar cero — un cero silencioso en una cifra
+                        // de dinero es peor que no aceptar el texto.
+                        .onSubmit { fijarApertura() }
+                }
             } header: {
                 Text(L.t("Fiscal y contable", "Fiscal & accounting")).textCase(nil)
             } footer: {
-                Text(L.t("La identificación fiscal es opcional y solo se imprime si está llena. El saldo de apertura es el dinero que la tesorería ya tenía antes del primer movimiento registrado.",
-                         "The tax ID is optional and only prints if filled. Opening balance is money the treasury already had before the first recorded transaction."))
+                // Se dice para qué NO sirve todavía. "Saldo en caja" en Tamio
+                // es el efectivo sin depositar, y el saldo de apertura no es
+                // efectivo de ofrenda esperando ir al banco: entra en el
+                // acumulado del estado financiero, que aún no existe.
+                Text(L.t("La identificación fiscal es opcional y solo se imprime si está llena. El saldo de apertura es el dinero que la tesorería ya tenía antes del primer movimiento registrado; se guarda y se sincroniza, y entrará en el acumulado del estado financiero. No se suma al saldo en caja, que es el efectivo todavía sin depositar.",
+                         "The tax ID is optional and only prints if filled. Opening balance is money the treasury already had before the first recorded transaction; it's saved and synced, and will feed the cumulative financial statement. It is not added to cash on hand, which is money not yet deposited."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
         .navigationTitle(L.t("Iglesia", "Church"))
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { aperturaTexto = apertura == 0 ? "" : Money.fmt(apertura) }
+        .onDisappear { fijarApertura() }
+    }
+
+    private func fijarApertura() {
+        let limpio = aperturaTexto.trimmingCharacters(in: .whitespaces)
+        if limpio.isEmpty {
+            apertura = 0
+        } else if let centavos = Money.desdeTexto(limpio) {
+            apertura = centavos
+        }
+        aperturaTexto = apertura == 0 ? "" : Money.fmt(apertura)
     }
 
     private func campoF(_ label: String, _ bind: Binding<String>, _ hint: String) -> some View {

@@ -510,6 +510,7 @@ private struct SeccionIglesia: View {
     /// tenía sus propios `@State` con "Iglesia Getsemaní" escrito dentro,
     /// mientras el teléfono decía "Iglesia Nueva Vida" y el PDF, otra cosa.
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    @State private var aperturaTexto = ""
 
     var body: some View {
         ScrollView {
@@ -591,7 +592,31 @@ private struct SeccionIglesia: View {
                     }
                     .padding(.horizontal, Esp.pantalla)
                     .padding(.vertical, 12)
+                    Divider()
+                    // El iPad no tenía este campo: el teléfono ofrecía un saldo
+                    // de apertura y aquí no existía, así que las dos pantallas
+                    // de la misma configuración no coincidían.
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(L.t("Saldo de apertura", "Opening balance"))
+                            .font(.system(size: 13.5))
+                            .foregroundStyle(.secondary)
+                        TextField("0.00", text: $aperturaTexto)
+                            .font(.system(size: 16))
+                            .onSubmit { fijarApertura() }
+                    }
+                    .padding(.horizontal, Esp.pantalla)
+                    .padding(.vertical, 12)
                 }
+
+                // Se dice para qué NO sirve todavía: "saldo en caja" en Tamio
+                // es el efectivo sin depositar, y sumarle una apertura
+                // falsearía justo la cifra que dice cuánto dinero hay delante.
+                Text(L.t("El saldo de apertura es el dinero que la tesorería ya tenía antes del primer movimiento registrado. No se suma al saldo en caja, que es el efectivo todavía sin depositar.",
+                         "Opening balance is money the treasury already had before the first recorded transaction. It is not added to cash on hand, which is money not yet deposited."))
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Esp.hueco)
             }
             .padding(Esp.panel)
             .frame(maxWidth: 640)
@@ -599,7 +624,29 @@ private struct SeccionIglesia: View {
         }
         .background(Color(.systemGroupedBackground))
         .task { await cfg.cargar() }
-        .onDisappear { Task { await cfg.guardarYa() } }
+        .onAppear { aperturaTexto = textoApertura }
+        .onDisappear {
+            fijarApertura()
+            Task { await cfg.guardarYa() }
+        }
+    }
+
+    private var textoApertura: String {
+        cfg.config.saldoInicial == 0 ? "" : Money.fmt(cfg.config.saldoInicial)
+    }
+
+    /// Lo tecleado se convierte a centavos y se vuelve a escribir formateado,
+    /// así que en pantalla queda exactamente lo que se guardó. Si no se
+    /// entiende, se deja lo anterior: un cero silencioso en una cifra de dinero
+    /// es peor que no aceptar el texto.
+    private func fijarApertura() {
+        let limpio = aperturaTexto.trimmingCharacters(in: .whitespaces)
+        if limpio.isEmpty {
+            cfg.config.saldoInicial = 0
+        } else if let centavos = Money.desdeTexto(limpio) {
+            cfg.config.saldoInicial = centavos
+        }
+        aperturaTexto = textoApertura
     }
 }
 
