@@ -33,7 +33,14 @@ struct MockDashboardRepository: DashboardRepository {
                 moneda: Catalogos.monedaPorDefecto.codigo,
                 tesoreroNombre: "Iván García"
             ),
-            saldoCaja: 126_480_25,
+            // **Calculado, no inventado.** Era 126_480_25 escrito aquí, mientras
+            // Depósitos contaba su propio efectivo por otro lado: dos pantallas
+            // podían decir cifras distintas del mismo dinero. Como lo contado
+            // se deposita íntegro, el saldo en caja es exactamente lo recibido
+            // en efectivo que ningún corte depositado reclama.
+            saldoCaja: PuenteCortes.efectivoEnCaja(MockMovimientosRepository.todos),
+            movimientosTotal: MockMovimientosRepository.todos.count,
+            sinDepositarCount: MockMovimientosRepository.todos.filter(\.sinDepositar).count,
             ingresos: ingresos,
             gastos: gastos,
             // Sin periodo anterior no hay variación que enseñar. Iban escritas

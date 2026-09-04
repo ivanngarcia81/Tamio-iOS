@@ -236,6 +236,46 @@ enum Catalogos {
          L.t("Domiciliado", "Direct debit")]
     }
 
+    // MARK: - El método de pago como identidad
+
+    /// **La forma del dinero, no su etiqueta.** El corte tiene que separar
+    /// efectivo de cheques para totalizar, y eso no se puede decidir comparando
+    /// contra "Efectivo": con la app en inglés el texto guardado es "Cash" y la
+    /// comparación falla en silencio, que es el fallo que ya se arregló en el
+    /// enlace del checklist de Depósitos.
+    ///
+    /// Además el método guardado trae el número pegado —"Cheque 8823",
+    /// "Transferencia SPEI"—, así que ni siquiera una igualdad exacta serviría:
+    /// hace falta reconocer la raíz.
+    enum MetodoClave: String {
+        case efectivo, cheque, transferencia, tarjeta, domiciliado
+    }
+
+    /// Raíces en los dos idiomas. Igual que `raices` de las categorías, y por
+    /// el mismo motivo: la iglesia pudo capturar el método a mano o heredarlo
+    /// de otra versión del catálogo.
+    private static let raicesMetodo: [(MetodoClave, [String])] = [
+        (.efectivo,      ["efectivo", "cash"]),
+        (.cheque,        ["cheque", "check"]),
+        (.transferencia, ["transferencia", "transfer", "spei", "wire", "ach"]),
+        (.tarjeta,       ["tarjeta", "card"]),
+        (.domiciliado,   ["domicilia", "direct debit", "debit"]),
+    ]
+
+    static func clave(deMetodo metodo: String) -> MetodoClave? {
+        let n = normalizar(metodo)
+        guard !n.isEmpty else { return nil }
+        return raicesMetodo.first { _, formas in formas.contains { n.contains($0) } }?.0
+    }
+
+    /// El número que viaja pegado al método: "Cheque 8823" → "8823". Es lo que
+    /// el banco pide en la ficha, y hasta ahora solo se podía leer a ojo.
+    static func numeroDeCheque(_ metodo: String) -> String? {
+        guard clave(deMetodo: metodo) == .cheque else { return nil }
+        let digitos = metodo.split(whereSeparator: { !$0.isNumber }).joined()
+        return digitos.isEmpty ? nil : digitos
+    }
+
     /// Las opciones del catálogo **más el valor vigente si no está en él**. Un
     /// `Picker` solo puede mostrar marcada una selección que exista entre sus
     /// opciones: sin esto, abrir un movimiento con una categoría que ya no está

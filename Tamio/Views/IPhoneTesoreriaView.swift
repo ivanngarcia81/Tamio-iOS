@@ -19,8 +19,7 @@ struct IPhoneTesoreriaView: View {
                 NavigationLink { MovimientosView(tipo: .ingreso) } label: {
                     HubRow(icono: "arrow.left.arrow.right", color: Color(hex: 0x10B981),
                            titulo: L.t("Movimientos", "Transactions"),
-                           subtitulo: L.t("132 registros · 14 sin depositar",
-                                          "132 records · 14 undeposited"))
+                           subtitulo: subtituloMovimientos)
                 }
                 NavigationLink { MiembrosView() } label: {
                     HubRow(icono: "person.2.fill", color: Color(hex: 0x0D9488),
@@ -53,6 +52,20 @@ struct IPhoneTesoreriaView: View {
         .task { await depositos.cargar() }
     }
 
+    /// Cuántos ingresos siguen sin depositar. Era "14" escrito a mano debajo de
+    /// un saldo que ahora se calcula.
+    private var pieSaldo: String {
+        guard let n = vm.data?.sinDepositarCount else { return "" }
+        return L.t("\(n) movimiento\(n == 1 ? "" : "s") sin depositar",
+                   "\(n) transaction\(n == 1 ? "" : "s") undeposited")
+    }
+
+    private var subtituloMovimientos: String {
+        guard let d = vm.data else { return "" }
+        return L.t("\(d.movimientosTotal) registros · \(d.sinDepositarCount) sin depositar",
+                   "\(d.movimientosTotal) records · \(d.sinDepositarCount) undeposited")
+    }
+
     /// La cuenta solo se nombra si todos los cortes pendientes van a la misma.
     private var subtituloDepositos: String {
         let n = depositos.pendientesCount
@@ -74,8 +87,7 @@ struct IPhoneTesoreriaView: View {
                     Text("—").font(.system(size: 26, weight: .bold)).foregroundStyle(.secondary)
                 }
             }
-            Text(L.t("14 movimientos sin depositar · corte el domingo",
-                     "14 transactions undeposited · closes Sunday"))
+            Text(pieSaldo)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

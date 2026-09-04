@@ -54,6 +54,7 @@ final class DepositosViewModel {
         pendientesTotal = todosLospendientes.count
         pendientesMonto = todosLospendientes.reduce(0) { $0 + $1.montoTotal }
         cuentas = (try? await repo.cuentas()) ?? []
+        await cargarLibres()
     }
 
     var seleccion: Corte? { items.first { $0.id == seleccionId } }
@@ -73,44 +74,30 @@ final class DepositosViewModel {
 
     // MARK: - Acciones
 
-    /// Marca/desmarca un movimiento del corte. Los totales ya no se
-    /// "recalculan": son propiedades calculadas del corte.
-    @MainActor
-    func toggleMovimiento(corteId: String, movId: Int) async {
-        await editar(corteId) { c in
-            guard let mi = c.movimientos.firstIndex(where: { $0.id == movId }) else { return }
-            c.movimientos[mi].seleccionado.toggle()
-        }
-    }
-
-    /// Marca o desmarca todos de golpe. Un corte de catorce movimientos se
-    /// vaciaba a mano, toque por toque.
-    @MainActor
-    func marcarTodos(corteId: String, _ valor: Bool) async {
-        await editar(corteId) { c in
-            for i in c.movimientos.indices { c.movimientos[i].seleccionado = valor }
-        }
-    }
-
-    /// Agrega dinero en caja al corte. **Antes no existía**: un corte nuevo
-    /// nacía vacío y no había forma de meterle un solo movimiento, así que el
-    /// importe que se tecleaba al crearlo no tenía nada detrás.
-    @MainActor
-    func agregarMovimiento(corteId: String, _ mov: MovimientoCaja) async {
-        await editar(corteId) { c in
-            var nuevo = mov
-            // Id local del corte: el siguiente libre, para no chocar con los
-            // que ya están aunque se borre uno de en medio.
-            nuevo.id = (c.movimientos.map(\.id).max() ?? 0) + 1
-            c.movimientos.append(nuevo)
-        }
-    }
+    /// Los ingresos que ningún corte reclama, para el selector.
+    private(set) var libres: [Movimiento] = []
 
     @MainActor
-    func quitarMovimiento(corteId: String, movId: Int) async {
-        await editar(corteId) { c in
-            c.movimientos.removeAll { $0.id == movId }
-        }
+    func cargarLibres() async {
+        libres = (try? await repo.movimientosLibres()) ?? []
+    }
+
+    /// Mete en el corte ingresos que YA existen en Ingresos. Antes esto
+    /// capturaba un movimiento nuevo dentro del corte, así que el dinero de un
+    /// depósito no aparecía en ninguna otra pantalla.
+    @MainActor
+    func agregarAlCorte(corteId: String, ids: [String]) async {
+        try? await repo.agregarAlCorte(corteId: corteId, movimientoIds: ids)
+        await cargar()
+    }
+
+    /// Saca un movimiento del corte. No lo borra: vuelve a estar libre para
+    /// otro corte, que es lo que hace la tabla puente al marcar la fila
+    /// `deleted`.
+    @MainActor
+    func quitarDelCorte(corteId: String, movimientoId: String) async {
+        try? await repo.quitarDelCorte(corteId: corteId, movimientoId: movimientoId)
+        await cargar()
     }
 
     /// Asigna la cuenta bancaria del depósito.
@@ -159,20 +146,19 @@ final class DepositosViewModel {
     /// un corte es la suma de sus movimientos, así que un número escrito aquí
     /// era una cifra sin nada detrás que además desaparecía al primer toque.
     @MainActor
-    func crearCorte(titulo: String, cuenta: String, efectivoEstimado: Centavos?) async {
+    func crearCorte(titulo: String, cuenta: String) async {
         let nuevo = Corte(
             id: UUID().uuidString,
             titulo: titulo.trimmingCharacters(in: .whitespaces).isEmpty
                 ? L.t("Corte sin título", "Untitled cut")
                 : titulo.trimmingCharacters(in: .whitespaces),
-            descripcion: L.t("Corte creado hoy · agrega el dinero en caja que va en este depósito",
-                             "Cut created today · add the cash entries this deposit covers"),
+            descripcion: L.t("Corte creado hoy · elige qué dinero sin depositar va en él",
+                             "Cut created today · pick which undeposited money goes in it"),
             estado: .pendiente,
             movimientos: [],
             registro: RegistroDeposito(cuenta: cuenta.isEmpty ? Corte.sinAsignar : cuenta,
                                        fecha: Self.textoFecha(Date()),
-                                       periodo: Self.periodoActual),
-            efectivoEstimado: efectivoEstimado
+                                       periodo: Self.periodoActual)
         )
         try? await repo.crear(nuevo)
         estado = .pendiente

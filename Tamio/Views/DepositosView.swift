@@ -49,9 +49,8 @@ struct DepositosView: View {
         .modifier(EncabezadoDepositos(compacto: compacto, subtitulo: subtituloBarra))
         .toolbar { barra }
         .sheet(isPresented: $mostrarNuevo) {
-            NuevoCorteView(cuentas: vm.cuentas) { titulo, cuenta, estimado in
-                Task { await vm.crearCorte(titulo: titulo, cuenta: cuenta,
-                                           efectivoEstimado: estimado) }
+            NuevoCorteView(cuentas: vm.cuentas) { titulo, cuenta in
+                Task { await vm.crearCorte(titulo: titulo, cuenta: cuenta) }
             }
         }
         .task { await vm.cargar() }
@@ -155,10 +154,9 @@ struct DepositosView: View {
             corte: c,
             cuentas: vm.cuentas,
             onNuevoCorte: { mostrarNuevo = true },
-            onToggleMovimiento: { movId in Task { await vm.toggleMovimiento(corteId: c.id, movId: movId) } },
-            onMarcarTodos: { valor in Task { await vm.marcarTodos(corteId: c.id, valor) } },
-            onAgregarMovimiento: { mov in Task { await vm.agregarMovimiento(corteId: c.id, mov) } },
-            onQuitarMovimiento: { movId in Task { await vm.quitarMovimiento(corteId: c.id, movId: movId) } },
+            libres: vm.libres,
+            onAgregarAlCorte: { ids in Task { await vm.agregarAlCorte(corteId: c.id, ids: ids) } },
+            onQuitarDelCorte: { movId in Task { await vm.quitarDelCorte(corteId: c.id, movimientoId: movId) } },
             onAsignarCuenta: { cta in Task { await vm.asignarCuenta(corteId: c.id, cuenta: cta) } },
             onAgregarCuenta: { nombre in Task { await vm.agregarCuenta(nombre, aCorte: c.id) } },
             onCambiarPeriodo: { p in Task { await vm.cambiarPeriodo(corteId: c.id, p) } },

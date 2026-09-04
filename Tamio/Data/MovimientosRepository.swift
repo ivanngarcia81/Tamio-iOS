@@ -39,11 +39,23 @@ struct MockMovimientosRepository: MovimientosRepository {
     /// no llevar su propia contabilidad en paralelo: encabezaba "$48,320 · 132
     /// registros" de septiembre mientras la pantalla de Ingresos, con los
     /// mismos movimientos delante, sumaba $23,863 en 8.
-    static var todos: [Movimiento] { almacen }
+    /// **`sinDepositar` se resuelve al leer, no se guarda.** Un ingreso está
+    /// sin depositar mientras ningún corte YA DEPOSITADO lo reclame, y eso lo
+    /// sabe la tabla puente, no el propio movimiento. Antes el valor venía
+    /// escrito en la semilla y en Supabase valía `tipo == .ingreso`, así que
+    /// TODO ingreso salía sin depositar aunque llevara meses en el banco.
+    static var todos: [Movimiento] { almacen.map(resuelto) }
+
+    private static func resuelto(_ m: Movimiento) -> Movimiento {
+        var m = m
+        m.sinDepositar = PuenteCortes.sinDepositar(m)
+        m.incluidoEnCorte = PuenteCortes.corteDe(m.id) != nil
+        return m
+    }
 
     func lista(tipo: TipoMovimiento) async throws -> [Movimiento] {
         try? await Task.sleep(nanoseconds: 120_000_000)
-        return Self.almacen.filter { $0.tipo == tipo }.sorted { $0.fecha > $1.fecha }
+        return Self.todos.filter { $0.tipo == tipo }.sorted { $0.fecha > $1.fecha }
     }
 
     func crear(_ m: Movimiento) async throws {
@@ -145,6 +157,89 @@ struct MockMovimientosRepository: MovimientosRepository {
                 folio: "1035", metodo: L.t("Efectivo", "Cash"), monto: 540_00, hora: "11:05", fecha: dias(4),
                 registradoPor: "Iván García", miembro: nil,
                 categoriaCompleta: L.t("Ofrendas · culto", "Offerings · service"), nota: nil,
+                sinDepositar: false, comprobante: nil, auditoria: []),
+            // ── El dinero que agrupan los cortes de Depósitos ──
+            // Vive AQUÍ, en Ingresos, porque Ingresos es su dueño. El corte
+            // solo lo apunta por id (ver `PuenteCortes`). Antes estos once
+            // movimientos existían únicamente dentro del corte, como
+            // `MovimientoCaja`, así que el dinero de un depósito no aparecía
+            // en ninguna otra pantalla de la app.
+            Movimiento(id: "201", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: nil,
+                folio: "1051", metodo: L.t("Efectivo", "Cash"), monto: 1_500_00, hora: "12:38", fecha: dias(2),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Diezmos · fondo general", "Tithes · general fund"), nota: nil,
+                sinDepositar: true, comprobante: nil, auditoria: []),
+            Movimiento(id: "202", tipo: .ingreso, categoria: L.t("Ofrenda general", "General offering"), persona: nil,
+                folio: "1052", metodo: L.t("Efectivo", "Cash"), monto: 2_050_00, hora: "12:40", fecha: dias(2),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Ofrendas · culto", "Offerings · service"),
+                nota: L.t("Contada por los ujieres.", "Counted by the ushers."),
+                sinDepositar: true, comprobante: nil, auditoria: []),
+            Movimiento(id: "203", tipo: .ingreso, categoria: L.t("Ofrenda misionera", "Mission offering"), persona: nil,
+                folio: "1053", metodo: L.t("Efectivo", "Cash"), monto: 600_00, hora: "12:42", fecha: dias(2),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Misiones · ofrenda", "Missions · offering"), nota: nil,
+                sinDepositar: true, comprobante: nil, auditoria: []),
+            Movimiento(id: "204", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: nil,
+                folio: "1054", metodo: L.t("Cheque 3841", "Check 3841"), monto: 1_700_00, hora: "12:45", fecha: dias(2),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Diezmos · fondo general", "Tithes · general fund"),
+                nota: L.t("Sobre nominativo.", "Named envelope."),
+                sinDepositar: true, comprobante: nil, auditoria: []),
+
+            Movimiento(id: "205", tipo: .ingreso, categoria: L.t("Ofrenda general", "General offering"), persona: nil,
+                folio: "1048", metodo: L.t("Efectivo", "Cash"), monto: 1_200_00, hora: "20:15", fecha: dias(6),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Ofrendas · culto", "Offerings · service"), nota: nil,
+                sinDepositar: true, comprobante: nil, auditoria: []),
+            Movimiento(id: "206", tipo: .ingreso, categoria: L.t("Donación jóvenes", "Youth donation"), persona: nil,
+                folio: "1049", metodo: L.t("Efectivo", "Cash"), monto: 420_00, hora: "20:20", fecha: dias(6),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Donativos · jóvenes", "Donations · youth"), nota: nil,
+                sinDepositar: true, comprobante: nil, auditoria: []),
+            Movimiento(id: "207", tipo: .ingreso, categoria: L.t("Misiones", "Missions"), persona: nil,
+                folio: "1050", metodo: L.t("Efectivo", "Cash"), monto: 300_00, hora: "20:22", fecha: dias(6),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Misiones · ofrenda", "Missions · offering"), nota: nil,
+                sinDepositar: true, comprobante: nil, auditoria: []),
+
+            Movimiento(id: "208", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: nil,
+                folio: "1055", metodo: L.t("Cheque 4102", "Check 4102"), monto: 2_250_00, hora: "12:50", fecha: dias(2),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Diezmos · fondo general", "Tithes · general fund"), nota: nil,
+                sinDepositar: true, comprobante: nil, auditoria: []),
+            Movimiento(id: "209", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: nil,
+                folio: "1056", metodo: L.t("Cheque 4103", "Check 4103"), monto: 1_800_00, hora: "12:52", fecha: dias(2),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Diezmos · fondo general", "Tithes · general fund"), nota: nil,
+                sinDepositar: true, comprobante: nil, auditoria: []),
+            Movimiento(id: "210", tipo: .ingreso, categoria: L.t("Ofrenda general", "General offering"), persona: nil,
+                folio: "1057", metodo: L.t("Efectivo", "Cash"), monto: 2_100_00, hora: "12:55", fecha: dias(2),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Ofrendas · culto especial", "Offerings · special service"), nota: nil,
+                sinDepositar: true, comprobante: nil, auditoria: []),
+            Movimiento(id: "211", tipo: .ingreso, categoria: L.t("Fondo de construcción", "Building fund"), persona: nil,
+                folio: "1058", metodo: L.t("Cheque 4104", "Check 4104"), monto: 1_280_00, hora: "12:58", fecha: dias(2),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Construcción · fondo", "Building · fund"), nota: nil,
+                sinDepositar: true, comprobante: nil, auditoria: []),
+
+            // Los de un corte YA depositado: siguen en Ingresos, pero su corte
+            // tiene ficha, así que dejan de contar como efectivo en caja.
+            Movimiento(id: "301", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: nil,
+                folio: "1030", metodo: L.t("Efectivo", "Cash"), monto: 5_320_00, hora: "12:20", fecha: dias(20),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Diezmos · fondo general", "Tithes · general fund"), nota: nil,
+                sinDepositar: false, comprobante: nil, auditoria: []),
+            Movimiento(id: "302", tipo: .ingreso, categoria: L.t("Ofrenda general", "General offering"), persona: nil,
+                folio: "1029", metodo: L.t("Efectivo", "Cash"), monto: 4_500_00, hora: "12:25", fecha: dias(20),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Ofrendas · culto", "Offerings · service"), nota: nil,
+                sinDepositar: false, comprobante: nil, auditoria: []),
+            Movimiento(id: "303", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: nil,
+                folio: "1028", metodo: L.t("Cheque 2277", "Check 2277"), monto: 4_500_00, hora: "12:28", fecha: dias(20),
+                registradoPor: "Iván García", miembro: nil,
+                categoriaCompleta: L.t("Diezmos · fondo general", "Tithes · general fund"), nota: nil,
                 sinDepositar: false, comprobante: nil, auditoria: []),
             Movimiento(id: "101", tipo: .gasto, categoria: L.t("Utilidades", "Utilities"), persona: "Luz CFE",
                 folio: "0518", metodo: L.t("Transferencia", "Transfer"), monto: 3_410_50, hora: "09:30", fecha: dias(0),

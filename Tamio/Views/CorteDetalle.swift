@@ -8,10 +8,9 @@ struct CorteDetalle: View {
     let corte: Corte
     var cuentas: [String] = []
     var onNuevoCorte: (() -> Void)? = nil
-    var onToggleMovimiento: ((Int) -> Void)? = nil
-    var onMarcarTodos: ((Bool) -> Void)? = nil
-    var onAgregarMovimiento: ((MovimientoCaja) -> Void)? = nil
-    var onQuitarMovimiento: ((Int) -> Void)? = nil
+    var libres: [Movimiento] = []
+    var onAgregarAlCorte: (([String]) -> Void)? = nil
+    var onQuitarDelCorte: ((String) -> Void)? = nil
     var onAsignarCuenta: ((String) -> Void)? = nil
     var onAgregarCuenta: ((String) -> Void)? = nil
     var onCambiarPeriodo: ((String) -> Void)? = nil
@@ -63,8 +62,8 @@ struct CorteDetalle: View {
             }
         }
         .sheet(isPresented: $mostrarNuevoMovimiento) {
-            NuevoMovimientoCajaView(folioSugerido: folioSugerido) { mov in
-                onAgregarMovimiento?(mov)
+            ElegirMovimientosView(libres: libres) { ids in
+                onAgregarAlCorte?(ids)
             }
         }
         .alert(L.t("Cuenta nueva", "New account"), isPresented: $mostrarNuevaCuenta) {
@@ -87,13 +86,6 @@ struct CorteDetalle: View {
             Text(mensajeConfirmacion)
         }
         .sheet(isPresented: $mostrarFecha) { hojaFecha }
-    }
-
-    /// El folio que se propone al capturar: el siguiente al mayor del corte.
-    private var folioSugerido: String {
-        let numeros = corte.movimientos.compactMap { Int($0.folio) }
-        guard let mayor = numeros.max() else { return "" }
-        return String(mayor + 1)
     }
 
     /// El mensaje del diálogo dice lo que de verdad se va a registrar. Antes
@@ -136,8 +128,8 @@ struct CorteDetalle: View {
                 HStack {
                     TituloSeccion(texto: L.t("EL CORTE", "THIS DEPOSIT"))
                     Spacer()
-                    Text(L.t("\(corte.seleccionados) de \(corte.totalSeleccionables) seleccionados",
-                             "\(corte.seleccionados) of \(corte.totalSeleccionables) selected"))
+                    Text(L.t("\(corte.cuantos) movimiento\(corte.cuantos == 1 ? "" : "s")",
+                             "\(corte.cuantos) entr\(corte.cuantos == 1 ? "y" : "ies")"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Paleta.brand)
                 }
@@ -145,13 +137,10 @@ struct CorteDetalle: View {
 
                 filaChip(L.t("Efectivo seleccionado", "Cash selected"),
                          monto: corte.efectivoSeleccionado,
-                         // Sin conteo de caja no se enseña un estimado
-                         // inventado: antes un corte nuevo decía "De $0.00
-                         // estimados en caja" bajo el efectivo que sí tenía.
-                         sub: corte.efectivoEstimado.map {
-                             L.t("De \(Money.fmt($0)) estimados en caja",
-                                 "Of \(Money.fmt($0)) estimated on hand")
-                         })
+                         // El efectivo en caja ya no se teclea: son los ingresos
+                         // en efectivo que ningún corte depositado reclama.
+                         sub: L.t("De \(Money.fmt(corte.efectivoEnCaja)) sin depositar en caja",
+                                  "Of \(Money.fmt(corte.efectivoEnCaja)) undeposited on hand"))
                 Divider()
                 filaChip(L.t("Cheques (\(corte.chequesCount))", "Checks (\(corte.chequesCount))"),
                          monto: corte.chequesMonto,
@@ -199,13 +188,10 @@ struct CorteDetalle: View {
                     HStack {
                         TituloSeccion(texto: L.t("MOVIMIENTOS DEL CORTE", "ENTRIES IN THIS DEPOSIT"))
                         Spacer()
-                        if corte.totalSeleccionables > 0, corte.sinDepositar {
-                            botonMarcarTodos
-                        }
                     }
                     if corte.movimientos.isEmpty {
-                        Text(L.t("Todavía no hay dinero en caja en este corte.",
-                                 "No cash entries in this cut yet."))
+                        Text(L.t("Este corte todavía no agrupa nada.",
+                                 "This cut doesn't group anything yet."))
                             .font(.subheadline).foregroundStyle(.secondary)
                             .padding(.vertical, 4)
                     } else {
@@ -217,7 +203,7 @@ struct CorteDetalle: View {
                     if corte.sinDepositar {
                         Divider()
                         Button { mostrarNuevoMovimiento = true } label: {
-                            Label(L.t("Agregar dinero en caja", "Add cash entry"),
+                            Label(L.t("Agregar dinero sin depositar", "Add undeposited money"),
                                   systemImage: "plus.circle.fill")
                                 .font(.subheadline.weight(.medium))
                         }
@@ -228,20 +214,6 @@ struct CorteDetalle: View {
                 }
             }
         }
-    }
-
-    /// Marca o desmarca los movimientos de golpe. Un corte de catorce se
-    /// vaciaba toque por toque.
-    private var botonMarcarTodos: some View {
-        let todosMarcados = corte.seleccionados == corte.totalSeleccionables
-        return Button {
-            onMarcarTodos?(!todosMarcados)
-        } label: {
-            Text(todosMarcados ? L.t("Ninguno", "None") : L.t("Todos", "All"))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Paleta.enlace)
-        }
-        .buttonStyle(.plain)
     }
 
     private func filaChequeo(_ c: Chequeo) -> some View {
@@ -260,34 +232,36 @@ struct CorteDetalle: View {
         }
     }
 
-    private func filaMovimiento(_ m: MovimientoCaja) -> some View {
-        Button { onToggleMovimiento?(m.id) } label: {
-            HStack(spacing: 10) {
-                Image(systemName: m.seleccionado ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(m.seleccionado ? Paleta.brand : .secondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L.t("\(m.categoria) · Folio \(m.folio)", "\(m.categoria) · Folio \(m.folio)"))
-                        .font(.subheadline.weight(.medium)).lineLimit(1)
-                    // La forma (efectivo o cheque nº) manda sobre la hora: es
-                    // lo que decide en qué chip suma y lo que pide el banco.
-                    Text("\(m.referencia) · \(m.cuando)")
-                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                Text(Money.fmt(m.monto)).font(.subheadline.weight(.semibold)).monospacedDigit()
-                    .foregroundStyle(m.seleccionado ? .primary : .secondary)
+    /// Sin casilla de marcar: **estar en la lista ES estar en el corte**. La
+    /// casilla venía de cuando el corte guardaba un `seleccionado` propio que
+    /// podía contradecir a la lista; ahora sacarlo del corte es borrar la fila
+    /// puente, y el movimiento vuelve a quedar libre para otro corte.
+    private func filaMovimiento(_ m: Movimiento) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(m.titular).font(.subheadline.weight(.medium)).lineLimit(1)
+                Text(referencia(m))
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
+            Spacer(minLength: 8)
+            Text(Money.fmt(m.monto)).font(.subheadline.weight(.semibold)).monospacedDigit()
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
         .contextMenu {
             if corte.sinDepositar {
-                Button(role: .destructive) { onQuitarMovimiento?(m.id) } label: {
-                    Label(L.t("Quitar del corte", "Remove from cut"), systemImage: "trash")
+                Button(role: .destructive) { onQuitarDelCorte?(m.id) } label: {
+                    Label(L.t("Sacar del corte", "Remove from cut"), systemImage: "minus.circle")
                 }
             }
         }
+    }
+
+    /// El número del cheque manda sobre todo lo demás: es lo que el banco pide
+    /// en la ficha. Antes iba escondido dentro del texto de la hora.
+    private func referencia(_ m: Movimiento) -> String {
+        let forma = m.numeroCheque.map { L.t("Cheque \($0)", "Check \($0)") } ?? m.metodo
+        return L.t("Folio \(m.folio) · \(forma)", "Folio \(m.folio) · \(forma)")
     }
 
     /// El enlace del checklist. Antes era `Text` con `Paleta.enlace` para todos

@@ -86,6 +86,12 @@ struct DashboardData {
     let church: Church
     /// Saldo en caja HOY. No es del periodo, no se escala.
     let saldoCaja: Centavos
+    /// Cuántos movimientos hay registrados y cuántos ingresos siguen sin
+    /// depositar. Iban escritos a mano en el hub de Tesorería —"132 registros ·
+    /// 14 sin depositar"— junto a un saldo que ahora SÍ se calcula, así que la
+    /// tarjeta se contradecía a sí misma renglón con renglón.
+    let movimientosTotal: Int
+    let sinDepositarCount: Int
     let ingresos: Centavos
     let gastos: Centavos
     /// Variación vs. periodo anterior, en fracción (0.042 = +4.2%). `nil`

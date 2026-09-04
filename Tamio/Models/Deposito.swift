@@ -42,33 +42,6 @@ struct Chequeo: Identifiable {
     }
 }
 
-/// Un movimiento incluido en el corte (dinero en caja). `seleccionado` es
-/// mutable: el usuario marca/desmarca qué entra al depósito y los totales se
-/// recalculan.
-struct MovimientoCaja: Identifiable {
-    /// `var`: al agregarlo a un corte se le asigna el siguiente id libre de
-    /// ESE corte, igual que `Movimiento.folio` lo asigna el contador.
-    var id: Int
-    let categoria: String
-    let folio: String
-    let cuando: String    // "Domingo 23 · 12:38 p.m."
-    let monto: Centavos
-    var seleccionado: Bool
-    var esCheque: Bool = false   // separa efectivo de cheques al totalizar
-    /// Número del cheque ("4102"). Solo cuando `esCheque`. Antes iba escrito
-    /// dentro de `cuando` ("Cheque 3841 · Banamex"), donde no se podía leer ni
-    /// buscar: el número del cheque es lo que el banco pide en la ficha.
-    var numeroCheque: String? = nil
-
-    /// Lo que se lee bajo la categoría: el cheque manda sobre la hora.
-    var referencia: String {
-        if esCheque, let n = numeroCheque, !n.isEmpty {
-            return L.t("Cheque \(n)", "Check \(n)")
-        }
-        return L.t("Efectivo", "Cash")
-    }
-}
-
 /// Cómo se registrará el depósito ("Se registrará así"). Solo lo que el
 /// usuario decide: el monto NO vive aquí, se calcula desde la selección.
 struct RegistroDeposito {
@@ -90,14 +63,26 @@ struct Corte: Identifiable, Hashable {
     var titulo: String
     var descripcion: String
     var estado: EstadoDeposito
-    var movimientos: [MovimientoCaja]
+    /// **Los movimientos de Ingresos que este corte agrupa, no copias suyas.**
+    /// Antes eran `MovimientoCaja`, un modelo paralelo con `id: Int` que no
+    /// podía apuntar a nada: capturar un diezmo en Ingresos no lo hacía
+    /// aparecer en su corte, y meter dinero en el corte no lo registraba en
+    /// Ingresos. Dos puertas de entrada al mismo dato, que es justo lo que la
+    /// regla "un dato, un dueño" existe para evitar.
+    ///
+    /// El repositorio los resuelve por id desde la tabla puente. Estar en la
+    /// lista ES estar en el corte: no hay un `seleccionado` que pueda
+    /// contradecir a la fila puente.
+    var movimientos: [Movimiento]
     var registro: RegistroDeposito
 
-    /// Efectivo que la iglesia estima tener en caja a esa fecha. Es dato de
-    /// fuera del corte (incluye lo que no entra en este depósito), así que se
-    /// guarda; `nil` cuando no se ha contado, y entonces no se enseña una cifra
-    /// inventada.
-    var efectivoEstimado: Centavos? = nil
+    /// Efectivo que la iglesia tiene en caja a esa fecha. **Calculado**, no
+    /// tecleado: como lo contado se deposita íntegro —nunca se paga un gasto
+    /// con el dinero de la ofrenda—, el efectivo en caja es exactamente lo
+    /// recibido en efectivo que ningún corte depositado reclama. Lo pone el
+    /// repositorio; era un campo que había que escribir a mano, y contra un
+    /// número tecleado el aviso "el efectivo no alcanza" no comprobaba nada.
+    var efectivoEnCaja: Centavos = 0
 
     /// Cuántos movimientos de esa fecha están marcados "por revisar" y por eso
     /// se quedan fuera del corte.
@@ -108,19 +93,20 @@ struct Corte: Identifiable, Hashable {
 
     // MARK: - Derivados
 
-    var seleccion: [MovimientoCaja] { movimientos.filter(\.seleccionado) }
-    var efectivoSeleccionado: Centavos {
-        seleccion.filter { !$0.esCheque }.reduce(0) { $0 + $1.monto }
-    }
-    var cheques: [MovimientoCaja] { seleccion.filter(\.esCheque) }
+    var efectivo: [Movimiento] { movimientos.filter(\.esEfectivo) }
+    var efectivoSeleccionado: Centavos { efectivo.reduce(0) { $0 + $1.monto } }
+    var cheques: [Movimiento] { movimientos.filter(\.esCheque) }
+    /// Efectivo sin depositar que NO está en este corte.
+    var efectivoFuera: Centavos { max(0, efectivoEnCaja - efectivoSeleccionado) }
     var chequesMonto: Centavos { cheques.reduce(0) { $0 + $1.monto } }
     var chequesCount: Int { cheques.count }
     var listoParaDepositar: Centavos { efectivoSeleccionado + chequesMonto }
     /// El monto del corte **es** lo que se va a depositar. Eran dos campos
     /// distintos y no coincidían.
     var montoTotal: Centavos { listoParaDepositar }
-    var seleccionados: Int { seleccion.count }
-    var totalSeleccionables: Int { movimientos.count }
+    /// Cuántos movimientos agrupa. Ya no hay "N de M seleccionados": estar en
+    /// el corte ES estar seleccionado, así que los dos números eran el mismo.
+    var cuantos: Int { movimientos.count }
     var sinDepositar: Bool { estado == .pendiente }
     var sinCuenta: Bool { registro.cuenta.isEmpty || registro.cuenta == Self.sinAsignar }
 
@@ -172,16 +158,11 @@ struct Corte: Identifiable, Hashable {
                                  titulo: L.t("Corte sin movimientos", "Empty cut"),
                                  detalle: L.t("Agrega el dinero en caja que va en este depósito. Mientras esté vacío no hay nada que llevar al banco.",
                                               "Add the cash entries this deposit covers. While it's empty there's nothing to take to the bank.")))
-        } else if seleccionados == 0 {
-            lista.append(Chequeo(id: 3, tipo: .aviso,
-                                 titulo: L.t("Nada seleccionado", "Nothing selected"),
-                                 detalle: L.t("Los \(totalSeleccionables) movimientos están desmarcados, así que el depósito suma \(Money.fmt(0)).",
-                                              "All \(totalSeleccionables) entries are unchecked, so the deposit totals \(Money.fmt(0)).")))
         } else if chequesCount == 0 {
             lista.append(Chequeo(id: 3, tipo: .ok,
                                  titulo: L.t("Todo en efectivo", "All cash"),
-                                 detalle: L.t("Los \(seleccionados) movimientos seleccionados son en efectivo y suman \(Money.fmt(efectivoSeleccionado)).",
-                                              "The \(seleccionados) selected entries are cash, totaling \(Money.fmt(efectivoSeleccionado)).")))
+                                 detalle: L.t("Los \(cuantos) movimientos del corte son en efectivo y suman \(Money.fmt(efectivoSeleccionado)).",
+                                              "All \(cuantos) entries in this cut are cash, totaling \(Money.fmt(efectivoSeleccionado)).")))
         } else {
             lista.append(Chequeo(id: 3, tipo: .ok,
                                  titulo: L.t("Efectivo y cheques", "Cash and checks"),
@@ -189,11 +170,21 @@ struct Corte: Identifiable, Hashable {
                                               "\(Money.fmt(efectivoSeleccionado)) in cash and \(chequesCount) check\(chequesCount == 1 ? "" : "s") for \(Money.fmt(chequesMonto)) go on the same slip.")))
         }
 
-        if let estimado = efectivoEstimado, efectivoSeleccionado > estimado {
-            lista.append(Chequeo(id: 4, tipo: .aviso,
-                                 titulo: L.t("El efectivo no alcanza", "Not enough cash"),
-                                 detalle: L.t("Vas a depositar \(Money.fmt(efectivoSeleccionado)) pero en caja se estiman \(Money.fmt(estimado)). Cuenta el efectivo antes de ir al banco.",
-                                              "You'd deposit \(Money.fmt(efectivoSeleccionado)) but only \(Money.fmt(estimado)) is estimated on hand. Count the cash before going to the bank.")))
+        // Lo que se queda en la caja fuerte si va al banco solo con este sobre.
+        //
+        // Aquí ANTES había un aviso de "el efectivo no alcanza", que comparaba
+        // contra un número tecleado. Ya no puede existir: el efectivo en caja
+        // se calcula desde los ingresos sin depositar, e incluye los de este
+        // corte, así que jamás se quedaría corto. Y un movimiento no puede
+        // estar en dos cortes —Postgres lo impide con un índice único—, que era
+        // la única forma de descuadrar. Cambiar un aviso falso por uno que no
+        // puede saltar no es arreglarlo, así que dice otra cosa: cuánto dinero
+        // estás dejando atrás.
+        if efectivoFuera > 0 {
+            lista.append(Chequeo(id: 4, tipo: .duda,
+                                 titulo: L.t("Queda efectivo fuera de este corte", "Cash left out of this cut"),
+                                 detalle: L.t("Hay \(Money.fmt(efectivoFuera)) más en efectivo sin depositar que no están aquí. Si va todo al banco de una vez, agrégalo.",
+                                              "There's \(Money.fmt(efectivoFuera)) more in undeposited cash that isn't here. If it all goes to the bank at once, add it.")))
         }
 
         lista.append(Chequeo(id: 5, tipo: .duda,

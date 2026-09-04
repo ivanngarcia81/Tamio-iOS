@@ -23,7 +23,12 @@ struct Movimiento: Identifiable {
     let miembro: String?
     let categoriaCompleta: String
     let nota: String?
-    let sinDepositar: Bool
+    /// **Derivado, no capturado.** Un ingreso está "sin depositar" mientras
+    /// ningún corte YA DEPOSITADO lo reclame. No es una casilla que alguien
+    /// marca: es una ausencia en la tabla puente `corte_movimientos`. `var`
+    /// porque el repositorio lo resuelve al leer — antes valía `tipo ==
+    /// .ingreso`, así que TODO ingreso salía sin depositar para siempre.
+    var sinDepositar: Bool
     var comprobante: String?    // "sobre-1042.jpg" — var: se puede adjuntar/reemplazar
     let auditoria: [AuditEntry]
     // Campos adicionales del formulario completo
@@ -49,6 +54,14 @@ struct Movimiento: Identifiable {
     /// y el color. `nil` si la iglesia la escribió a mano y no se parece a
     /// ninguna del catálogo.
     var claveCategoria: CategoriaClave? { Catalogos.clave(deEtiqueta: categoria) }
+
+    /// La forma del dinero. Es lo que decide si suma en el chip de efectivo o
+    /// en el de cheques del corte.
+    var claveMetodo: Catalogos.MetodoClave? { Catalogos.clave(deMetodo: metodo) }
+    var esEfectivo: Bool { claveMetodo == .efectivo }
+    var esCheque: Bool { claveMetodo == .cheque }
+    /// "Cheque 8823" → "8823". El número que pide el banco en la ficha.
+    var numeroCheque: String? { Catalogos.numeroDeCheque(metodo) }
 
     var titular: String {
         if let persona, !persona.isEmpty { return "\(categoria) · \(persona)" }

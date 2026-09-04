@@ -3,24 +3,22 @@ import SwiftUI
 /// Formulario de nuevo corte de caja. Devuelve título, cuenta y el efectivo
 /// estimado en caja; la vista padre crea el corte vía el repositorio.
 ///
-/// **Ya no pide el importe del depósito.** Lo pedía en un campo grande y ese
-/// número no tenía nada detrás: el corte nacía sin un solo movimiento diciendo
-/// "listo para depositar $5,850.00", y al marcar cualquier casilla caía a
-/// $0.00. El monto de un corte es la suma de su dinero en caja, y eso se
-/// captura dentro, con "Agregar dinero en caja".
+/// **Solo pide título y cuenta.** El importe no se teclea —es la suma de los
+/// ingresos que el corte agrupe— y el efectivo en caja tampoco: se calcula
+/// desde los ingresos en efectivo que ningún corte depositado reclama. Los dos
+/// eran campos que había que rellenar a mano y que ninguna cuenta comprobaba.
 struct NuevoCorteView: View {
     @Environment(\.dismiss) private var dismiss
 
     let cuentas: [String]
-    let onGuardar: (_ titulo: String, _ cuenta: String, _ efectivoEstimado: Centavos?) -> Void
+    let onGuardar: (_ titulo: String, _ cuenta: String) -> Void
 
     @State private var titulo = ""
     @State private var cuenta: String
-    @State private var estimado = ""
     @FocusState private var tituloEnfocado: Bool
 
     init(cuentas: [String],
-         onGuardar: @escaping (_ titulo: String, _ cuenta: String, _ efectivoEstimado: Centavos?) -> Void) {
+         onGuardar: @escaping (_ titulo: String, _ cuenta: String) -> Void) {
         self.cuentas = cuentas
         self.onGuardar = onGuardar
         _cuenta = State(initialValue: cuentas.first ?? "")
@@ -43,20 +41,6 @@ struct NuevoCorteView: View {
                     Text(L.t("Ejemplo: «Culto domingo 6 de septiembre».",
                              "For example: “Sunday, September 6 service”."))
                 }
-
-                Section {
-                    HStack {
-                        Text(L.t("Efectivo estimado en caja", "Estimated cash on hand"))
-                        Spacer()
-                        TextField(L.t("Opcional", "Optional"), text: $estimado)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .monospacedDigit()
-                    }
-                } footer: {
-                    Text(L.t("Lo que la iglesia cree tener en caja a esa fecha. Sirve para avisarte si el depósito pide más efectivo del que hay; no es el monto del depósito.",
-                             "What the church believes is on hand at that date. It warns you if the deposit needs more cash than there is; it is not the deposit amount."))
-                }
             }
             .navigationTitle(L.t("Nuevo corte", "New cut"))
             .navigationBarTitleDisplayMode(.inline)
@@ -66,7 +50,7 @@ struct NuevoCorteView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.t("Crear", "Create")) {
-                        onGuardar(tituloLimpio, cuenta, Money.desdeTexto(estimado))
+                        onGuardar(tituloLimpio, cuenta)
                         dismiss()
                     }
                     .fontWeight(.semibold).tint(Paleta.brand)
@@ -82,137 +66,91 @@ struct NuevoCorteView: View {
     }
 }
 
-/// Captura de un movimiento de dinero en caja dentro de un corte.
+
+
+/// **Elegir qué ingresos entran en el corte.**
 ///
-/// **Esta hoja no existía.** El detalle del corte solo dejaba marcar y
-/// desmarcar los movimientos que ya venían del repositorio: no había forma de
-/// meter el diezmo del domingo ni un cheque, así que un corte creado desde la
-/// app se quedaba vacío para siempre.
-struct NuevoMovimientoCajaView: View {
+/// Sustituye a una hoja que CAPTURABA un movimiento dentro del corte. Eso creaba
+/// dinero que no existía en Ingresos: dos puertas de entrada al mismo dato, y
+/// un corte podía sumar $5,850 que ninguna otra pantalla de la app conocía.
+///
+/// Aquí no se crea nada. Se marca cuál del dinero YA REGISTRADO en Ingresos va
+/// en este sobre al banco. Capturar sigue siendo trabajo de Ingresos.
+struct ElegirMovimientosView: View {
     @Environment(\.dismiss) private var dismiss
 
-    /// Folio sugerido: el siguiente al último del corte.
-    let folioSugerido: String
-    let onGuardar: (MovimientoCaja) -> Void
+    let libres: [Movimiento]
+    let onAgregar: ([String]) -> Void
 
-    @State private var categoria: String = Catalogos.categoriasIngreso.first ?? ""
-    @State private var otraCategoria = ""
-    @State private var importe = ""
-    @State private var esCheque = false
-    @State private var numeroCheque = ""
-    @State private var folio: String
-    @State private var fecha = Date()
-    @FocusState private var importeEnfocado: Bool
+    @State private var elegidos: Set<String> = []
 
-    /// Etiqueta para capturar una categoría que no está en el catálogo
-    /// ("Ofrenda misionera", "Fondo de construcción"): la iglesia las nombra
-    /// como quiere y `Catalogos.clave(deEtiqueta:)` sabe reconducirlas.
-    private static let otra = L.t("Otra…", "Other…")
-
-    init(folioSugerido: String, onGuardar: @escaping (MovimientoCaja) -> Void) {
-        self.folioSugerido = folioSugerido
-        self.onGuardar = onGuardar
-        _folio = State(initialValue: folioSugerido)
-    }
-
-    private var categoriaFinal: String {
-        categoria == Self.otra
-            ? otraCategoria.trimmingCharacters(in: .whitespacesAndNewlines)
-            : categoria
-    }
-    private var monto: Centavos? {
-        guard let c = Money.desdeTexto(importe), c > 0 else { return nil }
-        return c
-    }
-    private var puedeGuardar: Bool {
-        monto != nil && !categoriaFinal.isEmpty
-            && (!esCheque || !numeroCheque.trimmingCharacters(in: .whitespaces).isEmpty)
+    private var total: Centavos {
+        libres.filter { elegidos.contains($0.id) }.reduce(0) { $0 + $1.monto }
     }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                importeView.padding(.vertical, 16)
-                Form {
-                    Section {
-                        Picker(L.t("Categoría", "Category"), selection: $categoria) {
-                            ForEach(Catalogos.categoriasIngreso, id: \.self) { Text($0).tag($0) }
-                            Text(Self.otra).tag(Self.otra)
-                        }
-                        if categoria == Self.otra {
-                            TextField(L.t("Nombre de la categoría", "Category name"),
-                                      text: $otraCategoria)
-                        }
-                        TextField(L.t("Folio", "Folio"), text: $folio)
+            Group {
+                if libres.isEmpty {
+                    ContentUnavailableView(
+                        L.t("No queda dinero sin depositar", "Nothing left undeposited"),
+                        systemImage: "checkmark.circle",
+                        description: Text(L.t("Todos los ingresos registrados ya están en algún corte. Captura primero en Ingresos lo que falte.",
+                                              "Every recorded income is already in a cut. Record what's missing in Income first."))
+                    )
+                } else {
+                    List(libres) { m in
+                        fila(m)
                     }
-
-                    Section {
-                        // Efectivo o cheque decide en qué chip suma el dinero,
-                        // así que es un control propio y no una nota escrita
-                        // dentro de la hora, como estaba en la semilla.
-                        Picker(L.t("Forma", "Form"), selection: $esCheque) {
-                            Text(L.t("Efectivo", "Cash")).tag(false)
-                            Text(L.t("Cheque", "Check")).tag(true)
-                        }
-                        .pickerStyle(.segmented)
-                        if esCheque {
-                            TextField(L.t("Número de cheque", "Check number"), text: $numeroCheque)
-                                .keyboardType(.numberPad)
-                        }
-                        DatePicker(L.t("Cuándo entró", "Received"), selection: $fecha,
-                                   displayedComponents: .date)
-                    } footer: {
-                        Text(esCheque
-                             ? L.t("Los cheques se depositan con la misma ficha, pero suman aparte del efectivo.",
-                                   "Checks go on the same slip but total separately from cash.")
-                             : L.t("El efectivo se compara con lo que la iglesia estima tener en caja.",
-                                   "Cash is checked against what the church estimates is on hand."))
-                    }
+                    .listStyle(.plain)
                 }
             }
-            .navigationTitle(L.t("Dinero en caja", "Cash entry"))
+            .navigationTitle(L.t("Dinero sin depositar", "Undeposited money"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L.t("Agregar", "Add")) {
-                        guard let monto else { return }
-                        onGuardar(MovimientoCaja(
-                            id: 0,   // lo asigna el corte
-                            categoria: categoriaFinal,
-                            folio: folio.trimmingCharacters(in: .whitespaces),
-                            cuando: DepositosViewModel.textoFecha(fecha),
-                            monto: monto,
-                            seleccionado: true,
-                            esCheque: esCheque,
-                            numeroCheque: esCheque
-                                ? numeroCheque.trimmingCharacters(in: .whitespaces) : nil))
+                    Button(etiquetaAgregar) {
+                        onAgregar(Array(elegidos))
                         dismiss()
                     }
                     .fontWeight(.semibold).tint(Paleta.brand)
-                    .disabled(!puedeGuardar)
+                    .disabled(elegidos.isEmpty)
                 }
             }
-            .onAppear { importeEnfocado = true }
         }
         .hojaGrande()
     }
 
-    private var importeView: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 2) {
-            Text(Money.moneda.simbolo)
-                .font(.system(size: 28, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
-            TextField("0.00", text: $importe)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.center)
-                .font(.system(size: 44, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .fixedSize()
-                .focused($importeEnfocado)
+    /// Dice cuánto se va a sumar, no solo cuántos: el tesorero está cuadrando
+    /// contra un fajo de billetes.
+    private var etiquetaAgregar: String {
+        elegidos.isEmpty
+            ? L.t("Agregar", "Add")
+            : L.t("Agregar \(Money.fmt(total))", "Add \(Money.fmt(total))")
+    }
+
+    private func fila(_ m: Movimiento) -> some View {
+        let elegido = elegidos.contains(m.id)
+        return Button {
+            if elegido { elegidos.remove(m.id) } else { elegidos.insert(m.id) }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: elegido ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(elegido ? Paleta.brand : .secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(m.titular).font(.subheadline.weight(.medium)).lineLimit(1)
+                    Text(L.t("Folio \(m.folio) · \(m.metodo)", "Folio \(m.folio) · \(m.metodo)"))
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                Text(Money.fmt(m.monto)).font(.subheadline.weight(.semibold)).monospacedDigit()
+            }
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity)
+        .buttonStyle(.plain)
     }
 }
