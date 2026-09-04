@@ -9,6 +9,7 @@ struct MovimientosView: View {
     @State private var abierto: Movimiento?
     @State private var hoja: HojaMov?
     @State private var mostrarFiltros = false
+    @State private var detentFiltros: PresentationDetent = .medium
     /// Movimiento cuya eliminación espera confirmación. Borrar un registro
     /// financiero es más grave que marcar un corte, que ya la pide.
     @State private var movimientoAEliminar: Movimiento?
@@ -86,6 +87,11 @@ struct MovimientosView: View {
                 }
             }
             .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
+            // El tamaño inicial se decide AL ABRIR y no en la declaración del
+            // `@State`, que no puede leer el ViewModel.
+            .onChange(of: mostrarFiltros) { _, abierta in
+                if abierta { detentFiltros = filasFiltros > Self.filasEnMedium ? .large : .medium }
+            }
             .onChange(of: nav.seccion) { _, seccion in sincronizarConSidebar(seccion) }
             .task { await vm.cargar() }
             .overlay(alignment: .top) { avisoError }
@@ -592,28 +598,77 @@ struct MovimientosView: View {
                     }
                 }
             }
-            .listStyle(.insetGrouped)
+            // **`.inset` y no `.insetGrouped`.** La hoja YA es una superficie:
+            // con el estilo agrupado, cada sección traía además su propia
+            // tarjeta con fondo y esquinas DENTRO de ella, y sobre el material
+            // translúcido eso se leía como papel encima de papel. `.inset`
+            // conserva los márgenes y los separadores, y deja que la superficie
+            // la ponga la hoja, que es de quien es.
+            .listStyle(.inset)
             .navigationTitle(compacto ? L.t("Periodo y filtros", "Period & filters")
                                       : L.t("Filtros", "Filters"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // **Los dos botones no pueden pesar igual.** Eran texto plano
+                // con el mismo verde: uno destruye y el otro confirma, y a
+                // igual peso la mano va al que está más cerca. "Listo" es la
+                // acción principal y va en glass prominente; "Limpiar",
+                // secundaria, en glass y sin el verde de marca.
                 ToolbarItem(placement: .topBarLeading) {
                     Button(L.t("Limpiar", "Clear")) {
                         vm.filtroCategoria = nil
                         vm.soloSinDepositar = false
                         vm.soloPendientes = false
                     }
-                    .foregroundStyle(Paleta.brand)
+                    // Sin `buttonStyle`: el sistema ya le pone su cápsula, y
+                    // forzarle `.glass` la ensancha hasta salirse del borde —se
+                    // leía "le" en vez de "Clear"—. Lo que sí pierde es el
+                    // verde de marca: el verde es de la acción que confirma.
                     .disabled(filtrosActivos == 0)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(L.t("Listo", "Done")) { mostrarFiltros = false }
                         .fontWeight(.semibold)
-                        .foregroundStyle(Paleta.brand)
+                        .buttonStyle(.glassProminent)
+                        .tint(Paleta.brand)
                 }
             }
         }
-        .presentationDetents([.medium])
+        // **Dos detents, no uno.** Con uno solo la lista se cortaba a media
+        // altura y no había a dónde arrastrar: la última categoría era
+        // inalcanzable. Y arranca en el tamaño que pide su propio contenido —
+        // ahora la hoja lleva también el periodo—, en vez de en `.medium`
+        // siempre.
+        .presentationDetents([.medium, .large], selection: $detentFiltros)
+        .presentationDragIndicator(.visible)
+        // **El material más opaco, y sigue siendo nativo.** Con el de por
+        // omisión se leían a través de la hoja los montos y los badges de la
+        // lista: el sistema desenfoca el fondo, pero no le baja el contraste, y
+        // sobre manchas verdes y naranjas el texto de las opciones competía con
+        // lo de detrás. `.thickMaterial` mantiene la profundidad sin dejar leer.
+        .presentationBackground(.thickMaterial)
+        // El tamaño se decide también aquí: al abrir la hoja con `mostrarFiltros`
+        // ya en `true` —el primer arranque— el `onChange` no llega a disparar.
+        .onAppear { ajustarDetent() }
+        // Las categorías salen de los movimientos, así que pueden llegar
+        // después de abrirse la hoja: sin esto, abrir antes de que cargue la
+        // lista dejaría la hoja pequeña con nueve categorías dentro.
+        .onChange(of: vm.categoriasChip.count) { _, _ in ajustarDetent() }
+    }
+
+    /// Cuántas filas caben en `.medium` antes de que la lista se corte, medido
+    /// en pantalla. Por encima de eso la hoja abre grande: que una hoja nazca
+    /// con contenido cortado es lo mismo que no tenerlo.
+    private static let filasEnMedium = 7
+
+    /// Las filas que va a dibujar la hoja: meses (+ "todos"), categorías y el
+    /// interruptor de estado.
+    private func ajustarDetent() {
+        detentFiltros = filasFiltros > Self.filasEnMedium ? .large : .medium
+    }
+
+    private var filasFiltros: Int {
+        (compacto ? vm.mesesDisponibles.count + 1 : 0) + vm.categoriasChip.count + 1
     }
 
     /// El selector de mes, **con el mes escrito y su chevron**. El chevron es
