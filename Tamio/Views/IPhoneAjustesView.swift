@@ -930,9 +930,22 @@ private struct AjustesPreferenciasView: View {
 
 // MARK: - Zona de riesgo
 
+/// **La zona de riesgo, con el respaldo funcionando.**
+///
+/// "Respaldar ahora" estaba apagado y "Último respaldo" decía "Ninguno" para
+/// siempre, los dos justo debajo de un texto que asegura que un respaldo es lo
+/// único que puede devolver lo que se pierda.
 private struct AjustesZonaView: View {
     @State private var confirmarBorrar = false
     @State private var confirmarReinicio = false
+    @State private var trabajando = false
+    @State private var paquete: URL?
+    @State private var csvMovimientos: URL?
+    @State private var csvAportantes: URL?
+    @State private var error: String?
+    /// Se lee al aparecer y se refresca al terminar: `Respaldo.ultimo` vive en
+    /// `UserDefaults` y no es observable.
+    @State private var ultimo = Respaldo.ultimoLegible
 
     var body: some View {
         List {
@@ -940,34 +953,52 @@ private struct AjustesZonaView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(L.t("Antes de tocar nada", "Before touching anything"))
                         .font(.subheadline.weight(.semibold))
-                    Text(L.t("Un respaldo tarda unos segundos y es lo único que puede devolver lo que se pierda. Todavía no has hecho ninguno desde este aparato.",
-                             "A backup takes seconds and is the only way to recover lost data. You haven't made one from this device yet."))
+                    Text(avisoPrevio)
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
-                Button { } label: {
-                    Text(L.t("Respaldar ahora", "Backup now")).font(.subheadline).foregroundStyle(Paleta.brand)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    Task { await respaldar() }
+                } label: {
+                    HStack {
+                        Text(trabajando
+                             ? L.t("Preparando…", "Preparing…")
+                             : L.t("Respaldar ahora", "Backup now"))
+                            .font(.subheadline).foregroundStyle(Paleta.brand)
+                        Spacer()
+                        if trabajando { ProgressView() }
+                    }
                 }
-                .disabled(true).opacity(0.4)
+                .disabled(trabajando)
+            } footer: {
+                if let error {
+                    Text(error).foregroundStyle(Paleta.negativo)
+                }
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
                 HStack {
-                    Text(L.t("Último respaldo", "Last backup")).font(.subheadline)
+                    // "Preparado" y no "guardado": la app arma el paquete y lo
+                    // ofrece, pero el sistema no le dice si quien compartió
+                    // llegó a elegir dónde ponerlo o cerró la hoja.
+                    Text(L.t("Último respaldo preparado", "Last backup prepared")).font(.subheadline)
                     Spacer()
-                    Text(L.t("Ninguno", "None")).font(.subheadline).foregroundStyle(.secondary)
+                    Text(ultimo).font(.subheadline).foregroundStyle(.secondary)
                 }
-                HStack {
-                    Text(L.t("Exportar a un archivo", "Export to a file")).font(.subheadline).foregroundStyle(.secondary)
-                    Spacer()
+                Button { Task { await exportar(.movimientos) } } label: {
+                    filaExportar(L.t("Exportar movimientos (CSV)", "Export transactions (CSV)"))
                 }
+                .disabled(trabajando)
+                Button { Task { await exportar(.aportantes) } } label: {
+                    filaExportar(L.t("Exportar aportantes (CSV)", "Export contributors (CSV)"))
+                }
+                .disabled(trabajando)
             } header: {
                 Text(L.t("Respaldos", "Backups")).textCase(nil)
             } footer: {
-                Text(L.t("El respaldo completo se puede guardar fuera del teléfono y sirve para restaurar en otro aparato.",
-                         "The full backup can be saved off-device and used to restore on another device."))
+                Text(L.t("El respaldo lleva la base entera y los recibos del banco, y se guarda donde tú elijas: Archivos, iCloud o cualquier app. Los CSV son para abrirlos en una hoja de cálculo.",
+                         "The backup includes the whole database and bank receipts, and is saved wherever you choose: Files, iCloud, or any app. The CSVs are for opening in a spreadsheet."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
@@ -988,7 +1019,12 @@ private struct AjustesZonaView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(L.t("Restaurar un respaldo", "Restore a backup")).font(.subheadline.weight(.medium))
+                    HStack {
+                        Text(L.t("Restaurar un respaldo", "Restore a backup")).font(.subheadline.weight(.medium))
+                        Spacer()
+                        Text(L.t("Próximamente", "Coming soon"))
+                            .font(.subheadline).foregroundStyle(.tertiary)
+                    }
                     Text(L.t("Reemplaza todo lo capturado después de la fecha del respaldo.",
                              "Replaces everything captured after the backup date."))
                         .font(.caption).foregroundStyle(.secondary)
@@ -1031,8 +1067,8 @@ private struct AjustesZonaView: View {
                 .buttonStyle(.plain)
                 .disabled(true).opacity(0.4)
             } footer: {
-                Text(L.t("Solo un administrador puede borrar, y hay que escribir el nombre de la iglesia para confirmar.",
-                         "Only an administrator can delete, and the church name must be typed to confirm."))
+                Text(L.t("Borrar y reiniciar se encienden cuando exista la restauración: hoy no habría a dónde volver.",
+                         "Delete and reset will be enabled once restore exists: today there would be nothing to go back to."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
@@ -1044,19 +1080,70 @@ private struct AjustesZonaView: View {
                 .font(.caption2).foregroundStyle(.quaternary)
                 .frame(maxWidth: .infinity).padding(.bottom, 8)
         }
-        .confirmationDialog(L.t("Borrar todos los registros", "Delete all records"),
-                            isPresented: $confirmarBorrar, titleVisibility: .visible) {
-            Button(role: .destructive) { } label: { Text(L.t("Sí, borrar todo", "Yes, delete all")) }
-            Button(role: .cancel) { } label: { Text(L.t("Cancelar", "Cancel")) }
-        } message: {
-            Text(L.t("Esta acción no se puede deshacer.", "This action cannot be undone."))
+        // Una hoja por archivo: `ShareLink` necesita el item al construirse y
+        // aquí no existe hasta que el trabajo termina.
+        .sheet(item: $paquete) { CompartirArchivo(url: $0) }
+        .sheet(item: $csvMovimientos) { CompartirArchivo(url: $0) }
+        .sheet(item: $csvAportantes) { CompartirArchivo(url: $0) }
+    }
+
+    private var avisoPrevio: String {
+        Respaldo.ultimo == nil
+            ? L.t("Un respaldo tarda unos segundos y es lo único que puede devolver lo que se pierda. Todavía no has hecho ninguno desde este aparato.",
+                  "A backup takes seconds and is the only way to recover lost data. You haven't made one from this device yet.")
+            : L.t("Un respaldo tarda unos segundos y es lo único que puede devolver lo que se pierda.",
+                  "A backup takes seconds and is the only way to recover lost data.")
+    }
+
+    private func filaExportar(_ titulo: String) -> some View {
+        HStack {
+            Text(titulo).font(.subheadline).foregroundStyle(Paleta.brand)
+            Spacer()
+            Image(systemName: "square.and.arrow.up")
+                .font(.subheadline).foregroundStyle(Paleta.brand)
         }
-        .confirmationDialog(L.t("Reinicio de fábrica", "Factory reset"),
-                            isPresented: $confirmarReinicio, titleVisibility: .visible) {
-            Button(role: .destructive) { } label: { Text(L.t("Sí, reiniciar", "Yes, reset")) }
-            Button(role: .cancel) { } label: { Text(L.t("Cancelar", "Cancel")) }
-        } message: {
-            Text(L.t("Esta acción no se puede deshacer.", "This action cannot be undone."))
+    }
+
+    private enum Exportacion { case movimientos, aportantes }
+
+    private func respaldar() async {
+        trabajando = true
+        error = nil
+        do {
+            let url = try await Respaldo.crear()
+            Respaldo.anotarHecho()
+            ultimo = Respaldo.ultimoLegible
+            paquete = url
+        } catch {
+            self.error = error.localizedDescription
         }
+        trabajando = false
+    }
+
+    private func exportar(_ que: Exportacion) async {
+        trabajando = true
+        error = nil
+        switch que {
+        case .movimientos:
+            let repo = repositorioMovimientos()
+            let ingresos = (try? await repo.lista(tipo: .ingreso)) ?? []
+            let gastos = (try? await repo.lista(tipo: .gasto)) ?? []
+            let todos = ingresos + gastos
+            if todos.isEmpty {
+                error = L.t("No hay movimientos que exportar.", "There are no transactions to export.")
+            } else {
+                csvMovimientos = ExportadorMovimientos.csv(todos)
+            }
+        case .aportantes:
+            // `.todos`: un respaldo que se deja fuera las bajas no es un
+            // respaldo del padrón, es una foto de los activos de hoy.
+            let lista = (try? await repositorioMiembros().lista(filtro: .todos)) ?? []
+            if lista.isEmpty {
+                error = L.t("No hay aportantes que exportar.", "There are no contributors to export.")
+            } else {
+                csvAportantes = ExportadorAportantes.aportantes(lista)
+            }
+        }
+        trabajando = false
     }
 }

@@ -1229,13 +1229,15 @@ private struct SeccionPreferencias: View {
 
 // MARK: - Zona de riesgo
 
+/// **La zona de riesgo del iPad, con el respaldo funcionando.** Ver la del
+/// teléfono: es el mismo trabajo y las mismas decisiones.
 private struct SeccionZona: View {
-    /// No es `@State`: no hay nada que lo cambie todavía. Lo era, y el botón
-    /// "Respaldar ahora" se limitaba a escribir "Hoy 9:41" en esta línea sin
-    /// respaldar nada — la pantalla se daba por respaldada a sí misma. Un
-    /// botón apagado y una fila que dice "Ninguno" son la verdad hasta que el
-    /// respaldo exista de verdad.
-    private let ultimoRespaldo = L.t("Ninguno", "None")
+    @State private var trabajando = false
+    @State private var paquete: URL?
+    @State private var csvMovimientos: URL?
+    @State private var csvAportantes: URL?
+    @State private var error: String?
+    @State private var ultimo = Respaldo.ultimoLegible
 
     var body: some View {
         ScrollView {
@@ -1243,39 +1245,51 @@ private struct SeccionZona: View {
                 HeroCard(seccion: .zona)
 
                 // Advertencia + respaldar
-                GrupoConf {
+                GrupoConf(nota: error) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L.t("Antes de tocar nada", "Before doing anything"))
                             .font(.system(size: 17, weight: .bold))
-                        Text(L.t("Un respaldo tarda unos segundos y es lo único que puede devolver lo que se pierda. Todavía no has hecho ninguno desde este aparato.",
-                                 "A backup takes a few seconds and is the only thing that can restore lost data. You haven't made one from this device yet."))
+                        Text(Respaldo.ultimo == nil
+                             ? L.t("Un respaldo tarda unos segundos y es lo único que puede devolver lo que se pierda. Todavía no has hecho ninguno desde este aparato.",
+                                   "A backup takes a few seconds and is the only thing that can restore lost data. You haven't made one from this device yet.")
+                             : L.t("Un respaldo tarda unos segundos y es lo único que puede devolver lo que se pierda.",
+                                   "A backup takes a few seconds and is the only thing that can restore lost data."))
                             .font(.system(size: 14.5)).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, Esp.pantalla).padding(.vertical, 18)
                     Divider()
-                    Button { } label: {
-                        Text(L.t("Respaldar ahora", "Backup now"))
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(Paleta.brand)
-                            .frame(maxWidth: .infinity).frame(minHeight: 54)
+                    Button { Task { await respaldar() } } label: {
+                        HStack(spacing: 8) {
+                            Text(trabajando
+                                 ? L.t("Preparando…", "Preparing…")
+                                 : L.t("Respaldar ahora", "Backup now"))
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(trabajando ? .secondary : Paleta.brand)
+                            if trabajando { ProgressView() }
+                        }
+                        .frame(maxWidth: .infinity).frame(minHeight: 54)
                     }
                     .buttonStyle(.plain)
-                    .disabled(true).opacity(0.4)
+                    .disabled(trabajando)
                 }
 
                 // Respaldos
                 GrupoConf(titulo: L.t("RESPALDOS", "BACKUPS"),
-                          nota: L.t("El respaldo completo se puede guardar fuera del teléfono y sirve para restaurar en otro aparato.",
-                                    "The full backup can be saved outside the device and used to restore on another device.")) {
-                    FilaConf(label: L.t("Último respaldo", "Last backup"), valor: ultimoRespaldo)
+                          nota: L.t("El respaldo lleva la base entera y los recibos del banco, y se guarda donde tú elijas: Archivos, iCloud o cualquier app. Los CSV son para abrirlos en una hoja de cálculo.",
+                                    "The backup includes the whole database and bank receipts, and is saved wherever you choose: Files, iCloud, or any app. The CSVs are for opening in a spreadsheet.")) {
+                    // "Preparado" y no "guardado": el sistema no le dice a la
+                    // app si quien compartió llegó a elegir dónde ponerlo.
+                    FilaConf(label: L.t("Último respaldo preparado", "Last backup prepared"),
+                             valor: ultimo)
                     Divider()
-                    // Sin chevron ni acción: el chevron prometía una pantalla
-                    // que no existe, y el `accion: {}` hacía que la fila se
-                    // hundiera al tocarla sin llevar a ningún sitio.
-                    FilaConf(label: L.t("Exportar a un archivo", "Export to a file"),
-                             valor: L.t("Próximamente", "Coming soon"),
-                             valorColor: Color(.tertiaryLabel))
+                    FilaConf(label: L.t("Exportar movimientos (CSV)", "Export transactions (CSV)"),
+                             valorColor: Paleta.brand, chevron: true,
+                             accion: { Task { await exportar(.movimientos) } })
+                    Divider()
+                    FilaConf(label: L.t("Exportar aportantes (CSV)", "Export contributors (CSV)"),
+                             valorColor: Paleta.brand, chevron: true,
+                             accion: { Task { await exportar(.aportantes) } })
                 }
 
                 // Mantenimiento
@@ -1294,9 +1308,6 @@ private struct SeccionZona: View {
 
                 // Restaurar
                 GrupoConf {
-                    // Texto y no botón: restaurar todavía no existe, y un
-                    // botón con chevron sobre "reemplaza todo lo capturado"
-                    // invita a pulsar lo más caro de la pantalla para nada.
                     HStack(spacing: 14) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(L.t("Restaurar un respaldo", "Restore a backup"))
@@ -1315,28 +1326,18 @@ private struct SeccionZona: View {
 
                 // Borrar datos
                 GrupoConf {
-                    // Apagado como en el teléfono: era un botón rojo con la
-                    // acción vacía y SIN confirmación, o sea el único de la
-                    // zona de riesgo que no preguntaba nada antes de no hacer
-                    // nada. Se enciende cuando haya respaldo al que volver.
                     Button(role: .destructive) { } label: {
                         HStack {
                             Text(L.t("Borrar datos de este iPad", "Erase data from this iPad"))
                                 .font(.system(size: 16)).foregroundStyle(Paleta.negativo)
                             Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption2).foregroundStyle(.tertiary)
                         }
                         .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
                     }
                     .buttonStyle(.plain)
                     .disabled(true).opacity(0.4)
-                    // Decía "no afecta el respaldo en iCloud". No hay respaldo
-                    // en iCloud: lo que devuelve los datos es el servidor de la
-                    // iglesia, y prometer una red de seguridad que no existe es
-                    // justo lo que no puede hacer un texto de la zona de riesgo.
-                    Text(L.t("Borra solo la copia de este aparato. Lo que ya se sincronizó sigue en el servidor de la iglesia y vuelve a bajar al entrar de nuevo.",
-                             "Erases only this device's copy. Anything already synced stays on the church server and downloads again on next sign-in."))
+                    Text(L.t("Se enciende cuando exista la restauración: hoy no habría a dónde volver. Borra solo la copia de este aparato; lo que ya se sincronizó sigue en el servidor de la iglesia.",
+                             "Enabled once restore exists: today there would be nothing to go back to. It erases only this device's copy; anything already synced stays on the church server."))
                         .font(.system(size: 12.5)).foregroundStyle(.tertiary)
                         .padding(.horizontal, Esp.pantalla).padding(.bottom, 14)
                 }
@@ -1346,5 +1347,50 @@ private struct SeccionZona: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .sheet(item: $paquete) { CompartirArchivo(url: $0) }
+        .sheet(item: $csvMovimientos) { CompartirArchivo(url: $0) }
+        .sheet(item: $csvAportantes) { CompartirArchivo(url: $0) }
+    }
+
+    private enum Exportacion { case movimientos, aportantes }
+
+    private func respaldar() async {
+        trabajando = true
+        error = nil
+        do {
+            let url = try await Respaldo.crear()
+            Respaldo.anotarHecho()
+            ultimo = Respaldo.ultimoLegible
+            paquete = url
+        } catch {
+            self.error = error.localizedDescription
+        }
+        trabajando = false
+    }
+
+    private func exportar(_ que: Exportacion) async {
+        trabajando = true
+        error = nil
+        switch que {
+        case .movimientos:
+            let repo = repositorioMovimientos()
+            let todos = ((try? await repo.lista(tipo: .ingreso)) ?? [])
+                + ((try? await repo.lista(tipo: .gasto)) ?? [])
+            if todos.isEmpty {
+                error = L.t("No hay movimientos que exportar.", "There are no transactions to export.")
+            } else {
+                csvMovimientos = ExportadorMovimientos.csv(todos)
+            }
+        case .aportantes:
+            // `.todos`: un respaldo sin las bajas no es el padrón, es una foto
+            // de los activos de hoy.
+            let lista = (try? await repositorioMiembros().lista(filtro: .todos)) ?? []
+            if lista.isEmpty {
+                error = L.t("No hay aportantes que exportar.", "There are no contributors to export.")
+            } else {
+                csvAportantes = ExportadorAportantes.aportantes(lista)
+            }
+        }
+        trabajando = false
     }
 }
