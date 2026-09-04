@@ -7,6 +7,12 @@ struct ActasView: View {
     @State private var mostrarFirmas = false
     @State private var mostrarCerrarAlert = false
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// El membrete sale de Ajustes, no de esta vista. El nombre iba escrito a
+    /// mano aquí y en otros nueve sitios, con DOS valores distintos —"Iglesia
+    /// Getsemaní" y "Iglesia Nueva Vida"—, así que los documentos y la sidebar
+    /// nombraban iglesias diferentes.
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    private var iglesia: ConfiguracionIglesia { cfg.config }
 
     var body: some View {
         GeometryReader { geo in
@@ -44,7 +50,7 @@ struct ActasView: View {
                 }
             }
         }
-        .task { await vm.cargar() }
+        .task { await vm.cargar(); await cfg.cargar() }
         .sheet(isPresented: $mostrarNueva) {
             NuevaActaSheet(proximoId: vm.proximoId) { vm.agregarActa($0) }
         }
@@ -162,7 +168,8 @@ struct ActasView: View {
                             Text(L.t("ACTA DE REUNIÓN DEL CONSEJO", "COUNCIL MEETING MINUTES"))
                                 .font(.subheadline.weight(.bold))
                                 .multilineTextAlignment(.center)
-                            Text(L.t("Iglesia Getsemaní · Acta \(acta.folio)", "Iglesia Getsemaní · Minutes \(acta.folio)"))
+                            Text(L.t("\(iglesia.nombre) · Acta \(acta.folio)",
+                                     "\(iglesia.nombre) · Minutes \(acta.folio)"))
                                 .font(.caption).foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                         }
@@ -206,7 +213,7 @@ struct ActasView: View {
                     }
                 }
             }
-            .padding(20)
+            .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -673,7 +680,7 @@ private struct FirmasSheet: View {
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
                 }
-                .padding(20)
+                .padding(Esp.panel)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle(L.t("Recopilar firmas", "Collect signatures"))

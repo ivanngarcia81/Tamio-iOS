@@ -260,7 +260,7 @@ struct DashboardView: View {
             DeltaBadge(pct: d.deltaSaldo, sufijo: vm.periodoAnteriorLegible)
             TramosInlineChart(tramos: d.tramos)
         }
-        .padding(16)
+        .padding(Esp.tarjeta)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -304,7 +304,7 @@ struct DashboardView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
-            .padding(14)
+            .padding(Esp.tarjeta)
             .background(Color(.secondarySystemGroupedBackground),
                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)

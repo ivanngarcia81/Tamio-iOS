@@ -13,15 +13,18 @@ enum EstadoMiembro {
         case .recibido: return L.t("Recibido", "Received")
         }
     }
-    var color: Color {
+    /// Nuevo y Recibido son cómo entró la persona al padrón, no algo que
+    /// hacer: informativos. Un traslado en curso sí pide la carta.
+    var estadoVisual: Paleta.Estado {
         switch self {
-        case .activo: return Paleta.brand
-        case .nuevo: return Color(hex: 0x3B82F6)
-        case .traslado: return Paleta.aviso
-        case .baja: return Color(hex: 0x64748B)
-        case .recibido: return Color(hex: 0x06B6D4)
+        case .activo:   return .correcto
+        case .nuevo:    return .informativo
+        case .recibido: return .informativo
+        case .traslado: return .pendiente
+        case .baja:     return .terminal
         }
     }
+    var color: Color { estadoVisual.color }
 }
 
 /// Un punto de la gráfica de asistencia del miembro (un mes).

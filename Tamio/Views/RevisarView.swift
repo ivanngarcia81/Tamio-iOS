@@ -188,7 +188,7 @@ struct RevisarView: View {
                     Spacer()
                     Text(L.t("\(vm.archivadosCount) archivados", "\(vm.archivadosCount) archived"))
                 }
-                .font(.caption2).foregroundStyle(.tertiary).padding(16)
+                .font(.caption2).foregroundStyle(.tertiary).padding(Esp.tarjeta)
             }
         }
         .colchonInferior()
@@ -282,7 +282,7 @@ struct RevisarView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
         }
         .colchonInferior()
         .background(Color(.systemGroupedBackground))
@@ -376,7 +376,7 @@ struct RevisarView: View {
                          "One entry can show up twice: they're two different things to review."))
                     .font(.caption).foregroundStyle(.secondary)
             }
-            .padding(24)
+            .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -388,7 +388,7 @@ struct RevisarView: View {
                 .foregroundStyle(colorNum).monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(Esp.tarjeta)
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(alignment: .top) { RoundedRectangle(cornerRadius: 2).fill(acento).frame(height: 3).padding(.horizontal, Esp.chip) }

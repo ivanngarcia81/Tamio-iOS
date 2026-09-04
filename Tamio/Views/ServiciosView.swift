@@ -222,7 +222,7 @@ struct ServiciosView: View {
                     }
                 }
             }
-            .padding(20)
+            .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -781,7 +781,7 @@ private struct TomarAsistenciaSheet: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(Esp.panel)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle(L.t("Tomar asistencia", "Take attendance"))

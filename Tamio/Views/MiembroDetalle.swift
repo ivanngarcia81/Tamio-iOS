@@ -34,7 +34,7 @@ struct MiembroDetalle: View {
                     VStack(spacing: 16) { columnaIzquierda; columnaDerecha }
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
         }
         .colchonInferior()
         .background(Color(.systemGroupedBackground))

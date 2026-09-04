@@ -90,7 +90,7 @@ struct AgendaView: View {
     private var navMes: some View {
         HStack(spacing: 0) {
             Button { vm.irAlMesAnterior() } label: {
-                Image(systemName: "chevron.left").padding(8)
+                Image(systemName: "chevron.left").padding(Esp.hueco)
             }
             .foregroundStyle(.secondary)
 
@@ -108,7 +108,7 @@ struct AgendaView: View {
             }
 
             Button { vm.irAlMesSiguiente() } label: {
-                Image(systemName: "chevron.right").padding(8)
+                Image(systemName: "chevron.right").padding(Esp.hueco)
             }
             .foregroundStyle(.secondary)
         }
@@ -341,7 +341,7 @@ struct AgendaView: View {
                     ForEach(evs) { ev in tarjetaEvento(ev) }
                 }
             }
-            .padding(20)
+            .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -380,7 +380,7 @@ struct AgendaView: View {
                 }
             }
         }
-        .padding(14)
+        .padding(Esp.tarjeta)
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(

@@ -49,8 +49,11 @@ struct OfflineMiembrosRepository: MiembrosRepository {
     }
 
     func crear(_ a: Aportante) async throws {
-        var nuevo = a
-        if nuevo.id.isEmpty { nuevo.id = UUID().uuidString }
+        var borrador = a
+        if borrador.id.isEmpty { borrador.id = UUID().uuidString }
+        // Copia inmutable antes del closure: capturar la `var` es un error en
+        // Swift 6, no solo un aviso.
+        let nuevo = borrador
         try await cola.write { db in
             try AportanteFila(nuevo).insert(db)
             try Self.encolar(db, id: nuevo.id, operacion: .crear)

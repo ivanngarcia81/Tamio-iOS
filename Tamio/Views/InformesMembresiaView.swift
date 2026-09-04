@@ -463,7 +463,7 @@ struct InformesMembresiaView: View {
                 }
             }
                 } // end else (general content)
-            .padding(20)
+            .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
         .animation(.spring(duration: 0.3), value: vm.periodoTipo)

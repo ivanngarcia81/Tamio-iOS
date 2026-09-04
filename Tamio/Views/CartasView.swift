@@ -7,6 +7,12 @@ struct CartasView: View {
     @State private var mostrarFirmaAlert = false
     @State private var panelAbierto = false
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// El membrete sale de Ajustes, no de esta vista. El nombre iba escrito a
+    /// mano aquí y en otros nueve sitios, con DOS valores distintos —"Iglesia
+    /// Getsemaní" y "Iglesia Nueva Vida"—, así que los documentos y la sidebar
+    /// nombraban iglesias diferentes.
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    private var iglesia: ConfiguracionIglesia { cfg.config }
 
     var body: some View {
         GeometryReader { geo in
@@ -40,7 +46,7 @@ struct CartasView: View {
                 }
             }
         }
-        .task { await vm.cargar() }
+        .task { await vm.cargar(); await cfg.cargar() }
         .sheet(isPresented: $mostrarNueva) {
             NuevaCartaSheet { datos in
                 vm.nuevaCarta(datos)
@@ -187,9 +193,9 @@ struct CartasView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         // Encabezado de la iglesia
                         VStack(alignment: .center, spacing: 3) {
-                            Text("Iglesia Getsemaní")
+                            Text(iglesia.nombre)
                                 .font(.subheadline.weight(.bold))
-                            Text("Monterrey, N.L.")
+                            Text(iglesia.ubicacionLegible)
                                 .font(.caption).foregroundStyle(.secondary)
                             Text("20 de agosto de 2026")
                                 .font(.caption).foregroundStyle(.secondary)
@@ -226,7 +232,7 @@ struct CartasView: View {
                     }
                 }
             }
-            .padding(20)
+            .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -597,6 +603,10 @@ private struct VistaPreviaSheet: View {
     let cuerpo: String
 
     @Environment(\.dismiss) private var dismiss
+    /// Mismo origen que la lista: el membrete no puede depender de por dónde
+    /// se haya abierto la carta.
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    private var iglesia: ConfiguracionIglesia { cfg.config }
 
     private let hoy: String = {
         let f = DateFormatter()
@@ -616,9 +626,9 @@ private struct VistaPreviaSheet: View {
 
                         // Encabezado de la iglesia
                         VStack(alignment: .center, spacing: 4) {
-                            Text("Iglesia Getsemaní")
+                            Text(iglesia.nombre)
                                 .font(.headline.weight(.bold))
-                            Text(L.t("Monterrey, Nuevo León · México", "Monterrey, Nuevo León · Mexico"))
+                            Text(iglesia.ubicacionLegible)
                                 .font(.caption).foregroundStyle(.secondary)
                             Text(hoy).font(.caption).foregroundStyle(.secondary)
                         }
@@ -648,7 +658,7 @@ private struct VistaPreviaSheet: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
-                    .padding(28)
+                    .padding(Esp.panel)
                     .background(.regularMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .shadow(color: .black.opacity(0.07), radius: 8, y: 3)
@@ -662,11 +672,12 @@ private struct VistaPreviaSheet: View {
                             .allowsHitTesting(false)
                     }
                 }
-                .padding(20)
+                .padding(Esp.panel)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle(L.t("Vista previa", "Preview"))
             .navigationBarTitleDisplayMode(.inline)
+            .task { await cfg.cargar() }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cerrar", "Close")) { dismiss() }

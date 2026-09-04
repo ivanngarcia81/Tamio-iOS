@@ -131,7 +131,7 @@ private struct HeroCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(22)
+        .padding(Esp.panel)
         .background(
             Color(.secondarySystemGroupedBackground),
             in: RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -429,7 +429,7 @@ private struct SeccionCuenta: View {
                             Image(systemName: "chevron.right")
                                 .font(.caption2).foregroundStyle(.tertiary)
                         }
-                        .padding(18)
+                        .padding(Esp.tarjeta)
                     }
                     .buttonStyle(.plain)
                 }
@@ -487,7 +487,7 @@ private struct SeccionCuenta: View {
                         .padding(.horizontal, Esp.hueco)
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -569,7 +569,7 @@ private struct SeccionIglesia: View {
                              chevron: true, accion: {})
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -607,7 +607,7 @@ private struct SeccionInstitucion: View {
                 // Preview membrete
                 GrupoConf {
                     VStack(spacing: 14) {
-                        Text(L.t("Iglesia Getsemaní", "Getsemani Church"))
+                        Text(ConfiguracionIglesiaViewModel.compartido.config.nombre)
                             .font(.system(size: 17, weight: .bold))
                             .foregroundStyle(Paleta.brand)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -672,7 +672,7 @@ private struct SeccionInstitucion: View {
                     .padding(.horizontal, Esp.pantalla)
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -756,7 +756,7 @@ private struct SeccionTesorero: View {
                     }
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -863,7 +863,7 @@ private struct SeccionAcceso: View {
                     .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -930,6 +930,9 @@ private struct SeccionCategorias: View {
                         .buttonStyle(.plain)
                     }
                 }
+                // 3 pt y no un valor de la escala: es el filete que separa las
+                // píldoras del borde del contenedor que las agrupa, como el de
+                // un segmentado del sistema. No es un rol de espaciado.
                 .padding(3)
                 .background(Color(.tertiarySystemFill),
                             in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -964,7 +967,7 @@ private struct SeccionCategorias: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -1079,7 +1082,7 @@ private struct SeccionPreferencias: View {
                     .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity, alignment: .center)
         }
@@ -1182,7 +1185,7 @@ private struct SeccionZona: View {
                         .padding(.horizontal, Esp.pantalla).padding(.bottom, 14)
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity, alignment: .center)
         }

@@ -142,6 +142,39 @@ enum Paleta {
         }
     }
 
+    /// **La regla de los badges.** Un badge dice en qué punto está algo, y su
+    /// color dice qué se espera de quien lo lee. Había cinco colores repartidos
+    /// sin regla —dos naranjas distintos (`Paleta.aviso` y #F97316), un azul,
+    /// un cian, un morado y un gris #64748B a mano—, así que el color no se
+    /// podía leer: "Borrador", "Sin depositar" y "Traslado" compartían naranja
+    /// por casualidad y no por significado.
+    ///
+    /// Cuatro roles y ninguno más. El de la izquierda es lo que se espera de
+    /// ti; el color, la consecuencia. `TipoChequeo` ya usaba tres de ellos con
+    /// estas mismas palabras: aquí quedan escritos para toda la app.
+    ///
+    /// No vale para los colores de CATEGORÍA (la dona, los tipos de evento de
+    /// la agenda): esos identifican, no califican.
+    enum Estado {
+        /// Correcto, hecho, al día.
+        case correcto
+        /// Pide una acción tuya. Es el único que reclama algo.
+        case pendiente
+        /// Dice algo que conviene saber, pero no hay nada que hacer.
+        case informativo
+        /// Terminal: se acabó, con o sin buen final.
+        case terminal
+
+        var color: Color {
+            switch self {
+            case .correcto:    return Paleta.brand
+            case .pendiente:   return Paleta.aviso
+            case .informativo: return Paleta.cian
+            case .terminal:    return Color(.secondaryLabel)
+            }
+        }
+    }
+
     /// Puntos de color de la agenda ("Esta semana"), por familia de actividad.
     static let agenda: [Color] = [morado, brand, naranja, cian]
 }

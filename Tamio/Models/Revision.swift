@@ -45,12 +45,11 @@ enum RevisionTipo: String, CaseIterable, Identifiable {
         }
     }
 
-    var color: Color {
-        switch self {
-        case .archivado: return .secondary
-        default: return Paleta.aviso
-        }
+    var estadoVisual: Paleta.Estado {
+        // Todo lo que está en la bandeja espera algo de ti; lo archivado ya no.
+        self == .archivado ? .terminal : .pendiente
     }
+    var color: Color { estadoVisual.color }
 }
 
 /// Qué hace un botón del detalle.

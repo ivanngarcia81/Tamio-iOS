@@ -41,7 +41,7 @@ struct MovimientoDetalle: View {
                 campos
                 auditYComprobante
             }
-            .padding(24)
+            .padding(Esp.panel)
         }
         .colchonInferior()
         .background(Color(.systemGroupedBackground))

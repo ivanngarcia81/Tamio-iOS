@@ -63,7 +63,7 @@ struct DocumentoAportanteView: View {
                     previa
                         .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
                 }
-                .padding(24)
+                .padding(Esp.panel)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle(tipo == .reporte
@@ -126,7 +126,7 @@ struct DocumentoAportanteView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
-        .padding(14)
+        .padding(Esp.tarjeta)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Paleta.avisoFill, in: RoundedRectangle(cornerRadius: 12))
     }

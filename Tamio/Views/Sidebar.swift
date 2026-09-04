@@ -62,6 +62,12 @@ private struct SidebarSectionTitle: View {
 /// iglesia, buscador, y las áreas de Tesorería y Secretaría con sus badges.
 struct Sidebar: View {
     @Binding var seleccion: String
+    /// El membrete sale de Ajustes, no de esta vista. El nombre iba escrito a
+    /// mano aquí y en otros nueve sitios, con DOS valores distintos —"Iglesia
+    /// Getsemaní" y "Iglesia Nueva Vida"—, así que los documentos y la sidebar
+    /// nombraban iglesias diferentes.
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    private var iglesia: ConfiguracionIglesia { cfg.config }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -86,6 +92,7 @@ struct Sidebar: View {
             piePagina
         }
         .background(.clear)
+        .task { await cfg.cargar() }
     }
 
     private func grupo(_ items: [(String, String, String, Int?, Bool)]) -> some View {
@@ -126,14 +133,14 @@ struct Sidebar: View {
 
     private var cabeceraIglesia: some View {
         HStack(spacing: 10) {
-            Text("IG")
+            Text(iglesia.iniciales)
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(.white)
                 .frame(width: 36, height: 36)
                 .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             VStack(alignment: .leading, spacing: 1) {
-                Text("Iglesia Getsemaní").font(.subheadline.weight(.semibold)).lineLimit(1)
-                Text("Monterrey, N.L.").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                Text(iglesia.nombre).font(.subheadline.weight(.semibold)).lineLimit(1)
+                Text(iglesia.ubicacionLegible).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 4)
             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)

@@ -16,17 +16,16 @@ enum EstadoActa {
         case .cerrada:             return L.t("Cerrada", "Closed")
         }
     }
-    var color: Color {
+    var estadoVisual: Paleta.Estado {
         switch self {
-        case .borrador:            return Paleta.aviso
-        case .pendienteAprobacion: return Color(hex: 0xF97316)
-        case .aprobada:            return Paleta.brand
-        case .enmendada:           return Color(hex: 0x7C3AED)
-        case .archivada:           return Color(.secondaryLabel)
-        case .firmada:             return Paleta.brand
-        case .cerrada:             return Color(.secondaryLabel)
+        // Las dos esperan algo de ti, y llevaban dos naranjas distintos.
+        case .borrador, .pendienteAprobacion: return .pendiente
+        case .aprobada, .firmada:             return .correcto
+        case .enmendada:                      return .informativo
+        case .archivada, .cerrada:            return .terminal
         }
     }
+    var color: Color { estadoVisual.color }
 }
 
 struct AcuerdoActa: Identifiable {
@@ -71,14 +70,14 @@ enum EstadoRoster {
         case .sinAsignar:  return L.t("sin asignar", "unassigned")
         }
     }
-    var color: Color {
+    var estadoVisual: Paleta.Estado {
         switch self {
-        case .completo:   return Paleta.brand
-        case .parcial:    return Paleta.aviso
-        case .faltaUjier: return Paleta.aviso
-        case .sinAsignar: return Color(.secondaryLabel)
+        case .completo:              return .correcto
+        case .parcial, .faltaUjier:  return .pendiente
+        case .sinAsignar:            return .terminal
         }
     }
+    var color: Color { estadoVisual.color }
 }
 
 struct AsignacionRoster: Identifiable {

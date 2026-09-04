@@ -18,6 +18,17 @@ enum Esp {
     static let tarjeta: CGFloat = 16
     /// Padding interior de una fila de lista.
     static let fila: CGFloat = 16
+    /// Margen interior de un panel de detalle: el contenido de un `ScrollView`
+    /// a pantalla completa o de la columna derecha del maestro-detalle. 16 se
+    /// queda corto ahí, así que es un rol propio y no un valor suelto — pero
+    /// era UNO, no dos: había veinte usos de 24 y nueve de 20 haciendo
+    /// exactamente lo mismo, más un 22 y un 28 sueltos.
+    static let panel: CGFloat = 24
+
+    /// Margen de una hoja impresa (los PDF de reporte y constancia). No es
+    /// espaciado de interfaz: es el margen del papel.
+    static let hoja: CGFloat = 40
+
     /// Padding interior de una píldora o chip.
     static let chip: CGFloat = 12
     /// Separación entre elementos hermanos.

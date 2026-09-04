@@ -37,7 +37,7 @@ struct CorteDetalle: View {
                     }
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
         }
         .colchonInferior()
         .safeAreaInset(edge: .bottom) { barraDepositar }

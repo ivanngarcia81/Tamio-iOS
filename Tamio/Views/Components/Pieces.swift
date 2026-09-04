@@ -42,7 +42,7 @@ struct Tarjeta<Contenido: View>: View {
     @ViewBuilder let contenido: Contenido
     var body: some View {
         contenido
-            .padding(16)
+            .padding(Esp.tarjeta)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(.secondarySystemGroupedBackground),
                         in: RoundedRectangle(cornerRadius: 16, style: .continuous))

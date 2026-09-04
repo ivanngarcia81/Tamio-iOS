@@ -343,7 +343,9 @@ private struct AjustesInstitucionView: View {
     var body: some View {
         List {
             Section {
-                Text(nombreIglesia.isEmpty ? "Iglesia Nueva Vida" : nombreIglesia)
+                Text(nombreIglesia.isEmpty
+                     ? ConfiguracionIglesiaViewModel.compartido.config.nombre
+                     : nombreIglesia)
                     .font(.subheadline).foregroundStyle(.secondary)
             } footer: {
                 Text(L.t("Así se ve el membrete de los PDF con lo que hay escrito abajo.",

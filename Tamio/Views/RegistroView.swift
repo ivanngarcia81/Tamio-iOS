@@ -71,7 +71,7 @@ struct RegistroView: View {
                     Text(L.t("\(vm.visibles.count) apuntes", "\(vm.visibles.count) entries"))
                         .font(.caption).foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
+                        .padding(Esp.tarjeta)
                 }
             }
         }
@@ -196,7 +196,7 @@ struct RegistroView: View {
 
                 tarjetaCopias
             }
-            .padding(24)
+            .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -216,7 +216,7 @@ struct RegistroView: View {
                 tarjetaCopias
                 tarjetas
             }
-            .padding(24)
+            .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -253,7 +253,7 @@ struct RegistroView: View {
                 .foregroundStyle(colorNum).monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(Esp.tarjeta)
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(alignment: .top) {

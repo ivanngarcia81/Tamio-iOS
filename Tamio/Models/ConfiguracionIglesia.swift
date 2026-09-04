@@ -38,6 +38,14 @@ struct ConfiguracionIglesia: Equatable {
             .joined(separator: ", ")
     }
 
+    /// Dos letras para el cuadrito de la sidebar. Iba escrito "IG" a mano,
+    /// junto a un nombre también escrito a mano.
+    var iniciales: String {
+        let palabras = nombre.split(separator: " ").filter { $0.count > 2 }
+        let letras = palabras.prefix(2).compactMap { $0.first }
+        return letras.isEmpty ? "—" : String(letras).uppercased()
+    }
+
     /// Membrete completo. Si no hay nada configurado devuelve cadena vacía en
     /// vez de un nombre inventado: un documento sin membrete es un descuido,
     /// pero uno con el nombre de otra iglesia es un error.

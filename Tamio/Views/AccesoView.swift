@@ -58,7 +58,7 @@ struct AccesoView: View {
             .buttonStyle(.borderedProminent)
             .disabled(sesion.ocupada || correo.isEmpty || contrasena.isEmpty)
         }
-        .padding(24)
+        .padding(Esp.panel)
         .frame(maxWidth: 380)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))

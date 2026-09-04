@@ -31,9 +31,12 @@ struct OfflineMovimientosRepository: MovimientosRepository {
         let seq = try await siguienteFolioLocal(tipo: nuevo.tipo)
         nuevo.folio = String(seq)
 
+        // Copia inmutable antes del closure: capturar la `var` es un error en
+        // Swift 6, no solo un aviso.
+        let aInsertar = nuevo
         try await cola.write { db in
-            try MovimientoFila(nuevo, folioProvisional: true).insert(db)
-            try Self.encolar(db, id: nuevo.id, operacion: .crear)
+            try MovimientoFila(aInsertar, folioProvisional: true).insert(db)
+            try Self.encolar(db, id: aInsertar.id, operacion: .crear)
         }
     }
 
@@ -76,9 +79,12 @@ struct OfflineMovimientosRepository: MovimientosRepository {
     private func siguienteFolioLocal(tipo: TipoMovimiento) async throws -> Int {
         let tipoStr = tipo == .ingreso ? "ingreso" : "gasto"
         return try await cola.read { db in
+            // `fetchOne` ya devuelve `Int?`; el `?? 0` de la consulta lo dejaba
+            // en `Int`, así que el segundo `??` no se ejecutaba nunca. Sin
+            // tabla vacía se notaba poco, pero era el caso que pretendía cubrir.
             let maximo = try Int.fetchOne(db, sql: """
                 select max(folioSeq) from movimiento where tipo = ?
-                """, arguments: [tipoStr]) ?? 0
+                """, arguments: [tipoStr])
             return (maximo ?? 0) + 1
         }
     }

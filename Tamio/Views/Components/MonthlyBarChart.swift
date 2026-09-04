@@ -68,7 +68,7 @@ struct MonthlyBarChart: View {
             .chartLegend(.hidden)
             .frame(height: 200)
         }
-        .padding(16)
+        .padding(Esp.tarjeta)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 16, style: .continuous))

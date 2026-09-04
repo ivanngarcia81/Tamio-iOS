@@ -3,7 +3,7 @@ import Foundation
 @Observable
 final class AgendaViewModel {
     var eventos: [EventoAgenda] = []
-    var diaSeleccionado: Int = 20
+    var diaSeleccionado: Int
     var vistaActual = 0
     var cargando = false
     var mesActual: Date
@@ -11,12 +11,17 @@ final class AgendaViewModel {
     private let repo: AgendaRepository
     private let cal = Calendar.current
 
+    /// Abre en el mes real y en el día real. Arrancaba clavada en agosto de
+    /// 2026 "para coincidir con el handoff", así que en septiembre el botón
+    /// "Hoy" llevaba al pasado y el anillo de hoy no se dibujaba nunca: el
+    /// círculo verde del 20 que se veía era el estado *seleccionado*.
+    ///
+    /// La semilla no hace falta tocarla: sus eventos van por día del mes, no
+    /// por fecha, así que valen para el mes que sea.
     init(repo: AgendaRepository = MockAgendaRepository()) {
         self.repo = repo
-        // Inicia en agosto 2026 para que el mock coincida con el handoff
-        var comps = DateComponents()
-        comps.year = 2026; comps.month = 8; comps.day = 1
-        self.mesActual = Calendar.current.date(from: comps) ?? Date()
+        self.mesActual = Date()
+        self.diaSeleccionado = Calendar.current.component(.day, from: Date())
     }
 
     // MARK: - Calendar geometry
@@ -57,10 +62,11 @@ final class AgendaViewModel {
         return fmt.string(from: mesActual).capitalized
     }
 
-    /// Día del mes "hoy" si el mes actual coincide con el mes real. `nil` si no.
+    /// Día del mes "hoy" si el mes que se está viendo es el mes real. `nil` si
+    /// no, que es cuando no hay ningún día que anillar.
     var diaHoy: Int? {
         guard cal.isDate(mesActual, equalTo: Date(), toGranularity: .month) else { return nil }
-        return 20  // mock: "today" coincide con diaSeleccionado del handoff
+        return cal.component(.day, from: Date())
     }
 
     // MARK: - Navigation
@@ -76,10 +82,8 @@ final class AgendaViewModel {
     }
 
     func irAHoy() {
-        var comps = DateComponents()
-        comps.year = 2026; comps.month = 8; comps.day = 1
-        mesActual = cal.date(from: comps) ?? mesActual
-        diaSeleccionado = 20  // "hoy" en el mock del handoff
+        mesActual = Date()
+        diaSeleccionado = cal.component(.day, from: Date())
     }
 
     // MARK: - Events

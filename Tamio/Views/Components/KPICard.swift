@@ -31,7 +31,7 @@ struct KPICard<Pie: View>: View {
                 .minimumScaleFactor(0.75)
         }
         .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
-        .padding(14)
+        .padding(Esp.tarjeta)
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(

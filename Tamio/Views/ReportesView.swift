@@ -88,7 +88,7 @@ struct ReportesView: View {
                 tarjetas(e)
                 tablaMensual(e)
             }
-            .padding(24)
+            .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
         .sheet(isPresented: $mostrarPDF) { ReportePDFSheet(e: e, periodo: vm.periodoSel) }
@@ -168,7 +168,7 @@ struct ReportesView: View {
             else { Text(sub).font(.caption).foregroundStyle(.secondary) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
+        .padding(Esp.tarjeta)
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(alignment: .top) { RoundedRectangle(cornerRadius: 2).fill(color).frame(height: 3).padding(.horizontal, Esp.chip) }
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color(.separator), lineWidth: 0.75))

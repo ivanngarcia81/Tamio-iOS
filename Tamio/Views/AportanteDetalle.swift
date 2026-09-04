@@ -41,7 +41,7 @@ struct AportanteDetalle: View {
                     VStack(spacing: 16) { tarjetaIzquierda; tarjetaAportes }
                 }
             }
-            .padding(24)
+            .padding(Esp.panel)
         }
         .colchonInferior()
         .background(Color(.systemGroupedBackground))

@@ -417,7 +417,7 @@ private struct PanelAsistencia: View {
                 masConstantesSeccion
                 sinAsistirSeccion
             }
-            .padding(20)
+            .padding(Esp.panel)
         }
         .colchonInferior()
         .background(Color(.systemGroupedBackground))
