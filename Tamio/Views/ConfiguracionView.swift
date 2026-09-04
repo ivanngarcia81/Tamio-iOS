@@ -691,67 +691,51 @@ private struct SeccionInstitucion: View {
 
 // MARK: - Tesorero
 
+/// **Tesorero y pastor, ahora editables.**
+///
+/// La sección entera era texto FIJO: ni el nombre ni el cargo ni el correo ni
+/// el teléfono se podían tocar. Parecían campos —etiqueta arriba, valor gris
+/// debajo, como los de la sección de al lado, que sí lo son— y no lo eran, así
+/// que el iPad enseñaba una configuración que solo se podía cambiar desde el
+/// teléfono. El correo y el teléfono además no tenían dónde guardarse: sus
+/// columnas se crearon el 2026-09-04.
 private struct SeccionTesorero: View {
-    private struct Persona {
-        let titulo: String; let ejemplo: String; let cargo: String; let firma: String
-    }
-    private let personas = [
-        Persona(titulo: L.t("INFORMACIÓN DEL TESORERO", "TREASURER INFORMATION"),
-                ejemplo: L.t("p. ej. Juan Pérez", "e.g. Juan Pérez"),
-                cargo: L.t("Tesorero", "Treasurer"),
-                firma: L.t("Firma del tesorero", "Treasurer signature")),
-        Persona(titulo: L.t("INFORMACIÓN DEL PASTOR", "PASTOR INFORMATION"),
-                ejemplo: L.t("p. ej. Carlos Ramírez", "e.g. Carlos Ramírez"),
-                cargo: L.t("Pastor", "Pastor"),
-                firma: L.t("Firma del pastor", "Pastor signature")),
-    ]
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 HeroCard(seccion: .tesorero)
 
-                ForEach(Array(personas.enumerated()), id: \.offset) { _, p in
-                    GrupoConf(titulo: p.titulo,
-                              nota: L.t("Solo se aceptan imágenes PNG, idealmente con fondo transparente.",
-                                        "Only PNG images accepted, ideally with transparent background.")) {
-                        FilaConf(label: L.t("Nombre completo", "Full name"), valor: p.ejemplo, valorColor: Color(.tertiaryLabel))
-                        Divider()
-                        FilaConf(label: L.t("Cargo", "Title"), valor: p.cargo)
-                        Divider()
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(L.t("Correo electrónico (opcional)", "Email (optional)"))
-                                .font(.system(size: 13.5)).foregroundStyle(.secondary)
-                            Text("correo@ejemplo.com")
-                                .font(.system(size: 16)).foregroundStyle(.tertiary)
+                persona(titulo: L.t("INFORMACIÓN DEL TESORERO", "TREASURER INFORMATION"),
+                        firma: L.t("Firma del tesorero", "Treasurer signature"),
+                        cargos: Catalogos.Cargos.tesoreria,
+                        nombre: $cfg.config.tesoreroNombre,
+                        cargo: $cfg.config.tesoreroCargo,
+                        correo: $cfg.config.tesoreroCorreo,
+                        telefono: $cfg.config.tesoreroTelefono)
+
+                persona(titulo: L.t("INFORMACIÓN DEL PASTOR", "PASTOR INFORMATION"),
+                        firma: L.t("Firma del pastor", "Pastor signature"),
+                        cargos: Catalogos.Cargos.pastoral,
+                        nombre: $cfg.config.pastorNombre,
+                        cargo: $cfg.config.pastorCargo,
+                        correo: $cfg.config.pastorCorreo,
+                        telefono: $cfg.config.pastorTelefono)
+
+                GrupoConf {
+                    Toggle(isOn: $cfg.config.imprimirFirmas) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(L.t("Imprimir firmas en los PDF", "Print signatures on PDFs"))
+                                .font(.system(size: 16))
+                            Text(L.t("Si está apagado, los documentos salen con la línea en blanco para firmar a mano.",
+                                     "If off, documents print with a blank signature line to sign by hand."))
+                                .font(.system(size: 13)).foregroundStyle(.tertiary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, Esp.pantalla).padding(.vertical, 11)
-                        Divider()
-                        FilaConf(label: L.t("Teléfono (opcional)", "Phone (optional)"),
-                                 valor: L.t("Número de teléfono", "Phone number"),
-                                 valorColor: Color(.tertiaryLabel))
-                        Divider()
-                        // Firma
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(p.firma).font(.system(size: 15.5))
-                                // Gris y no ámbar: el ámbar avisaba de algo
-                                // que hay que resolver, y no hay forma de
-                                // resolverlo todavía.
-                                Text(L.t("Sin cargar", "Not uploaded"))
-                                    .font(.system(size: 13)).foregroundStyle(.tertiary)
-                            }
-                            Spacer()
-                            // Era un botón ámbar con borde punteado —el gesto
-                            // visual de "falta esto, tócame"— y la acción
-                            // vacía. No hay captura de firma en la app.
-                            Text(L.t("Próximamente", "Coming soon"))
-                                .font(.system(size: 15)).foregroundStyle(.tertiary)
-                        }
-                        .frame(minHeight: 64)
-                        .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
                     }
+                    .tint(Paleta.brand)
+                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
                 }
             }
             .padding(Esp.panel)
@@ -760,6 +744,57 @@ private struct SeccionTesorero: View {
         }
         .background(Color(.systemGroupedBackground))
         .scrollEdgeEffectStyle(.soft, for: .all)
+        .task { await cfg.cargar() }
+        .onDisappear { Task { await cfg.guardarYa() } }
+    }
+
+    private func persona(titulo: String, firma: String, cargos: [String],
+                         nombre: Binding<String>, cargo: Binding<String>,
+                         correo: Binding<String>, telefono: Binding<String>) -> some View {
+        // La nota ya no habla de PNG con fondo transparente: prometía una
+        // subida de imagen que no existe en ninguna parte de la app.
+        GrupoConf(titulo: titulo,
+                  nota: L.t("El correo y el teléfono son los de la persona, no los de la iglesia: esos van en Institución, que es lo que sale en el membrete.",
+                            "Email and phone here belong to the person, not the church: those go in Institution, which is what prints on the letterhead.")) {
+            FilaEditable(label: L.t("Nombre completo", "Full name"), texto: nombre)
+            Divider()
+            HStack {
+                Text(L.t("Cargo", "Title")).font(.system(size: 15.5)).foregroundStyle(.secondary)
+                Spacer()
+                // `conValorVigente`: un cargo guardado en el otro idioma no
+                // está entre las opciones y el Picker saldría en blanco.
+                Picker("", selection: cargo) {
+                    ForEach(Catalogos.conValorVigente(cargos, cargo.wrappedValue), id: \.self) {
+                        Text($0)
+                    }
+                }
+                .labelsHidden()
+            }
+            .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
+            Divider()
+            FilaEditable(label: L.t("Correo (opcional)", "Email (optional)"), texto: correo)
+                .textContentType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Divider()
+            FilaEditable(label: L.t("Teléfono (opcional)", "Phone (optional)"), texto: telefono)
+                .textContentType(.telephoneNumber)
+            Divider()
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(firma).font(.system(size: 15.5))
+                    // Gris y no ámbar: el ámbar avisaba de algo que hay que
+                    // resolver, y no hay forma de resolverlo todavía.
+                    Text(L.t("Sin cargar", "Not uploaded"))
+                        .font(.system(size: 13)).foregroundStyle(.tertiary)
+                }
+                Spacer()
+                Text(L.t("Próximamente", "Coming soon"))
+                    .font(.system(size: 15)).foregroundStyle(.tertiary)
+            }
+            .frame(minHeight: 64)
+            .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+        }
     }
 }
 

@@ -22,6 +22,10 @@ struct IglesiaFila: Codable, FetchableRecord, PersistableRecord {
     var pastorCargo: String
     var tesoreroNombre: String
     var tesoreroCargo: String
+    var tesoreroCorreo: String
+    var tesoreroTelefono: String
+    var pastorCorreo: String
+    var pastorTelefono: String
     var secretarioNombre: String
     var secretarioCargo: String
     var imprimirFirmas: Bool
@@ -50,6 +54,10 @@ struct IglesiaFila: Codable, FetchableRecord, PersistableRecord {
         pastorCargo = c.pastorCargo
         tesoreroNombre = c.tesoreroNombre
         tesoreroCargo = c.tesoreroCargo
+        tesoreroCorreo = c.tesoreroCorreo
+        tesoreroTelefono = c.tesoreroTelefono
+        pastorCorreo = c.pastorCorreo
+        pastorTelefono = c.pastorTelefono
         secretarioNombre = c.secretarioNombre
         secretarioCargo = c.secretarioCargo
         imprimirFirmas = c.imprimirFirmas
@@ -70,6 +78,8 @@ struct IglesiaFila: Codable, FetchableRecord, PersistableRecord {
             saldoInicial: saldoInicial,
             pastorNombre: pastorNombre, pastorCargo: pastorCargo,
             tesoreroNombre: tesoreroNombre, tesoreroCargo: tesoreroCargo,
+            tesoreroCorreo: tesoreroCorreo, tesoreroTelefono: tesoreroTelefono,
+            pastorCorreo: pastorCorreo, pastorTelefono: pastorTelefono,
             secretarioNombre: secretarioNombre, secretarioCargo: secretarioCargo,
             imprimirFirmas: imprimirFirmas,
             tesoreroVePadron: tesoreroVePadron,

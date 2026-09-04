@@ -145,11 +145,7 @@ struct IPhoneAjustesView: View {
                                    sec: $cfg.config.secretarioNombre,
                                    cargo: $cfg.config.secretarioCargo)
         case .tesorero:
-            AjustesTesorerosView(tes: $cfg.config.tesoreroNombre,
-                                  tesCargo: $cfg.config.tesoreroCargo,
-                                  pastor: $cfg.config.pastorNombre,
-                                  pasCargo: $cfg.config.pastorCargo,
-                                  firmas: $cfg.config.imprimirFirmas)
+            AjustesTesorerosView(cfg: cfg)
         case .acceso:
             AjustesAccesoView(invEmail: $invEmail, invNom: $invNom)
         case .categorias:
@@ -453,17 +449,23 @@ private struct AjustesInstitucionView: View {
 // MARK: - Tesorero y pastor
 
 private struct AjustesTesorerosView: View {
-    @Binding var tes: String
-    @Binding var tesCargo: String
-    @Binding var pastor: String
-    @Binding var pasCargo: String
-    @Binding var firmas: Bool
+    /// El ViewModel entero y no cinco `@Binding` sueltos: eran cinco
+    /// argumentos que había que enchufar bien en la llamada, y al añadir el
+    /// correo y el teléfono habrían sido nueve.
+    @Bindable var cfg: ConfiguracionIglesiaViewModel
 
     var body: some View {
         List {
             Section {
-                campoF(L.t("Nombre del tesorero", "Treasurer name"), $tes, "p. ej. Iván García")
-                pickerF(L.t("Cargo", "Title"), $tesCargo, Catalogos.Cargos.tesoreria)
+                campoF(L.t("Nombre del tesorero", "Treasurer name"),
+                       $cfg.config.tesoreroNombre, "p. ej. Iván García")
+                pickerF(L.t("Cargo", "Title"), $cfg.config.tesoreroCargo,
+                        Catalogos.Cargos.tesoreria)
+                // Correo y teléfono son NUEVOS aquí: el iPad los enseñaba
+                // desde el principio —como texto fijo, sin dónde guardarlos— y
+                // el teléfono no los tenía en absoluto.
+                correoF($cfg.config.tesoreroCorreo)
+                telefonoF($cfg.config.tesoreroTelefono)
                 HStack {
                     Text(L.t("Firma", "Signature")).font(.subheadline)
                     Spacer()
@@ -472,14 +474,18 @@ private struct AjustesTesorerosView: View {
             } header: {
                 Text(L.t("Tesorería", "Treasury")).textCase(nil)
             } footer: {
-                Text(L.t("La firma se imprime en los reportes de tesorería y en las constancias.",
-                         "The signature prints on treasury reports and contribution receipts."))
+                Text(L.t("La firma se imprime en los reportes de tesorería y en las constancias. El correo y el teléfono son los de la persona, no los de la iglesia: esos van en Institución.",
+                         "The signature prints on treasury reports and contribution receipts. Email and phone belong to the person, not the church: those go in Institution."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                campoF(L.t("Nombre del pastor", "Pastor name"), $pastor, "p. ej. Samuel Ríos")
-                pickerF(L.t("Cargo", "Title"), $pasCargo, Catalogos.Cargos.pastoral)
+                campoF(L.t("Nombre del pastor", "Pastor name"),
+                       $cfg.config.pastorNombre, "p. ej. Samuel Ríos")
+                pickerF(L.t("Cargo", "Title"), $cfg.config.pastorCargo,
+                        Catalogos.Cargos.pastoral)
+                correoF($cfg.config.pastorCorreo)
+                telefonoF($cfg.config.pastorTelefono)
                 HStack {
                     Text(L.t("Firma", "Signature")).font(.subheadline)
                     Spacer()
@@ -494,7 +500,7 @@ private struct AjustesTesorerosView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                Toggle(isOn: $firmas) {
+                Toggle(isOn: $cfg.config.imprimirFirmas) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(L.t("Imprimir firmas en los PDF", "Print signatures on PDFs")).font(.subheadline)
                         Text(L.t("Si está apagado, los documentos salen con la línea en blanco para firmar a mano.",
@@ -517,6 +523,23 @@ private struct AjustesTesorerosView: View {
             Text(label).font(.subheadline).foregroundStyle(.secondary).frame(maxWidth: 160, alignment: .leading)
             TextField(hint, text: bind).font(.subheadline).multilineTextAlignment(.trailing)
         }
+    }
+
+    /// Un correo se teclea en minúsculas y sin que nadie lo autocorrija: sin
+    /// esto el teclado escribe "Correo@" y el corrector cambia el dominio.
+    private func correoF(_ bind: Binding<String>) -> some View {
+        campoF(L.t("Correo (opcional)", "Email (optional)"), bind, "correo@ejemplo.com")
+            .textContentType(.emailAddress)
+            .keyboardType(.emailAddress)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+    }
+
+    private func telefonoF(_ bind: Binding<String>) -> some View {
+        campoF(L.t("Teléfono (opcional)", "Phone (optional)"), bind,
+               L.t("Número de teléfono", "Phone number"))
+            .textContentType(.telephoneNumber)
+            .keyboardType(.phonePad)
     }
 
     private func pickerF(_ label: String, _ bind: Binding<String>, _ opts: [String]) -> some View {

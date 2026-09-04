@@ -42,6 +42,18 @@ struct ConfiguracionIglesia: Equatable {
     var pastorCargo: String = "Pastor"
     var tesoreroNombre: String = ""
     var tesoreroCargo: String = "Tesorero"
+
+    /// **El contacto de la PERSONA**, no el de la iglesia.
+    ///
+    /// `correo` y `telefono` de arriba son los institucionales, los que van en
+    /// el membrete; estos son los del tesorero y del pastor. En el iPad esas
+    /// cuatro filas existían desde el principio pero eran texto FIJO —parecían
+    /// campos y no lo eran— y en el teléfono no estaban. Los nombres de las
+    /// columnas son los de la app web, que es donde ya vivía este dato.
+    var tesoreroCorreo: String = ""
+    var tesoreroTelefono: String = ""
+    var pastorCorreo: String = ""
+    var pastorTelefono: String = ""
     var secretarioNombre: String = ""
     var secretarioCargo: String = "Secretario"
     var imprimirFirmas: Bool = true

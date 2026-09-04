@@ -308,6 +308,19 @@ final class BaseLocal {
             }
         }
 
+        // **Correo y teléfono del tesorero y del pastor.** En el iPad esas
+        // cuatro filas existían desde el principio, pero eran texto fijo:
+        // parecían campos editables y no había dónde guardar nada. Las
+        // columnas de Supabase se crearon el 2026-09-04.
+        m.registerMigration("v11_contactoPersonas") { db in
+            try db.alter(table: "iglesia") { t in
+                t.add(column: "tesoreroCorreo", .text).notNull().defaults(to: "")
+                t.add(column: "tesoreroTelefono", .text).notNull().defaults(to: "")
+                t.add(column: "pastorCorreo", .text).notNull().defaults(to: "")
+                t.add(column: "pastorTelefono", .text).notNull().defaults(to: "")
+            }
+        }
+
         return m
     }
 

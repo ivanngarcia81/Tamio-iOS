@@ -336,6 +336,8 @@ final class MotorSincronizacion {
             let saldoInicial: Int
             let pastorNombre, pastorCargo: String
             let tesoreroNombre, tesoreroCargo: String
+            let tesoreroEmail, tesoreroTelefono: String
+            let pastorEmail, pastorTelefono: String
             let secretarioNombre, secretarioCargo: String
             let imprimirFirmas: Bool
             enum CodingKeys: String, CodingKey {
@@ -348,6 +350,10 @@ final class MotorSincronizacion {
                 case pastorCargo       = "pastor_cargo"
                 case tesoreroNombre    = "tesorero_nombre"
                 case tesoreroCargo     = "tesorero_cargo"
+                case tesoreroEmail     = "tesorero_email"
+                case tesoreroTelefono  = "tesorero_telefono"
+                case pastorEmail       = "pastor_email"
+                case pastorTelefono    = "pastor_telefono"
                 case secretarioNombre  = "secretario_nombre"
                 case secretarioCargo   = "secretario_cargo"
                 case imprimirFirmas    = "imprimir_firmas"
@@ -365,6 +371,8 @@ final class MotorSincronizacion {
                 saldoInicial: c.saldoInicial,
                 pastorNombre: c.pastorNombre, pastorCargo: c.pastorCargo,
                 tesoreroNombre: c.tesoreroNombre, tesoreroCargo: c.tesoreroCargo,
+                tesoreroEmail: c.tesoreroCorreo, tesoreroTelefono: c.tesoreroTelefono,
+                pastorEmail: c.pastorCorreo, pastorTelefono: c.pastorTelefono,
                 secretarioNombre: c.secretarioNombre, secretarioCargo: c.secretarioCargo,
                 imprimirFirmas: c.imprimirFirmas))
             .eq("id", value: id)
@@ -386,6 +394,8 @@ final class MotorSincronizacion {
             let saldoInicial: Int?
             let pastorNombre, pastorCargo: String?
             let tesoreroNombre, tesoreroCargo: String?
+            let tesoreroEmail, tesoreroTelefono: String?
+            let pastorEmail, pastorTelefono: String?
             let secretarioNombre, secretarioCargo: String?
             let imprimirFirmas: Bool?
             // Bajan pero no suben: ver `ConfiguracionIglesia`.
@@ -404,6 +414,10 @@ final class MotorSincronizacion {
                 case pastorCargo       = "pastor_cargo"
                 case tesoreroNombre    = "tesorero_nombre"
                 case tesoreroCargo     = "tesorero_cargo"
+                case tesoreroEmail     = "tesorero_email"
+                case tesoreroTelefono  = "tesorero_telefono"
+                case pastorEmail       = "pastor_email"
+                case pastorTelefono    = "pastor_telefono"
                 case secretarioNombre  = "secretario_nombre"
                 case secretarioCargo   = "secretario_cargo"
                 case imprimirFirmas    = "imprimir_firmas"
@@ -441,6 +455,10 @@ final class MotorSincronizacion {
         c.pastorCargo = r.pastorCargo ?? "Pastor"
         c.tesoreroNombre = r.tesoreroNombre ?? ""
         c.tesoreroCargo = r.tesoreroCargo ?? "Tesorero"
+        c.tesoreroCorreo = r.tesoreroEmail ?? ""
+        c.tesoreroTelefono = r.tesoreroTelefono ?? ""
+        c.pastorCorreo = r.pastorEmail ?? ""
+        c.pastorTelefono = r.pastorTelefono ?? ""
         c.secretarioNombre = r.secretarioNombre ?? ""
         c.secretarioCargo = r.secretarioCargo ?? "Secretario"
         c.imprimirFirmas = r.imprimirFirmas ?? true
