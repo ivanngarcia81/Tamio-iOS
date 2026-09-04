@@ -4,6 +4,10 @@ import SwiftUI
 /// sección REGISTRO (Movimientos, Aportantes, Depósitos) y ANÁLISIS (Reportes).
 struct IPhoneTesoreriaView: View {
     @State private var vm = DashboardViewModel()
+    /// Solo para el conteo de cortes pendientes de la fila "Depósitos": decía
+    /// "1 corte pendiente · Banorte ••4821" escrito a mano, y al entrar había
+    /// tres, repartidos entre dos bancos. La puerta mentía sobre la sala.
+    @State private var depositos = DepositosViewModel()
 
     var body: some View {
         List {
@@ -27,9 +31,8 @@ struct IPhoneTesoreriaView: View {
                 NavigationLink { DepositosView() } label: {
                     HubRow(icono: "building.columns.fill", color: Paleta.aviso,
                            titulo: L.t("Depósitos", "Deposits"),
-                           subtitulo: L.t("1 corte pendiente · Banorte ••4821",
-                                          "1 pending cut · Banorte ••4821"),
-                           badge: 1)
+                           subtitulo: subtituloDepositos,
+                           badge: depositos.pendientesCount)
                 }
             }
 
@@ -47,6 +50,16 @@ struct IPhoneTesoreriaView: View {
                        "\(L.mesEnCurso) · Banorte ••4821")
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.cargar() }
+        .task { await depositos.cargar() }
+    }
+
+    /// La cuenta solo se nombra si todos los cortes pendientes van a la misma.
+    private var subtituloDepositos: String {
+        let n = depositos.pendientesCount
+        let cortes = L.t("\(n) corte\(n == 1 ? "" : "s") pendiente\(n == 1 ? "" : "s")",
+                         "\(n) pending cut\(n == 1 ? "" : "s")")
+        guard let cuenta = depositos.cuentaResumen else { return cortes }
+        return "\(cortes) · \(cuenta)"
     }
 
     private var kpiSaldo: some View {
