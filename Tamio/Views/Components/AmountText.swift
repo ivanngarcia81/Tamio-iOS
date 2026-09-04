@@ -23,15 +23,21 @@ struct AmountText: View {
         let entero = partes.first ?? texto
         let centavos = partes.count > 1 ? partes[1] : nil
 
-        // Se CONCATENAN los dos Text en uno solo: así `minimumScaleFactor`
-        // escala toda la cifra como una unidad y nunca la trunca a "$1…".
-        var vista = Text(entero)
+        // Los dos Text son UNO solo, compuesto por interpolación: así
+        // `minimumScaleFactor` escala toda la cifra como una unidad y nunca la
+        // trunca a "$1…". Antes se concatenaban con `+`, que iOS 26 deprecó a
+        // favor de esto mismo.
+        let parteEntera = Text(entero)
             .font(.system(size: size, weight: .bold, design: .rounded))
             .foregroundStyle(color)
+        let vista: Text
         if let centavos {
-            vista = vista + Text("." + centavos)
+            let decimales = Text("." + centavos)
                 .font(.system(size: size * 0.62, weight: .semibold, design: .rounded))
                 .foregroundStyle(color == .primary ? AnyShapeStyle(.secondary) : AnyShapeStyle(color.opacity(0.7)))
+            vista = Text("\(parteEntera)\(decimales)")
+        } else {
+            vista = parteEntera
         }
         return vista
             .monospacedDigit()

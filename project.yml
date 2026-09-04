@@ -2,7 +2,11 @@ name: Tamio
 options:
   bundleIdPrefix: church.tamio
   deploymentTarget:
-    iOS: "17.0"
+    # iOS 26: la app usa Liquid Glass (glassEffect, GlassEffectContainer, los
+    # estilos de botón .glass), el desvanecido de borde de scroll y las
+    # colocaciones de toolbar .title/.subtitle. Todo eso es de 26 y no tiene
+    # equivalente en 17/18 que valga la pena mantener por duplicado.
+    iOS: "26.0"
   createIntermediateGroups: true
 settings:
   base:

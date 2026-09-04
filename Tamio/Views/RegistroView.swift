@@ -230,9 +230,8 @@ struct RegistroView: View {
                          "Each entry keeps the name and folio exactly as they were at that moment, so it still tells the truth even if the row it refers to no longer exists. Nothing here is edited or deleted: that's what makes it a log."))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                (Text(L.t("Lo que falta por hacer no vive aquí, sino en ", "What's left to do doesn't live here, but in "))
-                    .font(.caption).foregroundStyle(.secondary)
-                 + Text(L.t("Por revisar", "To review")).font(.caption.weight(.semibold)).foregroundColor(Paleta.enlace))
+                // Interpolación en vez de `Text + Text`, deprecado en iOS 26.
+                Text("\(Text(L.t("Lo que falta por hacer no vive aquí, sino en ", "What's left to do doesn't live here, but in ")).font(.caption).foregroundStyle(.secondary))\(Text(L.t("Por revisar", "To review")).font(.caption.weight(.semibold)).foregroundStyle(Paleta.enlace))")
             }
         }
     }
