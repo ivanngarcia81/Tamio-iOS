@@ -27,7 +27,7 @@ extension View {
     }
 }
 
-/// **La barra ya no se pinta de verde en el teléfono.**
+/// **La barra ya no se pinta de verde.**
 ///
 /// Un color liso es la superficie sobre la que el glass menos puede funcionar:
 /// necesita contenido con textura pasando por detrás para refractar, y sobre un
@@ -42,26 +42,24 @@ extension View {
 /// botón principal, donde tiñe el material en vez de taparlo, y sigue donde ya
 /// estaba (montos, fila seleccionada, sidebar activa, chips activos).
 ///
-/// **En iPad se conserva de momento**, a la espera de decisión: ahí la barra no
-/// es solo de la lista y quitarle el fondo la deja flotando sobre el material
-/// de la cabecera de la columna. Es lo único que queda por decidir de este
-/// punto.
+/// **También en iPad**, donde había una razón de más para quitarlo: allí el
+/// maestro-detalle es un `HStack` dentro de un solo `NavigationStack`, así que
+/// la barra no pertenece a la columna sino a la pantalla entera. El listón
+/// verde cruzaba por encima del panel de detalle, donde no encabezaba nada
+/// —un rectángulo de color sobre la ficha, que ya trae su propio titular— y
+/// arrancaba por encima del `Divider` vertical, soldando visualmente las dos
+/// mitades justo por encima de la única línea que dice que son dos.
+///
+/// Lo que sí se queda en iPad es la tira de controles de la columna con su
+/// material: es lo que la lista atraviesa al desplazarse. Antes había dos
+/// bandas apiladas, el verde y esa; ahora queda una.
 private struct EncabezadoNav: ViewModifier {
     let titulo: String
     let subtitulo: String?
-    @Environment(\.horizontalSizeClass) private var sizeClass
 
     func body(content: Content) -> some View {
-        if sizeClass == .compact {
-            content
-                .navigationTitle(titulo)
-                .navigationSubtitle(subtitulo ?? "")
-        } else {
-            content
-                .navigationTitle(titulo)
-                .navigationSubtitle(subtitulo ?? "")
-                .toolbarBackground(Paleta.barra, for: .navigationBar)
-                .toolbarBackground(.visible, for: .navigationBar)
-        }
+        content
+            .navigationTitle(titulo)
+            .navigationSubtitle(subtitulo ?? "")
     }
 }
