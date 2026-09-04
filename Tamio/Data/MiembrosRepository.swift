@@ -39,24 +39,27 @@ struct MockMiembrosRepository: MiembrosRepository {
         Self.almacen.removeAll { $0.id == id }
     }
 
-    private static func serie(_ base: Int) -> [MesAporte] {
-        // Las etiquetas iban sin `L.mes`: la gráfica de asistencia de
-        // Secretaría (MembresiaRepository) sí lo hacía, así que en inglés una
-        // decía "Jan Feb Mar" y esta "Ene Feb Mar" en la misma app.
-        let et = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago"].map(L.mes)
-        let vals = [3_000_00, 3_200_00, 3_600_00, 3_100_00, 3_300_00, 3_600_00, 3_300_00, base]
-        return zip(et, vals).map { MesAporte(mes: $0.0, monto: $0.1) }
-    }
-
-    /// Historial de aportes hacia atrás desde hace `diasDesdeUltimo`, uno cada
-    /// `cada` días. Las fechas son relativas a hoy a propósito: con fechas
-    /// fijas, la constancia de todo el mundo se pudriría con el paso del tiempo.
-    private static func historial(diasDesdeUltimo: Int, cada: Int, montos: [Centavos]) -> [Aporte] {
+    /// Historial de aportes que suma EXACTAMENTE `total`, hacia atrás desde
+    /// hace `diasDesdeUltimo`, uno cada `cada` días. Las fechas son relativas a
+    /// hoy a propósito: con fechas fijas, la constancia de todo el mundo se
+    /// pudriría con el paso del tiempo.
+    ///
+    /// Antes el total iba escrito por persona y el historial por su cuenta con
+    /// montos fijos iguales para todos: la ficha decía $19,600 y la constancia,
+    /// que sí suma el historial, $23,000. Ahora solo se escribe el total y el
+    /// historial se deriva, así que no pueden discrepar.
+    private static func historial(total: Centavos, partes: Int,
+                                  diasDesdeUltimo: Int, cada: Int) -> [Aporte] {
         let cal = Calendar.current
-        return montos.enumerated().compactMap { i, monto in
+        let base = total / partes
+        // El redondeo se acumula en el aporte más reciente: así la suma cuadra
+        // al centavo y no se pierde nada por el camino.
+        let resto = total - base * partes
+        return (0..<partes).compactMap { i in
             guard let f = cal.date(byAdding: .day, value: -(diasDesdeUltimo + cada * i), to: Date())
             else { return nil }
-            return Aporte(id: "\(i)", concepto: L.t("Diezmo", "Tithe"), fecha: f, monto: monto)
+            return Aporte(id: "\(i)", concepto: L.t("Diezmo", "Tithe"),
+                          fecha: f, monto: base + (i == 0 ? resto : 0))
         }
     }
 
@@ -73,13 +76,9 @@ struct MockMiembrosRepository: MiembrosRepository {
                 estadoCivil: L.t("Casado", "Married"),
                 idFiscal: idf, congregaDesde: "2016",
                 frecuencia: frecuencia,
-                aportesTotal: total,
-                aportesPromedio: L.t("Promedio $3,275.00 en 8 meses con aporte", "Avg $3,275.00 over 8 months"),
-                aportesSerie: serie(3_200_00),
-                aportes: historial(diasDesdeUltimo: diasDesdeUltimo,
-                                   cada: frecuencia.dias ?? 30,
-                                   montos: [3_200_00, 3_200_00, 3_600_00, 3_200_00,
-                                            3_400_00, 3_200_00, 3_200_00]),
+                aportes: historial(total: total, partes: 7,
+                                   diasDesdeUltimo: diasDesdeUltimo,
+                                   cada: frecuencia.dias ?? 30),
                 familia: [
                     Pariente(id: "1", relacion: L.t("Cónyuge", "Spouse"), nombre: "Ana Lucía Torres"),
                     Pariente(id: "2", relacion: L.t("Hijo", "Son"), nombre: "Diego Medina Torres"),

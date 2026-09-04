@@ -18,6 +18,17 @@ enum Fechas {
         "\(corta(d)), \(hora)"
     }
 
+    /// Días naturales que faltan para el corte de mes. Hoy el corte es el
+    /// último día del mes natural; el día en que Ajustes deje configurar otro
+    /// (muchas iglesias cierran el último domingo), este es el único sitio que
+    /// hay que tocar.
+    static func diasParaCorteDeMes(desde hoy: Date = Date()) -> Int {
+        let cal = Calendar.current
+        let dia = cal.startOfDay(for: hoy)
+        guard let rango = cal.range(of: .day, in: .month, for: dia) else { return 0 }
+        return max(0, (rango.upperBound - 1) - cal.component(.day, from: dia))
+    }
+
     /// Primer día del mes de `d`, a medianoche: la clave con la que la lista
     /// de movimientos agrupa y compara meses.
     static func inicioDeMes(_ d: Date) -> Date {

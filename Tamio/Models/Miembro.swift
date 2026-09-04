@@ -109,7 +109,20 @@ struct SeguimientoNota: Identifiable {
 
 /// Los 8 indicadores del padrón (arriba de la ficha).
 struct MembresiaResumen {
-    let total, activos, inactivos, nuevos, recibidos, trasladados, ausencias, incompletos: Int
+    /// Los tres estados en que puede estar una persona del padrón. Se
+    /// excluyen entre sí y no dejan a nadie fuera.
+    let activos, inactivos, bajas: Int
+    /// Movimientos del periodo, no estados: una misma persona puede ser nueva
+    /// y estar activa. Por eso NO entran en el total.
+    let nuevos, recibidos, trasladados: Int
+    /// Señales para trabajar, tampoco estados.
+    let ausencias, incompletos: Int
+
+    /// **El total no se escribe: se suma.** Iba a mano como 248 mientras la
+    /// misma tarjeta enseñaba 236 activos y 6 inactivos: había seis personas
+    /// que solo existían en el encabezado, y el encabezado es lo que el
+    /// pastor lee. Calculado, no puede volver a descuadrar.
+    var total: Int { activos + inactivos + bajas }
 }
 
 /// Un mes en la gráfica de asistencia congregacional (Presentes vs. En roster).

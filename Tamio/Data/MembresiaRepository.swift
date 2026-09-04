@@ -11,9 +11,11 @@ struct MockMembresiaRepository: MembresiaRepository {
     /// Cifras del padrón completo de la congregación. El hub de Secretaría las
     /// lee de aquí en vez de llevar su propio número: antes anunciaba "14
     /// personas" mientras esta misma pantalla encabezaba 248 / 236.
+    /// 236 + 6 + 6 = 248, el total que ya encabezaba la pantalla.
     static let resumenPadron = MembresiaResumen(
-        total: 248, activos: 236, inactivos: 6, nuevos: 14,
-        recibidos: 3, trasladados: 5, ausencias: 9, incompletos: 21)
+        activos: 236, inactivos: 6, bajas: 6,
+        nuevos: 14, recibidos: 3, trasladados: 5,
+        ausencias: 9, incompletos: 21)
 
     func resumen() async -> MembresiaResumen { Self.resumenPadron }
 

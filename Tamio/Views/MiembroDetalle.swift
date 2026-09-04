@@ -58,8 +58,8 @@ struct MiembroDetalle: View {
                 Text(L.t("en el padrón", "on the roster"))
                     .font(.subheadline).foregroundStyle(.secondary)
                 Spacer(minLength: 4)
-                Text(L.t("\(r.activos) activos · \(r.inactivos) inactivos",
-                         "\(r.activos) active · \(r.inactivos) inactive"))
+                Text(L.t("\(r.activos) activos · \(r.inactivos) inactivos · \(r.bajas) bajas",
+                         "\(r.activos) active · \(r.inactivos) inactive · \(r.bajas) removed"))
                     .font(.footnote).foregroundStyle(.secondary)
                     .lineLimit(1).minimumScaleFactor(0.8)
             }

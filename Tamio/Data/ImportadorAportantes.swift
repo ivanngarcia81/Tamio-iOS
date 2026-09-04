@@ -123,9 +123,6 @@ enum ImportadorAportantes {
             idFiscal: v("id_fiscal", existente?.idFiscal ?? ""),
             congregaDesde: v("congrega_desde", existente?.congregaDesde ?? ""),
             frecuencia: frecuencia,
-            aportesTotal: existente?.aportesTotal ?? 0,
-            aportesPromedio: existente?.aportesPromedio ?? L.t("Sin aportes aún", "No giving yet"),
-            aportesSerie: existente?.aportesSerie ?? [],
             // El historial no se toca desde este archivo: viene en el suyo.
             aportes: existente?.aportes ?? [],
             familia: existente?.familia ?? []

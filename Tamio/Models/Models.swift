@@ -95,8 +95,11 @@ struct DashboardData {
     let registrosIngreso: Int
     let diezmos: Int
     let pendientes: Int
-    /// Días para el corte de mes (para el subtítulo del saludo).
-    let corteDias: Int
+    /// Días para el corte de mes (para el subtítulo del saludo). **No es un
+    /// dato del repositorio: es la fecha de hoy.** Iba escrito a mano como 11,
+    /// así que el 3 de septiembre la app anunciaba el cierre para dentro de 11
+    /// días cuando faltaban 27. Calculado, no puede volver a quedarse clavado.
+    var corteDias: Int { Fechas.diasParaCorteDeMes() }
     /// Barras: seis meses, como en el diseño.
     let tramos: [MesResumen]
     /// Dona: INGRESOS por categoría (no gastos).

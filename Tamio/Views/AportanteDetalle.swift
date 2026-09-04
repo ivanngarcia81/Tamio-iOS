@@ -12,7 +12,10 @@ struct AportanteDetalle: View {
     /// fichas en una pantalla de Tesorería es la peor versión de tener el dato
     /// en el sitio equivocado.
     @State private var subtab = 0   // 0 Datos · 1 Aportes · 2 Familia · 3 Constancia
-    @State private var anio = "2026"
+    /// El año que se está mirando. Era el `String` "2026" fijo y el total que
+    /// tenía al lado no dependía de él: cambiar de año en el segmentado no
+    /// movía ni la cifra ni la gráfica.
+    @State private var anio = Calendar.current.component(.year, from: Date())
 
     /// Texto de la constancia anual, para compartir/exportar.
     @State private var documento: DocumentoAportanteView.Tipo?
@@ -260,25 +263,42 @@ struct AportanteDetalle: View {
 
     // MARK: - Aportes
 
+    /// La barra en verde. En el año en curso es el mes en curso; en un año
+    /// cerrado, diciembre. Antes era "la última de la serie", que con doce
+    /// meses sería siempre diciembre aunque estemos en marzo.
+    private var mesDestacado: String {
+        let cal = Calendar.current
+        let hoy = Date()
+        let esAnioEnCurso = cal.component(.year, from: hoy) == anio
+        let mes = esAnioEnCurso ? cal.component(.month, from: hoy) : 12
+        guard let fecha = cal.date(from: DateComponents(year: anio, month: mes)) else { return "" }
+        return L.mesCorto(fecha)
+    }
+
     private var tarjetaAportes: some View {
         Tarjeta {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text(L.t("Total \(anio)", "Total \(anio)")).font(.subheadline).foregroundStyle(.secondary)
+                    Text(L.t("Total \(String(anio))", "Total \(String(anio))"))
+                        .font(.subheadline).foregroundStyle(.secondary)
                     Spacer()
-                    Text(Money.fmt(a.aportesTotal)).font(.title3.weight(.bold)).monospacedDigit()
+                    Text(Money.fmt(a.total(anio: anio)))
+                        .font(.title3.weight(.bold)).monospacedDigit()
                 }
-                Chart(a.aportesSerie) { m in
+                Chart(a.serie(anio: anio)) { m in
                     BarMark(x: .value("Mes", m.mes), y: .value("Monto", m.monto))
-                        .foregroundStyle(m.mes == a.aportesSerie.last?.mes ? Paleta.brand : Paleta.brandMuted)
+                        .foregroundStyle(m.mes == mesDestacado ? Paleta.brand : Paleta.brandMuted)
                         .cornerRadius(3)
                 }
                 .chartYAxis(.hidden)
                 .frame(height: 80)
-                Text(a.aportesPromedio).font(.caption).foregroundStyle(.secondary)
+                Text(a.promedio(anio: anio)).font(.caption).foregroundStyle(.secondary)
 
+                // Los años que la persona tiene, no 2026/2025/2024 escritos a
+                // mano: con esos, en 2027 el segmentado no ofrecería el año en
+                // curso.
                 Picker(L.t("Año", "Year"), selection: $anio) {
-                    Text("2026").tag("2026"); Text("2025").tag("2025"); Text("2024").tag("2024")
+                    ForEach(a.aniosConAportes, id: \.self) { Text(String($0)).tag($0) }
                 }
                 .pickerStyle(.segmented)
 

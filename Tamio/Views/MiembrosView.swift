@@ -216,7 +216,8 @@ struct MiembrosView: View {
 
             Divider()
             HStack {
-                Text(L.t("\(vm.itemsFiltrados.count) aportantes", "\(vm.itemsFiltrados.count) givers"))
+                Text(L.t("\(vm.itemsFiltrados.count) aportantes · \(String(vm.anio))",
+                         "\(vm.itemsFiltrados.count) givers · \(String(vm.anio))"))
                 Spacer()
                 Text("\(Money.fmt(vm.total)) MXN").monospacedDigit().fontWeight(.semibold)
             }
@@ -257,7 +258,7 @@ struct MiembrosView: View {
             }
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 4) {
-                Text(Money.fmt(a.aportesTotal)).font(.subheadline.weight(.semibold)).monospacedDigit()
+                Text(Money.fmt(a.total(anio: vm.anio))).font(.subheadline.weight(.semibold)).monospacedDigit()
                 if a.estado == .traslado {
                     Text(L.t("Traslado", "Transfer"))
                         .font(.caption2.weight(.semibold)).foregroundStyle(Paleta.aviso)

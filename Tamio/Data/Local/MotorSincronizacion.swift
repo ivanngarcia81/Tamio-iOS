@@ -233,7 +233,6 @@ final class MotorSincronizacion {
                     estadoCivil: r.estadoCivil ?? "", idFiscal: r.rfc ?? "",
                     congregaDesde: r.fechaCongregacion ?? "",
                     frecuencia: FrecuenciaAporte(rawValue: r.frecuenciaAporte ?? "") ?? .ocasional,
-                    aportesTotal: 0, aportesPromedio: "", aportesSerie: [],
                     aportes: [], familia: [])
                 a.id = r.uid
                 try AportanteFila(a, actualizadoEn: r.updatedAt,

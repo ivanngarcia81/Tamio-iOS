@@ -54,11 +54,7 @@ final class MiembrosViewModel {
                 nacimiento: actual.nacimiento, direccion: actual.direccion,
                 estadoCivil: actual.estadoCivil, idFiscal: actual.idFiscal,
                 congregaDesde: actual.congregaDesde, frecuencia: actual.frecuencia,
-                // El total deja de ser un dato suelto: se recalcula, o quedaría
-                // contradiciendo al historial que tiene debajo.
-                aportesTotal: combinados.reduce(0) { $0 + $1.monto },
-                aportesPromedio: actual.aportesPromedio,
-                aportesSerie: actual.aportesSerie,
+                // El total ya no hay que recalcularlo: sale del historial.
                 aportes: combinados,
                 familia: actual.familia
             )
@@ -91,8 +87,13 @@ final class MiembrosViewModel {
     /// que justifica el chip de la lista: si es cero, no se enseña.
     var atrasadosCount: Int { items.filter(\.atrasadoEnAportes).count }
 
-    /// Suma de aportes de la lista visible (pie de la columna).
-    var total: Centavos { itemsFiltrados.reduce(0) { $0 + $1.aportesTotal } }
+    /// El año que enseñan la lista y su pie. El mismo que encabeza la ficha:
+    /// si la lista sumara de siempre y la ficha el año, serían dos cifras
+    /// distintas para la misma persona a un toque de distancia.
+    var anio: Int { Calendar.current.component(.year, from: Date()) }
+
+    /// Suma de aportes del año de la lista visible (pie de la columna).
+    var total: Centavos { itemsFiltrados.reduce(0) { $0 + $1.total(anio: anio) } }
 
     var activosCount: Int { items.filter { $0.estado != .baja }.count }
     var bajasCount: Int { items.filter { $0.estado == .baja }.count }

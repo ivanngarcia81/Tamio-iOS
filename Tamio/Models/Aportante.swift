@@ -86,10 +86,16 @@ struct Aportante: Identifiable, Hashable {
     /// Ritmo con el que se espera que aporte, para medir su constancia.
     let frecuencia: FrecuenciaAporte
 
-    // Aportes.
-    let aportesTotal: Centavos
-    let aportesPromedio: String   // "Promedio $3,275.00 en 8 meses con aporte"
-    let aportesSerie: [MesAporte]
+    // Aportes. **Solo el historial se guarda**: el total, el promedio y la
+    // gráfica se derivan de él.
+    //
+    // Los tres iban como campos y cada constructor los rellenaba por su
+    // cuenta: el mock ponía un total distinto por persona, el MISMO texto de
+    // promedio para todo el mundo y la MISMA gráfica de ocho meses. Para Ana
+    // Lucía la ficha decía Total $19,600, el promedio $3,275 × 8 meses =
+    // $26,200 y la constancia —que sí sumaba el historial— $23,000. Tres
+    // cifras para la misma persona, dos de ellas en la misma tarjeta. Como
+    // derivados no hay dónde mentir.
     let aportes: [Aporte]         // historial completo
 
     // Familia.
@@ -98,6 +104,59 @@ struct Aportante: Identifiable, Hashable {
 
     /// Los tres aportes más recientes, para el resumen.
     var aportesRecientes: [Aporte] { Array(aportes.prefix(3)) }
+
+    // MARK: - Aportes derivados
+
+    /// Todo lo aportado, de siempre. Es lo que suma el pie de la lista.
+    var aportesTotal: Centavos { aportes.reduce(0) { $0 + $1.monto } }
+
+    func aportes(anio: Int) -> [Aporte] {
+        aportes.filter { Calendar.current.component(.year, from: $0.fecha) == anio }
+    }
+
+    /// Lo aportado en un año: lo que encabeza la ficha y lo que certifica la
+    /// constancia de ese año. Es la MISMA función para los dos.
+    func total(anio: Int) -> Centavos {
+        aportes(anio: anio).reduce(0) { $0 + $1.monto }
+    }
+
+    /// Los años con aporte, del más reciente al más antiguo, y siempre el año
+    /// en curso: quien no ha dado nada este año también tiene ficha que mirar.
+    var aniosConAportes: [Int] {
+        let cal = Calendar.current
+        let enCurso = cal.component(.year, from: Date())
+        return Set(aportes.map { cal.component(.year, from: $0.fecha) } + [enCurso])
+            .sorted(by: >)
+    }
+
+    /// "Promedio $3,275.00 en 8 meses con aporte" — sobre los meses en que de
+    /// verdad aportó, no sobre doce: quien da solo en diciembre no tiene un
+    /// promedio mensual de una doceava parte.
+    func promedio(anio: Int) -> String {
+        let delAnio = aportes(anio: anio)
+        guard !delAnio.isEmpty else {
+            return L.t("Sin aportes en \(anio)", "No giving in \(anio)")
+        }
+        let cal = Calendar.current
+        let meses = Set(delAnio.map { cal.component(.month, from: $0.fecha) }).count
+        let media = delAnio.reduce(0) { $0 + $1.monto } / max(1, meses)
+        return L.t("Promedio \(Money.fmt(media)) en \(meses) meses con aporte",
+                   "Avg \(Money.fmt(media)) over \(meses) months with giving")
+    }
+
+    /// Los doce meses del año para la gráfica. Los meses sin aporte van a cero
+    /// y no desaparecen: el hueco es justo lo que se quiere ver.
+    func serie(anio: Int) -> [MesAporte] {
+        let cal = Calendar.current
+        let delAnio = aportes(anio: anio)
+        return (1...12).compactMap { mes in
+            guard let fecha = cal.date(from: DateComponents(year: anio, month: mes)) else { return nil }
+            let suma = delAnio
+                .filter { cal.component(.month, from: $0.fecha) == mes }
+                .reduce(0) { $0 + $1.monto }
+            return MesAporte(mes: L.mesCorto(fecha), monto: suma)
+        }
+    }
 
     // MARK: - Constancia
     //

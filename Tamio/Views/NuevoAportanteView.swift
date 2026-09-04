@@ -91,9 +91,6 @@ struct NuevoAportanteView: View {
             direccion: direccion, estadoCivil: estadoCivil, idFiscal: idFiscal,
             congregaDesde: congregaDesde,
             frecuencia: frecuencia,
-            aportesTotal: existente?.aportesTotal ?? 0,
-            aportesPromedio: existente?.aportesPromedio ?? L.t("Sin aportes aún", "No giving yet"),
-            aportesSerie: existente?.aportesSerie ?? [],
             aportes: existente?.aportes ?? [],
             familia: existente?.familia ?? []
         )

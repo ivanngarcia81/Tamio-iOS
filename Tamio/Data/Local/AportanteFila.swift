@@ -45,8 +45,7 @@ struct AportanteFila: Codable, FetchableRecord, PersistableRecord {
     /// Se le pasan los aportes ya calculados desde los movimientos, en vez de
     /// que la fila los invente.
     func aportante(aportes: [Aporte]) -> Aportante {
-        let total = aportes.reduce(0) { $0 + $1.monto }
-        return Aportante(
+        Aportante(
             id: id,
             nombre: nombre,
             estado: Self.estado(estado),
@@ -60,9 +59,6 @@ struct AportanteFila: Codable, FetchableRecord, PersistableRecord {
             idFiscal: idFiscal,
             congregaDesde: congregaDesde,
             frecuencia: FrecuenciaAporte(rawValue: frecuencia) ?? .ocasional,
-            aportesTotal: total,
-            aportesPromedio: Self.promedio(aportes),
-            aportesSerie: Self.serie(aportes),
             aportes: aportes.sorted { $0.fecha > $1.fecha },
             familia: []
         )
@@ -77,32 +73,6 @@ struct AportanteFila: Codable, FetchableRecord, PersistableRecord {
         let cuantos = aportes.filter { $0.concepto.localizedCaseInsensitiveContains(diezmo) }.count
         return cuantos * 2 >= aportes.count && !aportes.isEmpty
             ? L.t("diezmo", "tithe") : L.t("donador", "donor")
-    }
-
-    /// "Promedio $3,275.00 en 8 meses con aporte". Antes era el mismo texto
-    /// escrito a mano para todo el mundo.
-    private static func promedio(_ aportes: [Aporte]) -> String {
-        guard !aportes.isEmpty else { return L.t("Sin aportes aún", "No giving yet") }
-        let cal = Calendar.current
-        let meses = Set(aportes.map { cal.dateComponents([.year, .month], from: $0.fecha) })
-        let total = aportes.reduce(0) { $0 + $1.monto }
-        let media = total / max(1, meses.count)
-        return L.t("Promedio \(Money.fmt(media)) en \(meses.count) meses con aporte",
-                   "Avg \(Money.fmt(media)) over \(meses.count) months with giving")
-    }
-
-    /// Los últimos ocho meses, para la gráfica de la ficha.
-    private static func serie(_ aportes: [Aporte]) -> [MesAporte] {
-        let cal = Calendar.current
-        let hoy = Date()
-        return (0..<8).reversed().compactMap { atras in
-            guard let mes = cal.date(byAdding: .month, value: -atras, to: hoy) else { return nil }
-            let comps = cal.dateComponents([.year, .month], from: mes)
-            let suma = aportes
-                .filter { cal.dateComponents([.year, .month], from: $0.fecha) == comps }
-                .reduce(0) { $0 + $1.monto }
-            return MesAporte(mes: L.mesCorto(mes), monto: suma)
-        }
     }
 
     // MARK: - Estado
