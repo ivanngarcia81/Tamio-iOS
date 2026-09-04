@@ -112,7 +112,7 @@ struct ImportarAportesView: View {
                 }
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 
     @ViewBuilder

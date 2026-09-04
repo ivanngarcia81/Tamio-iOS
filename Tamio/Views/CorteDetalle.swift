@@ -607,7 +607,7 @@ struct CorteDetalle: View {
                     }
                 }
         }
-        .presentationDetents([.medium, .large])
+        .hojaEleccion()
     }
 
     private func filaRegistro(_ label: String, _ valor: String, fuerte: Bool = false) -> some View {

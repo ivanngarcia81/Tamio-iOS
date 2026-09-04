@@ -198,7 +198,7 @@ struct NuevoMovimientoView: View {
                 }
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
         .presentationDragIndicator(.visible)
         .onAppear { if !editando { importeEnfocado = true } }
         .task {

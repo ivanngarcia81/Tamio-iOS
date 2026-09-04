@@ -113,6 +113,7 @@ struct DocumentoAportanteView: View {
         .onChange(of: desde) { _, _ in regenerar() }
         .onChange(of: hasta) { _, _ in regenerar() }
         .task { await cfg.cargar(); regenerar() }
+        .hojaDocumento()
     }
 
     // MARK: - Controles

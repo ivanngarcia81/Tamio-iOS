@@ -108,7 +108,7 @@ struct SegundaFirmaView: View {
                 }
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 
     // MARK: - Quién firma

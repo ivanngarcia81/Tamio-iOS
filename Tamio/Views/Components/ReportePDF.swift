@@ -277,6 +277,7 @@ struct ReportePDFSheet: View {
                                       // cambia según el idioma del aparato.
                                       nombre: "Estado-financiero-\(e.periodo.clave)")
         }
+        .hojaDocumento()
     }
 }
 
@@ -542,5 +543,6 @@ struct ReporteAnualPDFSheet: View {
             pdfURL = PDFExport.render(ReporteAnualHojaPDF(a: a),
                                       nombre: "Reporte-anual-\(a.anio)")
         }
+        .hojaDocumento()
     }
 }

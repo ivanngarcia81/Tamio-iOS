@@ -331,7 +331,7 @@ private struct NuevoServicioSheet: View {
                 presenciaMap = Dictionary(uniqueKeysWithValues: Self.miembrosMock.map { ($0, false) })
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 
     // MARK: - Sections
@@ -661,6 +661,7 @@ private struct AsignarRosterSheet: View {
                 }
             }
         }
+        .hojaFormulario()
     }
 }
 
@@ -801,6 +802,7 @@ private struct TomarAsistenciaSheet: View {
                 }
             }
         }
+        .hojaFormulario()
     }
 
     private func botonConteo(icono: String, accion: @escaping () -> Void) -> some View {

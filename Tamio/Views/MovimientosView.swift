@@ -9,7 +9,6 @@ struct MovimientosView: View {
     @State private var abierto: Movimiento?
     @State private var hoja: HojaMov?
     @State private var mostrarFiltros = false
-    @State private var detentFiltros: PresentationDetent = .medium
     /// Movimiento cuya eliminación espera confirmación. Borrar un registro
     /// financiero es más grave que marcar un corte, que ya la pide.
     @State private var movimientoAEliminar: Movimiento?
@@ -87,11 +86,6 @@ struct MovimientosView: View {
                 }
             }
             .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
-            // El tamaño inicial se decide AL ABRIR y no en la declaración del
-            // `@State`, que no puede leer el ViewModel.
-            .onChange(of: mostrarFiltros) { _, abierta in
-                if abierta { detentFiltros = filasFiltros > Self.filasEnMedium ? .large : .medium }
-            }
             .onChange(of: nav.seccion) { _, seccion in sincronizarConSidebar(seccion) }
             .task { await vm.cargar() }
             .overlay(alignment: .top) { avisoError }
@@ -634,26 +628,9 @@ struct MovimientosView: View {
                 }
             }
         }
-        // **Dos detents, no uno.** Con uno solo la lista se cortaba a media
-        // altura y no había a dónde arrastrar: la última categoría era
-        // inalcanzable. Y arranca en el tamaño que pide su propio contenido —
-        // ahora la hoja lleva también el periodo—, en vez de en `.medium`
-        // siempre.
-        .presentationDetents([.medium, .large], selection: $detentFiltros)
-        .presentationDragIndicator(.visible)
-        // **El material más opaco, y sigue siendo nativo.** Con el de por
-        // omisión se leían a través de la hoja los montos y los badges de la
-        // lista: el sistema desenfoca el fondo, pero no le baja el contraste, y
-        // sobre manchas verdes y naranjas el texto de las opciones competía con
-        // lo de detrás. `.thickMaterial` mantiene la profundidad sin dejar leer.
-        .presentationBackground(.thickMaterial)
-        // El tamaño se decide también aquí: al abrir la hoja con `mostrarFiltros`
-        // ya en `true` —el primer arranque— el `onChange` no llega a disparar.
-        .onAppear { ajustarDetent() }
-        // Las categorías salen de los movimientos, así que pueden llegar
-        // después de abrirse la hoja: sin esto, abrir antes de que cargue la
-        // lista dejaría la hoja pequeña con nueve categorías dentro.
-        .onChange(of: vm.categoriasChip.count) { _, _ in ajustarDetent() }
+        // Elección corta: dos detents y arrastre. Abre grande cuando el
+        // contenido no cabe en media pantalla.
+        .hojaEleccion(grande: filasFiltros > Self.filasEnMedium)
     }
 
     /// Cuántas filas caben en `.medium` antes de que la lista se corte, medido
@@ -663,10 +640,6 @@ struct MovimientosView: View {
 
     /// Las filas que va a dibujar la hoja: meses (+ "todos"), categorías y el
     /// interruptor de estado.
-    private func ajustarDetent() {
-        detentFiltros = filasFiltros > Self.filasEnMedium ? .large : .medium
-    }
-
     private var filasFiltros: Int {
         (compacto ? vm.mesesDisponibles.count + 1 : 0) + vm.categoriasChip.count + 1
     }

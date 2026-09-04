@@ -622,7 +622,7 @@ private struct NuevoEventoSheet: View {
                 }
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 
     private func guardar() {

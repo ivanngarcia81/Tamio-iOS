@@ -350,26 +350,32 @@ struct MembresiaView: View {
                     }
                 }
             }
-            .listStyle(.insetGrouped)
+            // `.inset` y no `.insetGrouped`: la hoja ya es una superficie, y
+            // el estilo agrupado metía otra tarjeta con fondo dentro de ella.
+            .listStyle(.inset)
             .navigationTitle(L.t("Filtros", "Filters"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // Mismo criterio que la hoja de filtros de Ingresos: uno
+                // destruye y el otro confirma, así que no pueden pesar igual ni
+                // compartir el verde de marca.
                 ToolbarItem(placement: .topBarLeading) {
                     Button(L.t("Limpiar", "Clear")) {
                         vm.filtroEstado = nil
                         vm.filtroMinisterio = nil
                         vm.filtroAccion = nil
                     }
-                    .foregroundStyle(filtrosActivos > 0 ? Paleta.brand : .secondary)
                     .disabled(filtrosActivos == 0)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(L.t("Listo", "Done")) { mostrarFiltros = false }
-                        .fontWeight(.semibold).foregroundStyle(Paleta.brand)
+                        .fontWeight(.semibold)
+                        .buttonStyle(.glassProminent)
+                        .tint(Paleta.brand)
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .hojaEleccion(grande: true)
     }
 
     /// Una opción de la hoja de filtros. Va con `.buttonStyle(.plain)`: sin él,
@@ -889,6 +895,7 @@ private struct NuevoMiembroSheet: View {
                 }
             }
         }
+        .hojaFormulario()
     }
 
     private func badgeRow(_ titulo: String, count: Int) -> some View {
@@ -1323,6 +1330,6 @@ private struct SeguimientoSheet: View {
                 }
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 }

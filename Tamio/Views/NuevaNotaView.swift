@@ -48,6 +48,6 @@ struct NuevaNotaView: View {
                 }
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 }

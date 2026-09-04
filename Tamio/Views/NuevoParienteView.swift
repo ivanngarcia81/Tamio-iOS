@@ -87,6 +87,6 @@ struct NuevoParienteView: View {
             }
             .task { catalogo = (try? await catalogoAportantes().activos()) ?? [] }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 }

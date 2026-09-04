@@ -328,7 +328,7 @@ private struct NuevaActaSheet: View {
                 }
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 
     // MARK: - Sections
@@ -690,6 +690,7 @@ private struct FirmasSheet: View {
                 }
             }
         }
+        .hojaFormulario()
     }
 
     private func firmaFila(_ nombre: String) -> some View {

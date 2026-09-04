@@ -80,7 +80,7 @@ struct NuevoAportanteView: View {
                 }
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 
     private func guardar() {

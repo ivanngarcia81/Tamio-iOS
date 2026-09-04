@@ -112,7 +112,7 @@ struct RegistrarDepositoView: View {
                 }
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 
     // MARK: - Recibo

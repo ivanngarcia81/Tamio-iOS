@@ -406,7 +406,7 @@ private struct NuevaCartaSheet: View {
             .onAppear { aplicarAutoFill() }
             .onChange(of: datos.tipo) { _, _ in aplicarAutoFill() }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 
     // MARK: - Sections
@@ -691,5 +691,6 @@ private struct VistaPreviaSheet: View {
                 }
             }
         }
+        .hojaDocumento()
     }
 }

@@ -62,7 +62,7 @@ struct NuevoCorteView: View {
             }
             .onAppear { tituloEnfocado = true }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 }
 
@@ -121,7 +121,7 @@ struct ElegirMovimientosView: View {
                 }
             }
         }
-        .hojaGrande()
+        .hojaFormulario()
     }
 
     /// Dice cuánto se va a sumar, no solo cuántos: el tesorero está cuadrando

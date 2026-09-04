@@ -19,11 +19,69 @@ extension View {
         safeAreaInset(edge: .bottom) { Color.clear.frame(height: alto) }
     }
 
-    /// Tamaño de hoja para formularios: `.form` — angosta y CENTRADA (no ocupa
-    /// todo el ancho como `.page`), con altura estándar que ya acomoda todos los
-    /// campos con poco scroll. (`.fitted` colapsaba el `Form` interno.)
-    func hojaGrande() -> some View {
+    // MARK: - Las tres formas de hoja
+    //
+    // **El tamaño lo pide el CONTENIDO, no la pantalla que la abre.** Antes
+    // había tres tratamientos conviviendo sin criterio: quince hojas con
+    // `hojaFormulario()`, cuatro con detents escritos a mano y nueve sin declarar
+    // nada, saliendo cada una como el sistema decidiera. Estos tres
+    // modificadores son la regla, y llevan el nombre de la familia para que al
+    // escribir una hoja nueva haya que elegir a cuál pertenece.
+
+    /// **Formulario de captura**: nuevo movimiento, nuevo corte, nuevo
+    /// aportante, importar… Todo lo que se rellena y se guarda.
+    ///
+    /// `.form` es angosta y CENTRADA (no ocupa todo el ancho como `.page`), con
+    /// altura estándar que ya acomoda los campos con poco scroll. (`.fitted`
+    /// colapsaba el `Form` interno.) En iPhone sale casi a pantalla completa,
+    /// que es lo que un formulario necesita; en iPad, centrada.
+    func hojaFormulario() -> some View {
         presentationSizing(.form)
+    }
+
+    /// **Elección corta**: filtros, un rango de fechas, un selector. Se abre,
+    /// se elige y se cierra.
+    ///
+    /// Dos detents SIEMPRE, nunca uno: con uno solo, una lista que no cabe se
+    /// corta y no hay a dónde arrastrar — las últimas opciones quedan
+    /// inalcanzables, que es lo que pasaba en la hoja de filtros. `grande`
+    /// arranca en `.large` cuando el contenido no cabe en media pantalla: una
+    /// hoja que nace cortada es lo mismo que no poder crecer.
+    ///
+    /// El material va más opaco que el de por omisión porque el sistema
+    /// desenfoca lo de detrás pero no le baja el contraste, y sobre una lista
+    /// de montos verdes y badges naranjas el texto de las opciones competía con
+    /// la fila de debajo.
+    func hojaEleccion(grande: Bool = false) -> some View {
+        modifier(HojaEleccion(grande: grande))
+    }
+
+    /// **Documento o previa**: el PDF de un reporte, una constancia, la vista
+    /// previa de una carta. No se rellena nada: se mira y se comparte.
+    ///
+    /// `.page` y no `.form`: un documento se lee a lo ancho, y recortarlo a la
+    /// anchura de un formulario obligaría a escalar la hoja de papel todavía
+    /// más de lo que ya la escala la previa.
+    func hojaDocumento() -> some View {
+        presentationSizing(.page)
+    }
+}
+
+/// El tamaño de una hoja de elección. Es un `ViewModifier` y no una cadena de
+/// modificadores sueltos porque el detent vigente necesita estado propio: sin
+/// `selection`, `presentationDetents` no puede abrir en grande y dejar que el
+/// usuario la baje después.
+private struct HojaEleccion: ViewModifier {
+    let grande: Bool
+    @State private var detent: PresentationDetent = .medium
+
+    func body(content: Content) -> some View {
+        content
+            .presentationDetents([.medium, .large], selection: $detent)
+            .presentationDragIndicator(.visible)
+            .presentationBackground(.thickMaterial)
+            .onAppear { detent = grande ? .large : .medium }
+            .onChange(of: grande) { _, g in detent = g ? .large : .medium }
     }
 }
 

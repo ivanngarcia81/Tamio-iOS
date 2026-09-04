@@ -519,6 +519,6 @@ private struct RangoSheet: View {
                 }
             }
         }
-        .presentationDetents([.large])
+        .hojaEleccion(grande: true)
     }
 }

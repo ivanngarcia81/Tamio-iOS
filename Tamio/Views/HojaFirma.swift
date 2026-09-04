@@ -114,6 +114,7 @@ struct HojaFirma: View {
                 Task { await importar(nuevo) }
             }
         }
+        .hojaFormulario()
     }
 
     // MARK: - Guardar

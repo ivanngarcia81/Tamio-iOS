@@ -119,7 +119,7 @@ struct EditarAsuntoView: View {
         }
         // Formulario corto: media pantalla basta, y se puede expandir. Antes
         // ocupaba la pantalla completa y dejaba medio lienzo vacío.
-        .presentationDetents([.medium, .large])
+        .hojaEleccion()
         .presentationDragIndicator(.visible)
     }
 
