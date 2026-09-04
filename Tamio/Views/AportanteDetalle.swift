@@ -19,18 +19,19 @@ struct AportanteDetalle: View {
 
     /// Texto de la constancia anual, para compartir/exportar.
     @State private var documento: DocumentoAportanteView.Tipo?
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    /// En iPad la ficha es la COLUMNA de detalle, no la pantalla: subir sus
+    /// controles a la barra los alejaría de la ficha y los pondría junto a los
+    /// de la lista. Misma frontera que en el resto de la app.
+    private var compacto: Bool { sizeClass == .compact }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 cabecera
-                Picker("", selection: $subtab) {
-                    Text(L.t("Datos", "Details")).tag(0)
-                    Text(L.t("Aportes", "Giving")).tag(1)
-                    Text(L.t("Familia", "Family")).tag(2)
-                    Text(L.t("Constancia", "Consistency")).tag(3)
-                }
-                .pickerStyle(.segmented)
+                // En el teléfono el segmentado y los botones se van a la barra:
+                // la tira entre el nombre y las tarjetas desaparece.
+                if !compacto { segmentado }
 
                 // Izquierda: cambia con la pestaña. Derecha: Aportes (siempre).
                 ViewThatFits(in: .horizontal) {
@@ -45,9 +46,82 @@ struct AportanteDetalle: View {
         }
         .colchonInferior()
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
+        // El nombre estaba DOS veces: en la barra y en el H1 de la ficha, uno
+        // encima del otro. Se queda el H1, que es el que lleva el avatar y las
+        // etiquetas, y la barra se libera para el segmentado.
+        .navigationTitle(compacto ? "" : a.nombre)
+        .toolbar { barra }
         .sheet(item: $documento) { tipo in
             DocumentoAportanteView(aportante: a, tipo: tipo)
         }
+    }
+
+    private var segmentado: some View {
+        Picker("", selection: $subtab) {
+            ForEach(Array(Self.secciones.enumerated()), id: \.offset) { i, nombre in
+                Text(nombre).tag(i)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    /// **La barra del teléfono: la sección en el lugar del título y las dos
+    /// acciones fundidas a la derecha.**
+    ///
+    /// La sección va como MENÚ y no como segmentado: "Datos · Aportes ·
+    /// Familia · Constancia" son cuatro palabras largas y en la barra se
+    /// truncaban a "Det… Givi… Fam… Con…", que no dice ninguna de las cuatro.
+    /// Es la misma salida que en Reportes cuando el ancho no da: la etiqueta
+    /// dice dónde estás y el menú enseña las cuatro enteras.
+    @ToolbarContentBuilder
+    private var barra: some ToolbarContent {
+        if compacto {
+            ToolbarItem(placement: .title) {
+                menuSeccion
+            }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                botonEditar
+                menuDocumentos
+            }
+        }
+    }
+
+    /// Las cuatro secciones de la ficha, con la que se está viendo por
+    /// etiqueta.
+    private var menuSeccion: some View {
+        Menu {
+            ForEach(Array(Self.secciones.enumerated()), id: \.offset) { i, nombre in
+                Button { subtab = i } label: {
+                    if i == subtab { Label(nombre, systemImage: "checkmark") } else { Text(nombre) }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(Self.secciones[min(subtab, Self.secciones.count - 1)]).lineLimit(1)
+                Image(systemName: "chevron.down").font(.caption2)
+            }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+            .background(Color(.tertiarySystemFill), in: Capsule())
+        }
+    }
+
+    /// Un solo sitio con los cuatro nombres: el segmentado del iPad y el menú
+    /// del teléfono los leían por separado y podían separarse sin que nadie lo
+    /// decidiera.
+    private static var secciones: [String] {
+        [L.t("Datos", "Details"), L.t("Aportes", "Giving"),
+         L.t("Familia", "Family"), L.t("Constancia", "Consistency")]
+    }
+
+    private var botonEditar: some View {
+        Button { onEditar?() } label: {
+            Label(L.t("Editar", "Edit"), systemImage: "pencil")
+        }
+        .buttonStyle(.glass)
+        .tint(Color.secondary)
     }
 
     // MARK: - Cabecera
@@ -102,27 +176,34 @@ struct AportanteDetalle: View {
         } label: {
             Label(L.t("Documentos", "Documents"), systemImage: "doc.text").fontWeight(.semibold)
         }
-        .buttonStyle(.borderedProminent).tint(Paleta.brand)
+        // `.glass` con el verde de marca: el relleno verde con el texto en
+        // blanco da ~2.4:1 en oscuro, que es por lo que se quitó de la app.
+        .labelStyle(.titleAndIcon)
+        .buttonStyle(.glass).tint(Paleta.brand)
     }
 
+    @ViewBuilder
     private var botones: some View {
+        if compacto {
+            // Ya viven en la barra.
+            EmptyView()
+        } else {
+            botonesColumna
+        }
+    }
+
+    private var botonesColumna: some View {
         ViewThatFits(in: .horizontal) {
             // Ancho (iPad): tres en línea
             HStack(spacing: 8) {
-                Button { onEditar?() } label: { Label(L.t("Editar", "Edit"), systemImage: "pencil") }
-                    .buttonStyle(.bordered)
-                    .tint(Color.secondary)
+                botonEditar
                 menuDocumentos
             }
             // Estrecho (iPhone): Editar arriba, documentos abajo. (El botón
             // de eliminar se fue con 6f7a544: dar de baja a alguien del padrón
             // es de Secretaría, no de Tesorería.)
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Button { onEditar?() } label: { Label(L.t("Editar", "Edit"), systemImage: "pencil") }
-                        .buttonStyle(.bordered)
-                        .tint(Color.secondary)
-                }
+                HStack(spacing: 8) { botonEditar }
                 menuDocumentos
             }
         }

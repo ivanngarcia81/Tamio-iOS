@@ -23,6 +23,8 @@ struct DocumentoAportanteView: View {
     @State private var hasta = Date()
     @State private var anio = Calendar.current.component(.year, from: Date())
     @State private var pdfURL: URL?
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    private var compacto: Bool { sizeClass == .compact }
 
     private var iglesia: ConfiguracionIglesia { cfg.config }
 
@@ -67,9 +69,13 @@ struct DocumentoAportanteView: View {
             }
             .background(Color(.systemGroupedBackground))
             .scrollEdgeEffectStyle(.soft, for: .all)
-            .navigationTitle(tipo == .reporte
+            // En el teléfono el título deja su sitio al selector: la hoja ya
+            // dice qué documento es en su propio membrete, y el periodo —que
+            // es lo que decide qué sale en el papel— no tenía dónde vivir sin
+            // ocupar una tira entera sobre la previa.
+            .navigationTitle(compacto ? "" : (tipo == .reporte
                              ? L.t("Reporte de aportes", "Giving report")
-                             : L.t("Constancia anual", "Annual statement"))
+                             : L.t("Constancia anual", "Annual statement")))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -78,6 +84,9 @@ struct DocumentoAportanteView: View {
                     // ensancha lo justo para que se salga por el borde — se
                     // leía "os" en vez de "Close".
                     Button(L.t("Cerrar", "Close")) { dismiss() }
+                }
+                if compacto {
+                    ToolbarItem(placement: .title) { menuPeriodoDoc }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if let pdfURL {
@@ -94,14 +103,70 @@ struct DocumentoAportanteView: View {
                 }
             }
         }
+        // **Los `onChange` viven aquí y no junto a los controles.** Colgaban
+        // del `VStack` del segmentado, y al mudarse el selector a la barra ese
+        // VStack deja de dibujarse en el teléfono: cambiar de año habría
+        // cambiado la previa y NO el PDF que se comparte, que es la única
+        // diferencia que nadie ve hasta que el archivo llega al contador.
+        .onChange(of: periodo) { _, _ in regenerar() }
+        .onChange(of: anio) { _, _ in regenerar() }
+        .onChange(of: desde) { _, _ in regenerar() }
+        .onChange(of: hasta) { _, _ in regenerar() }
         .task { await cfg.cargar(); regenerar() }
     }
 
     // MARK: - Controles
 
+    /// **El selector, en la barra del teléfono.** Era un segmentado a lo ancho
+    /// sobre la previa: con una sola opción —una constancia de un año— ocupaba
+    /// la fila entera para no ofrecer ninguna alternativa, y con cuatro
+    /// ("Semana · Mes · Año · Rango") se cortaba por los dos lados cuando la
+    /// hoja estiraba la columna. Como menú dice el periodo elegido y ofrece el
+    /// resto sin gastar ancho.
+    @ViewBuilder
+    private var menuPeriodoDoc: some View {
+        if tipo == .reporte {
+            Menu {
+                ForEach(PeriodoReporte.allCases) { p in
+                    Button { periodo = p } label: {
+                        if p == periodo { Label(p.etiqueta, systemImage: "checkmark") }
+                        else { Text(p.etiqueta) }
+                    }
+                }
+            } label: { capsulaSelector(periodo.etiqueta) }
+        } else if !aniosConAportes.isEmpty {
+            Menu {
+                ForEach(aniosConAportes, id: \.self) { a in
+                    Button { anio = a } label: {
+                        if a == anio { Label(String(a), systemImage: "checkmark") }
+                        else { Text(String(a)) }
+                    }
+                }
+            } label: { capsulaSelector(String(anio)) }
+        }
+    }
+
+    private func capsulaSelector(_ texto: String) -> some View {
+        HStack(spacing: 4) {
+            Text(texto).lineLimit(1)
+            Image(systemName: "chevron.down").font(.caption2)
+        }
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(.primary)
+        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+        .background(Color(.tertiarySystemFill), in: Capsule())
+    }
+
     @ViewBuilder
     private var controles: some View {
-        if tipo == .reporte {
+        if compacto {
+            // Ya viven en la barra; el rango sigue aquí porque son dos
+            // calendarios y no caben en una cápsula.
+            if tipo == .reporte, periodo == .rango {
+                DatePicker(L.t("Desde", "From"), selection: $desde, displayedComponents: .date)
+                DatePicker(L.t("Hasta", "To"), selection: $hasta, displayedComponents: .date)
+            }
+        } else if tipo == .reporte {
             VStack(spacing: 12) {
                 Picker(L.t("Periodo", "Period"), selection: $periodo) {
                     ForEach(PeriodoReporte.allCases) { Text($0.etiqueta).tag($0) }
@@ -112,15 +177,11 @@ struct DocumentoAportanteView: View {
                     DatePicker(L.t("Hasta", "To"), selection: $hasta, displayedComponents: .date)
                 }
             }
-            .onChange(of: periodo) { _, _ in regenerar() }
-            .onChange(of: desde) { _, _ in regenerar() }
-            .onChange(of: hasta) { _, _ in regenerar() }
         } else if !aniosConAportes.isEmpty {
             Picker(L.t("Año", "Year"), selection: $anio) {
                 ForEach(aniosConAportes, id: \.self) { Text(String($0)).tag($0) }
             }
             .pickerStyle(.segmented)
-            .onChange(of: anio) { _, _ in regenerar() }
         }
     }
 
