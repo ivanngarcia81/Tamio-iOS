@@ -109,6 +109,7 @@
 		C939626C1FC08A782F5A721A /* RegistroViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67090E139352F07F95F36587 /* RegistroViewModel.swift */; };
 		CC1C0905A1DF798DD2381AB6 /* ServiciosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F4F4B41C31BFF9EFEE087B /* ServiciosView.swift */; };
 		CEB1E654B04E48CD6D639C50 /* RevisarRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB1B530471B04B6F06D2F58 /* RevisarRepository.swift */; };
+		7A11BB0011223344556677A1 /* CalculadoraRevisiones.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11BB0011223344556677A2 /* CalculadoraRevisiones.swift */; };
 		CF4ABC3DC2BE4C2D83C6B3FC /* RegistroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 668DD73FABB98B24B2D068DE /* RegistroView.swift */; };
 		CFC7C2DEF2D8F24F7139174C /* Secretaria.swift in Sources */ = {isa = PBXBuildFile; fileRef = D721980EFFE9CE790379B66C /* Secretaria.swift */; };
 		D0621849ED3A2880B7153BBB /* MiembrosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3950DC37B05BE96DFDB6A685 /* MiembrosView.swift */; };
@@ -232,6 +233,7 @@
 		D850034BD09DE6F36C8D8F88 /* Deposito.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deposito.swift; sourceTree = "<group>"; };
 		D8F4F4B41C31BFF9EFEE087B /* ServiciosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiciosView.swift; sourceTree = "<group>"; };
 		DFB1B530471B04B6F06D2F58 /* RevisarRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevisarRepository.swift; sourceTree = "<group>"; };
+		7A11BB0011223344556677A2 /* CalculadoraRevisiones.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculadoraRevisiones.swift; sourceTree = "<group>"; };
 		E375CB9B62ABA3F5D9109F79 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		E4488A0F53ECFBC1ABB43370 /* InformesMembresiaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InformesMembresiaViewModel.swift; sourceTree = "<group>"; };
 		EA1441F72095DBACEEB7E5C4 /* Apunte.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Apunte.swift; sourceTree = "<group>"; };
@@ -377,6 +379,7 @@
 				751ECE8206F09510C5374557 /* RegistroRepository.swift */,
 				843AA28C65202374FDDF0E75 /* ReportesRepository.swift */,
 				DFB1B530471B04B6F06D2F58 /* RevisarRepository.swift */,
+				7A11BB0011223344556677A2 /* CalculadoraRevisiones.swift */,
 				1283425908338B34926D5B4A /* ServiciosRepository.swift */,
 				109DD5613049665100E781A1 /* SupabaseMovimientosRepository.swift */,
 				109DD5A430497B0000E781A1 /* AportantesCatalogo.swift */,
@@ -615,6 +618,7 @@
 				47D1BDA9349E3F1F8DA281F1 /* ReportesView.swift in Sources */,
 				05747F6824AE2F891D5F7049 /* ReportesViewModel.swift in Sources */,
 				CEB1E654B04E48CD6D639C50 /* RevisarRepository.swift in Sources */,
+				7A11BB0011223344556677A1 /* CalculadoraRevisiones.swift in Sources */,
 				430A6D712452EB588141AFA4 /* RevisarView.swift in Sources */,
 				9FD99AB98435223BA0371788 /* RevisarViewModel.swift in Sources */,
 				1AB394125D0FE0449972B430 /* Revision.swift in Sources */,

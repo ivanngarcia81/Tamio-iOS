@@ -112,7 +112,7 @@ struct RootView: View {
 /// TabView de cinco pestañas para iPhone. Usa un RevisarViewModel compartido
 /// para mantener el badge de "Por revisar" sincronizado con el conteo real.
 private struct IPhoneRootView: View {
-    @State private var revisarVM = RevisarViewModel()
+    @State private var revisarVM = RevisarViewModel.compartido
     @Environment(Navegacion.self) private var nav
 
     var body: some View {

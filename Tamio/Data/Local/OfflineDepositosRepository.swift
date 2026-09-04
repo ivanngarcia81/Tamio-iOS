@@ -204,9 +204,14 @@ struct OfflineDepositosRepository: DepositosRepository {
         if let dep = fila.depositoId {
             c.deposito = try DepositoFila.fetchOne(db, key: dep)?.deposito
         }
-        c.porRevisar = try MovimientoFila
-            .filter(Column("marcadoPendiente") == true && Column("borrado") == false)
-            .fetchCount(db)
+        // Los ingresos marcados por revisar que NO están en ningún corte: son
+        // los que el checklist avisa que se quedan fuera del depósito.
+        c.porRevisar = try Int.fetchOne(db, sql: """
+            select count(*) from movimiento m
+            left join corteMovimiento cm on cm.movimientoId = m.id and cm.borrado = 0
+            where m.tipo = 'ingreso' and m.borrado = 0
+              and m.marcadoPendiente = 1 and cm.id is null
+            """) ?? 0
         return c
     }
 

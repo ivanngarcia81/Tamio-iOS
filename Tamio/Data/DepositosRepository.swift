@@ -153,6 +153,12 @@ struct MockDepositosRepository: DepositosRepository {
         let ids = PuenteCortes.ids(deCorte: c.id)
         c.movimientos = ids.compactMap { id in todos.first { $0.id == id } }
         c.efectivoEnCaja = PuenteCortes.efectivoEnCaja(todos)
+        // Los ingresos marcados por revisar que NO entran en ningún corte: son
+        // los que el checklist avisa que se quedan fuera del depósito. Era un
+        // "2" escrito en la semilla, mientras el badge del tab decía 8.
+        c.porRevisar = todos.filter {
+            $0.tipo == .ingreso && $0.marcadoPendiente && PuenteCortes.estaLibre($0)
+        }.count
         return c
     }
 
@@ -252,7 +258,6 @@ struct MockDepositosRepository: DepositosRepository {
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
                                            fecha: L.t("Lunes 7 de septiembre", "Monday, Sep 7"),
                                            periodo: L.t("Septiembre 2026", "September 2026")),
-                porRevisar: 2,
                 registradoPor: "Iván García",
                 dobleFirmaPedida: true
             ),

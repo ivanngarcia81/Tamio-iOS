@@ -9,7 +9,9 @@ struct Movimiento: Identifiable {
     var id: String
     let tipo: TipoMovimiento
     /// Categoría corta para el titular y el punto ("Diezmo", "Servicios").
-    let categoria: String
+    /// `var`: la bandeja "Por revisar" la asigna cuando un movimiento llegó sin
+    /// ella —lo típico al importar un CSV con la columna en blanco—.
+    var categoria: String
     let persona: String?
     /// `var` por el mismo motivo que `id`: el número definitivo lo asigna el
     /// contador del servidor al guardar, no la hoja de captura.
@@ -37,7 +39,12 @@ struct Movimiento: Identifiable {
     var notasAuditoria: String? = nil
     var marcadoPendiente: Bool = false  // envía a "Por revisar"
     var incluidoEnCorte: Bool = true
-    var darConstanciaAnual: Bool = true // solo ingresos
+    /// Solo ingresos. **Por omisión NO**, igual que la hoja de captura y que la
+    /// app web (`emitir_constancia` nace en 0). Estaba en `true` aquí, y como
+    /// la bandeja avisa de "aportante sin vincular" cuando un ingreso va a la
+    /// constancia y no tiene miembro, ese default hacía saltar la regla en
+    /// TODOS los ingresos de golpe.
+    var darConstanciaAnual: Bool = false
     var repiteMensual: Bool = false
     /// Claves que la pantalla no edita pero que viven en la fila remota. Se
     /// arrastran en el round-trip porque, si no, una edición cualquiera las

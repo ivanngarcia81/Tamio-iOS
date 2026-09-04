@@ -52,7 +52,10 @@ struct MockDashboardRepository: DashboardRepository {
             registrosIngreso: actual.registrosIngreso,
             registrosGasto: actual.registrosGasto,
             diezmos: actual.diezmos,
-            pendientes: MockRevisarRepository.porRevisarCount,
+            // De la bandeja CALCULADA, no de una semilla paralela: el KPI del
+            // Inicio, el badge del tab y la propia bandeja responden a la misma
+            // pregunta y tienen que dar el mismo número.
+            pendientes: await RevisarCalculado().asuntos().filter { !$0.archivado }.count,
             tramos: Self.seisMeses,
             // La dona reparte EXACTAMENTE los ingresos del periodo, así que
             // su centro y la tarjeta de Ingresos no pueden discrepar.

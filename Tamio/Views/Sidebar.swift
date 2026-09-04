@@ -67,6 +67,9 @@ struct Sidebar: View {
     /// Getsemaní" y "Iglesia Nueva Vida"—, así que los documentos y la sidebar
     /// nombraban iglesias diferentes.
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    /// El mismo ViewModel que el badge del tab del iPhone: el conteo de la
+    /// bandeja se calcula UNA vez y lo leen todos.
+    @State private var revisarVM = RevisarViewModel.compartido
     private var iglesia: ConfiguracionIglesia { cfg.config }
 
     var body: some View {
@@ -93,6 +96,7 @@ struct Sidebar: View {
         }
         .background(.clear)
         .task { await cfg.cargar() }
+        .task { await revisarVM.cargar() }
     }
 
     private func grupo(_ items: [(String, String, String, Int?, Bool)]) -> some View {
@@ -115,7 +119,7 @@ struct Sidebar: View {
             ("reportes", L.t("Reportes", "Reports"), "chart.bar", nil, false),
             ("depositos", L.t("Depósitos", "Deposits"), "building.columns", nil, false),
             ("porRevisar", L.t("Por revisar", "To review"), "tray",
-             MockRevisarRepository.porRevisarCount, true),
+             revisarVM.porRevisarCount, true),
         ]
     }
 

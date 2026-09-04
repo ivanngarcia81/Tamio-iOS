@@ -9,6 +9,12 @@ struct ToastRevisar: Equatable {
 
 @Observable
 final class RevisarViewModel {
+    /// **Una sola instancia para el conteo.** El badge del tab de iPhone, el de
+    /// la sidebar del iPad y el KPI del Inicio responden a la misma pregunta;
+    /// con un ViewModel por sitio, cada uno cargaba por su cuenta y llegaron a
+    /// enseñar 8, 25 y 2 a la vez.
+    static let compartido = RevisarViewModel()
+
     private let repo: RevisarRepository
 
     private(set) var todos: [Revision] = []
@@ -20,7 +26,7 @@ final class RevisarViewModel {
     private var ultimoResuelto: Revision?
     private var toastSeq = 0
 
-    init(repo: RevisarRepository = MockRevisarRepository()) {
+    init(repo: RevisarRepository = repositorioRevisar()) {
         self.repo = repo
     }
 
