@@ -68,7 +68,7 @@ struct MockMembresiaRepository: MembresiaRepository {
     private static var miembros: [Miembro] {
         [
             Miembro(id: "1", nombre: "María Hernández Ríos",
-                    subtitulo: L.t("Ingresó 2014 · enseñanza · niños · 96%","Joined 2014 · teaching · children · 96%"),
+                    subtitulo: L.t("Ingresó 2014 · enseñanza · niños","Joined 2014 · teaching · children"),
                     estado: .activo, asistenciaPct: 96,
                     area: L.t("Enseñanza · niños","Teaching · children"),
                     miembroDesde: L.t("Ingresó 2014","Joined 2014"),
@@ -91,7 +91,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                     ]),
 
             Miembro(id: "2", nombre: "Lucía Márquez Peña",
-                    subtitulo: L.t("Ingresó 2019 · alabanza · 92%","Joined 2019 · worship · 92%"),
+                    subtitulo: L.t("Ingresó 2019 · alabanza","Joined 2019 · worship"),
                     estado: .activo, asistenciaPct: 92,
                     area: L.t("Alabanza","Worship"),
                     miembroDesde: L.t("Ingresó 2019","Joined 2019"),
@@ -112,7 +112,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                     ]),
 
             Miembro(id: "3", nombre: "Pedro Salas Aguirre",
-                    subtitulo: L.t("Ingresó 2021 · ujier · 88%","Joined 2021 · usher · 88%"),
+                    subtitulo: L.t("Ingresó 2021 · ujier","Joined 2021 · usher"),
                     estado: .activo, asistenciaPct: 88,
                     area: L.t("Ujier","Usher"),
                     miembroDesde: L.t("Ingresó 2021","Joined 2021"),
@@ -131,7 +131,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                     ]),
 
             Miembro(id: "4", nombre: "Javier Medina Cruz",
-                    subtitulo: L.t("Traslado en proceso · 41%","Transfer in progress · 41%"),
+                    subtitulo: L.t("Traslado en proceso","Transfer in progress"),
                     estado: .traslado, asistenciaPct: 41,
                     area: L.t("Sin área","No area"),
                     miembroDesde: L.t("Ingresó 2021","Joined 2021"),
@@ -152,7 +152,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                     ]),
 
             Miembro(id: "5", nombre: "Ana Lucía Torres",
-                    subtitulo: L.t("Ingresó 2016 · intercesión · 62%","Joined 2016 · intercession · 62%"),
+                    subtitulo: L.t("Ingresó 2016 · intercesión","Joined 2016 · intercession"),
                     estado: .activo, asistenciaPct: 62,
                     area: L.t("Intercesión","Intercession"),
                     miembroDesde: L.t("Ingresó 2016","Joined 2016"),
@@ -172,7 +172,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                     ]),
 
             Miembro(id: "6", nombre: "Familia Ruvalcaba",
-                    subtitulo: L.t("4 integrantes · diezman · 84%","4 members · tithe givers · 84%"),
+                    subtitulo: L.t("4 integrantes · diezman","4 members · tithe givers"),
                     estado: .activo, asistenciaPct: 84,
                     area: L.t("Varios","Various"),
                     miembroDesde: L.t("Ingresó 2016","Joined 2016"),
@@ -191,7 +191,7 @@ struct MockMembresiaRepository: MembresiaRepository {
                     ]),
 
             Miembro(id: "7", nombre: "Daniel Guerra Salinas",
-                    subtitulo: L.t("Recibido por traslado · 78%","Received by transfer · 78%"),
+                    subtitulo: L.t("Recibido por traslado","Received by transfer"),
                     estado: .nuevo, asistenciaPct: 78,
                     area: L.t("Sin área","No area"),
                     miembroDesde: L.t("Ingresó 2026","Joined 2026"),

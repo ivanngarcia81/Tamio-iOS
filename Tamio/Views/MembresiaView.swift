@@ -212,7 +212,10 @@ struct MembresiaView: View {
             .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
             Divider()
 
+            // Mismo respiro que en Ingresos: sin él la primera fila asoma a
+            // medias bajo la barra de filtros.
             listaActiva
+                .contentMargins(.vertical, Esp.hueco, for: .scrollContent)
 
             Divider()
             HStack {
@@ -279,12 +282,13 @@ struct MembresiaView: View {
             }
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 4) {
+                // Sin guion cuando no hay dato: un "—" suelto se lee como un
+                // fallo de render. Quien está de baja no tiene asistencia que
+                // enseñar y su pastilla ya lo dice.
                 if m.estado != .baja {
                     Text("\(m.asistenciaPct)%")
                         .font(.subheadline.weight(.semibold)).monospacedDigit()
                         .foregroundStyle(colorPct(m.asistenciaPct))
-                } else {
-                    Text("—").font(.subheadline).foregroundStyle(.secondary)
                 }
                 Pill(texto: m.estado.etiqueta, color: m.estado.color)
             }

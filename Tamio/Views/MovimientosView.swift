@@ -184,6 +184,11 @@ struct MovimientosView: View {
         listaCuerpo
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            // Un respiro arriba y abajo. Sin él la lista arranca y acaba a ras
+            // del filete que la separa de la cabecera y del pie, así que una
+            // fila a medio desplazar se lee como cortada —el subtítulo partido
+            // justo detrás del total— en vez de como "hay más".
+            .contentMargins(.vertical, Esp.hueco, for: .scrollContent)
     }
 
     @ViewBuilder
@@ -431,13 +436,17 @@ struct MovimientosView: View {
                 Text(Money.firmado(m.monto, ingreso: m.esIngreso))
                     .font(.subheadline.weight(.semibold)).monospacedDigit()
                     .foregroundStyle(Money.color(ingreso: m.esIngreso))
-                if m.sinDepositar {
-                    Text(L.t("Sin depositar", "Not deposited"))
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Paleta.aviso)
-                        .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
-                        .background(Paleta.avisoFill, in: Capsule())
-                }
+                // El hueco de la etiqueta se reserva SIEMPRE. Apareciendo solo
+                // cuando hay etiqueta, las filas con "Sin depositar" eran más
+                // altas que las demás y el monto se desplazaba hacia arriba: el
+                // ritmo de la lista se rompía cada dos filas.
+                Text(L.t("Sin depositar", "Not deposited"))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Paleta.aviso)
+                    .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
+                    .background(Paleta.avisoFill, in: Capsule())
+                    .opacity(m.sinDepositar ? 1 : 0)
+                    .accessibilityHidden(!m.sinDepositar)
             }
         }
         .padding(.vertical, 6)
