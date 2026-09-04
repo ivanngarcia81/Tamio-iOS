@@ -66,19 +66,30 @@ struct DocumentoAportanteView: View {
                 .padding(Esp.panel)
             }
             .background(Color(.systemGroupedBackground))
+            .scrollEdgeEffectStyle(.soft, for: .all)
             .navigationTitle(tipo == .reporte
                              ? L.t("Reporte de aportes", "Giving report")
                              : L.t("Constancia anual", "Annual statement"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
+                    // "Cerrar" se queda sin estilo: el sistema ya le pone su
+                    // cápsula de glass, y forzarle `.buttonStyle(.glass)` la
+                    // ensancha lo justo para que se salga por el borde — se
+                    // leía "os" en vez de "Close".
                     Button(L.t("Cerrar", "Close")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if let pdfURL {
+                        // `.glass` con el verde de marca, no el relleno
+                        // prominente que el sistema pone por omisión en una
+                        // acción de confirmación: un símbolo blanco sobre
+                        // Paleta.brand da ~2.4:1 en oscuro.
                         ShareLink(item: pdfURL) {
                             Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
                         }
+                        .buttonStyle(.glass)
+                        .tint(Paleta.brand)
                     }
                 }
             }

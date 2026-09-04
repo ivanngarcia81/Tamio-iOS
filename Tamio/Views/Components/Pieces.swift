@@ -164,20 +164,44 @@ struct HojaCartaEscalada<Contenido: View>: View {
 
     private var escala: CGFloat { min(1, anchoDisponible / PDFExport.anchoCarta) }
 
+    /// **El ancho se mide en una capa que la hoja no toca.**
+    ///
+    /// Antes el medidor colgaba del mismo `frame` que ya contenía la hoja, y
+    /// una hoja de 612 pt no deja a su contenedor medir menos de 612:
+    /// `maxWidth: .infinity` da el máximo entre lo propuesto y lo que pide el
+    /// hijo. Así que en un iPhone de 393 pt se medían 612, la escala salía 1 y
+    /// el bucle se quedaba quieto ahí — el componente existía para arreglar
+    /// este fallo exacto y no lo arreglaba.
+    ///
+    /// Ahora el que mide es un `Color.clear` sin hijos, que sí se conforma con
+    /// lo que le proponga el padre, y la hoja va encima en un `overlay`, que no
+    /// participa en el layout y por eso no puede volver a empujar la medida.
     var body: some View {
-        contenido
-            // La medida se toma ANTES de escalar y las escalas se aplican
-            // después: así ninguna de las dos depende de la otra y el layout
-            // converge en vez de ciclar.
-            .background(GeometryReader { g in
-                Color.clear.preference(key: AltoHojaKey.self, value: g.size.height)
-            })
-            .scaleEffect(escala, anchor: .top)
-            .frame(width: PDFExport.anchoCarta * escala, height: altoHoja * escala)
+        Color.clear
             .frame(maxWidth: .infinity)
+            .frame(height: altoHoja * escala)
             .background(GeometryReader { g in
                 Color.clear.preference(key: AnchoDisponibleKey.self, value: g.size.width)
             })
+            .overlay(alignment: .top) {
+                contenido
+                    // La medida del alto se toma ANTES de escalar y las escalas
+                    // se aplican después: así ninguna de las dos depende de la
+                    // otra y el layout converge en vez de ciclar.
+                    .background(GeometryReader { g in
+                        Color.clear.preference(key: AltoHojaKey.self, value: g.size.height)
+                    })
+                    .scaleEffect(escala, anchor: .top)
+                    // `alignment: .top`, y no es un detalle: `scaleEffect` no
+                    // cambia el tamaño que el contenido ocupa en el layout, así
+                    // que este frame recorta una caja más baja alrededor de un
+                    // bloque que sigue midiendo el alto sin escalar. Centrado
+                    // —lo que hace por omisión— el dibujo se sube media hoja y
+                    // la previa arranca por la mitad del documento. Con escala
+                    // 1 no se nota, que es por lo que en iPad nunca se vio.
+                    .frame(width: PDFExport.anchoCarta * escala,
+                           height: altoHoja * escala, alignment: .top)
+            }
             .onPreferenceChange(AltoHojaKey.self) { altoHoja = $0 }
             .onPreferenceChange(AnchoDisponibleKey.self) { anchoDisponible = $0 }
     }
