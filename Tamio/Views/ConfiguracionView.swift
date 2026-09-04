@@ -852,9 +852,48 @@ private struct SeccionAcceso: View {
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
     @State private var guardandoPermiso = false
     @State private var errorPermiso: String?
+    @State private var invEmail = ""
+    @State private var invNom = ""
+    @State private var invRol: SesionSupabase.Perfil.Rol = .tesorero
+    @State private var invitando = false
+    @State private var avisoInvitacion: String?
 
     private var permisos: Permisos {
         Permisos(rol: sesion?.perfil.rol ?? .administrador, iglesia: cfg.config)
+    }
+
+    private var puedeInvitar: Bool {
+        permisos.administraPermisos && !invitando && invEmail.contains("@")
+    }
+
+    /// Qué verá quien reciba la invitación, según el rol elegido. La nota decía
+    /// siempre "Verá Tesorería" aunque se invitara a Secretaría.
+    private var rolExplicado: String {
+        switch invRol {
+        case .tesorero:
+            return L.t("Verá Tesorería: ingresos, gastos, depósitos y reportes.",
+                       "They'll see Treasury: income, expenses, deposits, and reports.")
+        case .secretaria:
+            return L.t("Verá Secretaría: padrón, actas, servicios y cartas.",
+                       "They'll see Secretary: roster, minutes, services, and letters.")
+        case .administrador:
+            return L.t("Verá todo, y podrá invitar a otros y cambiar los permisos.",
+                       "They'll see everything, and can invite others and change permissions.")
+        }
+    }
+
+    private func invitar() async {
+        invitando = true
+        avisoInvitacion = nil
+        do {
+            let r = try await Invitaciones.invitar(correo: invEmail, nombre: invNom, rol: invRol)
+            avisoInvitacion = r.mensaje
+            invEmail = ""
+            invNom = ""
+        } catch {
+            avisoInvitacion = error.localizedDescription
+        }
+        invitando = false
     }
 
     var body: some View {
@@ -862,44 +901,69 @@ private struct SeccionAcceso: View {
             VStack(alignment: .leading, spacing: 24) {
                 HeroCard(seccion: .acceso)
 
-                // Personas
+                // Personas. La lista de quién tiene acceso no se puede
+                // enseñar: la política de `perfiles` deja a cada cuenta leer
+                // SOLO la suya. Los tres campos de abajo eran además texto
+                // fijo —"tesorero@iglesia.org" no era un marcador, era una
+                // fila estática— sobre un botón con la acción vacía.
                 GrupoConf(titulo: L.t("PERSONAS", "PEOPLE"),
-                          nota: L.t("Toca una persona para cambiar su rol. El rol decide en qué áreas entra.",
-                                    "Tap a person to change their role. The role determines which areas they can access.")) {
-                    Button { } label: {
-                        HStack(spacing: 12) {
-                            Text("+")
-                                .font(.system(size: 17)).foregroundStyle(.white)
-                                .frame(width: 26, height: 26)
-                                .background(Paleta.brand, in: Circle())
-                            Text(L.t("Añadir persona", "Add person"))
-                                .font(.system(size: 16)).foregroundStyle(.primary)
-                            Spacer()
+                          nota: L.t("Por ahora solo se ve tu propia cuenta: el servidor no deja que un aparato lea los perfiles de los demás. Invitar sí funciona, aquí abajo.",
+                                    "For now only your own account is visible: the server doesn't let a device read other people's profiles. Inviting does work, below.")) {
+                    let p = sesion?.perfil ?? SesionSupabase.Perfil()
+                    HStack(spacing: 12) {
+                        Text(p.iniciales)
+                            .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                            .frame(width: 34, height: 34)
+                            .background(Paleta.brand, in: Circle())
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(p.nombre.isEmpty ? L.t("Tu cuenta", "Your account") : p.nombre)
+                                .font(.system(size: 16))
+                            Text(AjustesRol.corto(p.rol))
+                                .font(.system(size: 13)).foregroundStyle(.secondary)
                         }
-                        .frame(minHeight: 54).padding(.horizontal, Esp.pantalla)
+                        Spacer()
+                        Text(L.t("Tú", "You")).font(.system(size: 14)).foregroundStyle(.tertiary)
                     }
-                    .buttonStyle(.plain)
+                    .frame(minHeight: 54).padding(.horizontal, Esp.pantalla)
                 }
 
                 // Invitar
                 GrupoConf(titulo: L.t("INVITAR A ALGUIEN", "INVITE SOMEONE"),
-                          nota: L.t("Verá Tesorería: ingresos, gastos, depósitos y reportes.",
-                                    "Will see Treasury: income, expenses, deposits, and reports.")) {
-                    FilaConf(label: L.t("Correo electrónico", "Email"),
-                             valor: "tesorero@iglesia.org")
+                          nota: avisoInvitacion
+                            ?? (permisos.administraPermisos
+                                ? rolExplicado
+                                : L.t("Solo el administrador de la iglesia puede invitar.",
+                                      "Only the church administrator can invite people."))) {
+                    FilaEditable(label: L.t("Correo electrónico", "Email"), texto: $invEmail)
                     Divider()
-                    FilaConf(label: L.t("Nombre", "Name"),
-                             valor: L.t("Opcional", "Optional"), valorColor: Color(.tertiaryLabel))
+                    FilaEditable(label: L.t("Nombre (opcional)", "Name (optional)"), texto: $invNom)
                     Divider()
-                    FilaConf(label: L.t("Rol", "Role"),
-                             valor: L.t("Tesorero", "Treasurer"), chevron: true, accion: {})
+                    HStack {
+                        Text(L.t("Rol", "Role")).font(.system(size: 15.5))
+                        Spacer()
+                        // Los TRES roles de acceso que acepta el servidor. La
+                        // fila decía "Tesorero" fijo y no dejaba cambiarlo.
+                        Picker("", selection: $invRol) {
+                            ForEach([SesionSupabase.Perfil.Rol.tesorero, .secretaria, .administrador],
+                                    id: \.self) { Text(AjustesRol.corto($0)).tag($0) }
+                        }
+                        .labelsHidden()
+                    }
+                    .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
                     Divider()
-                    Button { } label: {
-                        Text(L.t("Enviar invitación", "Send invitation"))
-                            .font(.system(size: 16)).foregroundStyle(.tertiary)
-                            .frame(maxWidth: .infinity).frame(minHeight: 52)
+                    Button { Task { await invitar() } } label: {
+                        HStack(spacing: 8) {
+                            Text(invitando
+                                 ? L.t("Enviando…", "Sending…")
+                                 : L.t("Enviar invitación", "Send invitation"))
+                                .font(.system(size: 16))
+                                .foregroundStyle(puedeInvitar ? Paleta.brand : .secondary)
+                            if invitando { ProgressView() }
+                        }
+                        .frame(maxWidth: .infinity).frame(minHeight: 52)
                     }
                     .buttonStyle(.plain)
+                    .disabled(!puedeInvitar)
                 }
 
                 // Sincronización

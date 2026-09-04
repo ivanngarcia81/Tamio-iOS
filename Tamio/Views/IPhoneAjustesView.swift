@@ -17,7 +17,6 @@ struct IPhoneAjustesView: View {
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     @State private var invEmail    = ""
     @State private var invNom      = ""
-    @State private var invRol      = "Tesorero"
 
     var body: some View {
         List {
@@ -146,7 +145,7 @@ struct IPhoneAjustesView: View {
                                   pasCargo: $cfg.config.pastorCargo,
                                   firmas: $cfg.config.imprimirFirmas)
         case .acceso:
-            AjustesAccesoView(invEmail: $invEmail, invNom: $invNom, invRol: $invRol)
+            AjustesAccesoView(invEmail: $invEmail, invNom: $invNom)
         case .categorias:
             AjustesCategoriasView()
         case .preferencias:
@@ -162,6 +161,15 @@ struct IPhoneAjustesView: View {
 /// El rol, en el idioma de la app. `perfiles.rol` guarda `tesorero`,
 /// `secretaria` o `administrador`, que son claves y no texto para leer.
 enum AjustesRol {
+    /// Solo el nombre del rol, para listas y selectores.
+    static func corto(_ rol: SesionSupabase.Perfil.Rol) -> String {
+        switch rol {
+        case .tesorero:      return L.t("Tesorero", "Treasurer")
+        case .secretaria:    return L.t("Secretaría", "Secretary")
+        case .administrador: return L.t("Administrador", "Administrator")
+        }
+    }
+
     static func legible(_ rol: SesionSupabase.Perfil.Rol) -> String {
         switch rol {
         case .tesorero:      return L.t("Tesorero · Tesorería", "Treasurer · Treasury")
@@ -523,7 +531,18 @@ private struct AjustesAccesoView: View {
 
     @Binding var invEmail: String
     @Binding var invNom: String
-    @Binding var invRol: String
+    /// El rol de la invitación es un `Rol`, no una cadena.
+    ///
+    /// Era texto salido de `Catalogos.Cargos.roles`, que ofrece cuatro
+    /// opciones —incluida "Pastor"— cuando la función de invitar solo acepta
+    /// tres: tesorero, secretaria y administrador. Invitar a alguien como
+    /// Pastor habría sido un error del servidor. Y como el catálogo devuelve la
+    /// etiqueta TRADUCIDA, con la app en inglés se habría mandado "Treasurer",
+    /// que tampoco es ninguno de los tres.
+    @State private var invRol: SesionSupabase.Perfil.Rol = .tesorero
+    @State private var invitando = false
+    @State private var avisoInvitacion: String?
+    @State private var invitacionOK = false
 
     /// Los permisos son de la iglesia y viven donde vive la iglesia. Eran dos
     /// `@State` de la pantalla: se movían, se veían moverse, y no salían de
@@ -539,34 +558,56 @@ private struct AjustesAccesoView: View {
 
     var body: some View {
         List {
+            // La lista de quién tiene acceso NO se puede enseñar todavía, y
+            // no es un descuido: la política de `perfiles` en Supabase deja a
+            // cada cuenta leer SOLO la suya. Enseñar una lista de una persona
+            // —tú— bajo el título "Personas" sería peor que decirlo.
             Section {
-                HStack(spacing: 10) {
-                    Image(systemName: "plus.circle.fill").foregroundStyle(.tertiary)
-                    Text(L.t("Añadir persona", "Add person")).font(.subheadline).foregroundStyle(.tertiary)
-                }
+                filaYo
             } header: {
                 Text(L.t("Personas", "People")).textCase(nil)
             } footer: {
-                Text(L.t("Toca una persona para cambiar su rol. El rol decide en qué áreas entra.",
-                         "Tap a person to change their role. The role determines which areas they can access."))
+                Text(L.t("Por ahora solo se ve tu propia cuenta: el servidor no deja que un aparato lea los perfiles de los demás. Invitar sí funciona, aquí abajo.",
+                         "For now only your own account is visible: the server doesn't let a device read other people's profiles. Inviting does work, below."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
                 campoF(L.t("Correo electrónico", "Email"), $invEmail, "tesorero@iglesia.org")
                 campoF(L.t("Nombre", "Name"), $invNom, L.t("Opcional", "Optional"))
-                pickerF(L.t("Rol", "Role"), $invRol, Catalogos.Cargos.roles)
-                Button { } label: {
-                    Text(L.t("Enviar invitación", "Send invitation")).font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color(.tertiaryLabel))
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                HStack {
+                    Text(L.t("Rol", "Role")).font(.subheadline).foregroundStyle(.secondary)
+                    Spacer()
+                    Picker("", selection: $invRol) {
+                        ForEach([SesionSupabase.Perfil.Rol.tesorero, .secretaria, .administrador],
+                                id: \.self) { Text(AjustesRol.corto($0)).tag($0) }
+                    }
+                    .labelsHidden()
                 }
-                .disabled(true)
+                Button { Task { await invitar() } } label: {
+                    HStack {
+                        Text(invitando
+                             ? L.t("Enviando…", "Sending…")
+                             : L.t("Enviar invitación", "Send invitation"))
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(puedeInvitar ? Paleta.brand : Color(.tertiaryLabel))
+                        Spacer()
+                        if invitando { ProgressView() }
+                    }
+                }
+                .disabled(!puedeInvitar)
             } header: {
                 Text(L.t("Invitar a alguien", "Invite someone")).textCase(nil)
             } footer: {
-                Text(L.t("Verá Tesorería: ingresos, gastos, depósitos y reportes.",
-                         "They'll see Treasury: income, expenses, deposits, and reports."))
+                if let avisoInvitacion {
+                    Text(avisoInvitacion)
+                        .foregroundStyle(invitacionOK ? Paleta.brand : Paleta.negativo)
+                } else if !permisos.administraPermisos {
+                    Text(L.t("Solo el administrador de la iglesia puede invitar.",
+                             "Only the church administrator can invite people."))
+                } else {
+                    Text(rolExplicado)
+                }
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
@@ -646,18 +687,62 @@ private struct AjustesAccesoView: View {
         }
     }
 
-    private func pickerF(_ label: String, _ bind: Binding<String>, _ opts: [String]) -> some View {
-        HStack {
-            Text(label).font(.subheadline).foregroundStyle(.secondary)
-            Spacer()
-            // `conValorVigente`: un cargo guardado en el otro idioma no está
-            // entre las opciones y el Picker saldría en blanco, que es el
-            // mismo fallo que Catalogos documenta para las categorías.
-            Picker("", selection: bind) {
-                ForEach(Catalogos.conValorVigente(opts, bind.wrappedValue), id: \.self) { Text($0) }
+    /// Tu propia cuenta. Es la única fila que el servidor deja leer.
+    private var filaYo: some View {
+        let p = sesion?.perfil ?? SesionSupabase.Perfil()
+        return HStack(spacing: 12) {
+            Text(p.iniciales)
+                .font(.caption.weight(.bold)).foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(Paleta.brand, in: Circle())
+            VStack(alignment: .leading, spacing: 1) {
+                Text(p.nombre.isEmpty ? L.t("Tu cuenta", "Your account") : p.nombre)
+                    .font(.subheadline)
+                Text(AjustesRol.corto(p.rol)).font(.caption).foregroundStyle(.secondary)
             }
-            .labelsHidden()
+            Spacer()
+            Text(L.t("Tú", "You")).font(.caption).foregroundStyle(.tertiary)
         }
+        .padding(.vertical, 2)
+    }
+
+    private var puedeInvitar: Bool {
+        permisos.administraPermisos && !invitando
+            && invEmail.trimmingCharacters(in: .whitespaces).contains("@")
+    }
+
+    /// Qué verá quien reciba la invitación, según el rol elegido. Decía siempre
+    /// "Verá Tesorería" aunque se estuviera invitando a Secretaría.
+    private var rolExplicado: String {
+        switch invRol {
+        case .tesorero:
+            return L.t("Verá Tesorería: ingresos, gastos, depósitos y reportes.",
+                       "They'll see Treasury: income, expenses, deposits, and reports.")
+        case .secretaria:
+            return L.t("Verá Secretaría: padrón, actas, servicios y cartas.",
+                       "They'll see Secretary: roster, minutes, services, and letters.")
+        case .administrador:
+            return L.t("Verá todo, y podrá invitar a otros y cambiar los permisos.",
+                       "They'll see everything, and can invite others and change permissions.")
+        }
+    }
+
+    private func invitar() async {
+        invitando = true
+        avisoInvitacion = nil
+        do {
+            let r = try await Invitaciones.invitar(correo: invEmail, nombre: invNom, rol: invRol)
+            invitacionOK = true
+            avisoInvitacion = r.mensaje
+            // Los campos se vacían solo si salió bien: si falló, quien lo
+            // escribió no tiene por qué volver a teclearlo.
+            invEmail = ""
+            invNom = ""
+        } catch {
+            invitacionOK = false
+            avisoInvitacion = error.localizedDescription
+        }
+        invitando = false
     }
 
     private func valorF(_ label: String, _ val: String) -> some View {
