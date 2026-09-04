@@ -84,14 +84,24 @@ struct Sidebar: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
-                    SidebarRow(titulo: L.t("Inicio", "Home"), icono: "house",
-                               seleccionado: seleccion == "inicio") { seleccion = "inicio" }
+                    // Inicio va con Tesorería: enseña el saldo en caja, los
+                    // ingresos y los gastos. No es una portada neutra.
+                    if permisos.ve(.inicio) {
+                        SidebarRow(titulo: L.t("Inicio", "Home"), icono: "house",
+                                   seleccionado: seleccion == "inicio") { seleccion = "inicio" }
+                    }
 
-                    SidebarSectionTitle(texto: L.t("TESORERÍA", "TREASURY"))
-                    grupo(tesoreria)
+                    // Un título de sección sobre una lista vacía es un hueco
+                    // que da a entender que algo no cargó.
+                    if !tesoreria.isEmpty {
+                        SidebarSectionTitle(texto: L.t("TESORERÍA", "TREASURY"))
+                        grupo(tesoreria)
+                    }
 
-                    SidebarSectionTitle(texto: L.t("SECRETARÍA", "SECRETARY"))
-                    grupo(secretaria)
+                    if !secretaria.isEmpty {
+                        SidebarSectionTitle(texto: L.t("SECRETARÍA", "SECRETARY"))
+                        grupo(secretaria)
+                    }
                 }
                 .padding(.horizontal, Esp.hueco)
             }
@@ -115,8 +125,18 @@ struct Sidebar: View {
     // pantalla. Antes eran tres números escritos a mano —248, 10 y 4—
     // que no coincidían con lo que la pantalla acababa mostrando.
     // id, título, icono, badge, badgeRojo
+    /// **Tesorería según el rol.** A la secretaria le queda solo Reportes: es
+    /// lo que necesita para las actas y para la junta, sin poder tocar un
+    /// movimiento. El grupo se queda con su título porque Reportes ES de
+    /// Tesorería; esconderlo bajo "Secretaría" la haría dudar de qué cifras
+    /// está mirando.
     private var tesoreria: [(String, String, String, Int?, Bool)] {
-        [
+        guard permisos.ve(.tesoreria) else {
+            let soloReportes: [(String, String, String, Int?, Bool)] =
+                [("reportes", L.t("Reportes", "Reports"), "chart.bar", nil, false)]
+            return permisos.ve(.reportes) ? soloReportes : []
+        }
+        return [
             ("ingresos", L.t("Ingresos", "Income"), "arrow.down", nil, false),
             ("gastos", L.t("Gastos", "Expenses"), "arrow.up", nil, false),
             ("miembros", L.t("Aportantes", "Contributors"), "person.2",
@@ -129,13 +149,14 @@ struct Sidebar: View {
     }
 
     private var secretaria: [(String, String, String, Int?, Bool)] {
-        // Membresía solo si esta persona ve el padrón. Al tesorero se le abre
-        // desde Ajustes → Acceso y áreas; a los demás roles no se le quita
-        // nunca. El permiso existía en Supabase y la sidebar lo enseñaba a
-        // todo el mundo.
-        (permisos.vePadron
-         ? [("membresia", L.t("Membresía", "Membership"), "person.text.rectangle", nil, false)]
-         : []) + [
+        // Membresía solo si esta persona ve el padrón: al tesorero se le abre
+        // desde Ajustes → Acceso y áreas, y es la ÚNICA parte de Secretaría a
+        // la que puede llegar. El resto del área no es suya.
+        let padron: [(String, String, String, Int?, Bool)] = permisos.vePadron
+            ? [("membresia", L.t("Membresía", "Membership"), "person.text.rectangle", nil, false)]
+            : []
+        guard permisos.ve(.secretaria) else { return padron }
+        return padron + [
             ("actas", L.t("Actas", "Minutes"), "doc.text", nil, false),
             ("servicios", L.t("Registro de servicios", "Service log"), "book", nil, false),
             ("cartas", L.t("Cartas y traslados", "Letters & transfers"), "envelope", nil, false),

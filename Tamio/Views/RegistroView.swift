@@ -6,6 +6,7 @@ import SwiftUI
 struct RegistroView: View {
     @State private var vm = RegistroViewModel()
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
     @State private var abierto: Apunte?
     @State private var escribiendo = false
 
@@ -56,7 +57,14 @@ struct RegistroView: View {
                 }
             }
         }
-        .task { await vm.cargar() }
+        // Las áreas ANTES de cargar: si se ponen después, el primer dibujo
+        // enseña la lista entera y luego se recorta a la vista.
+        .task {
+            await cfg.cargar()
+            vm.areas = Permisos(rol: sesion?.perfil.rol ?? .administrador,
+                                iglesia: cfg.config).areasDelRegistro
+            await vm.cargar()
+        }
     }
 
     // MARK: - Lista
@@ -86,7 +94,7 @@ struct RegistroView: View {
     private var barraFiltros: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                ForEach(FiltroRegistro.allCases) { f in pastilla(f) }
+                ForEach(vm.filtrosVisibles()) { f in pastilla(f) }
             }
             Text(L.t("Ves todo: administrador", "Seeing all: administrator"))
                 .font(.caption2).foregroundStyle(.tertiary)

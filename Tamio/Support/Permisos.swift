@@ -31,14 +31,74 @@ struct Permisos {
     ///
     /// Ojo con lo que esto NO hace: los miembros se sincronizan igual a todos
     /// los aparatos, porque Aportantes los necesita. Abre una pantalla.
-    var vePadron: Bool {
-        rol != .tesorero || iglesia.tesoreroVePadron
-    }
+    var vePadron: Bool { ve(.padron) }
 
     /// Cambia los permisos de la iglesia. Solo el administrador, igual que el
     /// RPC: enseñarle los interruptores encendidos a un tesorero que no puede
     /// moverlos es prometerle algo que el servidor le va a negar.
     var administraPermisos: Bool { rol == .administrador }
+
+    // MARK: - Qué áreas ve cada rol
+
+    /// **El reparto de la app por rol** (decidido el 2026-09-04):
+    ///
+    /// - **Administrador**: todo.
+    /// - **Tesorero**: solo Tesorería. Nada de Secretaría —salvo Membresía, si
+    ///   la iglesia se la abre con `tesoreroVePadron`, que es la excepción que
+    ///   Supabase modela a propósito—.
+    /// - **Secretaria**: solo Secretaría, más **Reportes de solo lectura**,
+    ///   porque necesita las cifras del mes para las actas y para la junta sin
+    ///   poder tocar un movimiento.
+    ///
+    /// Inicio va con Tesorería y no es una pantalla neutra: enseña el saldo en
+    /// caja, los ingresos y los gastos. Por eso la secretaria no lo ve y su app
+    /// arranca en Secretaría.
+    ///
+    /// Ajustes lo ve todo el mundo: hay que poder cerrar sesión, poner el
+    /// candado y cambiar el idioma. Lo delicado de dentro —permisos,
+    /// invitaciones— ya está reservado al administrador por su cuenta.
+    enum Area: CaseIterable {
+        case inicio, tesoreria, reportes, secretaria, padron, registro, ajustes
+    }
+
+    func ve(_ area: Area) -> Bool {
+        switch rol {
+        case .administrador:
+            return true
+        case .tesorero:
+            switch area {
+            case .inicio, .tesoreria, .reportes, .registro, .ajustes: return true
+            // La excepción de la iglesia, no del rol.
+            case .padron: return iglesia.tesoreroVePadron
+            case .secretaria: return false
+            }
+        case .secretaria:
+            switch area {
+            case .secretaria, .padron, .reportes, .registro, .ajustes: return true
+            case .inicio, .tesoreria: return false
+            }
+        }
+    }
+
+    /// Reportes en solo lectura. Hoy la pantalla no edita nada de todos modos
+    /// —lee y comparte un PDF—, así que esto no quita ningún botón: existe para
+    /// que cualquier acción que se le añada mañana tenga dónde preguntar antes
+    /// de aparecer.
+    var reportesSoloLectura: Bool { rol == .secretaria }
+
+    /// Dónde arranca la app. Un rol al que se le cierra Inicio no puede
+    /// aterrizar en él.
+    var seccionInicial: String { ve(.inicio) ? "inicio" : "membresia" }
+
+    /// Los apuntes del Registro que le tocan. La bitácora no puede dejar leer
+    /// por la puerta de atrás lo que la navegación cierra por delante.
+    var areasDelRegistro: [ApunteArea] {
+        switch rol {
+        case .administrador: return [.tesoreria, .secretaria]
+        case .tesorero:      return [.tesoreria]
+        case .secretaria:    return [.secretaria]
+        }
+    }
 
     /// Los permisos vigentes, de la sesión y de la configuración compartidas.
     @MainActor

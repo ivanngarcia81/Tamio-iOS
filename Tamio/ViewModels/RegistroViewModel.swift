@@ -5,7 +5,20 @@ import Observation
 final class RegistroViewModel {
     private let repo: RegistroRepository
 
+    /// **Solo los apuntes de las áreas que este rol puede ver.**
+    ///
+    /// El recorte va aquí y no en la vista, a propósito: `todos` alimenta
+    /// también los conteos de las pestañas y la selección del detalle, así que
+    /// filtrar solo la lista dejaría a la secretaria viendo "Tesorería 14" en
+    /// una pestaña vacía —y contando movimientos de dinero que la navegación le
+    /// cierra por delante—. La bitácora no puede ser la puerta de atrás.
     private(set) var todos: [Apunte] = []
+    /// Las áreas permitidas. Las pone la vista con los permisos vigentes; por
+    /// omisión están las dos, que es lo que ve un administrador.
+    var areas: [ApunteArea] = [.tesoreria, .secretaria] {
+        didSet { if areas != oldValue { aplicarAreas() } }
+    }
+    private var sinFiltrar: [Apunte] = []
     var filtro: FiltroRegistro = .todo
     var seleccionId: String?
 
@@ -15,7 +28,24 @@ final class RegistroViewModel {
 
     @MainActor
     func cargar() async {
-        todos = await repo.apuntes()
+        sinFiltrar = await repo.apuntes()
+        aplicarAreas()
+    }
+
+    private func aplicarAreas() {
+        todos = sinFiltrar.filter { areas.contains($0.area) }
+        // La selección puede haber quedado fuera: un detalle abierto de un
+        // apunte que ya no se ve seguiría enseñándolo.
+        if let id = seleccionId, !todos.contains(where: { $0.id == id }) {
+            seleccionId = nil
+        }
+    }
+
+    /// Los filtros que tiene sentido ofrecer. Con una sola área, la pestaña de
+    /// esa área dice lo mismo que "Todo" y sobra.
+    func filtrosVisibles() -> [FiltroRegistro] {
+        guard areas.count > 1 else { return [.todo, .notas] }
+        return FiltroRegistro.allCases
     }
 
     var seleccion: Apunte? { todos.first { $0.id == seleccionId } }
