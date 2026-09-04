@@ -181,19 +181,27 @@ struct MiembrosView: View {
         }
     }
 
-    /// Cuántos aportantes y cuánto suman.
+    /// Cuántos aportantes, de qué año y cuánto suman.
     ///
     /// El conteo pierde la palabra pero NO el número: al borrarse el título se
     /// va también su subtítulo "9 activos · 0 bajas", así que este es el único
     /// sitio de la pantalla que dice cuántos hay, que es lo que revela si la
     /// lista está filtrada.
     ///
-    /// El total pesa más que el conteo: es el dato de cuadre, el que el
-    /// tesorero compara contra el estado financiero. Iba en el mismo gris que
-    /// su etiqueta.
+    /// El año tampoco se va. El total es el del año en curso, no el de
+    /// siempre, y sin decirlo la cifra queda sin marco: es la misma cifra que
+    /// encabeza la ficha de cada aportante y que certifica su constancia, y las
+    /// tres tienen que hablar del mismo periodo. En Ingresos no hace falta
+    /// porque el periodo ya lo dice el botón de mes, arriba.
+    ///
+    /// El total pesa más que lo demás: es el dato de cuadre, el que el tesorero
+    /// compara contra el estado financiero. Iba en el mismo gris que su
+    /// etiqueta.
     private var resumenPie: some View {
         HStack(spacing: 6) {
             Text("\(vm.itemsFiltrados.count)").foregroundStyle(.secondary)
+            Text("·").foregroundStyle(.tertiary)
+            Text(String(vm.anio)).foregroundStyle(.secondary)
             Text("·").foregroundStyle(.tertiary)
             Text("\(Money.fmt(vm.total)) MXN").fontWeight(.semibold)
         }
