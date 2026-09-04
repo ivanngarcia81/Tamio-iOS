@@ -181,7 +181,12 @@ struct CorteFila: Codable, FetchableRecord, PersistableRecord {
         cuenta = c.registro.cuenta
         fecha = c.registro.fecha
         periodo = c.registro.periodo
-        ficha = c.fichaAdjunta
+        // El recibo NO vive aquí: vive en el depósito, que es la fila que nace
+        // al ir al banco. La columna `ficha` de la v4 se queda sin uso —era el
+        // borrador de cuando el corte guardaba el nombre del archivo— y no se
+        // borra porque una migración destructiva por un campo muerto no vale
+        // la pena; ninguna lectura la mira.
+        ficha = nil
         depositoId = nil
         registradoPor = c.registradoPor
         dobleFirmaPedida = c.dobleFirmaPedida
@@ -204,7 +209,6 @@ struct CorteFila: Codable, FetchableRecord, PersistableRecord {
             estado: estado == Self.depositado ? .depositado : .pendiente,
             movimientos: [],
             registro: RegistroDeposito(cuenta: cuenta, fecha: fecha, periodo: periodo),
-            fichaAdjunta: ficha,
             registradoPor: registradoPor,
             dobleFirmaPedida: dobleFirmaPedida,
             segundaFirma: segundaFirma,
@@ -226,4 +230,39 @@ struct CorteMovimientoFila: Codable, FetchableRecord, PersistableRecord {
     var movimientoId: String
     var actualizadoEn: String?
     var borrado: Bool
+}
+
+/// Un depósito bancario en SQLite. Espejo de `depositos_bancarios`.
+struct DepositoFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "deposito"
+
+    var id: String
+    var fecha: String
+    var periodo: String
+    var monto: Int
+    var cuenta: String
+    var referencia: String
+    var archivoLocal: String?
+    var comprobantePath: String?
+    var actualizadoEn: String?
+    var borrado: Bool
+
+    init(_ d: DepositoBancario, actualizadoEn: String? = nil, borrado: Bool = false) {
+        id = d.id
+        fecha = d.fecha
+        periodo = d.periodo
+        monto = d.monto
+        cuenta = d.cuenta
+        referencia = d.referencia
+        archivoLocal = d.archivoLocal
+        comprobantePath = d.comprobantePath
+        self.actualizadoEn = actualizadoEn
+        self.borrado = borrado
+    }
+
+    var deposito: DepositoBancario {
+        DepositoBancario(id: id, fecha: fecha, periodo: periodo, monto: monto,
+                         cuenta: cuenta, referencia: referencia,
+                         archivoLocal: archivoLocal, comprobantePath: comprobantePath)
+    }
 }

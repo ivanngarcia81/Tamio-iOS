@@ -161,8 +161,9 @@ struct DepositosView: View {
             onAgregarCuenta: { nombre in Task { await vm.agregarCuenta(nombre, aCorte: c.id) } },
             onCambiarPeriodo: { p in Task { await vm.cambiarPeriodo(corteId: c.id, p) } },
             onCambiarFecha: { f in Task { await vm.cambiarFecha(corteId: c.id, f) } },
-            onAdjuntarFicha: { nombre in Task { await vm.adjuntarFicha(corteId: c.id, nombre: nombre) } },
-            onMarcarDepositado: { Task { await vm.marcarDepositado(corteId: c.id) } },
+            onRegistrarDeposito: { dep in
+                Task { await vm.registrarDeposito(corteId: c.id, dep) }
+            },
             onIrAPorRevisar: irAPorRevisar,
             candidatosFirma: vm.candidatos(para: c),
             onFirmar: { nombre, rol, modo, conteo in

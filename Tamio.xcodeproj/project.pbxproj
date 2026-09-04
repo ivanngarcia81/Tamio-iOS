@@ -35,6 +35,7 @@
 		109DD63130497B0000E781A1 /* AportanteFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD63030497B0000E781A1 /* AportanteFila.swift */; };
 		109DD5E530497B0000E781A1 /* IglesiaFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5E430497B0000E781A1 /* IglesiaFila.swift */; };
 		109DD5C530497B0000E781A1 /* OfflineMovimientosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A1 /* OfflineMovimientosRepository.swift */; };
+		109DD5C530497B0000E781B1 /* RecibosLocales.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781B1 /* RecibosLocales.swift */; };
 		109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A2 /* OfflineDepositosRepository.swift */; };
 		109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */; };
 		127515E07FA461AED9B9AAA2 /* IPhoneSecretariaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FBFB6CE7A24648A6454B21 /* IPhoneSecretariaView.swift */; };
@@ -68,6 +69,7 @@
 		6C7A3A8D85E12BAFF15B3184 /* NuevoMovimientoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F9C4EA849CD2D819E3CE13 /* NuevoMovimientoView.swift */; };
 		6C8EC6FDF811C30E70597D87 /* CartasViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F6E207704664D1A578D94D /* CartasViewModel.swift */; };
 		6FEEBC949AB1624243BB0C4C /* NuevoCorteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5228803AB5A63490100EDD /* NuevoCorteView.swift */; };
+		6FEEBC949AB1624243BB0C5B /* RegistrarDepositoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5228803AB5A63490100EDF /* RegistrarDepositoView.swift */; };
 		6FEEBC949AB1624243BB0C5A /* SegundaFirmaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5228803AB5A63490100EDE /* SegundaFirmaView.swift */; };
 		728992BD43CEE79182DBA757 /* RegistroRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 751ECE8206F09510C5374557 /* RegistroRepository.swift */; };
 		73BB5CC9952C0032894C74EE /* EditarAsuntoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C2EDA0E861A039E4FB28FC /* EditarAsuntoView.swift */; };
@@ -153,6 +155,7 @@
 		109DD63030497B0000E781A1 /* AportanteFila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AportanteFila.swift; path = Local/AportanteFila.swift; sourceTree = "<group>"; };
 		109DD5E430497B0000E781A1 /* IglesiaFila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = IglesiaFila.swift; path = Local/IglesiaFila.swift; sourceTree = "<group>"; };
 		109DD5C430497B0000E781A1 /* OfflineMovimientosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OfflineMovimientosRepository.swift; path = Local/OfflineMovimientosRepository.swift; sourceTree = "<group>"; };
+		109DD5C430497B0000E781B1 /* RecibosLocales.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecibosLocales.swift; sourceTree = "<group>"; };
 		109DD5C430497B0000E781A2 /* OfflineDepositosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OfflineDepositosRepository.swift; path = Local/OfflineDepositosRepository.swift; sourceTree = "<group>"; };
 		109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MotorSincronizacion.swift; path = Local/MotorSincronizacion.swift; sourceTree = "<group>"; };
 		1283425908338B34926D5B4A /* ServiciosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiciosRepository.swift; sourceTree = "<group>"; };
@@ -205,6 +208,7 @@
 		95189A763B933954C2337372 /* MiembrosViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiembrosViewModel.swift; sourceTree = "<group>"; };
 		9631D096821170DB2F6A7C24 /* InformesMembresiaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InformesMembresiaView.swift; sourceTree = "<group>"; };
 		9C5228803AB5A63490100EDD /* NuevoCorteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NuevoCorteView.swift; sourceTree = "<group>"; };
+		9C5228803AB5A63490100EDF /* RegistrarDepositoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrarDepositoView.swift; sourceTree = "<group>"; };
 		9C5228803AB5A63490100EDE /* SegundaFirmaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegundaFirmaView.swift; sourceTree = "<group>"; };
 		9D80DC3340868CDE97F34571 /* DepositosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosRepository.swift; sourceTree = "<group>"; };
 		9D90A2753741AD7825EB7A59 /* IPhoneAjustesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPhoneAjustesView.swift; sourceTree = "<group>"; };
@@ -387,6 +391,7 @@
 				109DD63030497B0000E781A1 /* AportanteFila.swift */,
 				109DD5E430497B0000E781A1 /* IglesiaFila.swift */,
 				109DD5C430497B0000E781A1 /* OfflineMovimientosRepository.swift */,
+				109DD5C430497B0000E781B1 /* RecibosLocales.swift */,
 				109DD5C430497B0000E781A2 /* OfflineDepositosRepository.swift */,
 				109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */,
 			);
@@ -422,6 +427,7 @@
 				109DD61430497B0000E781A1 /* ImportarAportantesView.swift */,
 				109DD62230497B0000E781A1 /* ImportarAportesView.swift */,
 				9C5228803AB5A63490100EDD /* NuevoCorteView.swift */,
+				9C5228803AB5A63490100EDF /* RegistrarDepositoView.swift */,
 				9C5228803AB5A63490100EDE /* SegundaFirmaView.swift */,
 				D0F9C4EA849CD2D819E3CE13 /* NuevoMovimientoView.swift */,
 				668DD73FABB98B24B2D068DE /* RegistroView.swift */,
@@ -555,6 +561,7 @@
 				109DD63130497B0000E781A1 /* AportanteFila.swift in Sources */,
 				109DD5E530497B0000E781A1 /* IglesiaFila.swift in Sources */,
 				109DD5C530497B0000E781A1 /* OfflineMovimientosRepository.swift in Sources */,
+				109DD5C530497B0000E781B1 /* RecibosLocales.swift in Sources */,
 				109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */,
 				109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */,
 				55BE47478958A09E5E13CBCC /* MembresiaView.swift in Sources */,
@@ -581,6 +588,7 @@
 				109DD61530497B0000E781A1 /* ImportarAportantesView.swift in Sources */,
 				109DD62330497B0000E781A1 /* ImportarAportesView.swift in Sources */,
 				6FEEBC949AB1624243BB0C4C /* NuevoCorteView.swift in Sources */,
+				6FEEBC949AB1624243BB0C5B /* RegistrarDepositoView.swift in Sources */,
 				6FEEBC949AB1624243BB0C5A /* SegundaFirmaView.swift in Sources */,
 				6C7A3A8D85E12BAFF15B3184 /* NuevoMovimientoView.swift in Sources */,
 				0B8D01419956FF26F533080D /* PDFExport.swift in Sources */,
@@ -632,6 +640,8 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 4N9XEU7F4P;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Para fotografiar el recibo del banco al registrar un dep\u00f3sito.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para adjuntar la foto del recibo del banco a un dep\u00f3sito.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -653,6 +663,8 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 4N9XEU7F4P;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Para fotografiar el recibo del banco al registrar un dep\u00f3sito.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para adjuntar la foto del recibo del banco a un dep\u00f3sito.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

@@ -15,8 +15,7 @@ struct CorteDetalle: View {
     var onAgregarCuenta: ((String) -> Void)? = nil
     var onCambiarPeriodo: ((String) -> Void)? = nil
     var onCambiarFecha: ((Date) -> Void)? = nil
-    var onAdjuntarFicha: ((String) -> Void)? = nil
-    var onMarcarDepositado: (() -> Void)? = nil
+    var onRegistrarDeposito: ((DepositoBancario) -> Void)? = nil
     var onIrAPorRevisar: (() -> Void)? = nil
     var candidatosFirma: [(nombre: String, cargo: String)] = []
     var onFirmar: ((_ nombre: String, _ rol: String?,
@@ -24,8 +23,7 @@ struct CorteDetalle: View {
     var onDescuadre: ((Centavos) -> Void)? = nil
     var onQuitarFirma: (() -> Void)? = nil
 
-    @State private var mostrarImportador = false
-    @State private var confirmarDeposito = false
+    @State private var mostrarRegistro = false
     @State private var mostrarNuevoMovimiento = false
     @State private var mostrarNuevaCuenta = false
     @State private var mostrarFecha = false
@@ -61,13 +59,6 @@ struct CorteDetalle: View {
         .safeAreaInset(edge: .bottom) { barraDepositar }
         .background(Color(.systemGroupedBackground))
         .scrollEdgeEffectStyle(.soft, for: .all)
-        .fileImporter(isPresented: $mostrarImportador,
-                      allowedContentTypes: [.image, .pdf],
-                      allowsMultipleSelection: false) { resultado in
-            if case .success(let urls) = resultado, let url = urls.first {
-                onAdjuntarFicha?(url.lastPathComponent)
-            }
-        }
         .sheet(isPresented: $mostrarNuevoMovimiento) {
             ElegirMovimientosView(libres: libres) { ids in
                 onAgregarAlCorte?(ids)
@@ -84,13 +75,10 @@ struct CorteDetalle: View {
             Text(L.t("Por ejemplo «Chase ··7730». Se asigna a este corte.",
                      "For example “Chase ··7730”. It will be assigned to this cut."))
         }
-        .confirmationDialog(L.t("¿Marcar este corte como depositado?",
-                                "Mark this cut as deposited?"),
-                            isPresented: $confirmarDeposito, titleVisibility: .visible) {
-            Button(L.t("Marcar depositado", "Mark deposited")) { onMarcarDepositado?() }
-            Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
-        } message: {
-            Text(mensajeConfirmacion)
+        .sheet(isPresented: $mostrarRegistro) {
+            RegistrarDepositoView(corte: corte) { deposito in
+                onRegistrarDeposito?(deposito)
+            }
         }
         .sheet(isPresented: $mostrarFecha) { hojaFecha }
         .sheet(isPresented: $mostrarFirma) {
@@ -100,17 +88,6 @@ struct CorteDetalle: View {
                 onDescuadre?(conteo)
             }
         }
-    }
-
-    /// El mensaje del diálogo dice lo que de verdad se va a registrar. Antes
-    /// prometía un monto que salía de un campo guardado aparte de la selección.
-    private var mensajeConfirmacion: String {
-        if corte.sinCuenta {
-            return L.t("Este corte no tiene cuenta asignada. Asígnala antes de registrarlo.",
-                       "This cut has no account assigned. Assign one before recording it.")
-        }
-        return L.t("Se registrará \(Money.fmt(corte.montoTotal)) en \(corte.registro.cuenta), en el periodo \(corte.registro.periodo).",
-                   "\(Money.fmt(corte.montoTotal)) will be recorded to \(corte.registro.cuenta), in period \(corte.registro.periodo).")
     }
 
     // MARK: - Cabecera
@@ -466,29 +443,42 @@ struct CorteDetalle: View {
         }
     }
 
+    /// **El recibo del banco**, que ahora vive en el depósito y no en un texto.
+    /// Antes esta tarjeta ofrecía "Adjuntar ficha" en un corte todavía sin
+    /// depositar, guardaba el NOMBRE del archivo y tiraba el archivo. El recibo
+    /// se pide donde se consigue: al registrar el depósito.
+    @ViewBuilder
     private var tarjetaFicha: some View {
         Tarjeta {
             VStack(alignment: .leading, spacing: 10) {
-                TituloSeccion(texto: L.t("FICHA DEL BANCO", "BANK SLIP"))
-                if let ficha = corte.fichaAdjunta {
-                    HStack(spacing: 8) {
-                        Image(systemName: "doc.fill").foregroundStyle(Paleta.brand)
-                        Text(ficha).font(.subheadline).lineLimit(1)
-                        Spacer()
-                        if corte.sinDepositar {
-                            Button(L.t("Cambiar", "Change")) { mostrarImportador = true }
-                                .font(.caption).buttonStyle(.borderless)
+                TituloSeccion(texto: L.t("RECIBO DEL BANCO", "BANK RECEIPT"))
+                if let dep = corte.deposito {
+                    if dep.tieneRecibo {
+                        HStack(spacing: 8) {
+                            Image(systemName: "doc.text.fill").foregroundStyle(Paleta.brand)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(L.t("Guardado", "Saved")).font(.subheadline)
+                                if dep.reciboSinSubir {
+                                    Text(L.t("En el teléfono · sube cuando haya señal",
+                                             "On the phone · uploads when there's signal"))
+                                        .font(.caption).foregroundStyle(Paleta.aviso)
+                                }
+                            }
+                            Spacer()
                         }
+                    } else {
+                        Text(L.t("Este depósito se registró sin recibo.",
+                                 "This deposit was recorded without a receipt."))
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    if !dep.referencia.isEmpty {
+                        Divider()
+                        filaRegistro(L.t("Referencia", "Reference"), dep.referencia)
                     }
                 } else {
-                    Text(L.t("Foto o PDF de la ficha del banco", "Photo or PDF of the bank slip"))
-                        .font(.subheadline)
-                    Button { mostrarImportador = true } label: {
-                        Label(L.t("Adjuntar ficha", "Attach slip"), systemImage: "paperclip")
-                            .font(.subheadline)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(Color.secondary)
+                    Text(L.t("Se pide al registrar el depósito: la foto del recibo se hace en el banco.",
+                             "Asked for when recording the deposit: the receipt photo is taken at the bank."))
+                        .font(.subheadline).foregroundStyle(.secondary)
                 }
             }
         }
@@ -508,12 +498,12 @@ struct CorteDetalle: View {
             .frame(maxWidth: .infinity)
         let apagado = corte.sinCuenta || corte.montoTotal == 0
         if glass {
-            Button { confirmarDeposito = true } label: { etiqueta }
+            Button { mostrarRegistro = true } label: { etiqueta }
                 .buttonStyle(.glassProminent)
                 .tint(Paleta.brand)
                 .disabled(apagado)
         } else {
-            Button { confirmarDeposito = true } label: { etiqueta }
+            Button { mostrarRegistro = true } label: { etiqueta }
                 .buttonStyle(.borderedProminent)
                 .tint(Paleta.brand)
                 .disabled(apagado)

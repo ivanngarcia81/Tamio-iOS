@@ -4,7 +4,13 @@ protocol DepositosRepository {
     func cortes(estado: EstadoDeposito) async throws -> [Corte]
     func crear(_ corte: Corte) async throws
     func actualizar(_ corte: Corte) async throws
-    func marcarDepositado(id: String) async throws
+    /// **Registrar el depósito** crea la fila de `depositos_bancarios` y el
+    /// corte la apunta. Sustituye a `marcarDepositado`, que solo cambiaba un
+    /// estado: sin fila no había dónde guardar el recibo, ni la fecha real en
+    /// que se fue al banco, ni la referencia que da la ventanilla.
+    func registrarDeposito(corteId: String, _ deposito: DepositoBancario) async throws
+    /// Marca el recibo como ya subido al bucket. Lo llama la sincronización.
+    func reciboSubido(depositoId: String, comprobantePath: String) async throws
     /// Cuentas donde se puede depositar. Estaban escritas a mano en el
     /// ViewModel, así que no había forma de dar de alta la del banco propio.
     func cuentas() async throws -> [String]
@@ -184,14 +190,21 @@ struct MockDepositosRepository: DepositosRepository {
         PuenteCortes.quitar(movimientoId, de: corteId)
     }
 
-    func marcarDepositado(id: String) async throws {
-        guard let i = Self.almacen.firstIndex(where: { $0.id == id }) else { return }
+    func registrarDeposito(corteId: String, _ deposito: DepositoBancario) async throws {
+        guard let i = Self.almacen.firstIndex(where: { $0.id == corteId }) else { return }
         Self.almacen[i].estado = .depositado
+        Self.almacen[i].deposito = deposito
         Self.almacen[i].descripcion = L.t(
-            "Depositado el \(DepositosViewModel.textoFecha(Date()))",
-            "Deposited \(DepositosViewModel.textoFecha(Date()))")
+            "Depositado el \(deposito.fecha)", "Deposited \(deposito.fecha)")
         // Al cerrarse el corte, sus movimientos dejan de ser efectivo en caja.
-        PuenteCortes.registrar(corte: id, estado: .depositado)
+        PuenteCortes.registrar(corte: corteId, estado: .depositado)
+    }
+
+    func reciboSubido(depositoId: String, comprobantePath: String) async throws {
+        guard let i = Self.almacen.firstIndex(where: { $0.deposito?.id == depositoId })
+        else { return }
+        Self.almacen[i].deposito?.comprobantePath = comprobantePath
+        Self.almacen[i].deposito?.archivoLocal = nil
     }
 
     func agregarCuenta(_ nombre: String) async throws {
@@ -279,7 +292,14 @@ struct MockDepositosRepository: DepositosRepository {
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
                                            fecha: L.t("Lunes 17 de agosto", "Monday, Aug 17"),
                                            periodo: L.t("Agosto 2026", "August 2026")),
-                fichaAdjunta: "ficha-banorte-17ago.pdf"
+                deposito: DepositoBancario(
+                    id: "d10",
+                    fecha: L.t("Lunes 17 de agosto", "Monday, Aug 17"),
+                    periodo: L.t("Agosto 2026", "August 2026"),
+                    monto: 14_320_00,
+                    cuenta: "Banorte ··4821",
+                    referencia: "OP-884213",
+                    comprobantePath: "ficha-banorte-17ago.pdf")
             ),
         ]
     }

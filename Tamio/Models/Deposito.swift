@@ -65,6 +65,43 @@ struct RegistroDeposito {
     var periodo: String
 }
 
+/// **El depósito bancario: el acto de llevar el dinero al banco.**
+///
+/// No es lo mismo que el corte, y por eso es otra entidad —`depositos_bancarios`
+/// en Supabase, apuntada por `cortes.deposito_uid`—. El corte AGRUPA dinero; el
+/// depósito es el momento en que sale de la caja y hay un recibo de por medio.
+/// Un corte puede existir semanas sin depósito; un depósito no existe sin haber
+/// ido al banco.
+///
+/// Aquí vive el recibo, que es lo que antes no tenía dónde guardarse: la tarjeta
+/// "Ficha del banco" apuntaba el NOMBRE del archivo y tiraba el archivo.
+struct DepositoBancario: Identifiable, Hashable {
+    let id: String
+    var fecha: String
+    var periodo: String
+    var monto: Centavos
+    var cuenta: String
+    /// Referencia que dé el banco (número de operación, folio de la ficha).
+    var referencia: String = ""
+
+    /// **El recibo, en dos piezas y no en una.**
+    ///
+    /// `archivoLocal` es el nombre del archivo copiado dentro de la app: se
+    /// escribe SIEMPRE, antes de intentar nada de red. Sin eso, depositar sin
+    /// señal —que es la mitad de las veces, en el estacionamiento del banco—
+    /// perdería la foto.
+    ///
+    /// `comprobantePath` es la ruta en el bucket, y solo aparece cuando la
+    /// subida ha salido bien. Mientras sea nula, la sincronización sabe que le
+    /// queda trabajo.
+    var archivoLocal: String? = nil
+    var comprobantePath: String? = nil
+
+    var tieneRecibo: Bool { archivoLocal != nil || comprobantePath != nil }
+    /// Guardado en el teléfono pero todavía no en el servidor.
+    var reciboSinSubir: Bool { archivoLocal != nil && comprobantePath == nil }
+}
+
 /// Un corte de caja (depósito).
 ///
 /// **Todo lo que es una suma es una propiedad calculada.** Antes los totales,
@@ -103,8 +140,12 @@ struct Corte: Identifiable, Hashable {
     /// se quedan fuera del corte.
     var porRevisar: Int = 0
 
-    /// Nombre del archivo de la ficha del banco adjunta (nil = sin adjuntar).
-    var fichaAdjunta: String? = nil
+    /// El depósito que cerró este corte, resuelto por el repositorio desde
+    /// `deposito_uid`. Nulo mientras el dinero no haya ido al banco.
+    ///
+    /// Sustituye a `fichaAdjunta`, que guardaba el NOMBRE del archivo elegido y
+    /// tiraba el archivo: adjuntar un recibo dejaba un texto y nada más.
+    var deposito: DepositoBancario? = nil
 
     // MARK: - Doble conteo
     //
@@ -195,10 +236,10 @@ struct Corte: Identifiable, Hashable {
         if estado == .depositado {
             return [Chequeo(id: 1, tipo: .ok,
                             titulo: L.t("Depósito registrado", "Deposit recorded"),
-                            detalle: fichaAdjunta.map {
-                                L.t("Ficha adjunta: \($0).", "Slip attached: \($0).")
-                            } ?? L.t("Registrado sin ficha del banco adjunta.",
-                                     "Recorded without a bank slip attached."))]
+                            detalle: (deposito?.tieneRecibo ?? false)
+                                ? L.t("Recibo del banco guardado.", "Bank receipt saved.")
+                                : L.t("Registrado sin recibo del banco.",
+                                      "Recorded without a bank receipt."))]
         }
 
         if sinCuenta {

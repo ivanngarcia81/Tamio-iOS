@@ -212,6 +212,33 @@ final class BaseLocal {
                 on corteMovimiento (movimientoId) where borrado = 0
                 """)
         }
+
+        // **El depósito bancario: el acto de llevar el dinero al banco.**
+        // Entidad aparte del corte, igual que en Supabase: el corte agrupa
+        // dinero y puede existir semanas; el depósito solo existe si alguien
+        // fue al banco, y trae el recibo.
+        m.registerMigration("v5_depositos") { db in
+            try db.create(table: "deposito") { t in
+                t.primaryKey("id", .text)
+                t.column("fecha", .text).notNull().defaults(to: "")
+                t.column("periodo", .text).notNull().defaults(to: "")
+                t.column("monto", .integer).notNull().defaults(to: 0)
+                t.column("cuenta", .text).notNull().defaults(to: "")
+                t.column("referencia", .text).notNull().defaults(to: "")
+                // El recibo va en DOS columnas y no en una. `archivoLocal` se
+                // escribe siempre, antes de tocar la red: depositar sin señal
+                // no puede perder la foto. `comprobantePath` solo aparece
+                // cuando la subida al bucket ha salido bien, así que mientras
+                // sea nulo la sincronización sabe que le queda trabajo.
+                t.column("archivoLocal", .text)
+                t.column("comprobantePath", .text)
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+            // Los recibos que aún no han subido: es lo que barre el motor.
+            try db.create(index: "idx_deposito_sinSubir", on: "deposito",
+                          columns: ["comprobantePath"])
+        }
         return m
     }
 

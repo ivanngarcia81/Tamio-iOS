@@ -69,16 +69,39 @@ struct OfflineDepositosRepository: DepositosRepository {
         }
     }
 
-    func marcarDepositado(id: String) async throws {
+    /// Crea la fila del depósito y engancha el corte. Las dos escrituras van en
+    /// la MISMA transacción: un corte marcado depositado que apunte a un
+    /// depósito inexistente sería peor que no haberlo cerrado.
+    func registrarDeposito(corteId: String, _ deposito: DepositoBancario) async throws {
         try await cola.write { db in
-            guard var fila = try CorteFila.fetchOne(db, key: id) else { return }
-            fila.estado = CorteFila.depositado
-            fila.descripcion = L.t(
-                "Depositado el \(DepositosViewModel.textoFecha(Date()))",
-                "Deposited \(DepositosViewModel.textoFecha(Date()))")
-            try fila.update(db)
-            try Self.encolar(db, entidad: "corte", id: id, operacion: .actualizar)
+            try DepositoFila(deposito).insert(db)
+            try Self.encolar(db, entidad: "deposito", id: deposito.id, operacion: .crear)
+
+            guard var corte = try CorteFila.fetchOne(db, key: corteId) else { return }
+            corte.estado = CorteFila.depositado
+            corte.depositoId = deposito.id
+            corte.fecha = deposito.fecha
+            corte.periodo = deposito.periodo
+            corte.descripcion = L.t("Depositado el \(deposito.fecha)",
+                                    "Deposited \(deposito.fecha)")
+            try corte.update(db)
+            try Self.encolar(db, entidad: "corte", id: corteId, operacion: .actualizar)
         }
+    }
+
+    /// El recibo ya está en el bucket: se guarda la ruta y se suelta la copia
+    /// local, que era solo el seguro contra quedarse sin señal.
+    func reciboSubido(depositoId: String, comprobantePath: String) async throws {
+        let local: String? = try await cola.write { db in
+            guard var fila = try DepositoFila.fetchOne(db, key: depositoId) else { return nil }
+            let previo = fila.archivoLocal
+            fila.comprobantePath = comprobantePath
+            fila.archivoLocal = nil
+            try fila.update(db)
+            try Self.encolar(db, entidad: "deposito", id: depositoId, operacion: .actualizar)
+            return previo
+        }
+        if let local { RecibosLocales.borrar(local) }
     }
 
     func agregarAlCorte(corteId: String, movimientoIds: [String]) async throws {
@@ -178,6 +201,9 @@ struct OfflineDepositosRepository: DepositosRepository {
             .map(\.movimiento)
             .map { Self.conDeposito($0, db) }
         c.efectivoEnCaja = efectivoEnCaja
+        if let dep = fila.depositoId {
+            c.deposito = try DepositoFila.fetchOne(db, key: dep)?.deposito
+        }
         c.porRevisar = try MovimientoFila
             .filter(Column("marcadoPendiente") == true && Column("borrado") == false)
             .fetchCount(db)

@@ -46,6 +46,11 @@ final class MotorSincronizacion {
             // ha bajado deja el corte vacío hasta la vuelta siguiente.
             try await bajarCortes()
             try await bajarCorteMovimientos()
+            try await bajarDepositos()
+            // Los recibos al final: son archivos, tardan, y ninguna otra cosa
+            // depende de ellos. Que falle la subida de una foto no puede dejar
+            // sin sincronizar el resto.
+            try? await subirRecibosPendientes()
             ultimaSincronizacion = Date()
             estado = .reposo
         } catch {
@@ -102,6 +107,10 @@ final class MotorSincronizacion {
         }
         if op.entidad == "corteMovimiento" {
             try await subirCorteMovimiento(op)
+            return
+        }
+        if op.entidad == "deposito" {
+            try await subirDeposito(op)
             return
         }
         guard let fila = try await cola.read({ db in
@@ -651,6 +660,141 @@ final class MotorSincronizacion {
             if let ultimo = filas.last?.updatedAt {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('corteMovimiento', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
+    // MARK: - Depósitos bancarios
+
+    /// `monto` va en UNIDADES, no en centavos: la columna es `double precision`,
+    /// igual que `transactions.monto`. La app opera en centavos y solo divide
+    /// aquí, en la frontera.
+    private struct DepositoRemoto: Encodable {
+        let uid: String
+        let churchId: String
+        let fecha: String
+        let periodo: String
+        let monto: Double
+        let moneda: String
+        let cuentaBanco: String
+        let referencia: String
+        let comprobantePath: String?
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, fecha, periodo, monto, moneda, referencia, deleted
+            case churchId         = "church_id"
+            case cuentaBanco      = "cuenta_banco"
+            case comprobantePath  = "comprobante_path"
+        }
+    }
+
+    private func subirDeposito(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try DepositoFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+
+        let remoto = DepositoRemoto(
+            uid: fila.id, churchId: churchIdActivo,
+            fecha: fila.fecha, periodo: fila.periodo,
+            monto: Double(fila.monto) / 100.0,
+            moneda: Money.codigo,
+            cuentaBanco: fila.cuenta, referencia: fila.referencia,
+            comprobantePath: fila.comprobantePath,
+            deleted: fila.borrado)
+        try await supabase.from("depositos_bancarios")
+            .upsert(remoto, onConflict: "uid").execute()
+    }
+
+    /// **Los recibos que siguen solo en el teléfono.**
+    ///
+    /// El recibo se guarda en local en cuanto se toma la foto, sin esperar a la
+    /// red: se hace EN EL BANCO, que es donde peor señal hay, y el papel se
+    /// tira. Esto es lo que lo lleva al bucket cuando por fin hay cobertura, y
+    /// solo entonces se suelta la copia local.
+    private func subirRecibosPendientes() async throws {
+        let pendientes = try await cola.read { db in
+            try DepositoFila
+                .filter(Column("comprobantePath") == nil && Column("borrado") == false)
+                .fetchAll(db)
+        }
+        guard !pendientes.isEmpty else { return }
+        let almacen = SupabaseComprobantesStorage()
+
+        for fila in pendientes {
+            guard let nombre = fila.archivoLocal,
+                  let url = RecibosLocales.url(nombre),
+                  FileManager.default.fileExists(atPath: url.path) else { continue }
+            do {
+                let ruta = try await almacen.subir(url)
+                try await OfflineDepositosRepository()
+                    .reciboSubido(depositoId: fila.id, comprobantePath: ruta)
+            } catch {
+                // Se reintenta en la siguiente vuelta. El archivo NO se borra:
+                // mientras no esté arriba, la copia local es la única que hay.
+                continue
+            }
+        }
+    }
+
+    private struct DepositoRemotoLeido: Decodable {
+        let uid: String
+        let fecha: String?
+        let periodo: String?
+        let monto: Double?
+        let cuentaBanco: String?
+        let referencia: String?
+        let comprobantePath: String?
+        let updatedAt: String?
+        let deleted: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case uid, fecha, periodo, monto, referencia, deleted
+            case cuentaBanco     = "cuenta_banco"
+            case comprobantePath = "comprobante_path"
+            case updatedAt       = "updated_at"
+        }
+    }
+
+    private func bajarDepositos() async throws {
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'deposito'")
+        }
+        var consulta = supabase.from("depositos_bancarios").select()
+            .eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [DepositoRemotoLeido] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                let tienePendiente = try OperacionPendiente
+                    .filter(Column("registroId") == r.uid).fetchCount(db) > 0
+                if tienePendiente { continue }
+                if r.deleted == true {
+                    try DepositoFila.deleteOne(db, key: r.uid)
+                    continue
+                }
+                let previo = try DepositoFila.fetchOne(db, key: r.uid)
+                var fila = previo ?? DepositoFila(DepositoBancario(id: r.uid, fecha: "",
+                                                                   periodo: "", monto: 0,
+                                                                   cuenta: ""))
+                fila.fecha = r.fecha ?? ""
+                fila.periodo = r.periodo ?? ""
+                fila.monto = Int(((r.monto ?? 0) * 100).rounded())
+                fila.cuenta = r.cuentaBanco ?? ""
+                fila.referencia = r.referencia ?? ""
+                fila.comprobantePath = r.comprobantePath
+                fila.actualizadoEn = r.updatedAt
+                fila.borrado = false
+                try fila.save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('deposito', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
                     """, arguments: [ultimo])
             }

@@ -161,17 +161,16 @@ final class DepositosViewModel {
             .filter { $0.nombre.caseInsensitiveCompare(registro) != .orderedSame }
     }
 
-    /// Adjunta (registra el nombre de) la ficha del banco.
+    /// Registra el depósito: crea la fila de `depositos_bancarios` con su
+    /// recibo y cierra el corte. Antes esto solo cambiaba un estado, así que la
+    /// fecha real de ir al banco y el recibo no tenían dónde vivir.
     @MainActor
-    func adjuntarFicha(corteId: String, nombre: String) async {
-        await editar(corteId) { $0.fichaAdjunta = nombre }
-    }
-
-    /// Marca el corte como depositado; sale de la pestaña Pendientes.
-    @MainActor
-    func marcarDepositado(corteId: String) async {
-        try? await repo.marcarDepositado(id: corteId)
+    func registrarDeposito(corteId: String, _ deposito: DepositoBancario) async {
+        try? await repo.registrarDeposito(corteId: corteId, deposito)
         await cargar()
+        // El recibo ya está guardado en el teléfono; subirlo puede esperar a
+        // que haya señal, y de eso se encarga el motor por su cuenta.
+        Task { await MotorSincronizacion.compartido.sincronizar() }
     }
 
     /// Crea un corte nuevo (pendiente). **Sin importe tecleado**: el monto de
