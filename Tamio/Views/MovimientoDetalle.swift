@@ -25,6 +25,12 @@ struct MovimientoDetalle: View {
     @State private var abriendoComprobante = false
     @State private var errorComprobante: String?
     @Environment(\.openURL) private var openURL
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    /// En iPad el detalle es una COLUMNA, no la pantalla: una barra inferior
+    /// propia ahí quedaría bajo la columna de la lista y compartiendo borde con
+    /// ella. Las acciones se quedan donde están. Es la misma frontera que en
+    /// Ingresos y en Depósitos.
+    private var compacto: Bool { sizeClass == .compact }
     private var color: Color { Paleta.categoria(m.claveCategoria) }
 
     /// Texto que se comparte con el sistema (ShareLink).
@@ -37,14 +43,21 @@ struct MovimientoDetalle: View {
             VStack(alignment: .leading, spacing: 20) {
                 etiquetas
                 cabecera
-                acciones
+                // La tira de acciones entre el titular y los campos desaparece
+                // en el teléfono: baja a su propia barra. Arriba se queda lo
+                // que dice QUÉ es este movimiento —las etiquetas, el titular y
+                // el importe—, que es justo lo que el pulgar tapa si las
+                // acciones se quedan a media altura.
+                if !compacto { acciones }
                 campos
                 auditYComprobante
             }
             .padding(Esp.panel)
         }
-        .colchonInferior()
+        .colchonInferior(compacto ? 0 : 12)
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
+        .safeAreaInset(edge: .bottom) { barraInferior }
         .fileImporter(isPresented: $mostrarImportador,
                       allowedContentTypes: [.image, .pdf],
                       allowsMultipleSelection: false) { resultado in
@@ -81,6 +94,18 @@ struct MovimientoDetalle: View {
         }
     }
 
+    /// Las tres acciones en la barra del teléfono. **Los dos secundarios se
+    /// quedan en icono y "Editar" conserva su palabra**: con los tres escritos
+    /// la fila no cabe, pero con los tres en icono los tres pesan igual y la
+    /// única acción que cambia el dato deja de distinguirse — un lápiz verde
+    /// del tamaño del clip. La jerarquía la lleva el texto, no el color.
+    @ViewBuilder
+    private var barraInferior: some View {
+        if compacto {
+            BarraInferior { acciones }
+        }
+    }
+
     private var acciones: some View {
         HStack(spacing: 10) {
             // Este botón decía "Ver comprobante" cuando ya había uno y lo que
@@ -89,26 +114,47 @@ struct MovimientoDetalle: View {
             Button {
                 if m.comprobante == nil { mostrarImportador = true } else { verComprobante() }
             } label: {
-                Label(m.comprobante == nil ? L.t("Adjuntar comprobante", "Attach receipt")
-                                           : L.t("Ver comprobante", "View receipt"),
-                      systemImage: m.comprobante == nil ? "paperclip" : "eye")
+                // En la barra del teléfono los secundarios van sin palabra; en
+                // la columna del iPad, donde sobra ancho, con ella.
+                etiquetaAccion(m.comprobante == nil ? L.t("Adjuntar comprobante", "Attach receipt")
+                                                    : L.t("Ver comprobante", "View receipt"),
+                               icono: m.comprobante == nil ? "paperclip" : "eye")
             }
-            .buttonStyle(.bordered)
+                        .buttonStyle(.glass)
             .tint(Color.secondary)
             .disabled(abriendoComprobante)
             ShareLink(item: textoCompartir) {
-                Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+                etiquetaAccion(L.t("Compartir", "Share"), icono: "square.and.arrow.up")
             }
-            .buttonStyle(.bordered)
+                        .buttonStyle(.glass)
             .tint(Color.secondary)
+            // Editar va en `.glass` con el verde de marca, no en
+            // `.borderedProminent`: el relleno verde con el texto en blanco da
+            // ~2.4:1 en oscuro, que es por lo que se quitó de toda la app.
+            // Sigue siendo el principal por el peso de la tipografía.
             Button { onEditar?() } label: {
                 Label(L.t("Editar", "Edit"), systemImage: "pencil").fontWeight(.semibold)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glass)
             .tint(Paleta.brand)
-            Spacer()
+            // El Spacer empuja las cápsulas a la izquierda en la columna del
+            // iPad; en la barra del teléfono lo pone ya `BarraInferior`.
+            if !compacto { Spacer() }
         }
         .font(.subheadline)
+    }
+
+    /// La etiqueta de una acción secundaria: solo el icono en la barra del
+    /// teléfono, icono y palabra en la columna del iPad. Se escribe así y no
+    /// con `.labelStyle` condicional porque los dos estilos son tipos
+    /// distintos y no se pueden elegir con un ternario.
+    @ViewBuilder
+    private func etiquetaAccion(_ texto: String, icono: String) -> some View {
+        if compacto {
+            Image(systemName: icono).accessibilityLabel(texto)
+        } else {
+            Label(texto, systemImage: icono)
+        }
     }
 
     private var campos: some View {
