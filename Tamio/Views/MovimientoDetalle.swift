@@ -54,10 +54,10 @@ struct MovimientoDetalle: View {
             }
             .padding(Esp.panel)
         }
-        .colchonInferior(compacto ? 0 : 12)
+        .colchonInferior()
         .background(Color(.systemGroupedBackground))
         .scrollEdgeEffectStyle(.soft, for: .all)
-        .safeAreaInset(edge: .bottom) { barraInferior }
+        .toolbar { barra }
         .fileImporter(isPresented: $mostrarImportador,
                       allowedContentTypes: [.image, .pdf],
                       allowsMultipleSelection: false) { resultado in
@@ -94,54 +94,82 @@ struct MovimientoDetalle: View {
         }
     }
 
-    /// Las tres acciones en la barra del teléfono. **Los dos secundarios se
-    /// quedan en icono y "Editar" conserva su palabra**: con los tres escritos
-    /// la fila no cabe, pero con los tres en icono los tres pesan igual y la
-    /// única acción que cambia el dato deja de distinguirse — un lápiz verde
-    /// del tamaño del clip. La jerarquía la lleva el texto, no el color.
-    @ViewBuilder
-    private var barraInferior: some View {
+    /// **Las acciones, arriba en la barra.** Estaban en una tira a media
+    /// altura y luego en una barra inferior propia; su sitio es la barra, que
+    /// es donde el pulgar las busca sin tapar el importe.
+    ///
+    /// El clip y el compartir van en un `ToolbarItemGroup`, que **funde las dos
+    /// cápsulas en una**: son las dos formas de mover el papel de este
+    /// movimiento —adjuntarlo y mandarlo— y leerlas como un bloque separa de un
+    /// vistazo lo que solo consulta de lo único que cambia el dato. "Editar" va
+    /// aparte, tras un `ToolbarSpacer`, y con su palabra: la jerarquía de una
+    /// acción la lleva el texto, no el color.
+    @ToolbarContentBuilder
+    private var barra: some ToolbarContent {
         if compacto {
-            BarraInferior { acciones }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                botonComprobante
+                botonCompartir
+            }
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            ToolbarItem(placement: .topBarTrailing) {
+                botonEditar
+            }
         }
     }
 
+    /// La tira de la columna del iPad, donde la barra es de la pantalla entera
+    /// y estas acciones no pueden subir a ella.
     private var acciones: some View {
         HStack(spacing: 10) {
-            // Este botón decía "Ver comprobante" cuando ya había uno y lo que
-            // abría era el selector de archivos: pulsarlo para verlo llevaba a
-            // reemplazarlo. Ahora ver es ver y adjuntar es adjuntar.
-            Button {
-                if m.comprobante == nil { mostrarImportador = true } else { verComprobante() }
-            } label: {
-                // En la barra del teléfono los secundarios van sin palabra; en
-                // la columna del iPad, donde sobra ancho, con ella.
-                etiquetaAccion(m.comprobante == nil ? L.t("Adjuntar comprobante", "Attach receipt")
-                                                    : L.t("Ver comprobante", "View receipt"),
-                               icono: m.comprobante == nil ? "paperclip" : "eye")
-            }
-                        .buttonStyle(.glass)
-            .tint(Color.secondary)
-            .disabled(abriendoComprobante)
-            ShareLink(item: textoCompartir) {
-                etiquetaAccion(L.t("Compartir", "Share"), icono: "square.and.arrow.up")
-            }
-                        .buttonStyle(.glass)
-            .tint(Color.secondary)
-            // Editar va en `.glass` con el verde de marca, no en
-            // `.borderedProminent`: el relleno verde con el texto en blanco da
-            // ~2.4:1 en oscuro, que es por lo que se quitó de toda la app.
-            // Sigue siendo el principal por el peso de la tipografía.
-            Button { onEditar?() } label: {
-                Label(L.t("Editar", "Edit"), systemImage: "pencil").fontWeight(.semibold)
-            }
-            .buttonStyle(.glass)
-            .tint(Paleta.brand)
+            botonComprobante
+            botonCompartir
+            botonEditar
             // El Spacer empuja las cápsulas a la izquierda en la columna del
             // iPad; en la barra del teléfono lo pone ya `BarraInferior`.
             if !compacto { Spacer() }
         }
         .font(.subheadline)
+    }
+
+    /// Este botón decía "Ver comprobante" cuando ya había uno y lo que abría
+    /// era el selector de archivos: pulsarlo para verlo llevaba a reemplazarlo.
+    /// Ahora ver es ver y adjuntar es adjuntar.
+    private var botonComprobante: some View {
+        Button {
+            if m.comprobante == nil { mostrarImportador = true } else { verComprobante() }
+        } label: {
+            etiquetaAccion(m.comprobante == nil ? L.t("Adjuntar comprobante", "Attach receipt")
+                                                : L.t("Ver comprobante", "View receipt"),
+                           icono: m.comprobante == nil ? "paperclip" : "eye")
+        }
+        .buttonStyle(.glass)
+        .tint(Color.secondary)
+        .disabled(abriendoComprobante)
+    }
+
+    private var botonCompartir: some View {
+        ShareLink(item: textoCompartir) {
+            etiquetaAccion(L.t("Compartir", "Share"), icono: "square.and.arrow.up")
+        }
+        .buttonStyle(.glass)
+        .tint(Color.secondary)
+    }
+
+    /// Editar va en `.glass` con el verde de marca, no en `.borderedProminent`:
+    /// el relleno verde con el texto en blanco da ~2.4:1 en oscuro, que es por
+    /// lo que se quitó de toda la app.
+    private var botonEditar: some View {
+        Button { onEditar?() } label: {
+            Label(L.t("Editar", "Edit"), systemImage: "pencil").fontWeight(.semibold)
+        }
+        // **Con la palabra, y hay que pedírselo.** En la barra el sistema
+        // colapsa un `Label` a su icono, y entonces los tres botones pesan
+        // igual: un lápiz verde del tamaño del clip. La jerarquía de una acción
+        // la lleva el texto.
+        .labelStyle(.titleAndIcon)
+        .buttonStyle(.glass)
+        .tint(Paleta.brand)
     }
 
     /// La etiqueta de una acción secundaria: solo el icono en la barra del

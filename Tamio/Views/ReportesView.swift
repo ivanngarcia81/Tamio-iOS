@@ -100,13 +100,21 @@ struct ReportesView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { barraCompacta }
-            .safeAreaInset(edge: .bottom) { barraInferior }
     }
 
-    /// **La barra del teléfono: arriba lo que dice QUÉ SE ESTÁ VIENDO.**
-    /// El mes y la categoría son eso; el PDF y compartir son acciones y bajan.
-    /// Con las dos cápsulas y el título caben de sobra: en un iPhone el límite
-    /// medido está en unas cuatro.
+    /// **Todo arriba: el filtro y las dos acciones.** Estaban repartidos entre
+    /// la barra (el periodo) y una barra inferior propia (PDF y compartir), con
+    /// el saldo repetido en una cápsula que ya daba el chip "Saldo final".
+    ///
+    /// **El mes y la categoría comparten un único menú.** Con las dos cápsulas
+    /// más las dos acciones no cabe nada, y son la misma pregunta —qué recorte
+    /// del dato estoy viendo—, así que salen del mismo sitio en dos secciones.
+    /// La etiqueta dice el mes, y añade la categoría solo cuando hay una
+    /// puesta: un chip que dijera siempre "Todas las categorías" gastaría el
+    /// ancho en decir que no filtra.
+    ///
+    /// Compartir y PDF van en un `ToolbarItemGroup`, que **funde las dos
+    /// cápsulas en una**: las dos sacan el reporte de la pantalla.
     @ToolbarContentBuilder
     private var barraCompacta: some ToolbarContent {
         // El anual se filtra por AÑO y no admite categoría: enseñar ahí un
@@ -116,65 +124,73 @@ struct ReportesView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     menuAnio { chipFiltro(vm.anioSel) }
                 }
-            }
-        } else if vm.estado != nil {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                menuPeriodo { chipFiltro(vm.periodoEtiqueta) }
-                // **La categoría va como icono, no como cápsula de texto.** Con
-                // "September 2026" y "All categories" seguidas el sistema no
-                // encontraba sitio para la segunda y se la llevaba al menú
-                // "···", que es donde un filtro deja de decir qué se está
-                // viendo. Es el mismo botón de filtros de Ingresos, y como allí
-                // se tiñe de verde cuando hay uno puesto.
-                menuCategoria {
-                    Image(systemName: "line.3.horizontal.decrease")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(vm.categoriaSel == nil ? Color.primary : Paleta.brand)
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                        .background(Color(.tertiarySystemFill), in: Capsule())
-                        .accessibilityLabel(L.t("Categoría: \(vm.categoriaEtiqueta)",
-                                                "Category: \(vm.categoriaEtiqueta)"))
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    accionCompartir(vm.resumenAnual)
+                    accionPDF
                 }
             }
-        }
-    }
-
-    /// Abajo, la acción a la izquierda y el dato de cuadre a la derecha, igual
-    /// que en Ingresos. El saldo final es lo que el tesorero compara contra la
-    /// cuenta, así que es lo que va en la cápsula.
-    @ViewBuilder
-    private var barraInferior: some View {
-        if vm.esAnual, let a = vm.anual {
-            BarraInferior { acciones(texto: vm.resumenAnual) } resumen: {
-                capsulaCifra(L.t("Balance", "Balance"), a.balance)
+        } else if vm.estado != nil {
+            ToolbarItem(placement: .topBarTrailing) {
+                menuFiltros { chipFiltro(etiquetaFiltro) }
             }
-        } else if let e = vm.estado {
-            BarraInferior { acciones(texto: vm.resumenTexto) } resumen: {
-                capsulaCifra(L.t("Saldo", "Balance"), e.saldoFinal)
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                accionCompartir(vm.resumenTexto)
+                accionPDF
             }
         }
     }
 
-    private func acciones(texto: String) -> some View {
-        HStack(spacing: Esp.hueco) {
-            Button { mostrarPDF = true } label: {
-                Label(L.t("PDF", "PDF"), systemImage: "doc.text")
+    /// Mes y categoría en un solo menú, en dos secciones.
+    private func menuFiltros<E: View>(@ViewBuilder etiqueta: () -> E) -> some View {
+        Menu {
+            Section(L.t("Periodo", "Period")) {
+                ForEach(vm.periodos) { p in
+                    Button { Task { await vm.seleccionarPeriodo(p.clave) } } label: {
+                        if p.clave == vm.periodoSel { Label(p.etiqueta, systemImage: "checkmark") }
+                        else { Text(p.etiqueta) }
+                    }
+                }
             }
-            .buttonStyle(.glass).tint(Paleta.brand)
-            ShareLink(item: texto) {
-                Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
-                    .labelStyle(.iconOnly)
+            Section(L.t("Categoría", "Category")) {
+                Button { Task { await vm.seleccionarCategoria(nil) } } label: {
+                    if vm.categoriaSel == nil { Label(L.t("Todas", "All"), systemImage: "checkmark") }
+                    else { Text(L.t("Todas", "All")) }
+                }
+                ForEach(vm.categorias, id: \.self) { c in
+                    Button { Task { await vm.seleccionarCategoria(c) } } label: {
+                        if c == vm.categoriaSel { Label(c, systemImage: "checkmark") } else { Text(c) }
+                    }
+                }
             }
-            .buttonStyle(.glass).tint(Paleta.brand)
-        }
+        } label: { etiqueta() }
     }
 
-    private func capsulaCifra(_ etiqueta: String, _ monto: Centavos) -> some View {
-        HStack(spacing: 6) {
-            Text(etiqueta).foregroundStyle(.secondary)
-            Text(Money.fmt(monto)).fontWeight(.semibold)
+    private var etiquetaFiltro: String {
+        guard let c = vm.categoriaSel else { return vm.periodoEtiqueta }
+        return "\(vm.periodoEtiqueta) · \(c)"
+    }
+
+    private func accionCompartir(_ texto: String) -> some View {
+        ShareLink(item: texto) {
+            Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
         }
-        .font(.footnote).monospacedDigit()
+        .buttonStyle(.glass)
+        .tint(Color.secondary)
+    }
+
+    private var accionPDF: some View {
+        Button { mostrarPDF = true } label: {
+            Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.text")
+        }
+        // Solo el icono: con la palabra al lado del mes y del compartir se sale
+        // por el borde —se leía "F"—. Aquí no hace falta, al contrario que en
+        // "Editar": estas dos son acciones hermanas, y el verde ya distingue
+        // cuál es la principal.
+        .labelStyle(.iconOnly)
+        .buttonStyle(.glass)
+        .tint(Paleta.brand)
     }
 
     /// Año: el filtro del reporte anual.
