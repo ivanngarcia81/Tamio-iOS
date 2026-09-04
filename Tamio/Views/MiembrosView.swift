@@ -248,10 +248,7 @@ struct MiembrosView: View {
     private func fila(_ a: Aportante) -> some View {
         let esSel = a.id == vm.seleccionId
         return HStack(spacing: 12) {
-            Text(a.iniciales)
-                .font(.caption.weight(.bold)).foregroundStyle(.white)
-                .frame(width: 38, height: 38)
-                .background(a.estado.color, in: Circle())
+            Avatar(iniciales: a.iniciales, color: a.estado.color)
             VStack(alignment: .leading, spacing: 2) {
                 Text(a.nombre).font(.subheadline.weight(.medium)).lineLimit(1)
                 Text(a.subtitulo).font(.caption).foregroundStyle(.secondary).lineLimit(1)

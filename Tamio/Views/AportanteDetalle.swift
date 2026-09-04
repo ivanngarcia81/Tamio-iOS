@@ -63,10 +63,7 @@ struct AportanteDetalle: View {
     }
 
     private var avatar: some View {
-        Text(a.iniciales)
-            .font(.title3.weight(.bold)).foregroundStyle(.white)
-            .frame(width: 60, height: 60)
-            .background(a.estado.color, in: Circle())
+        Avatar(iniciales: a.iniciales, color: a.estado.color, lado: 60)
     }
 
     private var info: some View {

@@ -178,10 +178,7 @@ struct MiembroDetalle: View {
     }
 
     private var avatarMiembro: some View {
-        Text(miembro.iniciales)
-            .font(.title3.weight(.bold)).foregroundStyle(.white)
-            .frame(width: 60, height: 60)
-            .background(miembro.estado.color, in: Circle())
+        Avatar(iniciales: miembro.iniciales, color: miembro.estado.color, lado: 60)
     }
 
     private var botonesMiembro: some View {

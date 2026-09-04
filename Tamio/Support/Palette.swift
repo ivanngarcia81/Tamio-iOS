@@ -51,6 +51,19 @@ enum Paleta {
     /// Borde de recuadro de aviso.
     static let avisoStroke = Color("TamioAvisoStroke")
 
+    /// Fondo de la barra de navegación. Era `brandFill`, que en oscuro sube al
+    /// 22%: la barra quedaba de un verde medio y todo lo que va encima —el
+    /// subtítulo gris del sistema y el verde del botón de volver— se apagaba
+    /// contra ella. Este baja al 10% en oscuro, así que la barra es casi negra
+    /// y los dos vuelven a recortarse. En claro es el mismo verde de siempre.
+    static let barra = Color("TamioBarra")
+
+    /// Superficie de una fila-tarjeta. `secondarySystemGroupedBackground` vale
+    /// en claro, pero en oscuro (#1C1C1E) es casi el mismo tono que el material
+    /// de la columna: en Membresía y Actas las filas solo se distinguían por el
+    /// hueco entre ellas. Este sube un escalón en oscuro.
+    static let superficieFila = Color("TamioSuperficieFila")
+
     /// Enlaces de acción ("Ver todos", "Abrir bandeja →", "Ver ficha").
     static let enlace = Color("TamioEnlace")
     /// Badge de conteo urgente (Por revisar 7, Mensajes 2).

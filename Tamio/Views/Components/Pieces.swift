@@ -99,6 +99,31 @@ struct HubRow: View {
     }
 }
 
+/// **Las iniciales de una persona en un disco de color.**
+///
+/// Nueve copias de las mismas cuatro líneas había repartidas por la app, todas
+/// con la inicial BLANCA sobre el color pleno del estado: sobre el verde de
+/// marca eso da ~2:1, y parecido sobre el naranja y el azul. Aquí el disco va
+/// tintado y la inicial en el color pleno —el mismo trato que ya reciben los
+/// íconos de categoría de la lista de movimientos—, que sube a ~4:1 y aguanta
+/// las dos apariencias con los colores que ya hay.
+///
+/// El tamaño de letra sale del diámetro: los avatares miden entre 30 y 60 pt
+/// según dónde estén y cada copia elegía su fuente a mano.
+struct Avatar: View {
+    let iniciales: String
+    let color: Color
+    var lado: CGFloat = 38
+
+    var body: some View {
+        Text(iniciales)
+            .font(.system(size: lado * 0.36, weight: .bold))
+            .foregroundStyle(color)
+            .frame(width: lado, height: lado)
+            .background(color.opacity(0.25), in: Circle())
+    }
+}
+
 // MARK: - Previa de documento
 
 private struct AltoHojaKey: PreferenceKey {

@@ -272,10 +272,7 @@ struct MembresiaView: View {
     private func filaMiembro(_ m: Miembro) -> some View {
         let esSel = m.id == vm.seleccionId
         return HStack(spacing: 12) {
-            Text(m.iniciales)
-                .font(.caption.weight(.bold)).foregroundStyle(.white)
-                .frame(width: 38, height: 38)
-                .background(m.estado.color, in: Circle())
+            Avatar(iniciales: m.iniciales, color: m.estado.color)
             VStack(alignment: .leading, spacing: 2) {
                 Text(m.nombre).font(.subheadline.weight(.medium)).lineLimit(1)
                 Text(m.subtitulo).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -532,10 +529,7 @@ private struct PanelAsistencia: View {
                     .padding(.bottom, 12)
                 ForEach(masConstantes) { m in
                     HStack(spacing: 10) {
-                        Text(m.iniciales)
-                            .font(.caption.weight(.bold)).foregroundStyle(.white)
-                            .frame(width: 30, height: 30)
-                            .background(m.estado.color, in: Circle())
+                        Avatar(iniciales: m.iniciales, color: m.estado.color, lado: 30)
                         Text(m.nombre).font(.subheadline).lineLimit(1)
                         Spacer()
                         Text("\(m.asistenciaPct)%")
@@ -569,10 +563,7 @@ private struct PanelAsistencia: View {
                 } else {
                     ForEach(ausentes) { m in
                         HStack(spacing: 10) {
-                            Text(m.iniciales)
-                                .font(.caption.weight(.bold)).foregroundStyle(.white)
-                                .frame(width: 30, height: 30)
-                                .background(m.estado.color, in: Circle())
+                            Avatar(iniciales: m.iniciales, color: m.estado.color, lado: 30)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(m.nombre).font(.subheadline).lineLimit(1)
                                 Text(L.t("Última visita \(m.ultimaVisita)\(m.ausenciaNota ?? "")",
@@ -1255,10 +1246,7 @@ private struct SeguimientoSheet: View {
             Form {
                 Section {
                     HStack(spacing: 12) {
-                        Text(miembro.iniciales)
-                            .font(.headline.weight(.bold)).foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            .background(miembro.estado.color, in: Circle())
+                        Avatar(iniciales: miembro.iniciales, color: miembro.estado.color, lado: 44)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(miembro.nombre).font(.headline)
                             Text(miembro.miembroDesde).font(.caption).foregroundStyle(.secondary)

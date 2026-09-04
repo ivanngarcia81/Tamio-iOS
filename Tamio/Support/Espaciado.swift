@@ -77,6 +77,6 @@ private struct FilaDeLista: ViewModifier {
 
     private var fondo: Color {
         if seleccionada { return Paleta.brandFill }
-        return tarjeta ? Color(.secondarySystemGroupedBackground) : .clear
+        return tarjeta ? Paleta.superficieFila : .clear
     }
 }

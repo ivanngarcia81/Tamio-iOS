@@ -77,7 +77,12 @@ struct RootView: View {
             Text(L.t("MODO REVISIÓN · sin sesión · datos de ejemplo",
                      "REVIEW MODE · no session · sample data"))
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(.white)
+                // Texto OSCURO, no blanco. Sobre el naranja de aviso el blanco
+                // da 3.6:1 en claro y 2.0:1 en oscuro —el modo oscuro aclaró el
+                // fondo sin oscurecer el texto—, las dos por debajo del 4.5:1
+                // que pide un texto pequeño. El negro da 5.9:1 y 10.3:1, así
+                // que sirve para las dos apariencias sin un color nuevo.
+                .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 3)
                 .background(Paleta.aviso)

@@ -144,10 +144,7 @@ struct CartasView: View {
 
     private func filaEmitida(_ carta: CartaEmitida) -> some View {
         HStack(spacing: 12) {
-            Text(carta.iniciales)
-                .font(.caption.weight(.bold)).foregroundStyle(.white)
-                .frame(width: 34, height: 34)
-                .background(Paleta.brand, in: Circle())
+            Avatar(iniciales: carta.iniciales, color: Paleta.brand, lado: 34)
             Text(carta.persona)
                 .font(.subheadline).lineLimit(1)
             Spacer()
