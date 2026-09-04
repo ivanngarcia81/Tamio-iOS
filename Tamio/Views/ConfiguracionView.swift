@@ -2,78 +2,10 @@ import SwiftUI
 
 // MARK: - Secciones
 
-private enum SeccionConfig: String, CaseIterable, Identifiable {
-    case cuenta, iglesia, institucion, tesorero, acceso, categorias, preferencias, zona
-    var id: String { rawValue }
-
-    var titulo: String {
-        switch self {
-        case .cuenta:       return L.t("Cuenta", "Account")
-        case .iglesia:      return L.t("Iglesia", "Church")
-        case .institucion:  return L.t("Institución", "Institution")
-        case .tesorero:     return L.t("Tesorero y pastor", "Treasurer & pastor")
-        case .acceso:       return L.t("Acceso y áreas", "Access & areas")
-        case .categorias:   return L.t("Categorías", "Categories")
-        case .preferencias: return L.t("Preferencias", "Preferences")
-        case .zona:         return L.t("Zona de riesgo", "Danger zone")
-        }
-    }
-
-    var icono: String {
-        switch self {
-        case .cuenta:       return "person"
-        case .iglesia:      return "house"
-        case .institucion:  return "doc.text"
-        case .tesorero:     return "waveform.path.ecg"
-        case .acceso:       return "key"
-        case .categorias:   return "tag"
-        case .preferencias: return "textformat.size"
-        case .zona:         return "exclamationmark.triangle"
-        }
-    }
-
-    var tileColor: Color {
-        switch self {
-        case .cuenta:       return Color(hex: 0x8E8E93)
-        case .iglesia:      return Color(hex: 0x34C759)
-        case .institucion:  return Color(hex: 0x5E5CE6)
-        case .tesorero:     return Color(hex: 0x2AB2C9)
-        case .acceso:       return Color(hex: 0x0A84FF)
-        case .categorias:   return Color(hex: 0xFF9500)
-        case .preferencias: return Color(hex: 0xAF52DE)
-        case .zona:         return Color(hex: 0xFF3B30)
-        }
-    }
-
-    var heroDesc: String {
-        switch self {
-        case .cuenta:
-            return L.t("Tu sesión, la versión de Tamio y el estado de sincronización de este aparato.",
-                        "Your session, Tamio version, and sync status of this device.")
-        case .iglesia:
-            return L.t("Nombre, ubicación, logo y datos fiscales de la iglesia. Se usan en cartas, reportes y PDFs.",
-                        "Church name, location, logo, and tax data used in letters, reports, and PDFs.")
-        case .institucion:
-            return L.t("El membrete institucional: dirección, contacto y firmas que encabezan los documentos impresos.",
-                        "Institutional letterhead: address, contact, and signatures at the top of printed documents.")
-        case .tesorero:
-            return L.t("Datos y firmas del tesorero y del pastor, que aparecen al pie de los reportes y las cartas.",
-                        "Treasurer and pastor data and signatures, shown at the bottom of reports and letters.")
-        case .acceso:
-            return L.t("Quién entra a Tesorería y quién a Secretaría, invitaciones, permisos del rol, sincronización y plan.",
-                        "Who accesses Treasury and Secretary areas, invitations, role permissions, sync, and plan.")
-        case .categorias:
-            return L.t("Las categorías de ingresos y gastos que aparecen en formularios, filtros, reportes y PDFs.",
-                        "Income and expense categories shown in forms, filters, reports, and PDFs.")
-        case .preferencias:
-            return L.t("Apariencia, color de acento, idioma, tamaño de texto y sonidos de la aplicación.",
-                        "Appearance, accent color, language, text size, and app sounds.")
-        case .zona:
-            return L.t("Respaldos, restauración, mantenimiento y borrado de datos. Los cambios aquí no se pueden deshacer.",
-                        "Backups, restore, maintenance, and data deletion. Changes here cannot be undone.")
-        }
-    }
-}
+/// Las secciones viven en `SeccionAjustes`, compartidas con el teléfono. Aquí
+/// había una copia con sus propios iconos y colores, y por eso ninguna fila
+/// coincidía entre las dos plataformas.
+private typealias SeccionConfig = SeccionAjustes
 
 // MARK: - Helpers de layout
 
@@ -114,7 +46,7 @@ private struct HeroCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .fill(seccion.tileColor)
+                .fill(seccion.color)
                 .frame(width: 60, height: 60)
                 .overlay(
                     Image(systemName: seccion.icono)
@@ -124,7 +56,7 @@ private struct HeroCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(seccion.titulo)
                     .font(.system(size: 26, weight: .bold))
-                Text(seccion.heroDesc)
+                Text(seccion.descripcion)
                     .font(.system(size: 15))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -242,11 +174,15 @@ struct ConfiguracionView: View {
                     // Cuenta
                     Button { seccion = .cuenta } label: {
                         HStack(spacing: 12) {
+                            // Del enum, como el resto: aquí iban el gris y el
+                            // "person" escritos otra vez, y ni el color ni el
+                            // símbolo coincidían con los de la tarjeta grande
+                            // de la misma sección.
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(Color(hex: 0x8E8E93))
+                                .fill(SeccionConfig.cuenta.color)
                                 .frame(width: 30, height: 30)
                                 .overlay(
-                                    Image(systemName: "person")
+                                    Image(systemName: SeccionConfig.cuenta.icono)
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundStyle(.white)
                                 )
@@ -284,23 +220,23 @@ struct ConfiguracionView: View {
             Button { seccion = .zona } label: {
                 HStack(spacing: 11) {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color(hex: 0xFF3B30))
+                        .fill(SeccionConfig.zona.color)
                         .frame(width: 28, height: 28)
                         .overlay(
-                            Image(systemName: "exclamationmark.triangle")
+                            Image(systemName: SeccionConfig.zona.icono)
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.white)
                         )
                     Text(L.t("Zona de riesgo", "Danger zone"))
                         .font(.system(size: 15.5, weight: seccion == .zona ? .semibold : .medium))
-                        .foregroundStyle(seccion == .zona ? Color(hex: 0xFF3B30) : .primary)
+                        .foregroundStyle(seccion == .zona ? SeccionConfig.zona.color : .primary)
                     Spacer()
                 }
                 .padding(.horizontal, Esp.chip)
                 .frame(minHeight: 44)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(seccion == .zona ? Color(hex: 0xFF3B30).opacity(0.10) : .clear)
+                        .fill(seccion == .zona ? SeccionConfig.zona.color.opacity(0.10) : .clear)
                 )
             }
             .buttonStyle(.plain)
@@ -322,7 +258,7 @@ struct ConfiguracionView: View {
                 Button { seccion = s } label: {
                     HStack(spacing: 11) {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(s.tileColor)
+                            .fill(s.color)
                             .frame(width: 28, height: 28)
                             .overlay(
                                 Image(systemName: s.icono)
@@ -371,7 +307,7 @@ struct ConfiguracionView: View {
                 ForEach(SeccionConfig.allCases) { s in
                     HStack(spacing: 12) {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(s.tileColor)
+                            .fill(s.color)
                             .frame(width: 30, height: 30)
                             .overlay(
                                 Image(systemName: s.icono)

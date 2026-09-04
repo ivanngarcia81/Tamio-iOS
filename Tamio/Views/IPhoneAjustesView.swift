@@ -2,9 +2,10 @@ import SwiftUI
 
 // MARK: - Rutas de navegación
 
-private enum AjustesRuta: Hashable {
-    case cuenta, iglesia, institucion, tesorero, acceso, categorias, preferencias, zona
-}
+/// Las secciones son las mismas que en el iPad, y ahora también el mismo tipo.
+/// Aquí había una enumeración gemela con sus propios iconos y colores: por eso
+/// ninguna fila usaba el mismo símbolo en las dos plataformas.
+private typealias AjustesRuta = SeccionAjustes
 
 // MARK: - Vista principal
 
@@ -26,16 +27,11 @@ struct IPhoneAjustesView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                filaNav(L.t("Iglesia", "Church"),
-                        val: cfg.config.nombre.isEmpty
-                            ? L.t("Sin configurar", "Not set") : cfg.config.nombre,
-                        icono: "building.2.fill", icoBg: Color(hex: 0x34C759), ruta: .iglesia)
-                filaNav(L.t("Institución", "Institution"),
-                        icono: "doc.richtext.fill", icoBg: Color(hex: 0x5856D6), ruta: .institucion)
-                filaNav(L.t("Tesorero y pastor", "Treasurer & pastor"),
-                        icono: "waveform", icoBg: Color(hex: 0x32ADE6), ruta: .tesorero)
-                filaNav(L.t("Acceso y áreas", "Access & areas"),
-                        icono: "key.fill", icoBg: Color(hex: 0x007AFF), ruta: .acceso)
+                filaNav(.iglesia, val: cfg.config.nombre.isEmpty
+                        ? L.t("Sin configurar", "Not set") : cfg.config.nombre)
+                filaNav(.institucion)
+                filaNav(.tesorero)
+                filaNav(.acceso)
             } header: {
                 Text(L.t("Iglesia", "Church")).textCase(nil)
             } footer: {
@@ -45,19 +41,17 @@ struct IPhoneAjustesView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                filaNav(L.t("Categorías", "Categories"),
-                        icono: "tag.fill", icoBg: Color(hex: 0xFF9500), ruta: .categorias)
-                filaNav(L.t("Preferencias", "Preferences"),
-                        icono: "macwindow", icoBg: Color(hex: 0xAF52DE), ruta: .preferencias)
+                filaNav(.categorias)
+                filaNav(.preferencias)
             } header: {
                 Text(L.t("General", "General")).textCase(nil)
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                NavigationLink(value: AjustesRuta.zona) {
-                    Text(L.t("Zona de riesgo", "Danger zone")).foregroundStyle(Paleta.negativo)
-                }
+                // Era la única fila sin icono de toda la pantalla, y encima la
+                // que más conviene reconocer de un vistazo.
+                filaNav(.zona, destacada: true)
             } footer: {
                 // La versión va aquí, al pie de la última sección, y no
                 // flotando sobre la lista con `safeAreaInset`. Con el borde
@@ -108,15 +102,20 @@ struct IPhoneAjustesView: View {
 
     // MARK: - Fila con icono de color
 
-    private func filaNav(_ titulo: String, val: String = "",
-                         icono: String, icoBg: Color, ruta: AjustesRuta) -> some View {
+    /// El título, el símbolo y el color salen de la sección: eran tres
+    /// argumentos que había que escribir bien en cada llamada, y basta con
+    /// equivocarse en uno para que el teléfono y el iPad dejen de coincidir.
+    private func filaNav(_ ruta: AjustesRuta, val: String = "",
+                         destacada: Bool = false) -> some View {
         NavigationLink(value: ruta) {
             HStack(spacing: 14) {
-                Image(systemName: icono)
+                Image(systemName: ruta.icono)
                     .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
                     .frame(width: 32, height: 32)
-                    .background(icoBg, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                Text(titulo).font(.body)
+                    .background(ruta.color, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                Text(ruta.titulo)
+                    .font(.body)
+                    .foregroundStyle(destacada ? Paleta.negativo : .primary)
                 if !val.isEmpty {
                     Spacer()
                     Text(val).foregroundStyle(.secondary).lineLimit(1)
