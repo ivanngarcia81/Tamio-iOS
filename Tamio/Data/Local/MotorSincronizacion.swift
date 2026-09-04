@@ -376,6 +376,9 @@ final class MotorSincronizacion {
             let tesoreroNombre, tesoreroCargo: String?
             let secretarioNombre, secretarioCargo: String?
             let imprimirFirmas: Bool?
+            // Bajan pero no suben: ver `ConfiguracionIglesia`.
+            let tesoreroVePadron: Bool?
+            let tesoreroPuedeEliminar: Bool?
             enum CodingKeys: String, CodingKey {
                 case nombre, direccion, ciudad, estado, pais, telefono, correo, moneda
                 case codigoPostal      = "codigo_postal"
@@ -388,6 +391,8 @@ final class MotorSincronizacion {
                 case secretarioNombre  = "secretario_nombre"
                 case secretarioCargo   = "secretario_cargo"
                 case imprimirFirmas    = "imprimir_firmas"
+                case tesoreroVePadron      = "tesorero_ve_padron"
+                case tesoreroPuedeEliminar = "tesorero_puede_eliminar"
             }
         }
 
@@ -419,6 +424,8 @@ final class MotorSincronizacion {
         c.secretarioNombre = r.secretarioNombre ?? ""
         c.secretarioCargo = r.secretarioCargo ?? "Secretario"
         c.imprimirFirmas = r.imprimirFirmas ?? true
+        c.tesoreroVePadron = r.tesoreroVePadron ?? false
+        c.tesoreroPuedeEliminar = r.tesoreroPuedeEliminar ?? true
 
         // Copia inmutable antes de entrar al closure: capturar la `var` es un
         // error en Swift 6, no solo un aviso.

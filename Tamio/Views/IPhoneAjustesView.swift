@@ -18,8 +18,6 @@ struct IPhoneAjustesView: View {
     @State private var invEmail    = ""
     @State private var invNom      = ""
     @State private var invRol      = "Tesorero"
-    @State private var permPadron  = false
-    @State private var permBorrar  = true
     @State private var cfgTema     = "Claro"
     @State private var cfgAcento   = "verde"
     @State private var cfgIdioma   = "Español"
@@ -148,8 +146,7 @@ struct IPhoneAjustesView: View {
                                   pasCargo: $cfg.config.pastorCargo,
                                   firmas: $cfg.config.imprimirFirmas)
         case .acceso:
-            AjustesAccesoView(invEmail: $invEmail, invNom: $invNom, invRol: $invRol,
-                               permPadron: $permPadron, permBorrar: $permBorrar)
+            AjustesAccesoView(invEmail: $invEmail, invNom: $invNom, invRol: $invRol)
         case .categorias:
             AjustesCategoriasView()
         case .preferencias:
@@ -469,8 +466,18 @@ private struct AjustesAccesoView: View {
     @Binding var invEmail: String
     @Binding var invNom: String
     @Binding var invRol: String
-    @Binding var permPadron: Bool
-    @Binding var permBorrar: Bool
+
+    /// Los permisos son de la iglesia y viven donde vive la iglesia. Eran dos
+    /// `@State` de la pantalla: se movían, se veían moverse, y no salían de
+    /// ahí — ni al servidor, ni al iPad, ni al arranque siguiente.
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    @State private var guardandoPermiso = false
+    @State private var errorPermiso: String?
+
+    private var permisos: Permisos {
+        Permisos(rol: sesion?.perfil.rol ?? .administrador, iglesia: cfg.config)
+    }
 
     var body: some View {
         List {
@@ -534,28 +541,35 @@ private struct AjustesAccesoView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                Toggle(isOn: $permPadron) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(L.t("Ver el padrón de Secretaría", "View Secretary roster")).font(.subheadline)
-                        Text(L.t("Abre Membresía: domicilios, bautismos y familias.",
-                                 "Opens Membership: addresses, baptisms, and families."))
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                }.tint(Paleta.brand)
+                permisoF(L.t("Ver el padrón de Secretaría", "View Secretary roster"),
+                         L.t("Abre Membresía: domicilios, bautismos y familias.",
+                             "Opens Membership: addresses, baptisms, and families."),
+                         valor: cfg.config.tesoreroVePadron) { nuevo in
+                    await cfg.fijarPermisos(vePadron: nuevo,
+                                            puedeEliminar: cfg.config.tesoreroPuedeEliminar)
+                }
 
-                Toggle(isOn: $permBorrar) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(L.t("Eliminar movimientos", "Delete transactions")).font(.subheadline)
-                        Text(L.t("Apagado, el botón Eliminar desaparece de Ingresos y Gastos.",
-                                 "When off, the Delete button disappears from Income and Expenses."))
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                }.tint(Paleta.brand)
+                permisoF(L.t("Eliminar movimientos", "Delete transactions"),
+                         L.t("Apagado, el botón Eliminar desaparece de Ingresos y Gastos.",
+                             "When off, the Delete button disappears from Income and Expenses."),
+                         valor: cfg.config.tesoreroPuedeEliminar) { nuevo in
+                    await cfg.fijarPermisos(vePadron: cfg.config.tesoreroVePadron,
+                                            puedeEliminar: nuevo)
+                }
             } header: {
                 Text(L.t("Permisos del rol Tesorería", "Treasury role permissions")).textCase(nil)
             } footer: {
-                Text(L.t("Son de la iglesia, no de la persona: valen para quien ocupe el puesto. Los guarda el servidor.",
-                         "These are church-level settings, not per-person. Stored on the server."))
+                if let errorPermiso {
+                    Text(errorPermiso).foregroundStyle(Paleta.negativo)
+                } else if permisos.administraPermisos {
+                    Text(L.t("Son de la iglesia, no de la persona: valen para quien ocupe el puesto. Los guarda el servidor.",
+                             "These are church-level settings, not per-person. Stored on the server."))
+                } else {
+                    // El RPC solo acepta al administrador. Decirlo aquí evita
+                    // que alguien mueva un interruptor y vea cómo se vuelve.
+                    Text(L.t("Solo el administrador de la iglesia puede cambiarlos.",
+                             "Only the church administrator can change these."))
+                }
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
@@ -594,6 +608,29 @@ private struct AjustesAccesoView: View {
             Spacer()
             Text(val).font(.subheadline).foregroundStyle(.secondary)
         }
+    }
+
+    /// Un permiso. **El interruptor no es la fuente**: enseña lo que hay
+    /// guardado, y el cambio se pide al servidor. Mientras el servidor decide,
+    /// el interruptor no se mueve; si lo rechaza, tampoco. Un permiso que se
+    /// pinta encendido y luego se cae solo es peor que uno lento.
+    private func permisoF(_ titulo: String, _ nota: String, valor: Bool,
+                          cambiar: @escaping (Bool) async -> String?) -> some View {
+        Toggle(isOn: Binding(get: { valor }, set: { nuevo in
+            guardandoPermiso = true
+            errorPermiso = nil
+            Task {
+                errorPermiso = await cambiar(nuevo)
+                guardandoPermiso = false
+            }
+        })) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(titulo).font(.subheadline)
+                Text(nota).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .tint(Paleta.brand)
+        .disabled(guardandoPermiso || !permisos.administraPermisos)
     }
 }
 

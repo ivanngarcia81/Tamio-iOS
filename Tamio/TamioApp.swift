@@ -34,6 +34,11 @@ struct TamioApp: App {
                     // hasta que alguien pasara por esa pantalla. Y otra vez
                     // DESPUÉS, porque la bajada puede traer alguna nueva y los
                     // conteos dependen de los movimientos que acaban de llegar.
+                    // La configuración de la iglesia, la primera: de ella
+                    // salen el membrete, la moneda y los permisos, y hay
+                    // pantallas —la sidebar, Ingresos— que los leen antes de
+                    // que nadie pase por Ajustes.
+                    await ConfiguracionIglesiaViewModel.compartido.cargar()
                     await CategoriasViewModel.compartido.cargar()
                     await MotorSincronizacion.compartido.sincronizar()
                     await CategoriasViewModel.compartido.cargar()
@@ -43,7 +48,9 @@ struct TamioApp: App {
                         Task {
                             await MotorSincronizacion.compartido.sincronizar()
                             // Después de bajar: una categoría creada en la app
-                            // web tiene que aparecer aquí sin relanzar nada.
+                            // web, o un permiso que le quitaron al tesorero,
+                            // tienen que aparecer aquí sin relanzar nada.
+                            await ConfiguracionIglesiaViewModel.compartido.recargar()
                             await CategoriasViewModel.compartido.cargar()
                         }
                     }

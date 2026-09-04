@@ -8,6 +8,12 @@ struct IPhoneSecretariaView: View {
     /// Mismo conteo que muestra la Agenda y el badge de la sidebar del iPad.
     private let agendaPendientes = MockAgendaRepository.pendientesCount
 
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    private var permisos: Permisos {
+        Permisos(rol: sesion?.perfil.rol ?? .administrador, iglesia: cfg.config)
+    }
+
     var body: some View {
         List {
             Section {
@@ -15,11 +21,14 @@ struct IPhoneSecretariaView: View {
             }
 
             Section(L.t("PADRÓN", "ROSTER")) {
-                NavigationLink { MembresiaView() } label: {
-                    HubRow(icono: "person.text.rectangle.fill", color: Paleta.brand,
-                           titulo: L.t("Membresía", "Membership"),
-                           subtitulo: L.t("\(padron.total) personas · \(padron.activos) activos",
-                                          "\(padron.total) people · \(padron.activos) active"))
+                // Membresía solo si esta persona ve el padrón. Ver `Permisos`.
+                if permisos.vePadron {
+                    NavigationLink { MembresiaView() } label: {
+                        HubRow(icono: "person.text.rectangle.fill", color: Paleta.brand,
+                               titulo: L.t("Membresía", "Membership"),
+                               subtitulo: L.t("\(padron.total) personas · \(padron.activos) activos",
+                                              "\(padron.total) people · \(padron.activos) active"))
+                    }
                 }
                 NavigationLink { InformesMembresiaView() } label: {
                     HubRow(icono: "chart.pie.fill", color: Paleta.enlace,
@@ -72,6 +81,7 @@ struct IPhoneSecretariaView: View {
         .encabezadoNav(L.t("Secretaría", "Secretary"),
                        L.t("Padrón, servicios y documentos", "Roster, services & documents"))
         .navigationBarTitleDisplayMode(.inline)
+        .task { await cfg.cargar() }
     }
 
     // MARK: - KPI Padrón

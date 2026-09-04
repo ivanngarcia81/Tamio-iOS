@@ -787,7 +787,17 @@ private struct SeccionAcceso: View {
     /// inventado mientras la sincronización de verdad podía estar fallando.
     private let motor = MotorSincronizacion.compartido
 
-    @State private var padronVisible = false
+    /// Los permisos son de la iglesia y viven donde vive la iglesia. Aquí
+    /// había UN `@State` —y solo uno de los dos permisos, además— que no salía
+    /// de la pantalla: ni al servidor, ni al teléfono, ni al arranque siguiente.
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    @State private var guardandoPermiso = false
+    @State private var errorPermiso: String?
+
+    private var permisos: Permisos {
+        Permisos(rol: sesion?.perfil.rol ?? .administrador, iglesia: cfg.config)
+    }
 
     var body: some View {
         ScrollView {
@@ -867,21 +877,30 @@ private struct SeccionAcceso: View {
                     FilaConf(label: L.t("Suscripción", "Subscription"), valor: L.t("Cortesía", "Courtesy"))
                 }
 
-                // Permisos
-                GrupoConf(titulo: L.t("PERMISOS DEL ROL TESORERÍA", "TREASURY ROLE PERMISSIONS")) {
-                    HStack(alignment: .top, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(L.t("Ver el padrón de Secretaría", "View Secretary roster"))
-                                .font(.system(size: 16))
-                            Text(L.t("Le abre Membresía cuando entra con rol Tesorería.",
-                                     "Opens Membership when accessing with Treasury role."))
-                                .font(.system(size: 13)).foregroundStyle(.tertiary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Spacer()
-                        Toggle("", isOn: $padronVisible).labelsHidden().tint(Paleta.brand)
+                // Permisos. Los DOS: faltaba el del borrado, que es el que
+                // de verdad quita algo.
+                GrupoConf(titulo: L.t("PERMISOS DEL ROL TESORERÍA", "TREASURY ROLE PERMISSIONS"),
+                          nota: errorPermiso
+                            ?? (permisos.administraPermisos
+                                ? L.t("Son de la iglesia, no de la persona: valen para quien ocupe el puesto. Los guarda el servidor.",
+                                      "These are church-level settings, not per-person. Stored on the server.")
+                                : L.t("Solo el administrador de la iglesia puede cambiarlos.",
+                                      "Only the church administrator can change these."))) {
+                    permisoF(L.t("Ver el padrón de Secretaría", "View Secretary roster"),
+                             L.t("Le abre Membresía cuando entra con rol Tesorería.",
+                                 "Opens Membership when accessing with Treasury role."),
+                             valor: cfg.config.tesoreroVePadron) { nuevo in
+                        await cfg.fijarPermisos(vePadron: nuevo,
+                                                puedeEliminar: cfg.config.tesoreroPuedeEliminar)
                     }
-                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
+                    Divider()
+                    permisoF(L.t("Eliminar movimientos", "Delete transactions"),
+                             L.t("Apagado, el botón Eliminar desaparece de Ingresos y Gastos.",
+                                 "When off, the Delete button disappears from Income and Expenses."),
+                             valor: cfg.config.tesoreroPuedeEliminar) { nuevo in
+                        await cfg.fijarPermisos(vePadron: cfg.config.tesoreroVePadron,
+                                                puedeEliminar: nuevo)
+                    }
                 }
             }
             .padding(Esp.panel)
@@ -892,6 +911,33 @@ private struct SeccionAcceso: View {
         // El contador solo se recalculaba al terminar una sincronización, así
         // que al abrir Ajustes después de capturar sin señal decía cero.
         .task { await motor.recontarPendientes() }
+        .task { await cfg.cargar() }
+    }
+
+    /// Un permiso. El interruptor enseña lo guardado y no se mueve hasta que
+    /// el servidor acepta. Ver la nota del teléfono.
+    private func permisoF(_ titulo: String, _ nota: String, valor: Bool,
+                          cambiar: @escaping (Bool) async -> String?) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(titulo).font(.system(size: 16))
+                Text(nota).font(.system(size: 13)).foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Toggle("", isOn: Binding(get: { valor }, set: { nuevo in
+                guardandoPermiso = true
+                errorPermiso = nil
+                Task {
+                    errorPermiso = await cambiar(nuevo)
+                    guardandoPermiso = false
+                }
+            }))
+            .labelsHidden()
+            .tint(Paleta.brand)
+            .disabled(guardandoPermiso || !permisos.administraPermisos)
+        }
+        .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
     }
 }
 

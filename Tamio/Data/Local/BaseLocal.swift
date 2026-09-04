@@ -273,6 +273,21 @@ final class BaseLocal {
             }
         }
 
+        // **Los permisos del rol Tesorería, en el espejo local.** Existen en
+        // Supabase desde la migración 49 y la app los ignoraba: los dos
+        // interruptores de "Acceso y áreas" eran `@State` que no salían de la
+        // pantalla, así que apagarlos no le quitaba nada a nadie.
+        //
+        // Los valores por omisión son los del servidor. Bajan como el resto de
+        // la iglesia, pero NO suben con ella: los escribe un RPC que solo
+        // acepta al administrador.
+        m.registerMigration("v8_permisosTesoreria") { db in
+            try db.alter(table: "iglesia") { t in
+                t.add(column: "tesoreroVePadron", .boolean).notNull().defaults(to: false)
+                t.add(column: "tesoreroPuedeEliminar", .boolean).notNull().defaults(to: true)
+            }
+        }
+
         return m
     }
 

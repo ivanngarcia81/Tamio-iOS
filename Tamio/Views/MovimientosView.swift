@@ -44,6 +44,17 @@ struct MovimientosView: View {
     /// acciones del detalle.
     private var compacto: Bool { sizeClass == .compact }
 
+    /// Si esta persona puede borrar movimientos. El permiso existía en
+    /// Supabase —con un disparador que deshace la baja de un tesorero sin
+    /// él— y la app enseñaba el botón igual: se borraba, la fila desaparecía,
+    /// y a la siguiente sincronización volvía sin que nadie supiera por qué.
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    private var puedeEliminar: Bool {
+        Permisos(rol: sesion?.perfil.rol ?? .administrador,
+                 iglesia: ConfiguracionIglesiaViewModel.compartido.config)
+            .puedeEliminarMovimientos
+    }
+
     var body: some View {
         pantalla
             .toolbar { barra }
@@ -356,14 +367,16 @@ struct MovimientosView: View {
                         filaContenido(m)
                             .contentShape(Rectangle())
                             .onTapGesture { abrir(m) }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    movimientoAEliminar = m
-                                } label: {
-                                    Label(L.t("Eliminar", "Delete"), systemImage: "trash")
+                            .swipeActions(edge: .trailing, allowsFullSwipe: puedeEliminar) {
+                                if puedeEliminar {
+                                    Button(role: .destructive) {
+                                        movimientoAEliminar = m
+                                    } label: {
+                                        Label(L.t("Eliminar", "Delete"), systemImage: "trash")
+                                    }
+                                    // El tint del TabView tapa el rojo del rol.
+                                    .tint(.red)
                                 }
-                                // El tint del TabView tapa el rojo del rol.
-                                .tint(.red)
                                 Button {
                                     hoja = .editar(m)
                                 } label: {

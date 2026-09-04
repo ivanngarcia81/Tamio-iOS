@@ -6,6 +6,15 @@ import Supabase
 protocol ConfiguracionIglesiaRepository {
     func cargar() async throws -> ConfiguracionIglesia
     func guardar(_ c: ConfiguracionIglesia) async throws
+    /// Los dos permisos del rol Tesorería. **No pasa por la cola de subida.**
+    ///
+    /// Es la excepción al "escribe local y ya sale cuando haya señal", y a
+    /// propósito: quien decide si un permiso cambia es el servidor —el RPC
+    /// rechaza a quien no sea administrador— y un permiso que se pinta
+    /// encendido en el teléfono y luego se cae solo es peor que uno lento,
+    /// porque quien lo tocó se va creyendo que lo dejó puesto. Primero el
+    /// servidor, y solo si acepta se escribe el espejo local.
+    func fijarPermisos(vePadron: Bool, puedeEliminar: Bool) async throws
 }
 
 /// Guarda en el teléfono y encola para subir, igual que los movimientos: se
@@ -19,6 +28,30 @@ struct OfflineConfiguracionIglesiaRepository: ConfiguracionIglesiaRepository {
             try IglesiaFila.fetchOne(db, key: churchIdActivo)
         }
         return fila?.configuracion ?? ConfiguracionIglesia()
+    }
+
+    func fijarPermisos(vePadron: Bool, puedeEliminar: Bool) async throws {
+        struct Args: Encodable {
+            let pVePadron: Bool
+            let pPuedeEliminar: Bool
+            enum CodingKeys: String, CodingKey {
+                case pVePadron      = "p_ve_padron"
+                case pPuedeEliminar = "p_puede_eliminar"
+            }
+        }
+        try await supabase
+            .rpc("fijar_permisos_tesoreria",
+                 params: Args(pVePadron: vePadron, pPuedeEliminar: puedeEliminar))
+            .execute()
+
+        // El espejo local, solo ahora. Se escribe a mano y sin encolar nada:
+        // estas dos columnas no viajan en el `update` general de la iglesia.
+        try await cola.write { db in
+            try db.execute(sql: """
+                update iglesia set tesoreroVePadron = ?, tesoreroPuedeEliminar = ?
+                where id = ?
+                """, arguments: [vePadron, puedeEliminar, churchIdActivo])
+        }
     }
 
     func guardar(_ c: ConfiguracionIglesia) async throws {
@@ -56,6 +89,11 @@ struct MockConfiguracionIglesiaRepository: ConfiguracionIglesiaRepository {
 
     func cargar() async throws -> ConfiguracionIglesia { Self.almacen }
     func guardar(_ c: ConfiguracionIglesia) async throws { Self.almacen = c }
+
+    func fijarPermisos(vePadron: Bool, puedeEliminar: Bool) async throws {
+        Self.almacen.tesoreroVePadron = vePadron
+        Self.almacen.tesoreroPuedeEliminar = puedeEliminar
+    }
 }
 
 func repositorioConfiguracionIglesia() -> ConfiguracionIglesiaRepository {

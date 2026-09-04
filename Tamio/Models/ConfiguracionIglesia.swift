@@ -30,6 +30,31 @@ struct ConfiguracionIglesia: Equatable {
     var secretarioCargo: String = "Secretario"
     var imprimirFirmas: Bool = true
 
+    // MARK: - Permisos del rol Tesorería
+
+    /// **Son de la iglesia, no de la persona**: valen para quien ocupe el
+    /// puesto. Los valores por omisión son los de Supabase.
+    ///
+    /// Los dos tiran para lados distintos y por eso no se leen igual:
+    /// `tesoreroVePadron` **da** —hoy el tesorero no entra a Membresía y esto
+    /// le abre esa pantalla, para la iglesia chica donde la misma persona
+    /// lleva la tesorería y el padrón—, mientras que `tesoreroPuedeEliminar`
+    /// **quita**: hoy sí puede, y apagarlo se lo retira.
+    ///
+    /// Hasta dónde llega cada uno, sin adornos: el del borrado es un control de
+    /// verdad, pero **el que manda es el servidor** —el disparador
+    /// `frenar_borrado_tesorero` deshace la baja—, y lo que hace la app es no
+    /// enseñar un botón que no va a funcionar. El del padrón NO es una barrera
+    /// de datos y no puede serlo: el padrón se sincroniza entero a todos los
+    /// aparatos porque Aportantes lo necesita. Abre una PANTALLA.
+    ///
+    /// **No se suben con el resto.** Los escribe el RPC
+    /// `fijar_permisos_tesoreria`, que solo acepta al administrador; meterlos
+    /// en el `update` general de la iglesia dejaría que cualquiera se los
+    /// cambiara a sí mismo desde su propio teléfono.
+    var tesoreroVePadron: Bool = false
+    var tesoreroPuedeEliminar: Bool = true
+
     // MARK: - Derivados para los documentos
 
     /// Segunda línea del membrete: "Monterrey, Nuevo León, México".

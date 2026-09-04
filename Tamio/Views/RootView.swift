@@ -13,6 +13,11 @@ struct RootView: View {
     // maestro-detalle interno de Movimientos no queda aplastado. Antes estaba
     // en `.all`, que forzaba las tres columnas a la vez en portrait.
     @State private var columnas: NavigationSplitViewVisibility = .automatic
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    private var permisos: Permisos {
+        Permisos(rol: sesion?.perfil.rol ?? .administrador, iglesia: cfg.config)
+    }
 
     var body: some View {
         @Bindable var nav = nav
@@ -38,7 +43,19 @@ struct RootView: View {
                 case "miembros":
                     MiembrosView()
                 case "membresia":
-                    MembresiaView()
+                    // La sidebar ya no la ofrece sin permiso, pero la sección
+                    // se recuerda entre arranques: sin esto, quitarle el
+                    // permiso a un tesorero que la dejó abierta no le cerraría
+                    // la pantalla.
+                    if permisos.vePadron {
+                        MembresiaView()
+                    } else {
+                        ContentUnavailableView(
+                            L.t("Membresía", "Membership"),
+                            systemImage: "lock",
+                            description: Text(L.t("El padrón lo lleva Secretaría. Pídele al administrador que abra el acceso en Ajustes.",
+                                                  "The roster belongs to Secretary. Ask the administrator to grant access in Settings.")))
+                    }
                 case "actas":
                     ActasView()
                 case "servicios":

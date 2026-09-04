@@ -39,6 +39,7 @@
 		AB00CAT0000000000000000 /* CategoriaCustom.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00CAT0000000000000000 /* CategoriaCustom.swift */; };
 		AB01CAT0000000000000001 /* CategoriasRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01CAT0000000000000001 /* CategoriasRepository.swift */; };
 		AB02CAT0000000000000002 /* CategoriasViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02CAT0000000000000002 /* CategoriasViewModel.swift */; };
+		AB09PER0000000000000009 /* Permisos.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA09PER0000000000000009 /* Permisos.swift */; };
 		109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A2 /* OfflineDepositosRepository.swift */; };
 		109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */; };
 		127515E07FA461AED9B9AAA2 /* IPhoneSecretariaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FBFB6CE7A24648A6454B21 /* IPhoneSecretariaView.swift */; };
@@ -217,6 +218,7 @@
 		AA00CAT0000000000000000 /* CategoriaCustom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriaCustom.swift; sourceTree = "<group>"; };
 		AA01CAT0000000000000001 /* CategoriasRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasRepository.swift; sourceTree = "<group>"; };
 		AA02CAT0000000000000002 /* CategoriasViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasViewModel.swift; sourceTree = "<group>"; };
+		AA09PER0000000000000009 /* Permisos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permisos.swift; sourceTree = "<group>"; };
 		9D80DC3340868CDE97F34571 /* DepositosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosRepository.swift; sourceTree = "<group>"; };
 		9D90A2753741AD7825EB7A59 /* IPhoneAjustesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPhoneAjustesView.swift; sourceTree = "<group>"; };
 		9DACD9F9945ED7749BE68C28 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -356,6 +358,7 @@
 				109DD59030497B0000E781A1 /* SesionSupabase.swift */,
 				109DD5A030497B0000E781A1 /* Navegacion.swift */,
 				109DD5A230497B0000E781A1 /* ModoRevision.swift */,
+				AA09PER0000000000000009 /* Permisos.swift */,
 				109DD58430497A0000E781A1 /* Fechas.swift */,
 				109DD58230497A0000E781A1 /* Espaciado.swift */,
 				109DD58030497A0000E781A1 /* Catalogos.swift */,
@@ -577,6 +580,7 @@
 				AB00CAT0000000000000000 /* CategoriaCustom.swift in Sources */,
 				AB01CAT0000000000000001 /* CategoriasRepository.swift in Sources */,
 				AB02CAT0000000000000002 /* CategoriasViewModel.swift in Sources */,
+				AB09PER0000000000000009 /* Permisos.swift in Sources */,
 				109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */,
 				109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */,
 				55BE47478958A09E5E13CBCC /* MembresiaView.swift in Sources */,

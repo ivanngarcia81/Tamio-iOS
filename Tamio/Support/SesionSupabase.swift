@@ -26,11 +26,43 @@ final class SesionSupabase {
     /// fallarán hasta que vuelva la conexión.
     private(set) var modoSinConexion = false
 
+    /// El rol y el nombre de quien ha entrado.
+    ///
+    /// El rol no es decorativo: los permisos de la iglesia se aplican SOBRE él
+    /// —el disparador `frenar_borrado_tesorero` de Supabase solo frena al
+    /// `tesorero`, y solo el `administrador` puede cambiar los permisos—, así
+    /// que sin saberlo la app no podía respetarlos aunque quisiera. Hasta hoy
+    /// no se leía: se pedía únicamente `church_id`.
+    private(set) var perfil = Perfil()
+
+    struct Perfil: Equatable {
+        var nombre = ""
+        var rol: Rol = .administrador
+
+        /// Los tres valores de `perfiles.rol`. Se cae a `administrador` cuando
+        /// no se reconoce el texto: es el rol sin restricciones, y quitarle
+        /// permisos a alguien por no entender su rol lo dejaría fuera de su
+        /// propia app. Los controles de verdad están en el servidor.
+        enum Rol: String {
+            case tesorero, secretaria, administrador
+        }
+
+        /// Iniciales para el cuadrito del perfil. Iba escrito "IG" a mano en
+        /// cuatro sitios, junto a un nombre y un correo también escritos a mano.
+        var iniciales: String {
+            let palabras = nombre.split(separator: " ").filter { $0.count > 1 }
+            let letras = palabras.prefix(2).compactMap { $0.first }
+            return letras.isEmpty ? "—" : String(letras).uppercased()
+        }
+    }
+
     /// La iglesia del perfil autenticado. `perfiles.church_id` es la fuente de
     /// verdad; la constante de `Supabase.swift` solo sirve de arranque.
     private struct PerfilDTO: Decodable {
         let churchId: String?
-        enum CodingKeys: String, CodingKey { case churchId = "church_id" }
+        let nombre: String?
+        let rol: String?
+        enum CodingKeys: String, CodingKey { case churchId = "church_id", nombre, rol }
     }
 
     /// Restaura la sesión persistida, si la hay. La SDK la guarda en el
@@ -41,6 +73,10 @@ final class SesionSupabase {
         // devolvería cero filas, así que los repositorios sirven datos de
         // ejemplo (ver `repositorioMovimientos`).
         if ModoRevision.sinLogin {
+            // Un perfil de ejemplo, como el resto de los datos del modo: sin
+            // él la cabecera de Ajustes saldría sin nombre y no se podría
+            // recorrer la pantalla.
+            perfil = Perfil(nombre: "Iván García", rol: .administrador)
             estado = .autenticada(churchId: churchIdActivo)
             return
         }
@@ -82,6 +118,7 @@ final class SesionSupabase {
         // siguiente que entre.
         try? BaseLocal.compartida.limpiar()
         Self.olvidarCache()
+        perfil = Perfil()
         modoSinConexion = false
         estado = .sinSesion
     }
@@ -96,16 +133,17 @@ final class SesionSupabase {
     /// tenía perfil asignado.
     @MainActor
     private func adoptar(uid: String, permitirCache: Bool) async {
-        let churchId: String?
+        let leido: (churchId: String, perfil: Perfil)?
         do {
-            churchId = try await leerChurchId(uid: uid)
+            leido = try await leerPerfil(uid: uid)
         } catch {
             // No se pudo preguntar. La sesión sigue siendo válida.
             if permitirCache, let guardado = Self.cache(uid: uid) {
-                churchIdActivo = guardado
+                churchIdActivo = guardado.churchId
+                perfil = guardado.perfil
                 modoSinConexion = true
                 self.error = nil
-                estado = .autenticada(churchId: guardado)
+                estado = .autenticada(churchId: guardado.churchId)
             } else {
                 self.error = Self.mensajeSinConexion
                 estado = .sinSesion
@@ -113,7 +151,7 @@ final class SesionSupabase {
             return
         }
 
-        guard let id = churchId else {
+        guard let leido else {
             // El servidor respondió y de verdad no hay perfil: RLS le negaría
             // todo, así que es más honesto tratarlo como sesión fallida que
             // dejar pantallas vacías.
@@ -124,27 +162,29 @@ final class SesionSupabase {
             estado = .sinSesion
             return
         }
-        churchIdActivo = id
-        Self.guardarCache(uid: uid, churchId: id)
+        churchIdActivo = leido.churchId
+        perfil = leido.perfil
+        Self.guardarCache(uid: uid, churchId: leido.churchId, perfil: leido.perfil)
         modoSinConexion = false
         error = nil
-        estado = .autenticada(churchId: id)
+        estado = .autenticada(churchId: leido.churchId)
     }
 
     /// `nil` significa "el servidor contestó y este usuario no tiene perfil".
     /// Se usa `limit(1)` en vez de `single()` a propósito: `single()` convierte
     /// las cero filas en un error, que es justo lo que hay que poder separar
     /// de un fallo de conexión.
-    private func leerChurchId(uid: String) async throws -> String? {
+    private func leerPerfil(uid: String) async throws -> (churchId: String, perfil: Perfil)? {
         let filas: [PerfilDTO] = try await supabase
             .from("perfiles")
-            .select("church_id")
+            .select("church_id, nombre, rol")
             .eq("id", value: uid)
             .limit(1)
             .execute()
             .value
-        guard let id = filas.first?.churchId, !id.isEmpty else { return nil }
-        return id
+        guard let fila = filas.first, let id = fila.churchId, !id.isEmpty else { return nil }
+        return (id, Perfil(nombre: fila.nombre ?? "",
+                           rol: Perfil.Rol(rawValue: fila.rol ?? "") ?? .administrador))
     }
 
     // MARK: - Caché del perfil
@@ -153,24 +193,34 @@ final class SesionSupabase {
     // iglesia de un usuario con la sesión de otro.
     private static let claveUid = "sesion.perfil.uid"
     private static let claveChurch = "sesion.perfil.churchId"
+    private static let claveNombre = "sesion.perfil.nombre"
+    private static let claveRol = "sesion.perfil.rol"
 
-    private static func guardarCache(uid: String, churchId: String) {
+    private static func guardarCache(uid: String, churchId: String, perfil: Perfil) {
         let d = UserDefaults.standard
         d.set(uid, forKey: claveUid)
         d.set(churchId, forKey: claveChurch)
+        d.set(perfil.nombre, forKey: claveNombre)
+        d.set(perfil.rol.rawValue, forKey: claveRol)
     }
 
-    private static func cache(uid: String) -> String? {
+    private static func cache(uid: String) -> (churchId: String, perfil: Perfil)? {
         let d = UserDefaults.standard
         guard d.string(forKey: claveUid) == uid,
               let id = d.string(forKey: claveChurch), !id.isEmpty else { return nil }
-        return id
+        return (id, Perfil(nombre: d.string(forKey: claveNombre) ?? "",
+                           rol: Rol(d.string(forKey: claveRol)) ))
+    }
+
+    private static func Rol(_ texto: String?) -> Perfil.Rol {
+        Perfil.Rol(rawValue: texto ?? "") ?? .administrador
     }
 
     private static func olvidarCache() {
         let d = UserDefaults.standard
-        d.removeObject(forKey: claveUid)
-        d.removeObject(forKey: claveChurch)
+        for clave in [claveUid, claveChurch, claveNombre, claveRol] {
+            d.removeObject(forKey: clave)
+        }
     }
 
     // MARK: - Mensajes

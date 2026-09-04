@@ -70,7 +70,11 @@ struct Sidebar: View {
     /// El mismo ViewModel que el badge del tab del iPhone: el conteo de la
     /// bandeja se calcula UNA vez y lo leen todos.
     @State private var revisarVM = RevisarViewModel.compartido
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     private var iglesia: ConfiguracionIglesia { cfg.config }
+    private var permisos: Permisos {
+        Permisos(rol: sesion?.perfil.rol ?? .administrador, iglesia: iglesia)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -124,8 +128,13 @@ struct Sidebar: View {
     }
 
     private var secretaria: [(String, String, String, Int?, Bool)] {
-        [
-            ("membresia", L.t("Membresía", "Membership"), "person.text.rectangle", nil, false),
+        // Membresía solo si esta persona ve el padrón. Al tesorero se le abre
+        // desde Ajustes → Acceso y áreas; a los demás roles no se le quita
+        // nunca. El permiso existía en Supabase y la sidebar lo enseñaba a
+        // todo el mundo.
+        (permisos.vePadron
+         ? [("membresia", L.t("Membresía", "Membership"), "person.text.rectangle", nil, false)]
+         : []) + [
             ("actas", L.t("Actas", "Minutes"), "doc.text", nil, false),
             ("servicios", L.t("Registro de servicios", "Service log"), "book", nil, false),
             ("cartas", L.t("Cartas y traslados", "Letters & transfers"), "envelope", nil, false),
