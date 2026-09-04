@@ -183,7 +183,7 @@ struct CorteFila: Codable, FetchableRecord, PersistableRecord {
         periodo = c.registro.periodo
         ficha = c.fichaAdjunta
         depositoId = nil
-        registradoPor = ""
+        registradoPor = c.registradoPor
         dobleFirmaPedida = c.dobleFirmaPedida
         segundaFirma = c.segundaFirma
         segundaFirmaRol = c.segundaFirmaRol
@@ -205,6 +205,7 @@ struct CorteFila: Codable, FetchableRecord, PersistableRecord {
             movimientos: [],
             registro: RegistroDeposito(cuenta: cuenta, fecha: fecha, periodo: periodo),
             fichaAdjunta: ficha,
+            registradoPor: registradoPor,
             dobleFirmaPedida: dobleFirmaPedida,
             segundaFirma: segundaFirma,
             segundaFirmaRol: segundaFirmaRol,

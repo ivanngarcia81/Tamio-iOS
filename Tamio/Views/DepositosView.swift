@@ -163,7 +163,16 @@ struct DepositosView: View {
             onCambiarFecha: { f in Task { await vm.cambiarFecha(corteId: c.id, f) } },
             onAdjuntarFicha: { nombre in Task { await vm.adjuntarFicha(corteId: c.id, nombre: nombre) } },
             onMarcarDepositado: { Task { await vm.marcarDepositado(corteId: c.id) } },
-            onIrAPorRevisar: irAPorRevisar
+            onIrAPorRevisar: irAPorRevisar,
+            candidatosFirma: vm.candidatos(para: c),
+            onFirmar: { nombre, rol, modo, conteo in
+                Task { await vm.firmar(corteId: c.id, nombre: nombre, rol: rol,
+                                       modo: modo, conteo: conteo) }
+            },
+            onDescuadre: { conteo in
+                Task { await vm.registrarDescuadre(corteId: c.id, conteo: conteo) }
+            },
+            onQuitarFirma: { Task { await vm.quitarFirma(corteId: c.id) } }
         )
     }
 

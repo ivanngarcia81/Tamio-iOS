@@ -129,6 +129,38 @@ final class DepositosViewModel {
         await editar(corteId) { $0.registro.fecha = Self.textoFecha(fecha) }
     }
 
+    /// Firma la segunda revisión del corte.
+    @MainActor
+    func firmar(corteId: String, nombre: String, rol: String?,
+                modo: ModoSegundaFirma, conteo: Centavos?) async {
+        try? await repo.firmar(corteId: corteId, nombre: nombre, rol: rol,
+                               modo: modo, conteo: conteo)
+        await cargar()
+    }
+
+    /// Contó, no cuadró, y lo deja anotado **sin firmar**. La cifra se guarda
+    /// igual: es el apunte más valioso del control, porque dice que el efectivo
+    /// y lo registrado no coincidieron.
+    @MainActor
+    func registrarDescuadre(corteId: String, conteo: Centavos) async {
+        try? await repo.firmar(corteId: corteId, nombre: nil, rol: nil,
+                               modo: .conteo, conteo: conteo)
+        await cargar()
+    }
+
+    @MainActor
+    func quitarFirma(corteId: String) async {
+        try? await repo.quitarFirma(corteId: corteId)
+        await cargar()
+    }
+
+    /// Quién puede firmar: los cargos de la iglesia menos quien armó el corte.
+    func candidatos(para corte: Corte) -> [(nombre: String, cargo: String)] {
+        let registro = corte.registradoPor.trimmingCharacters(in: .whitespaces)
+        return ConfiguracionIglesiaViewModel.compartido.config.personas
+            .filter { $0.nombre.caseInsensitiveCompare(registro) != .orderedSame }
+    }
+
     /// Adjunta (registra el nombre de) la ficha del banco.
     @MainActor
     func adjuntarFicha(corteId: String, nombre: String) async {

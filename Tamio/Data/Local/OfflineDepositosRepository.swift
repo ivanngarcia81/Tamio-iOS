@@ -124,6 +124,44 @@ struct OfflineDepositosRepository: DepositosRepository {
         Self.cuentasAltas.insert(nombre)
     }
 
+    /// La segunda firma. **Sin nombre y con conteo es un descuadre**: alguien
+    /// contó, no cuadró y lo dejó anotado sin firmar. La cifra se guarda igual;
+    /// borrarla dejaría el doble conteo sin servir para nada.
+    func firmar(corteId: String, nombre: String?, rol: String?,
+                modo: ModoSegundaFirma, conteo: Centavos?) async throws {
+        let limpio = nombre?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hayNombre = !(limpio?.isEmpty ?? true)
+        try await cola.write { db in
+            guard var fila = try CorteFila.fetchOne(db, key: corteId) else { return }
+            fila.segundaFirma = hayNombre ? limpio : nil
+            fila.segundaFirmaRol = hayNombre ? rol : nil
+            fila.segundaFirmaModo = modo.rawValue
+            fila.segundaConteo = conteo
+            // La fecha solo existe si hay firma: sin nombre no hay nada firmado.
+            // ISO 8601, como lo que guarda `datetime('now')` en la app web:
+            // esta columna es una marca de tiempo para el rastro, no un texto
+            // que se enseñe, así que no se localiza.
+            fila.segundaFirmaEn = hayNombre ? Self.selloDeTiempo() : nil
+            try fila.update(db)
+            try Self.encolar(db, entidad: "corte", id: corteId, operacion: .actualizar)
+        }
+    }
+
+    /// Deshace la segunda firma. Para el caso honesto de haberla dado por error
+    /// o de haber contado mal.
+    func quitarFirma(corteId: String) async throws {
+        try await cola.write { db in
+            guard var fila = try CorteFila.fetchOne(db, key: corteId) else { return }
+            fila.segundaFirma = nil
+            fila.segundaFirmaRol = nil
+            fila.segundaFirmaEn = nil
+            fila.segundaFirmaModo = nil
+            fila.segundaConteo = nil
+            try fila.update(db)
+            try Self.encolar(db, entidad: "corte", id: corteId, operacion: .actualizar)
+        }
+    }
+
     // MARK: - Resolución
 
     /// Rellena el corte con los movimientos que apunta y con el efectivo en
@@ -206,6 +244,12 @@ struct OfflineDepositosRepository: DepositosRepository {
     }
 
     // MARK: - Interno
+
+    private static func selloDeTiempo() -> String {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f.string(from: Date())
+    }
 
     /// Cuentas dadas de alta en esta sesión. Provisional: su sitio definitivo
     /// es la configuración de la iglesia, con su propia tabla.

@@ -18,12 +18,18 @@ struct CorteDetalle: View {
     var onAdjuntarFicha: ((String) -> Void)? = nil
     var onMarcarDepositado: (() -> Void)? = nil
     var onIrAPorRevisar: (() -> Void)? = nil
+    var candidatosFirma: [(nombre: String, cargo: String)] = []
+    var onFirmar: ((_ nombre: String, _ rol: String?,
+                    _ modo: ModoSegundaFirma, _ conteo: Centavos?) -> Void)? = nil
+    var onDescuadre: ((Centavos) -> Void)? = nil
+    var onQuitarFirma: (() -> Void)? = nil
 
     @State private var mostrarImportador = false
     @State private var confirmarDeposito = false
     @State private var mostrarNuevoMovimiento = false
     @State private var mostrarNuevaCuenta = false
     @State private var mostrarFecha = false
+    @State private var mostrarFirma = false
     @State private var nombreCuenta = ""
     @State private var fechaEditada = Date()
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -39,6 +45,7 @@ struct CorteDetalle: View {
                     // quedaba debajo del botón, así que se podía confirmar el
                     // depósito sin haber visto que existía la opción de adjuntar.
                     columnaIzquierda
+                    tarjetaSegundaFirma
                     tarjetaFicha
                     tarjetaRegistro(conBoton: false)
                 } else {
@@ -86,6 +93,13 @@ struct CorteDetalle: View {
             Text(mensajeConfirmacion)
         }
         .sheet(isPresented: $mostrarFecha) { hojaFecha }
+        .sheet(isPresented: $mostrarFirma) {
+            SegundaFirmaView(corte: corte, candidatos: candidatosFirma) { nombre, rol, modo, conteo in
+                onFirmar?(nombre, rol, modo, conteo)
+            } onDescuadre: { conteo in
+                onDescuadre?(conteo)
+            }
+        }
     }
 
     /// El mensaje del diálogo dice lo que de verdad se va a registrar. Antes
@@ -353,6 +367,7 @@ struct CorteDetalle: View {
     private var columnaDerecha: some View {
         VStack(alignment: .leading, spacing: 16) {
             tarjetaRegistro(conBoton: true)
+            tarjetaSegundaFirma
             tarjetaFicha
         }
     }
@@ -373,6 +388,80 @@ struct CorteDetalle: View {
                 if conBoton, corte.sinDepositar {
                     botonDepositar(glass: false).padding(.top, 14)
                 }
+            }
+        }
+    }
+
+    /// **La segunda firma.** Solo aparece si este corte la pidió: un corte que
+    /// nació sin la marca no está incompleto —esa iglesia no usa doble firma, o
+    /// ese domingo no hacía falta— y anunciarlo como pendiente sería convertir
+    /// una opción en un reproche.
+    @ViewBuilder
+    private var tarjetaSegundaFirma: some View {
+        if corte.dobleFirmaPedida {
+            Tarjeta {
+                VStack(alignment: .leading, spacing: 10) {
+                    TituloSeccion(texto: L.t("SEGUNDA FIRMA", "SECOND SIGNATURE"))
+                    if corte.tieneSegundaFirma {
+                        firmaDada
+                    } else if let contado = corte.segundaConteo {
+                        // Contó y NO cuadró: la cifra queda escrita aunque no
+                        // haya firma. Tirar ese número sería tirar justo el
+                        // dato por el que se cuenta dos veces.
+                        avisoFirma(.aviso,
+                                   L.t("No cuadra", "It does not add up"),
+                                   L.t("Se contó \(Money.fmt(contado)) y el corte dice \(Money.fmt(corte.montoTotal)). Quedó sin firmar.",
+                                       "\(Money.fmt(contado)) was counted and the cut says \(Money.fmt(corte.montoTotal)). It was left unsigned."))
+                        botonFirmar
+                    } else {
+                        avisoFirma(.aviso,
+                                   L.t("Falta la segunda firma", "Second signature missing"),
+                                   L.t("Este corte pidió que otra persona contara el dinero, y todavía nadie lo ha hecho.",
+                                       "This cut asked for someone else to count the money, and nobody has yet."))
+                        botonFirmar
+                    }
+                }
+            }
+        }
+    }
+
+    private var firmaDada: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            avisoFirma(.ok, corte.segundaFirma ?? "", textoFirma)
+            if corte.sinDepositar {
+                Button(L.t("Quitar la firma", "Remove the signature")) { onQuitarFirma?() }
+                    .font(.caption).buttonStyle(.borderless)
+            }
+        }
+    }
+
+    /// El modo se dice con sus palabras: contar el dinero y revisar el registro
+    /// no son lo mismo, y confundirlos vacía el control.
+    private var textoFirma: String {
+        let cuando = corte.segundaFirmaEn.map { String($0.prefix(10)) } ?? ""
+        if corte.modoSegundaFirma == .conteo, let c = corte.segundaConteo {
+            return L.t("Contó \(Money.fmt(c)) · \(cuando)", "Counted \(Money.fmt(c)) · \(cuando)")
+        }
+        return L.t("Revisó el registro · \(cuando)", "Checked the record · \(cuando)")
+    }
+
+    private var botonFirmar: some View {
+        Button { mostrarFirma = true } label: {
+            Label(L.t("Segunda firma", "Second signature"),
+                  systemImage: "signature").font(.subheadline)
+        }
+        .buttonStyle(.bordered)
+        .tint(Color.secondary)
+    }
+
+    private func avisoFirma(_ tipo: TipoChequeo, _ titulo: String,
+                            _ detalle: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: iconoChequeo(tipo))
+                .foregroundStyle(colorChequeo(tipo)).font(.title3)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(titulo).font(.subheadline.weight(.semibold))
+                Text(detalle).font(.caption).foregroundStyle(.secondary)
             }
         }
     }

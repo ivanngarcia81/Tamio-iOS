@@ -14,6 +14,13 @@ protocol DepositosRepository {
     func movimientosLibres() async throws -> [Movimiento]
     func agregarAlCorte(corteId: String, movimientoIds: [String]) async throws
     func quitarDelCorte(corteId: String, movimientoId: String) async throws
+    /// La segunda firma. `nombre` nulo con `conteo` puesto es un DESCUADRE:
+    /// alguien contó, no cuadró y lo dejó anotado sin firmar. Esa cifra se
+    /// guarda igual — perderla sería tirar justo el dato por el que se cuenta
+    /// dos veces.
+    func firmar(corteId: String, nombre: String?, rol: String?,
+                modo: ModoSegundaFirma, conteo: Centavos?) async throws
+    func quitarFirma(corteId: String) async throws
 }
 
 /// **La tabla puente `corte_movimientos`, mientras no hay GRDB.**
@@ -192,6 +199,29 @@ struct MockDepositosRepository: DepositosRepository {
         Self.cuentasAlmacen.append(nombre)
     }
 
+    func firmar(corteId: String, nombre: String?, rol: String?,
+                modo: ModoSegundaFirma, conteo: Centavos?) async throws {
+        guard let i = Self.almacen.firstIndex(where: { $0.id == corteId }) else { return }
+        let limpio = nombre?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hayNombre = !(limpio?.isEmpty ?? true)
+        Self.almacen[i].segundaFirma = hayNombre ? limpio : nil
+        Self.almacen[i].segundaFirmaRol = hayNombre ? rol : nil
+        Self.almacen[i].segundaFirmaModo = modo.rawValue
+        Self.almacen[i].segundaConteo = conteo
+        // La fecha solo existe si hay firma: sin nombre no hay nada firmado.
+        Self.almacen[i].segundaFirmaEn = hayNombre
+            ? DepositosViewModel.textoFecha(Date()) : nil
+    }
+
+    func quitarFirma(corteId: String) async throws {
+        guard let i = Self.almacen.firstIndex(where: { $0.id == corteId }) else { return }
+        Self.almacen[i].segundaFirma = nil
+        Self.almacen[i].segundaFirmaRol = nil
+        Self.almacen[i].segundaFirmaEn = nil
+        Self.almacen[i].segundaFirmaModo = nil
+        Self.almacen[i].segundaConteo = nil
+    }
+
     // MARK: - Semilla
 
     /// Los cortes solo dicen a QUÉ movimientos apuntan; el vínculo vive en
@@ -209,7 +239,9 @@ struct MockDepositosRepository: DepositosRepository {
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
                                            fecha: L.t("Lunes 7 de septiembre", "Monday, Sep 7"),
                                            periodo: L.t("Septiembre 2026", "September 2026")),
-                porRevisar: 2
+                porRevisar: 2,
+                registradoPor: "Iván García",
+                dobleFirmaPedida: true
             ),
             Corte(
                 id: "2",

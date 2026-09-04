@@ -120,6 +120,10 @@ struct Corte: Identifiable, Hashable {
     // Las columnas y la doctrina vienen de la app web (migración 47); esto es
     // el mismo control, no uno nuevo. La app todavía no lo enseña.
 
+    /// Quién armó el corte. Se usa para EXCLUIRLO de los candidatos a firmar:
+    /// nadie se firma a sí mismo.
+    var registradoPor: String = ""
+
     var dobleFirmaPedida: Bool = false
     var segundaFirma: String? = nil
     var segundaFirmaRol: String? = nil
@@ -142,6 +146,14 @@ struct Corte: Identifiable, Hashable {
     /// es lo que pasa cuando no cuadra.
     var tieneSegundaFirma: Bool {
         !(segundaFirma?.trimmingCharacters(in: .whitespaces).isEmpty ?? true)
+    }
+
+    /// Ya depositado = el dinero está en el banco y no se puede volver a
+    /// contar. Solo cabe revisar el registro.
+    var soloRevision: Bool { estado == .depositado }
+
+    var modoSegundaFirma: ModoSegundaFirma? {
+        segundaFirmaModo.flatMap(ModoSegundaFirma.init(rawValue:))
     }
 
     // MARK: - Derivados

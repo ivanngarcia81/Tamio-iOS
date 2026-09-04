@@ -57,6 +57,17 @@ struct ConfiguracionIglesia: Equatable {
         return partes.joined(separator: " · ")
     }
 
+    /// Las personas con cargo en la iglesia, tengan o no activada la impresión
+    /// de firmas. `firmantes` no sirve para esto: está condicionado a
+    /// `imprimirFirmas`, que es una preferencia de los PDF, y la segunda firma
+    /// de un corte es un control interno que no depende de cómo se imprima.
+    var personas: [(nombre: String, cargo: String)] {
+        [(pastorNombre, pastorCargo),
+         (tesoreroNombre, tesoreroCargo),
+         (secretarioNombre, secretarioCargo)]
+            .filter { !$0.0.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
     /// Quiénes firman, en el orden en que se imprimen. Solo los que tienen
     /// nombre: una línea de firma en blanco no vale para nada.
     var firmantes: [(nombre: String, cargo: String)] {
