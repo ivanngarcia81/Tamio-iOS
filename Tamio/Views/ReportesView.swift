@@ -109,7 +109,15 @@ struct ReportesView: View {
     /// medido está en unas cuatro.
     @ToolbarContentBuilder
     private var barraCompacta: some ToolbarContent {
-        if vm.estado != nil {
+        // El anual se filtra por AÑO y no admite categoría: enseñar ahí un
+        // filtro que no hace nada es peor que no enseñarlo.
+        if vm.esAnual {
+            if vm.anual != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    menuAnio { chipFiltro(vm.anioSel) }
+                }
+            }
+        } else if vm.estado != nil {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 menuPeriodo { chipFiltro(vm.periodoEtiqueta) }
                 // **La categoría va como icono, no como cápsula de texto.** Con
@@ -136,27 +144,48 @@ struct ReportesView: View {
     /// cuenta, así que es lo que va en la cápsula.
     @ViewBuilder
     private var barraInferior: some View {
-        if let e = vm.estado, vm.seleccionId == "estado" {
-            BarraInferior {
-                HStack(spacing: Esp.hueco) {
-                    Button { mostrarPDF = true } label: {
-                        Label(L.t("PDF", "PDF"), systemImage: "doc.text")
-                    }
-                    .buttonStyle(.glass).tint(Paleta.brand)
-                    ShareLink(item: vm.resumenTexto) {
-                        Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
-                            .labelStyle(.iconOnly)
-                    }
-                    .buttonStyle(.glass).tint(Paleta.brand)
-                }
-            } resumen: {
-                HStack(spacing: 6) {
-                    Text(L.t("Saldo", "Balance")).foregroundStyle(.secondary)
-                    Text(Money.fmt(e.saldoFinal)).fontWeight(.semibold)
-                }
-                .font(.footnote).monospacedDigit()
+        if vm.esAnual, let a = vm.anual {
+            BarraInferior { acciones(texto: vm.resumenAnual) } resumen: {
+                capsulaCifra(L.t("Balance", "Balance"), a.balance)
+            }
+        } else if let e = vm.estado {
+            BarraInferior { acciones(texto: vm.resumenTexto) } resumen: {
+                capsulaCifra(L.t("Saldo", "Balance"), e.saldoFinal)
             }
         }
+    }
+
+    private func acciones(texto: String) -> some View {
+        HStack(spacing: Esp.hueco) {
+            Button { mostrarPDF = true } label: {
+                Label(L.t("PDF", "PDF"), systemImage: "doc.text")
+            }
+            .buttonStyle(.glass).tint(Paleta.brand)
+            ShareLink(item: texto) {
+                Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(.glass).tint(Paleta.brand)
+        }
+    }
+
+    private func capsulaCifra(_ etiqueta: String, _ monto: Centavos) -> some View {
+        HStack(spacing: 6) {
+            Text(etiqueta).foregroundStyle(.secondary)
+            Text(Money.fmt(monto)).fontWeight(.semibold)
+        }
+        .font(.footnote).monospacedDigit()
+    }
+
+    /// Año: el filtro del reporte anual.
+    private func menuAnio<E: View>(@ViewBuilder etiqueta: () -> E) -> some View {
+        Menu {
+            ForEach(vm.anios, id: \.self) { a in
+                Button { Task { await vm.seleccionarAnio(a) } } label: {
+                    if a == vm.anioSel { Label(a, systemImage: "checkmark") } else { Text(a) }
+                }
+            }
+        } label: { etiqueta() }
     }
 
     // MARK: - Vista previa
@@ -179,6 +208,8 @@ struct ReportesView: View {
                                       "Reports are built from approved transactions. Record income and expenses, or approve them in To review.")))
         } else if t.id == "estado", let e = vm.estado {
             estadoFinanciero(e, titulo: titulo)
+        } else if t.id == "anual", let a = vm.anual {
+            reporteAnual(a, titulo: titulo)
         } else {
             ContentUnavailableView(L.t("Próximamente", "Coming soon"), systemImage: "doc.text.magnifyingglass",
                                    description: Text(L.t("Este reporte llega en un próximo slice.", "This report is coming in a later slice.")))
@@ -405,6 +436,152 @@ struct ReportesView: View {
     private func porcentaje(_ parte: Centavos, de total: Centavos) -> String {
         guard total > 0 else { return "—" }
         return "\(Int((Double(parte) / Double(total) * 100).rounded()))%"
+    }
+
+    // MARK: - Reporte anual
+
+    private func reporteAnual(_ a: ReporteAnual, titulo: String? = nil) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                if let titulo { Text(titulo).font(.title2.weight(.bold)) }
+                if !compacto { barraFiltrosAnual(a) }
+                HStack {
+                    TituloSeccion(texto: L.t("RESUMEN EN PANTALLA", "ON-SCREEN SUMMARY"))
+                    Spacer()
+                    Text(L.t("No se incluye en el PDF", "Not included in the PDF"))
+                        .font(.caption).foregroundStyle(.tertiary)
+                }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) { chipsAnual(a) }
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) { chipsAnual(a) }
+                }
+                if a.pendientes > 0 { avisoPendientesAnual(a) }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
+                    tablaCategorias(L.t("INGRESOS POR CATEGORÍA", "INCOME BY CATEGORY"),
+                                    a.ingresosPorCategoria, total: a.totalIngresos)
+                    // El % del gasto va contra el total de GASTOS y no contra
+                    // el ingreso, al revés que en el mensual: aquí la pregunta
+                    // es en qué se repartió el gasto del año. Es la regla de la
+                    // app web.
+                    tablaCategorias(L.t("GASTOS POR CATEGORÍA", "EXPENSES BY CATEGORY"),
+                                    a.gastosPorCategoria, total: a.totalGastos)
+                }
+                tablaAnual(a)
+            }
+            .padding(compacto ? Esp.pantalla : Esp.panel)
+        }
+        .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
+        .sheet(isPresented: $mostrarPDF) { ReporteAnualPDFSheet(a: a) }
+    }
+
+    private func barraFiltrosAnual(_ a: ReporteAnual) -> some View {
+        HStack(spacing: 10) {
+            menuAnio { chipFiltro(vm.anioSel) }
+            Spacer()
+            ShareLink(item: vm.resumenAnual) {
+                Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.glass).tint(Color.secondary)
+            Button { mostrarPDF = true } label: {
+                Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.text").fontWeight(.semibold)
+            }
+            .buttonStyle(.glass).tint(Paleta.brand)
+        }
+    }
+
+    @ViewBuilder
+    private func chipsAnual(_ a: ReporteAnual) -> some View {
+        chipKPI(L.t("Ingresos del año", "Income for the year"), a.totalIngresos, Paleta.brand,
+                delta: nil, invert: false, sub: L.t("\(a.meses.count) meses con movimientos",
+                                                    "\(a.meses.count) months with activity"))
+        chipKPI(L.t("Gastos del año", "Expenses for the year"), a.totalGastos, Paleta.negativo,
+                delta: nil, invert: false, sub: L.t("Todo el año", "Whole year"))
+        chipKPI(L.t("Balance del año", "Year balance"), a.balance, Paleta.brand,
+                delta: nil, invert: false, sub: L.t("Ingresos menos gastos", "Income less expenses"))
+        chipKPI(L.t("Depositado", "Deposited"), a.depositosTotal, Paleta.morado,
+                delta: nil, invert: false, sub: L.t("No suma al balance", "Not part of the balance"))
+    }
+
+    private func avisoPendientesAnual(_ a: ReporteAnual) -> some View {
+        HStack(spacing: Esp.hueco) {
+            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Paleta.Estado.pendiente.color)
+            Text(a.pendientes == 1
+                 ? L.t("1 movimiento del año espera visto bueno y no está en estas cifras.",
+                       "1 transaction this year is awaiting approval and isn't in these figures.")
+                 : L.t("\(a.pendientes) movimientos del año esperan visto bueno y no están en estas cifras.",
+                       "\(a.pendientes) transactions this year are awaiting approval and aren't in these figures."))
+                .font(.footnote)
+            Spacer()
+        }
+        .padding(Esp.chip)
+        .background(Paleta.avisoFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func tablaCategorias(_ titulo: String, _ filas: [CategoriaMonto], total: Centavos) -> some View {
+        Tarjeta {
+            VStack(alignment: .leading, spacing: 10) {
+                TituloSeccion(texto: titulo)
+                AmountText(cents: total, size: 26)
+                if filas.isEmpty {
+                    Text(L.t("Sin movimientos en el año", "No activity this year"))
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                ForEach(filas) { c in
+                    HStack {
+                        Text(c.nombre).font(.subheadline).lineLimit(1)
+                        Spacer()
+                        Text(Money.fmt(c.monto)).font(.subheadline).monospacedDigit()
+                        Text(porcentaje(c.monto, de: total))
+                            .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                }
+            }
+        }
+    }
+
+    private func tablaAnual(_ a: ReporteAnual) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TituloSeccion(texto: L.t("RESUMEN POR MES", "SUMMARY BY MONTH"))
+            Tarjeta {
+                VStack(spacing: 0) {
+                    HStack(spacing: 6) {
+                        Text(L.t("MES", "MONTH")).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(L.t("INGRESOS", "INCOME")).frame(width: anchoCol, alignment: .trailing)
+                        Text(L.t("GASTOS", "EXPENSES")).frame(width: anchoCol, alignment: .trailing)
+                        Text(L.t("BALANCE", "BALANCE")).frame(width: anchoCol, alignment: .trailing)
+                    }
+                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+                    Divider()
+                    ForEach(a.meses) { f in
+                        HStack(spacing: 6) {
+                            Text(f.mes).lineLimit(1).minimumScaleFactor(0.8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).frame(width: anchoCol, alignment: .trailing)
+                            Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).frame(width: anchoCol, alignment: .trailing)
+                            Text(Money.fmt(f.balance)).fontWeight(.semibold).frame(width: anchoCol, alignment: .trailing)
+                        }
+                        .font(compacto ? .caption : .subheadline).monospacedDigit()
+                        .padding(.vertical, 9)
+                        Divider()
+                    }
+                    // El total del año cierra la tabla: es la fila por la que
+                    // existe el documento.
+                    HStack(spacing: 6) {
+                        Text(L.t("Total \(a.anio)", "Total \(a.anio)")).fontWeight(.semibold)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(Money.fmt(a.totalIngresos)).foregroundStyle(Paleta.brand).frame(width: anchoCol, alignment: .trailing)
+                        Text(Money.fmt(a.totalGastos)).foregroundStyle(Paleta.negativo).frame(width: anchoCol, alignment: .trailing)
+                        Text(Money.fmt(a.balance)).fontWeight(.semibold).frame(width: anchoCol, alignment: .trailing)
+                    }
+                    .font(compacto ? .caption.weight(.semibold) : .subheadline.weight(.semibold)).monospacedDigit()
+                    .padding(.vertical, 9)
+                    .background(Paleta.brandFill)
+                }
+            }
+        }
     }
 
     // MARK: - Tabla mensual

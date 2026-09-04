@@ -10,6 +10,10 @@ protocol ReportesRepository {
     /// de ingreso. `categoria == nil` significa "todas". `nil` si no hay nada
     /// que reportar todavía.
     func estadoFinanciero(periodo: String, categoria: String?) async -> EstadoFinanciero?
+    /// Años con movimientos, del más reciente al más antiguo.
+    func anios() async -> [String]
+    /// El reporte anual de un año.
+    func anual(anio: String) async -> ReporteAnual?
 }
 
 /// **El reporte no es un dato: es una consulta.**
@@ -56,6 +60,19 @@ struct ReportesCalculados: ReportesRepository {
             depositos: await deps,
             saldoApertura: ConfiguracionIglesiaViewModel.compartido.config.saldoInicial
         )
+    }
+
+    func anios() async -> [String] {
+        let claves = Set(await aprobados().map { Fechas.claveAnio($0.fecha) })
+        return claves.sorted(by: >)
+    }
+
+    func anual(anio: String) async -> ReporteAnual? {
+        async let movs = aprobados()
+        async let pend = pendientes()
+        async let deps = depositosBancarios()
+        return CalculadoraReportes.anual(anio: anio, movimientos: await movs,
+                                         pendientes: await pend, depositos: await deps)
     }
 
     // MARK: - Origen
@@ -211,6 +228,29 @@ enum CalculadoraReportes {
 
     private static func suma(_ movs: [Movimiento]) -> Centavos {
         movs.reduce(0) { $0 + $1.monto }
+    }
+
+    /// El reporte anual. Reusa `mensual` —la tabla de meses es la misma
+    /// consulta acotada al año— y agrupa las categorías del año entero.
+    static func anual(anio: String,
+                      movimientos: [Movimiento],
+                      pendientes: [Movimiento],
+                      depositos: [DepositoBancario]) -> ReporteAnual? {
+        let delAnio = movimientos.filter { Fechas.claveAnio($0.fecha) == anio }
+        guard !delAnio.isEmpty else { return nil }
+        let porMes = Dictionary(grouping: delAnio) { Fechas.clavePeriodo($0.fecha) }
+        return ReporteAnual(
+            anio: anio,
+            meses: mensual(porMes),
+            // Sin agrupar en "Otras": el anual es una tabla, no una dona, y
+            // esconder categorías del año en una fila de resto es justo lo que
+            // un reporte anual no debe hacer.
+            ingresosPorCategoria: porCategoria(delAnio.filter(\.esIngreso), agrupar: false),
+            gastosPorCategoria: porCategoria(delAnio.filter { !$0.esIngreso }, agrupar: false),
+            depositosTotal: depositos.filter { $0.periodo.hasPrefix(anio) }
+                .reduce(0) { $0 + $1.monto },
+            pendientes: pendientes.filter { Fechas.claveAnio($0.fecha) == anio }.count
+        )
     }
 
     /// `nil` si no hay periodo anterior o fue cero: eso no es un +100%, es que

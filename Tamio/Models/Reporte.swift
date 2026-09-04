@@ -91,3 +91,34 @@ struct EstadoFinanciero {
         return L.formateador("LLLL").string(from: d).lowercased()
     }
 }
+
+/// Los datos del "Reporte anual": los doce meses en una hoja.
+///
+/// Es el SEGUNDO documento del dominio, y el único que faltaba: en la app web
+/// hay exactamente dos PDF de Reportes, el mensual y este. Los otros tres que
+/// la lista prometía —ingresos por categoría, depósitos del periodo— son
+/// secciones del mensual, y ya viven dentro de él.
+struct ReporteAnual {
+    /// `"2026"`.
+    let anio: String
+    /// Solo los meses con movimientos. Un año que empezó en marzo no llena
+    /// nueve filas de ceros.
+    let meses: [FilaMensual]
+
+    var totalIngresos: Centavos { meses.reduce(0) { $0 + $1.ingresos } }
+    var totalGastos: Centavos { meses.reduce(0) { $0 + $1.gastos } }
+    var balance: Centavos { totalIngresos - totalGastos }
+
+    let ingresosPorCategoria: [CategoriaMonto]
+    /// **Aquí el porcentaje va contra el total de GASTOS**, no contra el
+    /// ingreso como en el mensual. No es un descuido: en el anual la pregunta
+    /// es en qué se repartió el gasto del año, y esa es la regla de la app web.
+    let gastosPorCategoria: [CategoriaMonto]
+
+    /// Todo lo depositado en el año. Igual que en el mensual: no es un ingreso
+    /// y no entra en el balance.
+    let depositosTotal: Centavos
+
+    /// Movimientos del año que esperan visto bueno y no cuentan.
+    let pendientes: Int
+}

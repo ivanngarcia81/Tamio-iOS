@@ -223,4 +223,11 @@ enum Fechas {
         f.timeZone = TimeZone(identifier: "UTC")
         return f.string(from: d)
     }
+
+    /// `"2026"`. Se saca de la clave del periodo y no con un formateador
+    /// aparte, para que un movimiento no pueda caer en un mes de un año y en
+    /// otro año distinto.
+    static func claveAnio(_ d: Date = Date()) -> String {
+        String(clavePeriodo(d).prefix(4))
+    }
 }

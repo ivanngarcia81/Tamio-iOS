@@ -185,7 +185,9 @@ struct ReporteHojaPDF: View {
                 Divider()
             }
             HStack {
-                Text(titulo).fontWeight(.semibold)
+                // "Total", no el título de la tabla otra vez: la fila de cierre
+                // dice cuánto suma, no de qué tabla es.
+                Text(L.t("Total", "Total")).fontWeight(.semibold)
                 Spacer()
                 Text(Money.fmt(total)).fontWeight(.semibold).monospacedDigit()
                     .frame(width: 120, alignment: .trailing)
@@ -344,6 +346,179 @@ struct PieInstitucionalPDF: View {
                 Text(L.t("ID fiscal: \(iglesia.idFiscal)", "Tax ID: \(iglesia.idFiscal)"))
                     .font(.caption2).foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+/// Página imprimible del "Reporte anual": los doce meses en una hoja. Es el
+/// segundo documento del dominio, y hasta ahora la lista de Reportes lo
+/// prometía con un "Próximamente".
+struct ReporteAnualHojaPDF: View {
+    let a: ReporteAnual
+    var iglesia: ConfiguracionIglesia = ConfiguracionIglesiaViewModel.compartido.config
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(L.t("Reporte anual", "Annual report"))
+                    .font(.system(.title, design: .serif).weight(.bold))
+                Text(a.anio).font(.headline).foregroundStyle(.secondary)
+                if !iglesia.membrete.isEmpty {
+                    Text(iglesia.membrete).font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+
+            Divider()
+
+            // Resumen por mes, con el total del año cerrando la tabla.
+            Text(L.t("Resumen por mes", "Summary by month")).font(.headline)
+            VStack(spacing: 0) {
+                HStack {
+                    Text(L.t("MES", "MONTH")).frame(maxWidth: .infinity, alignment: .leading)
+                    Text(L.t("INGRESOS", "INCOME")).frame(width: 110, alignment: .trailing)
+                    Text(L.t("GASTOS", "EXPENSES")).frame(width: 110, alignment: .trailing)
+                    Text(L.t("BALANCE", "BALANCE")).frame(width: 110, alignment: .trailing)
+                }
+                .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                .padding(.vertical, 8)
+                Divider()
+                if a.meses.isEmpty {
+                    HStack {
+                        Text(L.t("Sin movimientos en \(a.anio)", "No activity in \(a.anio)"))
+                            .font(.subheadline).foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(.vertical, 7)
+                }
+                ForEach(a.meses) { f in
+                    HStack {
+                        Text(f.mes).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).frame(width: 110, alignment: .trailing)
+                        Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).frame(width: 110, alignment: .trailing)
+                        Text(Money.fmt(f.balance)).frame(width: 110, alignment: .trailing)
+                    }
+                    .font(.subheadline).monospacedDigit()
+                    .padding(.vertical, 7)
+                    Divider()
+                }
+                HStack {
+                    Text(L.t("Total \(a.anio)", "Total \(a.anio)")).fontWeight(.semibold)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(Money.fmt(a.totalIngresos)).foregroundStyle(Paleta.brand).frame(width: 110, alignment: .trailing)
+                    Text(Money.fmt(a.totalGastos)).foregroundStyle(Paleta.negativo).frame(width: 110, alignment: .trailing)
+                    Text(Money.fmt(a.balance)).frame(width: 110, alignment: .trailing)
+                }
+                .font(.subheadline.weight(.semibold)).monospacedDigit()
+                .padding(.vertical, 8)
+            }
+
+            if a.pendientes > 0 {
+                Text(a.pendientes == 1
+                     ? L.t("No incluye 1 movimiento del año que espera visto bueno.",
+                           "Excludes 1 transaction from this year awaiting approval.")
+                     : L.t("No incluye \(a.pendientes) movimientos del año que esperan visto bueno.",
+                           "Excludes \(a.pendientes) transactions from this year awaiting approval."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            // El % de ingreso va contra el ingreso del año y el de gasto contra
+            // el gasto del año: en el anual la pregunta es cómo se repartió
+            // cada lado, no qué proporción del ingreso se gastó. Es la regla de
+            // la app web, y difiere a propósito del reporte mensual.
+            tabla(L.t("Ingresos por categoría", "Income by category"),
+                  a.ingresosPorCategoria, total: a.totalIngresos, color: Paleta.brand)
+            tabla(L.t("Gastos por categoría", "Expenses by category"),
+                  a.gastosPorCategoria, total: a.totalGastos, color: Paleta.negativo)
+
+            HStack {
+                Text(L.t("Depositado en el banco durante el año", "Deposited to the bank during the year"))
+                Spacer()
+                Text(Money.fmt(a.depositosTotal)).fontWeight(.semibold).monospacedDigit()
+            }
+            .font(.subheadline)
+            .padding(Esp.tarjeta)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(.secondary.opacity(0.3)))
+
+            FirmasPDF(iglesia: iglesia)
+            PieInstitucionalPDF(iglesia: iglesia)
+
+            Text(L.t("Generado por Tamio", "Generated by Tamio"))
+                .font(.caption2).foregroundStyle(.tertiary)
+        }
+        .padding(Esp.hoja)
+        .frame(width: PDFExport.anchoCarta, alignment: .leading)
+        .background(.white)
+        .environment(\.colorScheme, .light)
+    }
+
+    @ViewBuilder
+    private func tabla(_ titulo: String, _ filas: [CategoriaMonto],
+                       total: Centavos, color: Color) -> some View {
+        Text(titulo).font(.headline)
+        VStack(spacing: 0) {
+            if filas.isEmpty {
+                HStack {
+                    Text(L.t("Sin movimientos en el año", "No activity this year"))
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.vertical, 7)
+            }
+            ForEach(filas) { c in
+                HStack {
+                    Text(c.nombre).frame(maxWidth: .infinity, alignment: .leading)
+                    Text(Money.fmt(c.monto)).foregroundStyle(color).frame(width: 120, alignment: .trailing)
+                    Text(total > 0 ? "\(Int((Double(c.monto) / Double(total) * 100).rounded()))%" : "—")
+                        .foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
+                }
+                .font(.subheadline).monospacedDigit()
+                .padding(.vertical, 7)
+                Divider()
+            }
+            HStack {
+                Text(L.t("Total", "Total")).fontWeight(.semibold)
+                Spacer()
+                Text(Money.fmt(total)).fontWeight(.semibold).monospacedDigit()
+                    .frame(width: 120, alignment: .trailing)
+                Text(total > 0 ? "100%" : "").foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
+            }
+            .font(.subheadline).padding(.vertical, 7)
+        }
+    }
+}
+
+/// Hoja modal de vista previa del reporte anual.
+struct ReporteAnualPDFSheet: View {
+    let a: ReporteAnual
+    @Environment(\.dismiss) private var dismiss
+    @State private var pdfURL: URL?
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                HojaCartaEscalada { ReporteAnualHojaPDF(a: a) }
+                    .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+                    .padding(Esp.panel)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle(L.t("Vista previa PDF", "PDF preview"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L.t("Cerrar", "Close")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if let pdfURL {
+                        ShareLink(item: pdfURL) {
+                            Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear {
+            pdfURL = PDFExport.render(ReporteAnualHojaPDF(a: a),
+                                      nombre: "Reporte-anual-\(a.anio)")
         }
     }
 }
