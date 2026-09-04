@@ -55,7 +55,7 @@ final class ReportesViewModel {
     var resumenTexto: String {
         guard let e = estado else { return "" }
         return L.t(
-            "Estado financiero — \(e.periodo)\nIngresos: \(Money.fmt(e.ingresosMes)) MXN\nGastos: \(Money.fmt(e.gastosMes)) MXN\nBalance neto: \(Money.fmt(e.balanceNeto)) MXN\nIglesia Getsemaní, Monterrey, N.L.",
-            "Financial statement — \(e.periodo)\nIncome: \(Money.fmt(e.ingresosMes)) MXN\nExpenses: \(Money.fmt(e.gastosMes)) MXN\nNet balance: \(Money.fmt(e.balanceNeto)) MXN\nIglesia Getsemaní, Monterrey, N.L.")
+            "Estado financiero — \(e.periodo)\nIngresos: \(Money.fmt(e.ingresosMes)) \(Money.codigo)\nGastos: \(Money.fmt(e.gastosMes)) \(Money.codigo)\nBalance neto: \(Money.fmt(e.balanceNeto)) \(Money.codigo)",
+            "Financial statement — \(e.periodo)\nIncome: \(Money.fmt(e.ingresosMes)) \(Money.codigo)\nExpenses: \(Money.fmt(e.gastosMes)) \(Money.codigo)\nNet balance: \(Money.fmt(e.balanceNeto)) \(Money.codigo)")
     }
 }

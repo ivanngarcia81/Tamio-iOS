@@ -117,7 +117,7 @@ final class BaseLocal {
                 t.column("idFiscal", .text).notNull().defaults(to: "")
                 t.column("telefono", .text).notNull().defaults(to: "")
                 t.column("correo", .text).notNull().defaults(to: "")
-                t.column("moneda", .text).notNull().defaults(to: "MXN")
+                t.column("moneda", .text).notNull().defaults(to: "USD")
                 t.column("pieInstitucional", .text).notNull().defaults(to: "")
                 t.column("pastorNombre", .text).notNull().defaults(to: "")
                 t.column("pastorCargo", .text).notNull().defaults(to: "Pastor")

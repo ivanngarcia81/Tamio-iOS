@@ -564,9 +564,22 @@ private struct SeccionIglesia: View {
                     .padding(.horizontal, Esp.pantalla)
                     .padding(.vertical, 12)
                     Divider()
-                    FilaConf(label: L.t("Moneda", "Currency"),
-                             valor: L.t("MXN — Peso mexicano", "MXN — Mexican peso"),
-                             chevron: true, accion: {})
+                    // Era una fila con chevron y acción VACÍA que decía
+                    // "MXN — Peso mexicano" pasara lo que pasara: ni enseñaba
+                    // la moneda configurada ni dejaba cambiarla.
+                    HStack {
+                        Text(L.t("Moneda", "Currency"))
+                            .font(.system(size: 16))
+                        Spacer()
+                        Picker("", selection: $cfg.config.moneda) {
+                            ForEach(Catalogos.monedas) { m in
+                                Text(m.etiqueta).tag(m.codigo)
+                            }
+                        }
+                        .labelsHidden()
+                    }
+                    .padding(.horizontal, Esp.pantalla)
+                    .padding(.vertical, 12)
                 }
             }
             .padding(Esp.panel)

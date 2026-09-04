@@ -134,7 +134,7 @@ struct MovimientoDetalle: View {
                 }
                 if let rfc = m.rfc, !rfc.isEmpty {
                     Divider()
-                    FieldRow(label: L.t("RFC", "Tax ID"), value: rfc)
+                    FieldRow(label: L.t("ID fiscal", "Tax ID"), value: rfc)
                 }
                 Divider()
                 FieldRow(label: L.t("Método", "Method"), value: m.metodo)

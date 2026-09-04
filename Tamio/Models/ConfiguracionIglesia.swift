@@ -17,7 +17,9 @@ struct ConfiguracionIglesia: Equatable {
     var idFiscal: String = ""
     var telefono: String = ""
     var correo: String = ""
-    var moneda: String = "MXN"
+    /// Código ISO de la moneda. Dólar por defecto: la iglesia está en Estados
+    /// Unidos. Se cambia en Ajustes · Iglesia.
+    var moneda: String = "USD"
     var pieInstitucional: String = ""
 
     var pastorNombre: String = ""

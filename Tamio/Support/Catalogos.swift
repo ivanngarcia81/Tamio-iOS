@@ -160,6 +160,42 @@ enum Catalogos {
         return raices.first { _, formas in formas.contains { n.contains($0) } }?.0
     }
 
+    /// **Las monedas que la iglesia puede elegir en Ajustes.**
+    ///
+    /// El dólar va primero porque es el que usa la iglesia; el peso y el euro
+    /// quedan para cuando haga falta. Antes "MXN" estaba escrito a mano en
+    /// siete sitios —el campo de importe, dos pies de lista, el texto que se
+    /// comparte de Reportes, el detalle de Por revisar, el motor y la base—
+    /// mientras el `Picker` de Ajustes del teléfono guardaba "USD $" como si
+    /// fuera un código y el de iPad no guardaba nada: era una fila muerta que
+    /// decía "MXN — Peso mexicano" pasara lo que pasara.
+    struct Moneda: Identifiable, Hashable {
+        let codigo: String
+        let simbolo: String
+        let es: String
+        let en: String
+        var id: String { codigo }
+        var nombre: String { L.t(es, en) }
+        /// "USD — Dólar estadounidense", para el selector.
+        var etiqueta: String { "\(codigo) — \(nombre)" }
+    }
+
+    static let monedas: [Moneda] = [
+        Moneda(codigo: "USD", simbolo: "$", es: "Dólar estadounidense", en: "US dollar"),
+        Moneda(codigo: "MXN", simbolo: "$", es: "Peso mexicano",        en: "Mexican peso"),
+        Moneda(codigo: "EUR", simbolo: "€", es: "Euro",                 en: "Euro"),
+    ]
+
+    static let monedaPorDefecto = monedas[0]
+
+    /// La moneda de un código guardado. Tolera lo que dejó el `Picker` viejo
+    /// ("USD $") quedándose con las tres primeras letras, y cae al dólar si no
+    /// reconoce nada: una cifra sin moneda no se puede leer.
+    static func moneda(_ codigo: String) -> Moneda {
+        let clave = codigo.prefix(3).uppercased()
+        return monedas.first { $0.codigo == clave } ?? monedaPorDefecto
+    }
+
     /// Cargos y roles de las personas de la iglesia. Iban como literales
     /// españoles dentro de los `Picker` de Ajustes, así que con la app en
     /// inglés el cuerpo del PDF salía traducido y las firmas debajo decían

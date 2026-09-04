@@ -302,8 +302,13 @@ private struct AjustesIglesiaView: View {
                 HStack {
                     Text(L.t("Moneda", "Currency")).font(.subheadline).foregroundStyle(.secondary)
                     Spacer()
+                    // Guardaba la etiqueta ("USD $") en el campo del código,
+                    // así que lo que se salvaba no era una moneda. Ahora las
+                    // opciones son el catálogo y lo que se guarda es el código.
                     Picker("", selection: $moneda) {
-                        ForEach(["USD $", "MXN $", "EUR €"], id: \.self) { Text($0) }
+                        ForEach(Catalogos.monedas) { m in
+                            Text("\(m.codigo) \(m.simbolo)").tag(m.codigo)
+                        }
                     }.labelsHidden()
                 }
                 campoF(L.t("Saldo de apertura", "Opening balance"), $apertura, "0.00")

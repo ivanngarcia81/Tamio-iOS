@@ -301,7 +301,7 @@ struct NuevoMovimientoView: View {
         Section(header: Text(L.t("BENEFICIARIO", "PAYEE"))) {
             TextField(L.t("Pagado a", "Paid to"), text: $pagadoA)
                 .autocorrectionDisabled()
-            TextField(L.t("RFC · opcional", "Tax ID · optional"), text: $rfc)
+            TextField(L.t("ID fiscal · opcional", "Tax ID · optional"), text: $rfc)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.characters)
         }
@@ -366,7 +366,7 @@ struct NuevoMovimientoView: View {
                     .monospacedDigit()
                     .fixedSize()
             }
-            Text("MXN")
+            Text(Money.codigo)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }

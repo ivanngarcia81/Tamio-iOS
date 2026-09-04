@@ -7,9 +7,20 @@ import SwiftUI
 typealias Centavos = Int
 
 enum Money {
-    /// "$1,234.56" — importe con separador de miles y dos decimales. La moneda
-    /// (MXN, USD…) se muestra aparte, como en el Dashboard actual, porque va en
-    /// un color/tamaño distinto al de la cifra.
+    /// **La moneda de la iglesia**, la que se eligió en Ajustes. Dólar por
+    /// defecto. Un solo sitio del que leerla: antes "MXN" y el "$" iban
+    /// escritos a mano en cada pantalla, así que cambiar de moneda en Ajustes
+    /// no cambiaba nada en ninguna.
+    static var moneda: Catalogos.Moneda {
+        Catalogos.moneda(ConfiguracionIglesiaViewModel.compartido.config.moneda)
+    }
+
+    /// El código, para ponerlo junto a una cifra ("$1,234.56 USD").
+    static var codigo: String { moneda.codigo }
+
+    /// "$1,234.56" — importe con separador de miles y dos decimales, con el
+    /// símbolo de la moneda configurada. El CÓDIGO se muestra aparte, como en
+    /// el Dashboard, porque va en un color/tamaño distinto al de la cifra.
     static func fmt(_ cents: Centavos) -> String {
         let f = NumberFormatter()
         f.numberStyle = .decimal
@@ -17,7 +28,7 @@ enum Money {
         f.maximumFractionDigits = 2
         let value = Double(cents) / 100.0
         let cuerpo = f.string(from: NSNumber(value: value)) ?? "0.00"
-        return "$" + cuerpo
+        return moneda.simbolo + cuerpo
     }
 
     /// Importe con la dirección del dinero al frente: "+$1,200.00" para un

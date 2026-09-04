@@ -203,7 +203,7 @@ struct MiembrosView: View {
             Text("·").foregroundStyle(.tertiary)
             Text(String(vm.anio)).foregroundStyle(.secondary)
             Text("·").foregroundStyle(.tertiary)
-            Text("\(Money.fmt(vm.total)) MXN").fontWeight(.semibold)
+            Text("\(Money.fmt(vm.total)) \(Money.codigo)").fontWeight(.semibold)
         }
         .font(.footnote)
         .monospacedDigit()
@@ -384,7 +384,7 @@ struct MiembrosView: View {
                          "\(vm.itemsFiltrados.count) givers · \(String(vm.anio))"))
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("\(Money.fmt(vm.total)) MXN").monospacedDigit().fontWeight(.semibold)
+                Text("\(Money.fmt(vm.total)) \(Money.codigo)").monospacedDigit().fontWeight(.semibold)
             }
             .font(.caption)
             .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)

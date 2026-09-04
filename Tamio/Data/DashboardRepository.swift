@@ -30,7 +30,7 @@ struct MockDashboardRepository: DashboardRepository {
             church: Church(id: "1",
                 nombre: "Iglesia Getsemaní",
                 ciudad: "Monterrey, N.L.",
-                moneda: "MXN",
+                moneda: Catalogos.monedaPorDefecto.codigo,
                 tesoreroNombre: "Iván García"
             ),
             saldoCaja: 126_480_25,

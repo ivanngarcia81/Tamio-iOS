@@ -343,7 +343,7 @@ final class MotorSincronizacion {
         c.idFiscal = r.idFiscal ?? ""
         c.telefono = r.telefono ?? ""
         c.correo = r.correo ?? ""
-        c.moneda = r.moneda ?? "MXN"
+        c.moneda = r.moneda ?? Catalogos.monedaPorDefecto.codigo
         c.pieInstitucional = r.pieInstitucional ?? ""
         c.pastorNombre = r.pastorNombre ?? ""
         c.pastorCargo = r.pastorCargo ?? "Pastor"

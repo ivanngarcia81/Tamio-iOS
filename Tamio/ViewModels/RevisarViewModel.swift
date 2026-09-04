@@ -108,7 +108,7 @@ final class RevisarViewModel {
         var campos = r.campos.map { c -> CampoRevision in
             switch c.label {
             case L.t("Concepto", "Concept"): return .init(label: c.label, valor: concepto)
-            case L.t("Importe", "Amount"): return .init(label: c.label, valor: "\(signo)$\(importe) MXN", resalte: r.esGasto ? .rojo : .verde)
+            case L.t("Importe", "Amount"): return .init(label: c.label, valor: "\(signo)\(Money.moneda.simbolo)\(importe) \(Money.codigo)", resalte: r.esGasto ? .rojo : .verde)
             case L.t("Categoría", "Category"): return .init(label: c.label, valor: categoria)
             case L.t("Método de pago", "Payment method"): return .init(label: c.label, valor: metodo)
             case L.t("Fecha", "Date"): return .init(label: c.label, valor: Fechas.corta(fecha))
