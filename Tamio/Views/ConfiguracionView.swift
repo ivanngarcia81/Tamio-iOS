@@ -334,7 +334,18 @@ private struct SeccionCuenta: View {
     /// sesión en el entorno, y un `@Environment` no opcional las haría caer.
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     private let motor = MotorSincronizacion.compartido
+    @State private var bloqueo = BloqueoBiometrico.compartido
     @State private var confirmarCierre = false
+
+    /// Se pregunta al construir y no dentro del `body`: `canEvaluatePolicy`
+    /// toca el sistema de seguridad y el `body` se reevalúa muchas veces.
+    private let biometria = BloqueoBiometrico.disponible()
+
+    private var pieSeguridad: String {
+        if let motivo = biometria.motivo { return motivo }
+        return L.t("Si \(BloqueoBiometrico.nombreBiometria) no reconoce la cara, se puede abrir con el código del aparato: nadie se queda fuera de su propia contabilidad.",
+                   "If \(BloqueoBiometrico.nombreBiometria) doesn't recognize you, the device passcode also opens it: nobody gets locked out of their own books.")
+    }
 
     var body: some View {
         ScrollView {
@@ -399,6 +410,28 @@ private struct SeccionCuenta: View {
                     FilaConf(label: L.t("Acerca de", "About"),
                              valor: L.t("Próximamente", "Coming soon"),
                              valorColor: Color(.tertiaryLabel))
+                }
+
+                // Seguridad. El candado de ESTE aparato, que no es lo mismo
+                // que "Acceso y áreas": aquello decide quién entra al servidor
+                // de la iglesia, esto quién abre esta app en este iPad.
+                GrupoConf(titulo: L.t("SEGURIDAD", "SECURITY"), nota: pieSeguridad) {
+                    HStack(alignment: .top, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(L.t("Pedir \(BloqueoBiometrico.nombreBiometria) al abrir",
+                                     "Require \(BloqueoBiometrico.nombreBiometria) to open"))
+                                .font(.system(size: 16))
+                            Text(L.t("También tapa las cuentas en el conmutador de apps.",
+                                     "Also hides the accounts in the app switcher."))
+                                .font(.system(size: 13)).foregroundStyle(.tertiary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer()
+                        Toggle("", isOn: $bloqueo.activo)
+                            .labelsHidden().tint(Paleta.brand)
+                            .disabled(!biometria.puede)
+                    }
+                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
                 }
 
                 // Cerrar sesión

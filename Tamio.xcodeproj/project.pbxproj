@@ -44,6 +44,8 @@
 		AB11PRF0000000000000011 /* PreferenciasApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11PRF0000000000000011 /* PreferenciasApp.swift */; };
 		AB12RSP0000000000000012 /* Respaldo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA12RSP0000000000000012 /* Respaldo.swift */; };
 		AB13SEC0000000000000013 /* SeccionAjustes.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA13SEC0000000000000013 /* SeccionAjustes.swift */; };
+		AB14BLQ0000000000000014 /* BloqueoBiometrico.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA14BLQ0000000000000014 /* BloqueoBiometrico.swift */; };
+		AB15PBL0000000000000015 /* PantallaBloqueo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA15PBL0000000000000015 /* PantallaBloqueo.swift */; };
 		109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A2 /* OfflineDepositosRepository.swift */; };
 		109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */; };
 		127515E07FA461AED9B9AAA2 /* IPhoneSecretariaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FBFB6CE7A24648A6454B21 /* IPhoneSecretariaView.swift */; };
@@ -227,6 +229,8 @@
 		AA11PRF0000000000000011 /* PreferenciasApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenciasApp.swift; sourceTree = "<group>"; };
 		AA12RSP0000000000000012 /* Respaldo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Respaldo.swift; sourceTree = "<group>"; };
 		AA13SEC0000000000000013 /* SeccionAjustes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeccionAjustes.swift; sourceTree = "<group>"; };
+		AA14BLQ0000000000000014 /* BloqueoBiometrico.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloqueoBiometrico.swift; sourceTree = "<group>"; };
+		AA15PBL0000000000000015 /* PantallaBloqueo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantallaBloqueo.swift; sourceTree = "<group>"; };
 		9D80DC3340868CDE97F34571 /* DepositosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosRepository.swift; sourceTree = "<group>"; };
 		9D90A2753741AD7825EB7A59 /* IPhoneAjustesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPhoneAjustesView.swift; sourceTree = "<group>"; };
 		9DACD9F9945ED7749BE68C28 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -366,6 +370,7 @@
 				109DD59030497B0000E781A1 /* SesionSupabase.swift */,
 				109DD5A030497B0000E781A1 /* Navegacion.swift */,
 				109DD5A230497B0000E781A1 /* ModoRevision.swift */,
+				AA14BLQ0000000000000014 /* BloqueoBiometrico.swift */,
 				AA13SEC0000000000000013 /* SeccionAjustes.swift */,
 				AA11PRF0000000000000011 /* PreferenciasApp.swift */,
 				AA10VER0000000000000010 /* VersionApp.swift */,
@@ -461,6 +466,7 @@
 				8FEB9533A16F1B73ED8B006C /* ReportesView.swift */,
 				467795455C0E441168B94F26 /* RevisarView.swift */,
 				64DF6849516658024DF7E700 /* RootView.swift */,
+				AA15PBL0000000000000015 /* PantallaBloqueo.swift */,
 				D8F4F4B41C31BFF9EFEE087B /* ServiciosView.swift */,
 				721483643253B05BA99D2C12 /* Sidebar.swift */,
 				81508FB7B785C998EFA55E1A /* Components */,
@@ -597,6 +603,8 @@
 				AB11PRF0000000000000011 /* PreferenciasApp.swift in Sources */,
 				AB12RSP0000000000000012 /* Respaldo.swift in Sources */,
 				AB13SEC0000000000000013 /* SeccionAjustes.swift in Sources */,
+				AB14BLQ0000000000000014 /* BloqueoBiometrico.swift in Sources */,
+				AB15PBL0000000000000015 /* PantallaBloqueo.swift in Sources */,
 				109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */,
 				109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */,
 				55BE47478958A09E5E13CBCC /* MembresiaView.swift in Sources */,
@@ -677,6 +685,7 @@
 				DEVELOPMENT_TEAM = 4N9XEU7F4P;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Para fotografiar el recibo del banco al registrar un dep\u00f3sito.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para desbloquear Tamio con tu cara, en vez de escribir la contrase\u00f1a cada vez.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para adjuntar la foto del recibo del banco a un dep\u00f3sito.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -700,6 +709,7 @@
 				DEVELOPMENT_TEAM = 4N9XEU7F4P;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Para fotografiar el recibo del banco al registrar un dep\u00f3sito.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para desbloquear Tamio con tu cara, en vez de escribir la contrase\u00f1a cada vez.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para adjuntar la foto del recibo del banco a un dep\u00f3sito.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

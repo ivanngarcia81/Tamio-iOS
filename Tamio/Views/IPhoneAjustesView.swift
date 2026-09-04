@@ -185,7 +185,38 @@ enum AjustesRol {
 private struct AjustesCuentaView: View {
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     private let motor = MotorSincronizacion.compartido
+    @State private var bloqueo = BloqueoBiometrico.compartido
     @State private var confirmarCierre = false
+
+    /// Lo que puede el aparato. Se pregunta una vez al construir la vista y no
+    /// dentro del `body`: `canEvaluatePolicy` toca el sistema de seguridad y el
+    /// `body` se reevalúa muchas veces.
+    private let biometria = BloqueoBiometrico.disponible()
+
+    /// El candado de este aparato, y por qué está donde está: no es un permiso
+    /// de la iglesia —eso es "Acceso y áreas", que decide quién entra al
+    /// servidor— sino quién abre ESTA app en ESTE teléfono.
+    @ViewBuilder
+    private var seguridad: some View {
+        Toggle(isOn: $bloqueo.activo) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L.t("Pedir \(BloqueoBiometrico.nombreBiometria) al abrir",
+                         "Require \(BloqueoBiometrico.nombreBiometria) to open"))
+                    .font(.subheadline)
+                Text(L.t("También tapa las cuentas en el conmutador de apps.",
+                         "Also hides the accounts in the app switcher."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .tint(Paleta.brand)
+        .disabled(!biometria.puede)
+    }
+
+    private var pieSeguridad: String {
+        if let motivo = biometria.motivo { return motivo }
+        return L.t("Si \(BloqueoBiometrico.nombreBiometria) no reconoce la cara, se puede abrir con el código del aparato: nadie se queda fuera de su propia contabilidad.",
+                   "If \(BloqueoBiometrico.nombreBiometria) doesn't recognize you, the device passcode also opens it: nobody gets locked out of their own books.")
+    }
 
     var body: some View {
         List {
@@ -241,6 +272,15 @@ private struct AjustesCuentaView: View {
                 }
             } header: {
                 Text(L.t("Aplicación", "Application")).textCase(nil)
+            }
+            .listRowBackground(Color(.secondarySystemGroupedBackground))
+
+            Section {
+                seguridad
+            } header: {
+                Text(L.t("Seguridad", "Security")).textCase(nil)
+            } footer: {
+                Text(pieSeguridad)
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 

@@ -11,11 +11,27 @@ struct TamioApp: App {
     /// Tema, idioma y tamaño de letra. Viven aquí porque se aplican a la app
     /// entera y no a una pantalla.
     @State private var prefs = PreferenciasApp.compartidas
+    /// El candado de este aparato. Vive aquí porque tapa la app entera.
+    @State private var bloqueo = BloqueoBiometrico.compartido
     @Environment(\.scenePhase) private var fase
 
     var body: some Scene {
         WindowGroup {
             contenido
+                // El velo va PRIMERO y el candado encima: iOS fotografía la
+                // pantalla al salir para la tarjeta del conmutador, y esa foto
+                // se toma con la app ya en `.inactive`. Sin el velo, el saldo
+                // de la iglesia se queda visible ahí aunque esté bloqueada.
+                .overlay {
+                    if bloqueo.activo && fase != .active {
+                        VeloConmutador().transition(.opacity)
+                    }
+                }
+                .overlay {
+                    if bloqueo.cerrado {
+                        PantallaBloqueo(bloqueo: bloqueo).transition(.opacity)
+                    }
+                }
                 .preferredColorScheme(prefs.tema.esquema)
                 // `nil` en "Normal": sin el modificador, la app respeta el
                 // ajuste de accesibilidad del sistema. Solo se sustituye
@@ -49,6 +65,10 @@ struct TamioApp: App {
                 // Al entrar y cada vez que la app vuelve al frente: es cuando
                 // más probable es que haya red otra vez tras un rato sin ella.
                 .task {
+                    // El candado, antes que nada: una app que arranca con las
+                    // cuentas a la vista y las tapa un segundo después no está
+                    // protegida, y además ese parpadeo se fotografía.
+                    bloqueo.alArrancar()
                     // La configuración de la iglesia, la primera: de ella salen
                     // el membrete, la moneda y los permisos, y hay pantallas
                     // —la sidebar, Ingresos— que los leen antes de que nadie
@@ -65,6 +85,11 @@ struct TamioApp: App {
                     await CategoriasViewModel.compartido.cargar()
                 }
                 .onChange(of: fase) { _, nueva in
+                    // `.background` y no `.inactive`: lo segundo salta con
+                    // bajar el centro de control o con una notificación, y
+                    // pedir la cara cada vez que aparece un aviso convierte el
+                    // candado en un castigo.
+                    if nueva == .background { bloqueo.alIrseAlFondo() }
                     if nueva == .active {
                         Task {
                             await MotorSincronizacion.compartido.sincronizar()
