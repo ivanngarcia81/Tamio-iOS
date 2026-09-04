@@ -45,10 +45,9 @@ struct RevisarView: View {
                          ? L.t("Aprobar todo", "Approve all")
                          : L.t("Aprobar \(vm.aprobablesCount) de \(vm.porRevisarCount)",
                                "Approve \(vm.aprobablesCount) of \(vm.porRevisarCount)"))
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                        .background(Paleta.brand, in: Capsule())
                 }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
                 .disabled(vm.aprobablesCount == 0)
             }
         }

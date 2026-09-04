@@ -38,11 +38,10 @@ struct ServiciosView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { mostrarNuevo = true } label: {
-                    HStack(spacing: 5) { Image(systemName: "plus"); Text(L.t("Nuevo", "New")) }
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                        .background(Paleta.brand, in: Capsule())
+                    Label(L.t("Nuevo", "New"), systemImage: "plus")
                 }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
             }
         }
         .task { await vm.cargar() }

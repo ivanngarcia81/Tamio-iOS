@@ -54,11 +54,10 @@ struct MiembrosView: View {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 menuArchivo
                 Button { hoja = .nueva } label: {
-                    HStack(spacing: 5) { Image(systemName: "plus"); Text(L.t("Nuevo", "New")) }
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                        .background(Paleta.brand, in: Capsule())
+                    Label(L.t("Nuevo", "New"), systemImage: "plus")
                 }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
             }
         }
         .sheet(item: $hoja) { item in
