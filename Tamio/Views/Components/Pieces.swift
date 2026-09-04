@@ -98,3 +98,62 @@ struct HubRow: View {
         .padding(.vertical, 4)
     }
 }
+
+// MARK: - Previa de documento
+
+private struct AltoHojaKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+private struct AnchoDisponibleKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+/// **Una hoja de ancho carta enseñada dentro del ancho que haya.**
+///
+/// Las hojas de los documentos llevan `.frame(width: PDFExport.anchoCarta)`,
+/// 612 pt, porque es el papel que van a ocupar. Metidas tal cual en la previa,
+/// en un iPhone de ~393 pt se salían por los dos lados: se leía "sia Nueva
+/// Vida", "ing report" y "ucía Torres Beltrán". Y como la hoja estiraba a 612
+/// la columna entera, el segmentado de periodo que tenía encima quedaba
+/// cortado por los dos lados también.
+///
+/// Se ESCALA en vez de reflowear a propósito: la previa tiene que enseñar el
+/// papel que va a salir de la impresora, no una versión adaptada de él. La
+/// generación del PDF sigue a 612 pt sin tocar; aquí solo se mira.
+///
+/// En iPad, donde los 612 pt caben, la escala queda en 1 y no cambia nada.
+struct HojaCartaEscalada<Contenido: View>: View {
+    @ViewBuilder let contenido: Contenido
+
+    /// Alto natural de la hoja a tamaño real. Hace falta medirlo porque
+    /// `scaleEffect` no cambia el espacio que el contenido reserva: sin este
+    /// alto la previa dejaría debajo un hueco del tamaño de la hoja sin
+    /// escalar.
+    @State private var altoHoja: CGFloat = 0
+    /// Se arranca en ancho carta para que la primera pasada no dé escala cero
+    /// y la hoja parpadee en blanco.
+    @State private var anchoDisponible: CGFloat = PDFExport.anchoCarta
+
+    private var escala: CGFloat { min(1, anchoDisponible / PDFExport.anchoCarta) }
+
+    var body: some View {
+        contenido
+            // La medida se toma ANTES de escalar y las escalas se aplican
+            // después: así ninguna de las dos depende de la otra y el layout
+            // converge en vez de ciclar.
+            .background(GeometryReader { g in
+                Color.clear.preference(key: AltoHojaKey.self, value: g.size.height)
+            })
+            .scaleEffect(escala, anchor: .top)
+            .frame(width: PDFExport.anchoCarta * escala, height: altoHoja * escala)
+            .frame(maxWidth: .infinity)
+            .background(GeometryReader { g in
+                Color.clear.preference(key: AnchoDisponibleKey.self, value: g.size.width)
+            })
+            .onPreferenceChange(AltoHojaKey.self) { altoHoja = $0 }
+            .onPreferenceChange(AnchoDisponibleKey.self) { anchoDisponible = $0 }
+    }
+}

@@ -95,8 +95,11 @@ struct ReportePDFSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView([.horizontal, .vertical]) {
-                ReporteHojaPDF(e: e, periodo: periodo)
+            // Vertical y nada más: el scroll horizontal existía para poder
+            // llegar a la mitad derecha de una hoja que no cabía. Escalada,
+            // cabe entera.
+            ScrollView {
+                HojaCartaEscalada { ReporteHojaPDF(e: e, periodo: periodo) }
                     .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
                     .padding(24)
             }

@@ -131,15 +131,16 @@ struct DocumentoAportanteView: View {
         .background(Paleta.avisoFill, in: RoundedRectangle(cornerRadius: 12))
     }
 
-    @ViewBuilder
     private var previa: some View {
-        switch tipo {
-        case .reporte:
-            ReporteAportesHojaPDF(aportante: aportante, aportes: aportesDelPeriodo,
-                                  periodoLegible: periodoLegible, iglesia: iglesia)
-        case .constancia:
-            ConstanciaHojaPDF(aportante: aportante, aportes: aportesDelAnio,
-                              anio: anio, iglesia: iglesia)
+        HojaCartaEscalada {
+            switch tipo {
+            case .reporte:
+                ReporteAportesHojaPDF(aportante: aportante, aportes: aportesDelPeriodo,
+                                      periodoLegible: periodoLegible, iglesia: iglesia)
+            case .constancia:
+                ConstanciaHojaPDF(aportante: aportante, aportes: aportesDelAnio,
+                                  anio: anio, iglesia: iglesia)
+            }
         }
     }
 
