@@ -634,24 +634,39 @@ struct MovimientosView: View {
                     .font(.subheadline.weight(.semibold)).monospacedDigit()
                     .foregroundStyle(Money.color(ingreso: m.esIngreso))
                 // El hueco de la etiqueta se reserva SIEMPRE. Apareciendo solo
-                // cuando hay etiqueta, las filas con "Sin depositar" eran más
-                // altas que las demás y el monto se desplazaba hacia arriba: el
-                // ritmo de la lista se rompía cada dos filas.
-                Text(L.t("Sin depositar", "Not deposited"))
+                // cuando hay etiqueta, las filas marcadas eran más altas que
+                // las demás y el monto se desplazaba hacia arriba: el ritmo de
+                // la lista se rompía cada dos filas.
+                let etiqueta = etiquetaEstado(m)
+                Text(etiqueta ?? L.t("Sin depositar", "Not deposited"))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Paleta.aviso)
                     .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
                     .background(Paleta.avisoFill, in: Capsule())
-                    .opacity(m.sinDepositar ? 1 : 0)
-                    .accessibilityHidden(!m.sinDepositar)
+                    .opacity(etiqueta == nil ? 0 : 1)
+                    .accessibilityHidden(etiqueta == nil)
             }
         }
         .padding(.vertical, 6)
         // La selección persistente es idioma de iPad, donde la lista y el
         // detalle conviven. En iPhone la fila navega y volver dejaba la última
         // tocada con barra verde y fondo tintado, como si siguiera abierta.
-        .filaDeLista(seleccionada: esSel && sizeClass == .regular,
-                     tarjeta: sizeClass != .regular)
+        .filaDeLista(seleccionada: esSel && !compacto, tarjeta: compacto)
+    }
+
+    /// La señal de estado de una fila, si la hay. **Cada tipo tiene la suya**:
+    /// "Sin depositar" es de ingresos —un gasto no entra en un corte— y
+    /// "Pendiente" es de gastos.
+    ///
+    /// La fila solo sabía de la primera, así que un gasto marcado para revisar
+    /// no llevaba ninguna marca en la lista, aunque el filtro "Marcados como
+    /// pendientes" sí lo encontrara y la ficha sí lo dijera: se filtraba a
+    /// ciegas y, al volver de la ficha, la lista no recordaba cuál era.
+    private func etiquetaEstado(_ m: Movimiento) -> String? {
+        if m.esIngreso {
+            return m.sinDepositar ? L.t("Sin depositar", "Not deposited") : nil
+        }
+        return m.marcadoPendiente ? L.t("Pendiente", "Flagged") : nil
     }
 
     /// El pie de la columna del iPad. En el teléfono no existe: se convirtió
