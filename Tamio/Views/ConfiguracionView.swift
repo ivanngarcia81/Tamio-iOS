@@ -1133,37 +1133,43 @@ private struct SeccionCategorias: View {
 
 // MARK: - Preferencias
 
+/// **Las mismas tres preferencias que en el teléfono**, y por el mismo motivo:
+/// eran cuatro `@State` que no salían de la pantalla. Aquí además el idioma era
+/// una fila con chevron y acción VACÍA que decía "Español" pasara lo que pasara.
 private struct SeccionPreferencias: View {
-    @State private var temaIdx = 0
-    @State private var acentoIdx = 1
-    @State private var nivelTexto: Double = 2
-    @State private var sonido = true
+    @State private var prefs = PreferenciasApp.compartidas
 
-    private let temas = [L.t("Claro", "Light"), L.t("Oscuro", "Dark"), L.t("Automático", "Automatic")]
-    private let acentos: [Color] = [
-        Color(hex: 0x111111), Color(hex: 0x047857), Color(hex: 0x1D4ED8),
-        Color(hex: 0x7C3AED), Color(hex: 0xB45309),
-    ]
-    private let nivelLabel = [
-        L.t("Pequeño", "Small"), L.t("Mediano", "Medium"), L.t("Normal", "Normal"),
-        L.t("Grande", "Large"), L.t("Muy grande", "Extra large"),
-    ]
+    private var tamanos: [PreferenciasApp.Tamano] { PreferenciasApp.Tamano.allCases }
+
+    /// El deslizador trabaja con el índice del tamaño elegido. Se lee y se
+    /// escribe sobre la preferencia, no sobre un `@State` paralelo: eran dos
+    /// verdades para el mismo ajuste.
+    private var nivel: Binding<Double> {
+        Binding(
+            get: { Double(tamanos.firstIndex(of: prefs.tamano) ?? 2) },
+            set: { prefs.tamano = tamanos[min(max(Int($0), 0), tamanos.count - 1)] }
+        )
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 HeroCard(seccion: .preferencias)
 
-                // Apariencia
+                // Apariencia. El selector de color de acento se retira: la ley
+                // de color de `Paleta` reserva el verde para lo seleccionado y
+                // las cifras, así que "tiñe botones y enlaces" prometía algo que
+                // el diseño de Tamio no quiere hacer.
                 GrupoConf(titulo: L.t("APARIENCIA", "APPEARANCE"),
-                          nota: L.t("\"Automático\" sigue el modo del sistema. El acento tiñe botones y enlaces; el verde Tamio no cambia, es la marca.",
-                                    "\"Automatic\" follows the system mode. The accent tints buttons and links; Tamio green doesn't change, it's the brand.")) {
-                    ForEach(Array(temas.enumerated()), id: \.offset) { idx, label in
-                        Button { temaIdx = idx } label: {
+                          nota: L.t("\"Automático\" sigue el modo del sistema.",
+                                    "\"Automatic\" follows the system mode.")) {
+                    let temas = PreferenciasApp.Tema.allCases
+                    ForEach(Array(temas.enumerated()), id: \.element) { idx, t in
+                        Button { prefs.tema = t } label: {
                             HStack {
-                                Text(label).font(.system(size: 16)).foregroundStyle(.primary)
+                                Text(t.etiqueta).font(.system(size: 16)).foregroundStyle(.primary)
                                 Spacer()
-                                if idx == temaIdx {
+                                if prefs.tema == t {
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 15, weight: .semibold))
                                         .foregroundStyle(Paleta.brand)
@@ -1174,68 +1180,43 @@ private struct SeccionPreferencias: View {
                         .buttonStyle(.plain)
                         if idx < temas.count - 1 { Divider() }
                     }
-                    Divider()
-                    HStack(spacing: 14) {
-                        Text(L.t("Color de acento", "Accent color")).font(.system(size: 16))
-                        Spacer()
-                        HStack(spacing: 10) {
-                            ForEach(Array(acentos.enumerated()), id: \.offset) { idx, c in
-                                Button { acentoIdx = idx } label: {
-                                    ZStack {
-                                        Circle().fill(c).frame(width: 34, height: 34)
-                                        if idx == acentoIdx {
-                                            Circle()
-                                                .stroke(Color(.systemBackground), lineWidth: 2.5)
-                                                .frame(width: 26, height: 26)
-                                            Image(systemName: "checkmark")
-                                                .font(.caption2.weight(.bold))
-                                                .foregroundStyle(.white)
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .frame(minHeight: 60).padding(.horizontal, Esp.pantalla)
                 }
 
                 // Idioma y texto
                 GrupoConf(titulo: L.t("IDIOMA Y TEXTO", "LANGUAGE & TEXT"),
-                          nota: L.t("\"Automático\" usa el idioma del sistema: español si está en español, inglés en cualquier otro caso.",
-                                    "\"Automatic\" uses the system language: Spanish if set to Spanish, English otherwise.")) {
-                    FilaConf(label: L.t("Idioma", "Language"),
-                             valor: L.t("Español", "Spanish"), chevron: true, accion: {})
+                          nota: L.t("\"Automático\" usa el idioma del sistema: español si está en español, inglés en cualquier otro caso. \"Normal\" respeta el tamaño de letra de los ajustes del aparato; los demás lo sustituyen.",
+                                    "\"Automatic\" uses the system language: Spanish if set to Spanish, English otherwise. \"Normal\" respects the device text size; the others override it.")) {
+                    HStack {
+                        Text(L.t("Idioma", "Language")).font(.system(size: 16))
+                        Spacer()
+                        Picker("", selection: $prefs.idioma) {
+                            ForEach(PreferenciasApp.Idioma.allCases, id: \.self) {
+                                Text($0.etiqueta).tag($0)
+                            }
+                        }
+                        .labelsHidden()
+                    }
+                    .frame(minHeight: 52).padding(.horizontal, Esp.pantalla)
                     Divider()
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text(L.t("Tamaño de texto", "Text size")).font(.system(size: 16))
                             Spacer()
-                            Text(nivelLabel[Int(nivelTexto)])
+                            Text(prefs.tamano.etiqueta)
                                 .font(.system(size: 15)).foregroundStyle(.secondary)
                         }
                         HStack(spacing: 12) {
                             Text("A").font(.system(size: 13)).foregroundStyle(.tertiary)
-                            Slider(value: $nivelTexto, in: 0...4, step: 1).tint(Paleta.brand)
+                            Slider(value: nivel, in: 0...Double(tamanos.count - 1), step: 1)
+                                .tint(Paleta.brand)
                             Text("A").font(.system(size: 21)).foregroundStyle(.tertiary)
                         }
                     }
                     .padding(.horizontal, Esp.pantalla).padding(.vertical, 12)
-                }
-
-                // Sonido
-                GrupoConf(titulo: L.t("SONIDO", "SOUND")) {
-                    Toggle(isOn: $sonido) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(L.t("Sonido", "Sound")).font(.system(size: 16))
-                            Text(L.t("Se reproduce un sonido distinto al registrar un ingreso, un gasto o al eliminar un movimiento.",
-                                     "A different sound plays when recording income, an expense, or deleting a transaction."))
-                                .font(.system(size: 13)).foregroundStyle(.tertiary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .tint(Paleta.brand)
-                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
+                    // El propio control no crece con la preferencia: si lo
+                    // hiciera, elegir "Muy grande" desbordaría la fila justo en
+                    // el mando que sirve para volver atrás.
+                    .dynamicTypeSize(.medium)
                 }
             }
             .padding(Esp.panel)

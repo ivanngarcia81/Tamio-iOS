@@ -6,9 +6,19 @@ import Foundation
 /// que da la misma garantía en Swift. De momento un par ES/EN inline basta para
 /// ver el Dashboard en los dos idiomas sin montar toda la infraestructura.
 enum L {
-    /// true si el sistema NO está en inglés → mostramos español (idioma base).
+    /// true si la app se enseña en español.
+    ///
+    /// Manda lo elegido en Ajustes → Preferencias; solo si está en
+    /// "automático" se mira el sistema. Ese selector llevaba tiempo ahí
+    /// —Español / English / Automático— sin estar conectado a nada: se movía y
+    /// la app seguía en el idioma del teléfono.
     static var esEspanol: Bool {
-        Locale.current.language.languageCode?.identifier != "en"
+        switch PreferenciasApp.idiomaGuardado {
+        case .espanol: return true
+        case .ingles:  return false
+        case .automatico:
+            return Locale.current.language.languageCode?.identifier != "en"
+        }
     }
 
     /// `L.t("Saldo en caja", "Cash on hand")`

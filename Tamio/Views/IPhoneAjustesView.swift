@@ -18,12 +18,6 @@ struct IPhoneAjustesView: View {
     @State private var invEmail    = ""
     @State private var invNom      = ""
     @State private var invRol      = "Tesorero"
-    @State private var cfgTema     = "Claro"
-    @State private var cfgAcento   = "verde"
-    @State private var cfgIdioma   = "Español"
-    @State private var cfgTamano   = "Normal"
-    @State private var cfgSonido   = true
-    @State private var cfgSonidoSet = "Suave"
 
     var body: some View {
         List {
@@ -156,9 +150,7 @@ struct IPhoneAjustesView: View {
         case .categorias:
             AjustesCategoriasView()
         case .preferencias:
-            AjustesPreferenciasView(tema: $cfgTema, acento: $cfgAcento,
-                                     idioma: $cfgIdioma, tamano: $cfgTamano,
-                                     sonido: $cfgSonido, sonidoSet: $cfgSonidoSet)
+            AjustesPreferenciasView()
         case .zona:
             AjustesZonaView()
         }
@@ -853,62 +845,39 @@ private struct AjustesCategoriasView: View {
 
 // MARK: - Preferencias
 
+/// **Preferencias que se aplican de verdad y sobreviven al cierre.**
+///
+/// Eran seis `@State` de esta pantalla: se movían, se veían moverse, y no
+/// pasaba nada. El tema no cambiaba el tema, el idioma no cambiaba el idioma, y
+/// al volver a abrir Ajustes todo estaba como al principio.
+///
+/// Quedan tres. El **color de acento** se va porque contradice la ley de color
+/// de `Paleta` —el verde solo en lo seleccionado y en las cifras—, y los
+/// **sonidos** porque no existe ninguno: un interruptor y tres "juegos de
+/// sonidos" con nombres inventados prometían algo que no está en el código.
 private struct AjustesPreferenciasView: View {
-    @Binding var tema: String
-    @Binding var acento: String
-    @Binding var idioma: String
-    @Binding var tamano: String
-    @Binding var sonido: Bool
-    @Binding var sonidoSet: String
-
-    private let acentos: [(String, Color)] = [
-        ("verde",   Color(hex: 0x047857)),
-        ("azul",    Color(hex: 0x0A6CFF)),
-        ("indigo",  Color(hex: 0x4F46E5)),
-        ("teal",    Color(hex: 0x0D7D8A)),
-        ("ciruela", Color(hex: 0x9D174D)),
-    ]
-    private let tamanos = ["Pequeño", "Compacto", "Normal", "Grande", "Muy grande"]
+    @State private var prefs = PreferenciasApp.compartidas
 
     var body: some View {
         List {
             Section {
-                ForEach(["Claro", "Oscuro", "Automático"], id: \.self) { t in
+                ForEach(PreferenciasApp.Tema.allCases, id: \.self) { t in
                     HStack {
-                        Text(L.t(t, t == "Claro" ? "Light" : t == "Oscuro" ? "Dark" : "Automatic"))
-                            .font(.subheadline)
+                        Text(t.etiqueta).font(.subheadline)
                         Spacer()
-                        if tema == t {
-                            Image(systemName: "checkmark").foregroundStyle(Paleta.brand).fontWeight(.semibold)
+                        if prefs.tema == t {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(Paleta.brand).fontWeight(.semibold)
                         }
                     }
-                    .contentShape(Rectangle()).onTapGesture { tema = t }
+                    .contentShape(Rectangle())
+                    .onTapGesture { prefs.tema = t }
                 }
-
-                HStack {
-                    Text(L.t("Color de acento", "Accent color")).font(.subheadline)
-                    Spacer()
-                    HStack(spacing: 10) {
-                        ForEach(acentos, id: \.0) { a in
-                            Button { acento = a.0 } label: {
-                                ZStack {
-                                    Circle().fill(a.1).frame(width: 28, height: 28)
-                                    if acento == a.0 {
-                                        Image(systemName: "checkmark")
-                                            .font(.caption2.weight(.bold)).foregroundStyle(.white)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .padding(.vertical, 4)
             } header: {
                 Text(L.t("Apariencia", "Appearance")).textCase(nil)
             } footer: {
-                Text(L.t("\"Automático\" sigue el modo del sistema. El acento tiñe botones y enlaces.",
-                         "\"Automatic\" follows the system mode. The accent tints buttons and links."))
+                Text(L.t("\"Automático\" sigue el modo del sistema.",
+                         "\"Automatic\" follows the system mode."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
@@ -916,58 +885,40 @@ private struct AjustesPreferenciasView: View {
                 HStack {
                     Text(L.t("Idioma", "Language")).font(.subheadline).foregroundStyle(.secondary)
                     Spacer()
-                    Picker("", selection: $idioma) {
-                        ForEach(["Español", "English", "Automático"], id: \.self) { Text($0) }
+                    Picker("", selection: $prefs.idioma) {
+                        ForEach(PreferenciasApp.Idioma.allCases, id: \.self) {
+                            Text($0.etiqueta).tag($0)
+                        }
                     }.labelsHidden()
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L.t("Tamaño de texto", "Text size")).font(.subheadline).foregroundStyle(.secondary)
                     HStack(spacing: 4) {
-                        ForEach(tamanos, id: \.self) { t in
-                            Button { tamano = t } label: {
-                                let act = tamano == t
-                                Text(t)
+                        ForEach(PreferenciasApp.Tamano.allCases, id: \.self) { t in
+                            Button { prefs.tamano = t } label: {
+                                let act = prefs.tamano == t
+                                Text(t.etiqueta)
                                     .font(.caption2.weight(act ? .semibold : .regular))
                                     .foregroundStyle(act ? .white : .primary)
                                     .padding(.horizontal, Esp.hueco).padding(.vertical, 5)
-                                    .background(act ? Paleta.brand : Color(.tertiarySystemFill), in: Capsule())
+                                    .background(act ? Paleta.brand : Color(.tertiarySystemFill),
+                                                in: Capsule())
                             }
                             .buttonStyle(.plain)
                         }
                     }
+                    // El tamaño de las píldoras NO sigue a la preferencia: si
+                    // lo hiciera, elegir "Muy grande" desbordaría la fila justo
+                    // en el control que sirve para volver atrás.
+                    .dynamicTypeSize(.medium)
                 }
                 .padding(.vertical, 4)
             } header: {
                 Text(L.t("Idioma y texto", "Language & text")).textCase(nil)
             } footer: {
-                Text(L.t("\"Automático\" usa el idioma del sistema operativo.",
-                         "\"Automatic\" uses the operating system language."))
-            }
-            .listRowBackground(Color(.secondarySystemGroupedBackground))
-
-            Section {
-                Toggle(isOn: $sonido) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(L.t("Sonido", "Sound")).font(.subheadline)
-                        Text(L.t("Suena al registrar un ingreso, gasto o al eliminar.",
-                                 "Plays on income entry, expense entry, or deletion."))
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                }.tint(Paleta.brand)
-
-                HStack {
-                    Text(L.t("Juego de sonidos", "Sound set")).font(.subheadline).foregroundStyle(.secondary)
-                    Spacer()
-                    Picker("", selection: $sonidoSet) {
-                        ForEach(["Suave", "Clásico", "Marimba"], id: \.self) { Text($0) }
-                    }.labelsHidden()
-                }
-            } header: {
-                Text(L.t("Sonido", "Sound")).textCase(nil)
-            } footer: {
-                Text(L.t("Con el sonido apagado, el juego se queda a la vista pero no suena.",
-                         "With sound off, the sound set is still shown but won't play."))
+                Text(L.t("\"Automático\" usa el idioma del sistema operativo. \"Normal\" respeta el tamaño de letra que tengas puesto en los ajustes del teléfono; los demás lo sustituyen.",
+                         "\"Automatic\" uses the operating system language. \"Normal\" respects the text size set on your device; the others override it."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
