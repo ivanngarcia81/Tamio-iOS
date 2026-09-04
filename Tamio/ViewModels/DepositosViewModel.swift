@@ -222,9 +222,13 @@ final class DepositosViewModel {
 
     static var periodoActual: String { periodo(Date()) }
 
-    static func periodo(_ fecha: Date) -> String {
-        L.formateador("LLLL yyyy").string(from: fecha).capitalized
-    }
+    /// **El periodo contable de un corte, en clave estable (`"2026-08"`).**
+    /// Devolvía el mes escrito —"Agosto 2026"—, que es lo que acababa en
+    /// `depositos_bancarios.periodo` y viajaba a Supabase: la app web agrupa
+    /// por `"YYYY-MM"`, así que un depósito hecho desde el teléfono no
+    /// aparecía en su estado financiero. Lo que se ENSEÑA sale de
+    /// `Fechas.periodoLegible`.
+    static func periodo(_ fecha: Date) -> String { Fechas.clavePeriodo(fecha) }
 
     /// Los doce meses alrededor de hoy, para el menú de periodo contable.
     static var periodosCercanos: [String] {

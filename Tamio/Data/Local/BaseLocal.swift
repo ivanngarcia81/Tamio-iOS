@@ -321,6 +321,32 @@ final class BaseLocal {
             }
         }
 
+
+        // **El periodo contable pasa de texto escrito a clave.** Se guardaba
+        // "Agosto 2026", que es lo que viajaba a `depositos_bancarios.periodo`
+        // — y la app web agrupa el estado financiero por `"YYYY-MM"`. Un
+        // depósito registrado desde el teléfono no salía en ningún reporte de
+        // la web, y quedaba con clave distinta según el idioma en que
+        // estuviera el aparato al registrarlo.
+        //
+        // Se reescriben las filas ya guardadas: lo que no se reconozca se
+        // queda como está, porque un periodo ilegible es mejor que uno
+        // inventado.
+        m.registerMigration("v12_periodoClave") { db in
+            for tabla in ["corte", "deposito"] {
+                let filas = try Row.fetchAll(db, sql: "SELECT id, periodo FROM \(tabla)")
+                for fila in filas {
+                    let id: String = fila["id"]
+                    let periodo: String = fila["periodo"] ?? ""
+                    guard !periodo.isEmpty,
+                          let clave = Fechas.claveDePeriodoEscrito(periodo),
+                          clave != periodo else { continue }
+                    try db.execute(sql: "UPDATE \(tabla) SET periodo = ? WHERE id = ?",
+                                   arguments: [clave, id])
+                }
+            }
+        }
+
         return m
     }
 

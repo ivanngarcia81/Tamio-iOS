@@ -53,7 +53,7 @@ struct RegistrarDepositoView: View {
                                selection: $fecha, displayedComponents: .date)
                     Picker(L.t("Periodo", "Period"), selection: $periodo) {
                         ForEach(DepositosViewModel.periodosCercanos, id: \.self) {
-                            Text($0).tag($0)
+                            Text(Fechas.periodoLegible($0)).tag($0)
                         }
                     }
                     filaResumen(L.t("Monto", "Amount"), Money.fmt(corte.montoTotal), fuerte: true)

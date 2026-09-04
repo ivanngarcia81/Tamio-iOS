@@ -139,4 +139,59 @@ enum Fechas {
         guard let dia, let mes, let anio else { return nil }
         return Calendar.current.date(from: DateComponents(year: anio, month: mes, day: dia))
     }
+
+    // MARK: - Periodo contable
+
+    /// **La clave de un periodo contable: `"2026-08"`.**
+    ///
+    /// Es un CONTRATO, no un texto para leer: viaja a
+    /// `depositos_bancarios.periodo` y es con lo que la app web agrupa el
+    /// estado financiero (`substr(fecha, 1, 7)`). Por eso va en
+    /// `en_US_POSIX`, como el resto de formateadores de la capa de datos.
+    ///
+    /// Antes el periodo se guardaba escrito —"Agosto 2026"—, así que un
+    /// depósito registrado desde el iPhone no lo encontraba ninguna consulta
+    /// de la web, y el mismo depósito quedaba con una clave distinta según el
+    /// idioma en que estuviera el teléfono al registrarlo.
+    static func clavePeriodo(_ d: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM"
+        return f.string(from: d)
+    }
+
+    /// La clave de vuelta a `Date` (el día 1 de ese mes). `nil` si no es una
+    /// clave: sirve para distinguir lo ya migrado de lo que sigue escrito.
+    static func fechaDePeriodo(_ clave: String) -> Date? {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM"
+        return f.date(from: clave)
+    }
+
+    /// `"2026-08"` → `"Agosto 2026"` · `"August 2026"`. Lo que se ENSEÑA.
+    /// Si le llega algo que no es una clave lo devuelve tal cual: los datos
+    /// viejos siguen siendo legibles mientras no se migran.
+    static func periodoLegible(_ clave: String) -> String {
+        guard let d = fechaDePeriodo(clave) else { return clave }
+        let s = L.formateador("LLLL yyyy").string(from: d)
+        return s.prefix(1).uppercased() + s.dropFirst()
+    }
+
+    /// Traduce un periodo escrito a su clave. Reconoce los dos idiomas por la
+    /// misma tabla de meses que lee la semilla, así que "Agosto 2026" y
+    /// "August 2026" caen los dos en `"2026-08"`.
+    static func claveDePeriodoEscrito(_ texto: String) -> String? {
+        if fechaDePeriodo(texto) != nil { return texto }
+        let piezas = texto.lowercased()
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .map(String.init)
+        var mes: Int?, anio: Int?
+        for pieza in piezas {
+            if let m = meses[String(pieza.prefix(3))], mes == nil { mes = m }
+            else if let n = Int(pieza), n > 1900 { anio = n }
+        }
+        guard let mes, let anio else { return nil }
+        return String(format: "%04d-%02d", anio, mes)
+    }
 }

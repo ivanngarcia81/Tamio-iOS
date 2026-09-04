@@ -257,7 +257,7 @@ struct MockDepositosRepository: DepositosRepository {
                 movimientos: [],
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
                                            fecha: L.t("Lunes 7 de septiembre", "Monday, Sep 7"),
-                                           periodo: L.t("Septiembre 2026", "September 2026")),
+                                           periodo: "2026-09"),
                 registradoPor: "Iván García",
                 dobleFirmaPedida: true
             ),
@@ -270,7 +270,7 @@ struct MockDepositosRepository: DepositosRepository {
                 movimientos: [],
                 registro: RegistroDeposito(cuenta: "Chase ··7730",
                                            fecha: L.t("Jueves 3 de septiembre", "Thursday, Sep 3"),
-                                           periodo: L.t("Septiembre 2026", "September 2026"))
+                                           periodo: "2026-09")
             ),
             Corte(
                 id: "3",
@@ -281,7 +281,7 @@ struct MockDepositosRepository: DepositosRepository {
                 movimientos: [],
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
                                            fecha: L.t("Lunes 7 de septiembre", "Monday, Sep 7"),
-                                           periodo: L.t("Septiembre 2026", "September 2026"))
+                                           periodo: "2026-09")
             ),
         ]
     }
@@ -296,11 +296,11 @@ struct MockDepositosRepository: DepositosRepository {
                 movimientos: [],
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
                                            fecha: L.t("Lunes 17 de agosto", "Monday, Aug 17"),
-                                           periodo: L.t("Agosto 2026", "August 2026")),
+                                           periodo: "2026-08"),
                 deposito: DepositoBancario(
                     id: "d10",
                     fecha: L.t("Lunes 17 de agosto", "Monday, Aug 17"),
-                    periodo: L.t("Agosto 2026", "August 2026"),
+                    periodo: "2026-08",
                     monto: 14_320_00,
                     cuenta: "Banorte ··4821",
                     referencia: "OP-884213",

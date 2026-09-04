@@ -294,8 +294,8 @@ struct Corte: Identifiable, Hashable {
         }
 
         lista.append(Chequeo(id: 5, tipo: .duda,
-                             titulo: L.t("Periodo contable: \(registro.periodo)",
-                                         "Accounting period: \(registro.periodo)"),
+                             titulo: L.t("Periodo contable: \(Fechas.periodoLegible(registro.periodo))",
+                                         "Accounting period: \(Fechas.periodoLegible(registro.periodo))"),
                              detalle: L.t("Si este dinero es de otro mes, cambia el periodo: suma en el periodo que elijas, no en la fecha en que lo llevas al banco.",
                                           "If this is another month's money, change the period: it adds to the period you pick, not the bank date."),
                              accion: .cambiarPeriodo))

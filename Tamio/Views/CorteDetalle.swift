@@ -311,9 +311,9 @@ struct CorteDetalle: View {
                     onCambiarPeriodo?(p)
                 } label: {
                     if p == corte.registro.periodo {
-                        Label(p, systemImage: "checkmark")
+                        Label(Fechas.periodoLegible(p), systemImage: "checkmark")
                     } else {
-                        Text(p)
+                        Text(Fechas.periodoLegible(p))
                     }
                 }
             }
@@ -575,12 +575,12 @@ struct CorteDetalle: View {
             if corte.sinDepositar {
                 menuPeriodos {
                     HStack(spacing: 4) {
-                        Text(corte.registro.periodo).font(.subheadline)
+                        Text(Fechas.periodoLegible(corte.registro.periodo)).font(.subheadline)
                         Image(systemName: "chevron.up.chevron.down").font(.caption2)
                     }
                 }
             } else {
-                Text(corte.registro.periodo).font(.subheadline)
+                Text(Fechas.periodoLegible(corte.registro.periodo)).font(.subheadline)
             }
         }
         .padding(.vertical, 9)
