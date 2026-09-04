@@ -26,6 +26,23 @@ enum Esp {
     /// Radio de la tarjeta de fila, para que el fondo, el recorte y la barra de
     /// selección compartan el mismo.
     static let radioFila: CGFloat = 10
+
+    // MARK: - Maestro-detalle
+
+    /// A partir de este ancho caben la columna maestra y el detalle a la vez;
+    /// por debajo, la lista ocupa la pantalla y el detalle se empuja. Estaba
+    /// escrito como `640` en las once pantallas que lo usan.
+    static let anchoMaestroDetalle: CGFloat = 640
+
+    /// Ancho de la columna maestra. Había **siete** valores para el mismo rol
+    /// —296, 300, 320, 340, 360, 380 y 400— y todos detrás del mismo
+    /// breakpoint, así que la diferencia no respondía a nada: al pasar de una
+    /// pantalla a otra el detalle daba un salto lateral de hasta 104 pt.
+    static let columnaMaestra: CGFloat = 320
+
+    /// La excepción: las filas de "Por revisar" son tarjetas con tres botones
+    /// dentro (Aprobar · Devolver · Pedir dato) y a 320 se apilan.
+    static let columnaMaestraAncha: CGFloat = 400
 }
 
 extension View {

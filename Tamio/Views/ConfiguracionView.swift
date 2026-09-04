@@ -209,7 +209,7 @@ struct ConfiguracionView: View {
             if hSizeClass == .regular {
                 HStack(spacing: 0) {
                     settingsSidebar
-                        .frame(width: 296)
+                        .frame(width: Esp.columnaMaestra)
                         .background(Color(.systemBackground))
                     Divider()
                     detalleContenido

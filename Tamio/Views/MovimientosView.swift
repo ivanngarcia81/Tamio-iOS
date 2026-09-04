@@ -13,6 +13,11 @@ struct MovimientosView: View {
     /// financiero es más grave que marcar un corte, que ya la pide.
     @State private var movimientoAEliminar: Movimiento?
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// La elección Ingresos/Gastos es la MISMA que marca la sidebar, así que
+    /// vive aquí y no solo en el ViewModel. El picker de esta pantalla estaba
+    /// atado a `vm.tipo` y no tocaba `nav.seccion`: cambiar a Gastos desde
+    /// dentro dejaba la sidebar marcando Ingresos.
+    @Environment(Navegacion.self) private var nav
 
     init(tipo: TipoMovimiento) {
         _vm = State(initialValue: MovimientosViewModel(tipo: tipo))
@@ -32,10 +37,10 @@ struct MovimientosView: View {
 
     var body: some View {
         GeometryReader { geo in
-            if geo.size.width >= 640 {
+            if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
                     listaColumna
-                        .frame(width: 320)
+                        .frame(width: Esp.columnaMaestra)
                         .background(.regularMaterial)
                     Divider()
                     if let m = vm.seleccion {
@@ -107,6 +112,7 @@ struct MovimientosView: View {
             }
         }
         .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
+        .onChange(of: nav.seccion) { _, seccion in sincronizarConSidebar(seccion) }
         .task { await vm.cargar() }
         .overlay(alignment: .top) { avisoError }
     }
@@ -217,7 +223,7 @@ struct MovimientosView: View {
 
     private var cabeceraLista: some View {
         VStack(spacing: 10) {
-            Picker(L.t("Tipo", "Type"), selection: $vm.tipo) {
+            Picker(L.t("Tipo", "Type"), selection: tipoSeleccionado) {
                 Text(L.t("Ingresos", "Income")).tag(TipoMovimiento.ingreso)
                 Text(L.t("Gastos", "Expenses")).tag(TipoMovimiento.gasto)
             }
@@ -245,6 +251,29 @@ struct MovimientosView: View {
             }
         }
         .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
+    }
+
+    /// Escribe en los dos lados a la vez. La sección es la fuente de verdad
+    /// para la sidebar; el ViewModel necesita el tipo para recargar.
+    private var tipoSeleccionado: Binding<TipoMovimiento> {
+        Binding(get: { vm.tipo },
+                set: { nuevo in
+                    vm.tipo = nuevo
+                    nav.seccion = Self.seccion(de: nuevo)
+                })
+    }
+
+    private static func seccion(de tipo: TipoMovimiento) -> String {
+        tipo == .ingreso ? "ingresos" : "gastos"
+    }
+
+    /// El camino inverso. Las dos ramas del `switch` de `RootView` construyen
+    /// el mismo tipo de vista en la misma posición, así que SwiftUI reutiliza
+    /// esta instancia al cambiar de sección desde la sidebar y el `@State` del
+    /// ViewModel se quedaría con el tipo anterior.
+    private func sincronizarConSidebar(_ seccion: String) {
+        if seccion == "ingresos" { vm.tipo = .ingreso }
+        if seccion == "gastos" { vm.tipo = .gasto }
     }
 
     // MARK: - Filtros

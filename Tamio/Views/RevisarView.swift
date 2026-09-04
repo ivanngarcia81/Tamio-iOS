@@ -11,9 +11,14 @@ struct RevisarView: View {
 
     var body: some View {
         GeometryReader { geo in
-            if geo.size.width >= 640 {
+            if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
-                    listaColumna.frame(width: 400).background(Color(.systemBackground))
+                    // Ancha a propósito (las filas llevan tres botones dentro)
+                    // pero con el MISMO material que las otras diez columnas
+                    // maestras: era la única opaca de la app.
+                    listaColumna
+                        .frame(width: Esp.columnaMaestraAncha)
+                        .background(.regularMaterial)
                     Divider()
                     if let a = vm.seleccion { detalle(a) } else { vacio }
                 }

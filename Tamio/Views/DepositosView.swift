@@ -10,10 +10,10 @@ struct DepositosView: View {
 
     var body: some View {
         GeometryReader { geo in
-            if geo.size.width >= 640 {
+            if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
                     listaColumna(wide: true)
-                        .frame(width: 340)
+                        .frame(width: Esp.columnaMaestra)
                         .background(.regularMaterial)
                     Divider()
                     if let c = vm.seleccion {

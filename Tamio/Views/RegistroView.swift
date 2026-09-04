@@ -12,10 +12,10 @@ struct RegistroView: View {
 
     var body: some View {
         GeometryReader { geo in
-            if geo.size.width >= 640 {
+            if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
                     listaColumna
-                        .frame(width: 380)
+                        .frame(width: Esp.columnaMaestra)
                         .background(.regularMaterial)
                     Divider()
                     if let a = vm.seleccion { apunteDetalle(a) } else { estadoVacio }
@@ -33,7 +33,10 @@ struct RegistroView: View {
         .encabezadoNav(L.t("Registro", "Log"),
                        L.t("\(vm.totalCount) apuntes · lo que ha pasado en la iglesia",
                            "\(vm.totalCount) entries · what has happened at church"))
-        .navigationBarTitleDisplayMode(.inline)
+        // `.large` como las once pantallas raíz restantes: con `.inline` el
+        // título salía centrado sobre el panel de detalle en vez de alineado a
+        // la izquierda como en todas las demás.
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { escribiendo = true } label: {

@@ -10,10 +10,10 @@ struct CartasView: View {
 
     var body: some View {
         GeometryReader { geo in
-            if geo.size.width >= 640 {
+            if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
                     listaColumna
-                        .frame(width: 300)
+                        .frame(width: Esp.columnaMaestra)
                         .background(Color(.systemBackground))
                     Divider()
                     detalleColumna
