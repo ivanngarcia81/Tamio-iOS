@@ -734,6 +734,8 @@ private struct SeccionInstitucion: View {
 /// columnas se crearon el 2026-09-04.
 private struct SeccionTesorero: View {
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    @State private var firmas = FirmasLocales.compartidas
+    @State private var firmando: FirmasLocales.Firmante?
 
     var body: some View {
         ScrollView {
@@ -741,7 +743,7 @@ private struct SeccionTesorero: View {
                 HeroCard(seccion: .tesorero)
 
                 persona(titulo: L.t("INFORMACIÓN DEL TESORERO", "TREASURER INFORMATION"),
-                        firma: L.t("Firma del tesorero", "Treasurer signature"),
+                        firmante: .tesorero,
                         cargos: Catalogos.Cargos.tesoreria,
                         nombre: $cfg.config.tesoreroNombre,
                         cargo: $cfg.config.tesoreroCargo,
@@ -749,7 +751,7 @@ private struct SeccionTesorero: View {
                         telefono: $cfg.config.tesoreroTelefono)
 
                 persona(titulo: L.t("INFORMACIÓN DEL PASTOR", "PASTOR INFORMATION"),
-                        firma: L.t("Firma del pastor", "Pastor signature"),
+                        firmante: .pastor,
                         cargos: Catalogos.Cargos.pastoral,
                         nombre: $cfg.config.pastorNombre,
                         cargo: $cfg.config.pastorCargo,
@@ -761,8 +763,10 @@ private struct SeccionTesorero: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(L.t("Imprimir firmas en los PDF", "Print signatures on PDFs"))
                                 .font(.system(size: 16))
-                            Text(L.t("Si está apagado, los documentos salen con la línea en blanco para firmar a mano.",
-                                     "If off, documents print with a blank signature line to sign by hand."))
+                            // Decía que apagado salen "con la línea en blanco".
+                            // Es al revés: apagado, el bloque desaparece entero.
+                            Text(L.t("Apagado, el bloque de firmas no se imprime: ni la línea, ni el nombre, ni el cargo.",
+                                     "When off, the signature block isn't printed at all: no line, no name, no title."))
                                 .font(.system(size: 13)).foregroundStyle(.tertiary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -779,9 +783,10 @@ private struct SeccionTesorero: View {
         .scrollEdgeEffectStyle(.soft, for: .all)
         .task { await cfg.cargar() }
         .onDisappear { Task { await cfg.guardarYa() } }
+        .sheet(item: $firmando) { HojaFirma(firmante: $0) }
     }
 
-    private func persona(titulo: String, firma: String, cargos: [String],
+    private func persona(titulo: String, firmante f: FirmasLocales.Firmante, cargos: [String],
                          nombre: Binding<String>, cargo: Binding<String>,
                          correo: Binding<String>, telefono: Binding<String>) -> some View {
         // La nota ya no habla de PNG con fondo transparente: prometía una
@@ -813,20 +818,32 @@ private struct SeccionTesorero: View {
             FilaEditable(label: L.t("Teléfono (opcional)", "Phone (optional)"), texto: telefono)
                 .textContentType(.telephoneNumber)
             Divider()
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(firma).font(.system(size: 15.5))
-                    // Gris y no ámbar: el ámbar avisaba de algo que hay que
-                    // resolver, y no hay forma de resolverlo todavía.
-                    Text(L.t("Sin cargar", "Not uploaded"))
-                        .font(.system(size: 13)).foregroundStyle(.tertiary)
+            Button { firmando = f } label: {
+                HStack(spacing: 12) {
+                    Text(f.titulo).font(.system(size: 15.5)).foregroundStyle(.primary)
+                    Spacer()
+                    if let imagen = firmas.imagen(f) {
+                        // La firma de verdad y no un "Guardada": lo que hay que
+                        // poder comprobar de un vistazo es que es la suya y que
+                        // no salió torcida, no que exista un archivo.
+                        Image(uiImage: imagen)
+                            .resizable().scaledToFit()
+                            .frame(maxWidth: 160, maxHeight: 40)
+                            .accessibilityLabel(f.titulo)
+                        Button(role: .destructive) { firmas.borrar(f) } label: {
+                            Image(systemName: "trash").font(.system(size: 14))
+                                .foregroundStyle(Paleta.negativo)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Text(L.t("Firmar", "Sign"))
+                            .font(.system(size: 15)).foregroundStyle(Paleta.brand)
+                    }
                 }
-                Spacer()
-                Text(L.t("Próximamente", "Coming soon"))
-                    .font(.system(size: 15)).foregroundStyle(.tertiary)
+                .frame(minHeight: 64)
+                .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
             }
-            .frame(minHeight: 64)
-            .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+            .buttonStyle(.plain)
         }
     }
 }

@@ -493,6 +493,8 @@ private struct AjustesTesorerosView: View {
     /// argumentos que había que enchufar bien en la llamada, y al añadir el
     /// correo y el teléfono habrían sido nueve.
     @Bindable var cfg: ConfiguracionIglesiaViewModel
+    @State private var firmas = FirmasLocales.compartidas
+    @State private var firmando: FirmasLocales.Firmante?
 
     var body: some View {
         List {
@@ -506,11 +508,7 @@ private struct AjustesTesorerosView: View {
                 // el teléfono no los tenía en absoluto.
                 correoF($cfg.config.tesoreroCorreo)
                 telefonoF($cfg.config.tesoreroTelefono)
-                HStack {
-                    Text(L.t("Firma", "Signature")).font(.subheadline)
-                    Spacer()
-                    Text(L.t("Próximamente", "Coming soon")).font(.subheadline).foregroundStyle(.tertiary)
-                }
+                filaFirma(.tesorero)
             } header: {
                 Text(L.t("Tesorería", "Treasury")).textCase(nil)
             } footer: {
@@ -526,11 +524,7 @@ private struct AjustesTesorerosView: View {
                         Catalogos.Cargos.pastoral)
                 correoF($cfg.config.pastorCorreo)
                 telefonoF($cfg.config.pastorTelefono)
-                HStack {
-                    Text(L.t("Firma", "Signature")).font(.subheadline)
-                    Spacer()
-                    Text(L.t("Próximamente", "Coming soon")).font(.subheadline).foregroundStyle(.tertiary)
-                }
+                filaFirma(.pastor)
             } header: {
                 Text(L.t("Pastor", "Pastor")).textCase(nil)
             } footer: {
@@ -543,8 +537,11 @@ private struct AjustesTesorerosView: View {
                 Toggle(isOn: $cfg.config.imprimirFirmas) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(L.t("Imprimir firmas en los PDF", "Print signatures on PDFs")).font(.subheadline)
-                        Text(L.t("Si está apagado, los documentos salen con la línea en blanco para firmar a mano.",
-                                 "If off, documents print with a blank signature line to sign by hand."))
+                        // Decía que apagado salen "con la línea en blanco". Es
+                        // al revés: apagado, el bloque de firmas desaparece
+                        // ENTERO —ni línea, ni nombre, ni cargo—.
+                        Text(L.t("Apagado, el bloque de firmas no se imprime: ni la línea, ni el nombre, ni el cargo.",
+                                 "When off, the signature block isn't printed at all: no line, no name, no title."))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
@@ -556,6 +553,36 @@ private struct AjustesTesorerosView: View {
         .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Tesorero y pastor", "Treasurer & pastor"))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $firmando) { HojaFirma(firmante: $0) }
+    }
+
+    /// La fila de firma: enseña la que hay, o invita a hacerla.
+    private func filaFirma(_ f: FirmasLocales.Firmante) -> some View {
+        HStack {
+            Text(L.t("Firma", "Signature")).font(.subheadline)
+            Spacer()
+            if let imagen = firmas.imagen(f) {
+                // La firma de verdad y no un "Guardada": lo que hay que poder
+                // comprobar de un vistazo es que es la suya y que no salió
+                // torcida, no que exista un archivo.
+                Image(uiImage: imagen)
+                    .resizable().scaledToFit()
+                    .frame(maxWidth: 120, maxHeight: 34)
+                    .accessibilityLabel(f.titulo)
+            } else {
+                Text(L.t("Sin firma", "No signature"))
+                    .font(.subheadline).foregroundStyle(.tertiary)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { firmando = f }
+        .swipeActions(edge: .trailing) {
+            if firmas.tiene(f) {
+                Button(role: .destructive) { firmas.borrar(f) } label: {
+                    Label(L.t("Quitar", "Remove"), systemImage: "trash")
+                }
+            }
+        }
     }
 
     private func campoF(_ label: String, _ bind: Binding<String>, _ hint: String) -> some View {

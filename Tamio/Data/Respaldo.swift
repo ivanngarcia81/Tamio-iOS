@@ -87,6 +87,19 @@ enum Respaldo {
              try Int.fetchOne(db, sql: "select count(*) from deposito where borrado = 0") ?? 0)
         }
 
+        // Las firmas, junto a los recibos. La app web anotó justo esto como
+        // fallo suyo: la firma quedaba fuera del paquete, y restaurar en otra
+        // máquina dejaba todos los documentos sin firmar y sin avisar.
+        if let origen = await FirmasLocales.carpeta,
+           let archivos = try? fm.contentsOfDirectory(at: origen, includingPropertiesForKeys: nil),
+           !archivos.isEmpty {
+            let dir = carpeta.appendingPathComponent("firmas", isDirectory: true)
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            for archivo in archivos {
+                try? fm.copyItem(at: archivo, to: dir.appendingPathComponent(archivo.lastPathComponent))
+            }
+        }
+
         var recibos = 0
         if let origen = RecibosLocales.carpeta,
            let archivos = try? fm.contentsOfDirectory(at: origen, includingPropertiesForKeys: nil),

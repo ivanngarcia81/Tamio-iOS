@@ -132,6 +132,10 @@ struct ReportePDFSheet: View {
 /// encima no vale para nada.
 struct FirmasPDF: View {
     let iglesia: ConfiguracionIglesia
+    /// Las firmas guardadas en ESTE aparato. No viajan: un documento generado
+    /// desde otro teléfono sale con la raya en blanco, y eso es lo esperado
+    /// (ver `FirmasLocales`).
+    var firmas: FirmasLocales = .compartidas
 
     var body: some View {
         let firmantes = iglesia.firmantes
@@ -139,12 +143,22 @@ struct FirmasPDF: View {
             VStack(alignment: .leading, spacing: 28) {
                 Divider()
                 HStack(alignment: .top, spacing: 32) {
-                    ForEach(Array(firmantes.enumerated()), id: \.offset) { _, f in
+                    ForEach(Array(firmantes.enumerated()), id: \.offset) { i, f in
                         VStack(spacing: 6) {
-                            // Hueco para firmar a mano sobre el papel impreso.
+                            // La firma va ENCIMA de la raya, no en lugar de
+                            // ella: así el documento se lee igual esté firmado
+                            // en la app o a mano sobre el papel, y quien no
+                            // tenga firma guardada sigue teniendo dónde firmar.
+                            if let imagen = firma(para: i) {
+                                Image(uiImage: imagen)
+                                    .resizable().scaledToFit()
+                                    .frame(height: 34)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                            } else {
+                                Color.clear.frame(height: 34)
+                            }
                             Rectangle().fill(.secondary.opacity(0.5))
                                 .frame(height: 0.75)
-                                .padding(.top, 34)
                             Text(f.nombre).font(.caption.weight(.semibold))
                             Text(f.cargo).font(.caption2).foregroundStyle(.secondary)
                         }
@@ -153,6 +167,16 @@ struct FirmasPDF: View {
                 }
             }
         }
+    }
+
+    /// `firmantes` va en orden pastor, tesorero, secretario, y solo trae a los
+    /// que tienen nombre: por eso no vale el índice para saber quién es cada
+    /// uno. Se compara con el nombre configurado.
+    private func firma(para indice: Int) -> UIImage? {
+        let f = iglesia.firmantes[indice]
+        if f.nombre == iglesia.tesoreroNombre { return firmas.imagen(.tesorero) }
+        if f.nombre == iglesia.pastorNombre { return firmas.imagen(.pastor) }
+        return nil
     }
 }
 

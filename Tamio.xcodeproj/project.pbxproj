@@ -46,6 +46,8 @@
 		AB13SEC0000000000000013 /* SeccionAjustes.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA13SEC0000000000000013 /* SeccionAjustes.swift */; };
 		AB14BLQ0000000000000014 /* BloqueoBiometrico.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA14BLQ0000000000000014 /* BloqueoBiometrico.swift */; };
 		AB15PBL0000000000000015 /* PantallaBloqueo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA15PBL0000000000000015 /* PantallaBloqueo.swift */; };
+		AB16FIR0000000000000016 /* FirmasLocales.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA16FIR0000000000000016 /* FirmasLocales.swift */; };
+		AB17HFI0000000000000017 /* HojaFirma.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA17HFI0000000000000017 /* HojaFirma.swift */; };
 		109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A2 /* OfflineDepositosRepository.swift */; };
 		109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */; };
 		127515E07FA461AED9B9AAA2 /* IPhoneSecretariaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FBFB6CE7A24648A6454B21 /* IPhoneSecretariaView.swift */; };
@@ -231,6 +233,8 @@
 		AA13SEC0000000000000013 /* SeccionAjustes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeccionAjustes.swift; sourceTree = "<group>"; };
 		AA14BLQ0000000000000014 /* BloqueoBiometrico.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloqueoBiometrico.swift; sourceTree = "<group>"; };
 		AA15PBL0000000000000015 /* PantallaBloqueo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantallaBloqueo.swift; sourceTree = "<group>"; };
+		AA16FIR0000000000000016 /* FirmasLocales.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirmasLocales.swift; sourceTree = "<group>"; };
+		AA17HFI0000000000000017 /* HojaFirma.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HojaFirma.swift; sourceTree = "<group>"; };
 		9D80DC3340868CDE97F34571 /* DepositosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosRepository.swift; sourceTree = "<group>"; };
 		9D90A2753741AD7825EB7A59 /* IPhoneAjustesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPhoneAjustesView.swift; sourceTree = "<group>"; };
 		9DACD9F9945ED7749BE68C28 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -400,6 +404,7 @@
 				D4C42BB2675434F872163377 /* CartasRepository.swift */,
 				D3258F1AD72FB1E23580B3A1 /* DashboardRepository.swift */,
 				9D80DC3340868CDE97F34571 /* DepositosRepository.swift */,
+				AA16FIR0000000000000016 /* FirmasLocales.swift */,
 				AA12RSP0000000000000012 /* Respaldo.swift */,
 				AA01CAT0000000000000001 /* CategoriasRepository.swift */,
 				804F0337A286564156D330E9 /* MembresiaRepository.swift */,
@@ -466,6 +471,7 @@
 				8FEB9533A16F1B73ED8B006C /* ReportesView.swift */,
 				467795455C0E441168B94F26 /* RevisarView.swift */,
 				64DF6849516658024DF7E700 /* RootView.swift */,
+				AA17HFI0000000000000017 /* HojaFirma.swift */,
 				AA15PBL0000000000000015 /* PantallaBloqueo.swift */,
 				D8F4F4B41C31BFF9EFEE087B /* ServiciosView.swift */,
 				721483643253B05BA99D2C12 /* Sidebar.swift */,
@@ -605,6 +611,8 @@
 				AB13SEC0000000000000013 /* SeccionAjustes.swift in Sources */,
 				AB14BLQ0000000000000014 /* BloqueoBiometrico.swift in Sources */,
 				AB15PBL0000000000000015 /* PantallaBloqueo.swift in Sources */,
+				AB16FIR0000000000000016 /* FirmasLocales.swift in Sources */,
+				AB17HFI0000000000000017 /* HojaFirma.swift in Sources */,
 				109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */,
 				109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */,
 				55BE47478958A09E5E13CBCC /* MembresiaView.swift in Sources */,
