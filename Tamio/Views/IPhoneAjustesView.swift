@@ -599,37 +599,33 @@ private struct AjustesAccesoView: View {
 
 // MARK: - Categorías
 
+/// **Las categorías de la iglesia, no una lista escrita en la vista.**
+///
+/// Era un array literal de quince filas con el número de movimientos puesto a
+/// mano —"Diezmo: 9", "Ofrenda: 4"— que no salía de ningún sitio: ni coincidía
+/// con lo que había capturado la iglesia, ni con la lista del iPad, ni con el
+/// catálogo que de verdad ofrecen los formularios de alta. Y el "+" de abajo
+/// tenía un `onTapGesture { }` vacío, así que crear una categoría no era ni
+/// siquiera posible.
+///
+/// Ahora las integradas salen de `Catalogos`, las propias de la tabla que ya
+/// existía en Supabase, y la cuenta se calcula sobre los movimientos.
 private struct AjustesCategoriasView: View {
-    @State private var segmento = "Ingresos"
+    @State private var vm = CategoriasViewModel.compartido
+    @State private var tipo: TipoMovimiento = .ingreso
+    @State private var creando = false
+    @State private var nombreNuevo = ""
+    @State private var renombrando: CategoriaCustom?
+    @State private var nombreEditado = ""
 
-    private let catsIng: [(String, Color, Int)] = [
-        ("Ofrenda",  Color(hex: 0x2F9E44), 4),
-        ("Diezmo",   Color(hex: 0x7C3AED), 9),
-        ("Donación", Color(hex: 0x0D7D8A), 3),
-        ("Otros",    Color(hex: 0x5F6070), 0),
-    ]
-    private let catsGas: [(String, Color, Int)] = [
-        ("Compensación", Color(hex: 0x9D174D), 0),
-        ("Suministros",  Color(hex: 0x1D4ED8), 0),
-        ("Varios",       Color(hex: 0x5F6070), 0),
-        ("Limpieza",     Color(hex: 0x0F766E), 0),
-        ("Utilidades",   Color(hex: 0xB45309), 1),
-        ("Mantenimiento",Color(hex: 0x4F46E5), 0),
-        ("Alimentos",    Color(hex: 0xB03A10), 3),
-        ("Misiones",     Color(hex: 0x0369A1), 0),
-        ("Ayudas",       Color(hex: 0xA21CAF), 0),
-        ("Tecnología",   Color(hex: 0x9333EA), 0),
-        ("Transporte",   Color(hex: 0x4D7C0F), 0),
-    ]
-
-    private var cats: [(String, Color, Int)] { segmento == "Ingresos" ? catsIng : catsGas }
+    private var filas: [CategoriasViewModel.FilaCategoria] { vm.filas(tipo) }
 
     var body: some View {
         List {
             Section {
-                Picker("", selection: $segmento) {
-                    Text(L.t("Ingresos", "Income")).tag("Ingresos")
-                    Text(L.t("Gastos", "Expenses")).tag("Gastos")
+                Picker("", selection: $tipo) {
+                    Text(L.t("Ingresos", "Income")).tag(TipoMovimiento.ingreso)
+                    Text(L.t("Gastos", "Expenses")).tag(TipoMovimiento.gasto)
                 }
                 .pickerStyle(.segmented)
                 .listRowBackground(Color.clear)
@@ -637,37 +633,118 @@ private struct AjustesCategoriasView: View {
             }
 
             Section {
-                ForEach(cats, id: \.0) { c in
-                    HStack(spacing: 12) {
-                        Circle().fill(c.1).frame(width: 12, height: 12)
-                        Text(c.0).font(.subheadline)
-                        Spacer()
-                        Text(c.2 == 1
-                             ? L.t("1 movimiento", "1 transaction")
-                             : L.t("\(c.2) movimientos", "\(c.2) transactions"))
-                            .font(.caption).foregroundStyle(.secondary)
+                ForEach(filas) { f in
+                    fila(f)
+                }
+                Button { nombreNuevo = ""; creando = true } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "plus.circle.fill").foregroundStyle(Paleta.brand)
+                        Text(tipo == .ingreso
+                             ? L.t("Nueva categoría de ingreso", "New income category")
+                             : L.t("Nueva categoría de egreso", "New expense category"))
+                            .font(.subheadline).foregroundStyle(Paleta.brand)
                     }
                 }
-                HStack(spacing: 10) {
-                    Image(systemName: "plus.circle.fill").foregroundStyle(Paleta.brand)
-                    Text(segmento == "Ingresos"
-                         ? L.t("Nueva categoría de ingreso", "New income category")
-                         : L.t("Nueva categoría de egreso", "New expense category"))
-                        .font(.subheadline).foregroundStyle(Paleta.brand)
-                }
-                .contentShape(Rectangle()).onTapGesture { }
+                .buttonStyle(.plain)
             } header: {
-                Text(segmento == "Ingresos" ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses"))
+                Text(tipo == .ingreso ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses"))
                     .textCase(nil)
             } footer: {
-                Text(L.t("Las categorías integradas no se pueden eliminar. Las personalizadas aparecen en formularios, filtros y reportes igual que las demás.",
-                         "Built-in categories cannot be deleted. Custom ones appear in forms, filters, and reports just like the built-ins."))
+                Text(L.t("Las categorías integradas no se pueden eliminar. Las personalizadas aparecen en formularios, filtros y reportes igual que las demás; al borrar una, los movimientos que ya la usan la conservan.",
+                         "Built-in categories cannot be deleted. Custom ones appear in forms, filters, and reports just like the built-ins; deleting one keeps it on transactions that already use it."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
         .navigationTitle(L.t("Categorías", "Categories"))
         .navigationBarTitleDisplayMode(.inline)
+        .task { await vm.cargar() }
+        .alert(L.t("Nueva categoría", "New category"), isPresented: $creando) {
+            TextField(L.t("Nombre", "Name"), text: $nombreNuevo)
+            Button(L.t("Crear", "Create")) {
+                Task { await vm.crear(nombre: nombreNuevo, tipo: tipo) }
+            }
+            .disabled(nombreNuevo.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
+        } message: {
+            Text(avisoNombre(nombreNuevo)
+                 ?? L.t("Saldrá en los formularios de alta, en los filtros y en los reportes.",
+                        "It will appear in entry forms, filters, and reports."))
+        }
+        .alert(L.t("Cambiar el nombre", "Rename"),
+               isPresented: Binding(get: { renombrando != nil },
+                                    set: { if !$0 { renombrando = nil } })) {
+            TextField(L.t("Nombre", "Name"), text: $nombreEditado)
+            Button(L.t("Guardar", "Save")) {
+                if let c = renombrando {
+                    Task { await vm.renombrar(c, a: nombreEditado) }
+                }
+            }
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
+        } message: {
+            // Renombrar NO reescribe los movimientos ya capturados: guardan la
+            // etiqueta, no un puntero. Decirlo aquí evita que alguien crea que
+            // corrige una errata en toda la contabilidad.
+            Text(L.t("Los movimientos ya capturados conservan el nombre anterior.",
+                     "Transactions already recorded keep the previous name."))
+        }
+    }
+
+    @ViewBuilder
+    private func fila(_ f: CategoriasViewModel.FilaCategoria) -> some View {
+        HStack(spacing: 12) {
+            // El punto de una integrada es el MISMO que se ve en Ingresos y
+            // Gastos, o sea gris para casi todas: la ley de color de Paleta no
+            // reparte acentos entre veintitrés categorías. Antes esta lista
+            // pintaba un arcoíris propio que no se correspondía con nada de lo
+            // que la app enseña en ninguna otra pantalla.
+            Circle()
+                .fill(f.deFabrica
+                      ? Paleta.categoria(f.clave)
+                      : (Color(hexTexto: f.colorHex ?? "") ?? Paleta.pizarra))
+                .frame(width: 12, height: 12)
+                .opacity(f.huerfana ? 0.35 : 1)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(f.nombre).font(.subheadline)
+                if f.huerfana {
+                    Text(L.t("Ya no está en el catálogo", "No longer in the catalog"))
+                        .font(.caption2).foregroundStyle(.tertiary)
+                }
+            }
+            Spacer()
+            Text(f.movimientos == 1
+                 ? L.t("1 movimiento", "1 transaction")
+                 : L.t("\(f.movimientos) movimientos", "\(f.movimientos) transactions"))
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .contentShape(Rectangle())
+        .swipeActions(edge: .trailing) {
+            if let c = f.custom {
+                Button(role: .destructive) {
+                    Task { await vm.eliminar(c) }
+                } label: {
+                    Label(L.t("Eliminar", "Delete"), systemImage: "trash")
+                }
+                Button {
+                    nombreEditado = c.nombre
+                    renombrando = c
+                } label: {
+                    Label(L.t("Renombrar", "Rename"), systemImage: "pencil")
+                }
+                .tint(Paleta.brand)
+            }
+        }
+    }
+
+    /// Lo que impide crearla, si algo lo impide. Sale en el propio diálogo en
+    /// vez de dejar que el botón "Crear" no haga nada, que es lo que pasaba
+    /// antes con cualquier nombre repetido.
+    private func avisoNombre(_ nombre: String) -> String? {
+        let limpio = nombre.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !limpio.isEmpty else { return nil }
+        return vm.existe(limpio, tipo: tipo)
+            ? L.t("Ya hay una categoría con ese nombre.", "A category with that name already exists.")
+            : nil
     }
 }
 

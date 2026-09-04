@@ -36,6 +36,9 @@
 		109DD5E530497B0000E781A1 /* IglesiaFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5E430497B0000E781A1 /* IglesiaFila.swift */; };
 		109DD5C530497B0000E781A1 /* OfflineMovimientosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A1 /* OfflineMovimientosRepository.swift */; };
 		109DD5C530497B0000E781B1 /* RecibosLocales.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781B1 /* RecibosLocales.swift */; };
+		AB00CAT0000000000000000 /* CategoriaCustom.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00CAT0000000000000000 /* CategoriaCustom.swift */; };
+		AB01CAT0000000000000001 /* CategoriasRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01CAT0000000000000001 /* CategoriasRepository.swift */; };
+		AB02CAT0000000000000002 /* CategoriasViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02CAT0000000000000002 /* CategoriasViewModel.swift */; };
 		109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A2 /* OfflineDepositosRepository.swift */; };
 		109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */; };
 		127515E07FA461AED9B9AAA2 /* IPhoneSecretariaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FBFB6CE7A24648A6454B21 /* IPhoneSecretariaView.swift */; };
@@ -211,6 +214,9 @@
 		9C5228803AB5A63490100EDD /* NuevoCorteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NuevoCorteView.swift; sourceTree = "<group>"; };
 		9C5228803AB5A63490100EDF /* RegistrarDepositoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrarDepositoView.swift; sourceTree = "<group>"; };
 		9C5228803AB5A63490100EDE /* SegundaFirmaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegundaFirmaView.swift; sourceTree = "<group>"; };
+		AA00CAT0000000000000000 /* CategoriaCustom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriaCustom.swift; sourceTree = "<group>"; };
+		AA01CAT0000000000000001 /* CategoriasRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasRepository.swift; sourceTree = "<group>"; };
+		AA02CAT0000000000000002 /* CategoriasViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasViewModel.swift; sourceTree = "<group>"; };
 		9D80DC3340868CDE97F34571 /* DepositosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosRepository.swift; sourceTree = "<group>"; };
 		9D90A2753741AD7825EB7A59 /* IPhoneAjustesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPhoneAjustesView.swift; sourceTree = "<group>"; };
 		9DACD9F9945ED7749BE68C28 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -288,6 +294,7 @@
 				D6F6E207704664D1A578D94D /* CartasViewModel.swift */,
 				1E31171D90F95C88B95D2E62 /* DashboardViewModel.swift */,
 				109DD5E630497B0000E781A1 /* ConfiguracionIglesiaViewModel.swift */,
+				AA02CAT0000000000000002 /* CategoriasViewModel.swift */,
 				0E05B2C1157251C9D853544F /* DepositosViewModel.swift */,
 				E4488A0F53ECFBC1ABB43370 /* InformesMembresiaViewModel.swift */,
 				CE7D69422E5BAEDE044AC662 /* MembresiaViewModel.swift */,
@@ -324,6 +331,7 @@
 				BEC7A54D255D9650FB3D8904 /* Aportante.swift */,
 				EA1441F72095DBACEEB7E5C4 /* Apunte.swift */,
 				D850034BD09DE6F36C8D8F88 /* Deposito.swift */,
+				AA00CAT0000000000000000 /* CategoriaCustom.swift */,
 				0C0ECAB8AB3DDB7471075342 /* Miembro.swift */,
 				9DACD9F9945ED7749BE68C28 /* Models.swift */,
 				40DB46BD6CEE79AD620B4082 /* Movimiento.swift */,
@@ -373,6 +381,7 @@
 				D4C42BB2675434F872163377 /* CartasRepository.swift */,
 				D3258F1AD72FB1E23580B3A1 /* DashboardRepository.swift */,
 				9D80DC3340868CDE97F34571 /* DepositosRepository.swift */,
+				AA01CAT0000000000000001 /* CategoriasRepository.swift */,
 				804F0337A286564156D330E9 /* MembresiaRepository.swift */,
 				5B5ECF3C352C8A25CF9A50EA /* MiembrosRepository.swift */,
 				6C8C96D1BB6EF88E7492B545 /* MovimientosRepository.swift */,
@@ -565,6 +574,9 @@
 				109DD5E530497B0000E781A1 /* IglesiaFila.swift in Sources */,
 				109DD5C530497B0000E781A1 /* OfflineMovimientosRepository.swift in Sources */,
 				109DD5C530497B0000E781B1 /* RecibosLocales.swift in Sources */,
+				AB00CAT0000000000000000 /* CategoriaCustom.swift in Sources */,
+				AB01CAT0000000000000001 /* CategoriasRepository.swift in Sources */,
+				AB02CAT0000000000000002 /* CategoriasViewModel.swift in Sources */,
 				109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */,
 				109DD5C730497B0000E781A1 /* MotorSincronizacion.swift in Sources */,
 				55BE47478958A09E5E13CBCC /* MembresiaView.swift in Sources */,

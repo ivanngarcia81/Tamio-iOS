@@ -88,7 +88,27 @@ enum Catalogos {
     static var categoriasIngreso: [String] { catalogoIngreso.map(\.etiqueta) }
     static var categoriasGasto: [String] { catalogoGasto.map(\.etiqueta) }
 
+    /// **Las categorías personalizadas de la iglesia**, puestas aquí por
+    /// `CategoriasViewModel` al cargar y al cambiar.
+    ///
+    /// Vive en el catálogo y no en cada pantalla porque el comentario de arriba
+    /// llevaba tiempo prometiéndolo: «en la app real esto lo alimentará Ajustes
+    /// → Categorías». Mientras no estuvo, crear una categoría en Ajustes no
+    /// servía para nada — ni siquiera se guardaba— y los formularios seguían
+    /// ofreciendo solo la lista de fábrica.
+    static var personalizadas: [CategoriaCustom] = []
+
+    /// El catálogo de fábrica **más** lo que haya creado la iglesia. Es lo que
+    /// ven los `Picker` de alta y edición, y por tanto lo único que puede
+    /// quedar guardado en `Movimiento.categoria`.
     static func categorias(_ tipo: TipoMovimiento) -> [String] {
+        catalogo(tipo).map(\.etiqueta)
+            + personalizadas.filter { $0.tipo == tipo }.map(\.nombre)
+    }
+
+    /// Las de fábrica a secas, sin las de la iglesia. Ajustes las separa
+    /// porque las integradas no se pueden borrar y las otras sí.
+    static func categoriasDeFabrica(_ tipo: TipoMovimiento) -> [String] {
         catalogo(tipo).map(\.etiqueta)
     }
 
@@ -135,8 +155,9 @@ enum Catalogos {
     }()
 
     /// Sin acentos, sin mayúsculas y sin espacios de sobra: "Tecnología" y
-    /// "tecnologia" son la misma categoría.
-    private static func normalizar(_ s: String) -> String {
+    /// "tecnologia" son la misma categoría. Público porque contar movimientos
+    /// por categoría necesita comparar con la misma vara.
+    static func normalizar(_ s: String) -> String {
         s.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
             .trimmingCharacters(in: .whitespaces)
     }

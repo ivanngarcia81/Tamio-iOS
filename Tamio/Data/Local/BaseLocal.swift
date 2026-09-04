@@ -257,6 +257,22 @@ final class BaseLocal {
                 update movimiento set marcadoPendiente = 0 where marcadoPendiente is null
                 """)
         }
+        // **Las categorías que se inventa la iglesia.** La tabla existe en
+        // Supabase desde antes que esta app —`categorias_custom`, con datos—
+        // y aquí no se miraba: Ajustes enseñaba una lista escrita a mano en la
+        // vista, distinta en el iPhone y en el iPad, y ninguna de las dos
+        // coincidía con el catálogo que de verdad ofrecen los formularios.
+        m.registerMigration("v7_categoriasCustom") { db in
+            try db.create(table: "categoriaCustom") { t in
+                t.primaryKey("id", .text)
+                t.column("tipo", .text).notNull().defaults(to: "gasto")
+                t.column("nombre", .text).notNull().defaults(to: "")
+                t.column("color", .text).notNull().defaults(to: "")
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return m
     }
 
@@ -269,6 +285,7 @@ final class BaseLocal {
             try db.execute(sql: "delete from syncEstado")
             try db.execute(sql: "delete from iglesia")
             try db.execute(sql: "delete from aportante")
+            try db.execute(sql: "delete from categoriaCustom")
         }
     }
 }

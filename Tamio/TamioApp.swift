@@ -27,10 +27,25 @@ struct TamioApp: App {
                 .environment(navegacion)
                 // Al entrar y cada vez que la app vuelve al frente: es cuando
                 // más probable es que haya red otra vez tras un rato sin ella.
-                .task { await MotorSincronizacion.compartido.sincronizar() }
+                .task {
+                    // Las categorías de la iglesia, ANTES de sincronizar: son
+                    // parte del catálogo que ofrecen los `Picker`, y cargarlas
+                    // solo al entrar en Ajustes dejaría "Nuevo gasto" sin ellas
+                    // hasta que alguien pasara por esa pantalla. Y otra vez
+                    // DESPUÉS, porque la bajada puede traer alguna nueva y los
+                    // conteos dependen de los movimientos que acaban de llegar.
+                    await CategoriasViewModel.compartido.cargar()
+                    await MotorSincronizacion.compartido.sincronizar()
+                    await CategoriasViewModel.compartido.cargar()
+                }
                 .onChange(of: fase) { _, nueva in
                     if nueva == .active {
-                        Task { await MotorSincronizacion.compartido.sincronizar() }
+                        Task {
+                            await MotorSincronizacion.compartido.sincronizar()
+                            // Después de bajar: una categoría creada en la app
+                            // web tiene que aparecer aquí sin relanzar nada.
+                            await CategoriasViewModel.compartido.cargar()
+                        }
                     }
                 }
             }

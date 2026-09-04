@@ -8,6 +8,18 @@ extension Color {
         let b = Double(hex & 0xFF) / 255.0
         self.init(.sRGB, red: r, green: g, blue: b, opacity: 1)
     }
+
+    /// Por hex en TEXTO ("1A7F37", con o sin almohadilla). Lo necesitan las
+    /// categorías personalizadas: su color viaja como cadena porque así lo
+    /// guarda `categorias_custom`, que es una tabla compartida con la app web.
+    /// Devuelve `nil` en vez de un color inventado si el texto no es un hex:
+    /// pintar de negro una fila cuyo color se guardó mal esconde el fallo.
+    init?(hexTexto: String) {
+        let limpio = hexTexto.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "#", with: "")
+        guard limpio.count == 6, let valor = UInt32(limpio, radix: 16) else { return nil }
+        self.init(hex: valor)
+    }
 }
 
 /// **La ley de color del diseño** (nota al pie del handoff del iPad):

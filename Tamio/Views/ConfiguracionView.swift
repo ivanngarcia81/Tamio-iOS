@@ -897,35 +897,23 @@ private struct SeccionAcceso: View {
 
 // MARK: - Categorías
 
+/// **Las mismas categorías que en el teléfono**, y por el mismo motivo: eran
+/// dos listas literales distintas —quince filas aquí, quince allí, con nombres
+/// y conteos que no coincidían entre sí ni con lo capturado— y el "+" de abajo
+/// era un `Button { }` vacío.
 private struct SeccionCategorias: View {
-    private struct Cat: Identifiable {
-        let id: Int; let nombre: String; let color: Color; let movs: Int
-    }
-    @State private var tab = "ingresos"
+    @State private var vm = CategoriasViewModel.compartido
+    @State private var tipo: TipoMovimiento = .ingreso
+    @State private var creando = false
+    @State private var nombreNuevo = ""
 
-    private let catIng: [Cat] = [
-        Cat(id: 1, nombre: L.t("Ofrenda", "Offering"),  color: Color(hex: 0x1A7F37), movs: 4),
-        Cat(id: 2, nombre: L.t("Diezmo", "Tithe"),      color: Color(hex: 0x7C3AED), movs: 9),
-        Cat(id: 3, nombre: L.t("Donación", "Donation"), color: Color(hex: 0x0E6BA8), movs: 3),
-        Cat(id: 4, nombre: L.t("Otros", "Other"),       color: Color(hex: 0x4B5563), movs: 0),
-    ]
-    private let catGas: [Cat] = [
-        Cat(id: 5, nombre: L.t("Compensación", "Compensation"), color: Color(hex: 0xA3123A), movs: 0),
-        Cat(id: 6, nombre: L.t("Suministros", "Supplies"),      color: Color(hex: 0x1D4ED8), movs: 0),
-        Cat(id: 7, nombre: L.t("Varios", "Misc"),               color: Color(hex: 0x0E8BA8), movs: 0),
-        Cat(id: 8, nombre: L.t("Limpieza", "Cleaning"),         color: Color(hex: 0x0F766E), movs: 0),
-        Cat(id: 9, nombre: L.t("Utilidades", "Utilities"),      color: Color(hex: 0xA44A00), movs: 1),
-        Cat(id: 10, nombre: L.t("Mantenimiento", "Maintenance"),color: Color(hex: 0x5B21EC), movs: 0),
-        Cat(id: 11, nombre: L.t("Alimentos", "Food"),           color: Color(hex: 0xA03412), movs: 3),
-        Cat(id: 12, nombre: L.t("Misiones", "Missions"),        color: Color(hex: 0x0369A1), movs: 0),
-    ]
+    private var filas: [CategoriasViewModel.FilaCategoria] { vm.filas(tipo) }
 
-    private var cats: [Cat] { tab == "ingresos" ? catIng : catGas }
     private var tituloTab: String {
-        tab == "ingresos" ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses")
+        tipo == .ingreso ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses")
     }
     private var labelNueva: String {
-        tab == "ingresos"
+        tipo == .ingreso
             ? L.t("Nueva categoría de ingreso", "New income category")
             : L.t("Nueva categoría de egreso", "New expense category")
     }
@@ -937,10 +925,10 @@ private struct SeccionCategorias: View {
 
                 // Segmented
                 HStack(spacing: 3) {
-                    ForEach(["ingresos", "gastos"], id: \.self) { t in
-                        let sel = tab == t
-                        Button { tab = t } label: {
-                            Text(t == "ingresos" ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses"))
+                    ForEach([TipoMovimiento.ingreso, .gasto], id: \.self) { t in
+                        let sel = tipo == t
+                        Button { tipo = t } label: {
+                            Text(t == .ingreso ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses"))
                                 .font(.system(size: 15, weight: sel ? .semibold : .medium))
                                 .foregroundStyle(sel ? .primary : .secondary)
                                 .frame(maxWidth: .infinity)
@@ -963,22 +951,47 @@ private struct SeccionCategorias: View {
 
                 // Lista
                 GrupoConf(titulo: tituloTab,
-                          nota: L.t("Las categorías integradas no se pueden eliminar. Las personalizadas aparecen en formularios, filtros y PDFs igual que las demás.",
-                                    "Built-in categories can't be deleted. Custom ones appear in forms, filters, and PDFs just like the rest.")) {
-                    ForEach(Array(cats.enumerated()), id: \.element.id) { idx, c in
+                          nota: L.t("Las categorías integradas no se pueden eliminar. Las personalizadas aparecen en formularios, filtros y PDFs igual que las demás; al borrar una, los movimientos que ya la usan la conservan.",
+                                    "Built-in categories can't be deleted. Custom ones appear in forms, filters, and PDFs just like the rest; deleting one keeps it on transactions that already use it.")) {
+                    ForEach(Array(filas.enumerated()), id: \.element.id) { idx, f in
                         HStack(spacing: 13) {
-                            Circle().fill(c.color).frame(width: 12, height: 12)
-                            Text(c.nombre).font(.system(size: 16)).lineLimit(1)
+                            // El punto de una integrada es el mismo que se ve
+                            // en Ingresos y Gastos. Ver la nota del teléfono.
+                            Circle()
+                                .fill(f.deFabrica
+                                      ? Paleta.categoria(f.clave)
+                                      : (Color(hexTexto: f.colorHex ?? "") ?? Paleta.pizarra))
+                                .frame(width: 12, height: 12)
+                                .opacity(f.huerfana ? 0.35 : 1)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(f.nombre).font(.system(size: 16)).lineLimit(1)
+                                if f.huerfana {
+                                    Text(L.t("Ya no está en el catálogo", "No longer in the catalog"))
+                                        .font(.system(size: 12)).foregroundStyle(.tertiary)
+                                }
+                            }
                             Spacer()
-                            Text(L.t("\(c.movs) movimientos", "\(c.movs) transactions"))
+                            Text(f.movimientos == 1
+                                 ? L.t("1 movimiento", "1 transaction")
+                                 : L.t("\(f.movimientos) movimientos", "\(f.movimientos) transactions"))
                                 .font(.system(size: 15)).foregroundStyle(.secondary)
+                            if let c = f.custom {
+                                Button(role: .destructive) {
+                                    Task { await vm.eliminar(c) }
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Paleta.negativo)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                         .frame(minHeight: 50)
                         .padding(.horizontal, Esp.pantalla)
-                        if idx < cats.count - 1 { Divider() }
+                        if idx < filas.count - 1 { Divider() }
                     }
                     Divider()
-                    Button { } label: {
+                    Button { nombreNuevo = ""; creando = true } label: {
                         HStack(spacing: 12) {
                             Text("+").font(.system(size: 16)).foregroundStyle(.white)
                                 .frame(width: 24, height: 24)
@@ -996,6 +1009,20 @@ private struct SeccionCategorias: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .task { await vm.cargar() }
+        .alert(L.t("Nueva categoría", "New category"), isPresented: $creando) {
+            TextField(L.t("Nombre", "Name"), text: $nombreNuevo)
+            Button(L.t("Crear", "Create")) {
+                Task { await vm.crear(nombre: nombreNuevo, tipo: tipo) }
+            }
+            .disabled(nombreNuevo.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
+        } message: {
+            Text(vm.existe(nombreNuevo.trimmingCharacters(in: .whitespacesAndNewlines), tipo: tipo)
+                 ? L.t("Ya hay una categoría con ese nombre.", "A category with that name already exists.")
+                 : L.t("Saldrá en los formularios de alta, en los filtros y en los reportes.",
+                       "It will appear in entry forms, filters, and reports."))
+        }
     }
 }
 

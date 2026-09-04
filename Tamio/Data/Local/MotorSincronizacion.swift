@@ -87,6 +87,7 @@ final class MotorSincronizacion {
             try await bajarCortes()
             try await bajarCorteMovimientos()
             try await bajarDepositos()
+            try await bajarCategorias()
             // Los recibos al final: son archivos, tardan, y ninguna otra cosa
             // depende de ellos. Que falle la subida de una foto no puede dejar
             // sin sincronizar el resto.
@@ -151,6 +152,10 @@ final class MotorSincronizacion {
         }
         if op.entidad == "deposito" {
             try await subirDeposito(op)
+            return
+        }
+        if op.entidad == "categoriaCustom" {
+            try await subirCategoria(op)
             return
         }
         guard let fila = try await cola.read({ db in
@@ -835,6 +840,87 @@ final class MotorSincronizacion {
             if let ultimo = filas.last?.updatedAt {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('deposito', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
+    // MARK: - Categorías de la iglesia
+
+    private struct CategoriaRemota: Encodable {
+        let uid: String
+        let churchId: String
+        let tipo: String
+        let nombre: String
+        let color: String
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, tipo, nombre, color, deleted
+            case churchId = "church_id"
+        }
+    }
+
+    private func subirCategoria(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try CategoriaCustomFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+
+        let remoto = CategoriaRemota(uid: fila.id, churchId: churchIdActivo,
+                                     tipo: fila.tipo, nombre: fila.nombre,
+                                     color: fila.color, deleted: fila.borrado)
+        try await supabase.from("categorias_custom")
+            .upsert(remoto, onConflict: "uid").execute()
+    }
+
+    private struct CategoriaRemotaLeida: Decodable {
+        let uid: String
+        let tipo: String?
+        let nombre: String?
+        let color: String?
+        let updatedAt: String?
+        let deleted: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case uid, tipo, nombre, color, deleted
+            case updatedAt = "updated_at"
+        }
+    }
+
+    private func bajarCategorias() async throws {
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'categoriaCustom'")
+        }
+        var consulta = supabase.from("categorias_custom").select()
+            .eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [CategoriaRemotaLeida] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                let tienePendiente = try OperacionPendiente
+                    .filter(Column("registroId") == r.uid).fetchCount(db) > 0
+                if tienePendiente { continue }
+                if r.deleted == true {
+                    // Se borra la fila local en vez de marcarla: nada apunta a
+                    // una categoría por id —los movimientos guardan su nombre—,
+                    // así que una fila muerta aquí no sirve de nada.
+                    try CategoriaCustomFila.deleteOne(db, key: r.uid)
+                    continue
+                }
+                try CategoriaCustomFila(
+                    CategoriaCustom(id: r.uid,
+                                    tipo: r.tipo == "ingreso" ? .ingreso : .gasto,
+                                    nombre: r.nombre ?? "",
+                                    color: r.color ?? ""),
+                    actualizadoEn: r.updatedAt).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('categoriaCustom', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
                     """, arguments: [ultimo])
             }
