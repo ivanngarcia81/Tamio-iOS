@@ -47,7 +47,7 @@ struct MiembrosView: View {
                     }
             }
         }
-        .encabezadoNav(L.t("Atribuyentes", "Contributors"),
+        .encabezadoNav(L.t("Aportantes", "Contributors"),
                        L.t("\(vm.activosCount) activos · \(vm.bajasCount) bajas", "\(vm.activosCount) active · \(vm.bajasCount) removed"))
         .navigationBarTitleDisplayMode(.large)
         .toolbar {

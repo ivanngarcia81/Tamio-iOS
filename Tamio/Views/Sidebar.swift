@@ -103,7 +103,7 @@ struct Sidebar: View {
         [
             ("ingresos", L.t("Ingresos", "Income"), "arrow.down", nil, false),
             ("gastos", L.t("Gastos", "Expenses"), "arrow.up", nil, false),
-            ("miembros", L.t("Atribuyentes", "Contributors"), "person.2",
+            ("miembros", L.t("Aportantes", "Contributors"), "person.2",
              MockMiembrosRepository.activosCount, false),
             ("reportes", L.t("Reportes", "Reports"), "chart.bar", nil, false),
             ("depositos", L.t("Depósitos", "Deposits"), "building.columns", nil, false),

@@ -47,7 +47,7 @@ struct Acta: Identifiable, Hashable {
 
     var titulo: String {
         if let t = tituloPersonalizado, !t.isEmpty { return t }
-        return "Acta \(folio) · \(tipo)"
+        return L.t("Acta \(folio) · \(tipo)", "Minutes \(folio) · \(tipo)")
     }
     var subtitulo: String {
         let ac = acuerdos > 0 ? " · \(acuerdos) \(L.t("acuerdos", "agreements"))" : ""
@@ -192,7 +192,11 @@ enum TipoPlantilla: String, CaseIterable, Identifiable {
     }
     var icono: String {
         switch self {
-        case .recomendacion:       return "doc.badge.checkmark"
+        // `doc.badge.checkmark` NO existe en SF Symbols, así que la primera
+        // plantilla de la lista salía con el cuadro en blanco. Comprobados los
+        // 104 nombres de símbolo del proyecto contra el catálogo del sistema:
+        // era el único inválido.
+        case .recomendacion:       return "text.badge.checkmark"
         case .certificadoMiembro:  return "checkmark.circle"
         case .buenaConducta:       return "checkmark.seal"
         case .presentacion:        return "hand.raised"

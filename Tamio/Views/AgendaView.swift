@@ -5,7 +5,10 @@ struct AgendaView: View {
     @State private var mostrarNuevo = false
     @State private var diaAbierto = false
 
-    private let diasSemana = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"]
+    /// `L.diaSemana` existía justo para esto y había quedado sin usar en el
+    /// único sitio que la necesitaba: con la app en inglés el calendario ponía
+    /// "DOM LUN MAR" debajo de "August 2026" y "Today".
+    private let diasSemana = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"].map(L.diaSemana)
 
     var body: some View {
         GeometryReader { geo in
