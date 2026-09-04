@@ -75,6 +75,10 @@ struct MiembrosView: View {
     private var pantalla: some View {
         if compacto {
             columnas
+                // La lupa se queda arriba por el límite del sistema que
+                // documenta `MovimientosView.pantalla`: con `.searchable` no
+                // hay forma de tenerla solo en la barra inferior. Lo que baja
+                // es el `+`.
                 .searchable(text: $vm.busqueda,
                             prompt: Text(L.t("Buscar por nombre, email o ID fiscal",
                                              "Search by name, email or tax ID")))
@@ -131,19 +135,70 @@ struct MiembrosView: View {
         // conviven el segmentado de tres opciones, el `+` y la lupa, y medido
         // en pantalla no caben: con sitio para las tres etiquetas el `+` se
         // cae de la barra, y recortando el segmentado sale "Remo…".
-        ToolbarItem(placement: compacto ? .topBarLeading : .topBarTrailing) { menuArchivo }
         // Compartir y "Nuevo" compartían un `ToolbarItemGroup`, así que
         // compartían UNA cápsula y Compartir no tenía la suya. Separados en
-        // dos items, cada uno recupera la suya. En iPad además se apartan con
-        // un espaciador; en el teléfono no cabe y el segmentado lo necesita.
-        if !compacto { ToolbarSpacer(.fixed, placement: .topBarTrailing) }
-        ToolbarItem(placement: .topBarTrailing) {
-            Button { hoja = .nueva } label: {
-                Label(L.t("Nuevo", "New"), systemImage: "plus")
-            }
-            .buttonStyle(.glass)
-            .tint(Paleta.brand)
+        // dos items, cada uno recupera la suya.
+        ToolbarItem(placement: .topBarTrailing) { menuArchivo }
+        // En iPad el `+` se queda arriba, apartado con su espaciador; en el
+        // teléfono baja a la barra inferior, porque arriba conviven ya el
+        // segmentado de tres opciones, Archivo y la lupa del sistema.
+        if !compacto {
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            ToolbarItem(placement: .topBarTrailing) { botonNuevo }
         }
+    }
+
+    private var botonNuevo: some View {
+        Button { hoja = .nueva } label: {
+            Label(L.t("Nuevo", "New"), systemImage: "plus")
+        }
+        .buttonStyle(.glass)
+        .tint(Paleta.brand)
+    }
+
+    /// **La barra inferior del teléfono**, igual que en Ingresos/Gastos: el `+`
+    /// a la izquierda y el resumen a la derecha, los dos en cápsula de glass.
+    ///
+    /// Se dibuja con `safeAreaInset` y no con `ToolbarItem(placement:
+    /// .bottomBar)` porque dentro del `TabView` de iPhone la barra inferior del
+    /// sistema queda por DEBAJO de la barra de pestañas flotante de iOS 26.
+    ///
+    /// El `+` va DENTRO de la barra y no flotando encima: con el total en la
+    /// esquina derecha, un botón suelto ahí lo taparía.
+    @ViewBuilder
+    private var barraInferior: some View {
+        if compacto {
+            HStack(spacing: Esp.hueco) {
+                botonNuevo
+                Spacer(minLength: Esp.hueco)
+                resumenPie
+                    .padding(.horizontal, Esp.chip)
+                    .padding(.vertical, 8)
+                    .glassEffect(.regular, in: .capsule)
+            }
+            .padding(.horizontal, Esp.pantalla)
+            .padding(.bottom, Esp.hueco)
+        }
+    }
+
+    /// Cuántos aportantes y cuánto suman.
+    ///
+    /// El conteo pierde la palabra pero NO el número: al borrarse el título se
+    /// va también su subtítulo "9 activos · 0 bajas", así que este es el único
+    /// sitio de la pantalla que dice cuántos hay, que es lo que revela si la
+    /// lista está filtrada.
+    ///
+    /// El total pesa más que el conteo: es el dato de cuadre, el que el
+    /// tesorero compara contra el estado financiero. Iba en el mismo gris que
+    /// su etiqueta.
+    private var resumenPie: some View {
+        HStack(spacing: 6) {
+            Text("\(vm.itemsFiltrados.count)").foregroundStyle(.secondary)
+            Text("·").foregroundStyle(.tertiary)
+            Text("\(Money.fmt(vm.total)) MXN").fontWeight(.semibold)
+        }
+        .font(.footnote)
+        .monospacedDigit()
     }
 
     private var pickerFiltro: some View {
@@ -234,6 +289,7 @@ struct MiembrosView: View {
         listaMiembros
             .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
             .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
+            .safeAreaInset(edge: .bottom, spacing: 0) { barraInferior }
     }
 
     /// En el teléfono aquí solo queda el aviso: el buscador y el segmentado se
@@ -310,16 +366,22 @@ struct MiembrosView: View {
         }
     }
 
+    /// El pie de la columna del iPad. En el teléfono no existe: se convirtió
+    /// en la barra inferior.
+    @ViewBuilder
     private var pieLista: some View {
-        HStack {
-            Text(L.t("\(vm.itemsFiltrados.count) aportantes · \(String(vm.anio))",
-                     "\(vm.itemsFiltrados.count) givers · \(String(vm.anio))"))
-            Spacer()
-            Text("\(Money.fmt(vm.total)) MXN").monospacedDigit().fontWeight(.semibold)
+        if !compacto {
+            HStack {
+                Text(L.t("\(vm.itemsFiltrados.count) aportantes · \(String(vm.anio))",
+                         "\(vm.itemsFiltrados.count) givers · \(String(vm.anio))"))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(Money.fmt(vm.total)) MXN").monospacedDigit().fontWeight(.semibold)
+            }
+            .font(.caption)
+            .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+            .background(.regularMaterial)
         }
-        .font(.caption).foregroundStyle(.secondary)
-        .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
-        .background(.regularMaterial)
     }
 
     @ViewBuilder

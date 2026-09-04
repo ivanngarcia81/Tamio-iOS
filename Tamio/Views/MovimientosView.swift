@@ -94,10 +94,25 @@ struct MovimientosView: View {
     private var pantalla: some View {
         if compacto {
             columnas
+                // **La lupa se queda arriba, y no por gusto.** Medido en
+                // pantalla, con `.searchable` no hay forma de tenerla solo
+                // abajo: sin `.minimize` el campo se queda desplegado en una
+                // franja permanente —la tira que había que eliminar—; con
+                // `.minimize` el sistema pone SU botón arriba y salen dos
+                // lupas; `.toolbar(removing: .search)` no lo quita; y
+                // `DefaultToolbarItem(kind: .search, placement: .bottomBar)`
+                // sí lo baja, pero dentro del `TabView` de iPhone la barra
+                // inferior del sistema queda por DEBAJO de la barra de
+                // pestañas flotante y no se ve.
+                //
+                // Lo que baja en su lugar es el `+`, que es lo que el propio
+                // encargo prevé cuando no cabe todo arriba. Así el segmentado
+                // se lee entero.
                 .searchable(text: $vm.busqueda,
                             prompt: Text(L.t("Buscar folio, miembro o nota",
                                              "Search folio, member or note")))
                 .searchToolbarBehavior(.minimize)
+
                 .navigationTitle(tituloBarra)
                 .navigationBarTitleDisplayMode(.inline)
         } else {
@@ -143,118 +158,103 @@ struct MovimientosView: View {
 
     @ToolbarContentBuilder
     private var barra: some ToolbarContent {
-        // El segmentado ocupa el lugar del título. Se queda `Picker`
-        // segmentado y NO se envuelve en glass: en iOS 26 el sistema ya le
-        // pone su cápsula, y glass dentro de glass es lo que Apple
-        // desaconseja. Tampoco se parte en dos botones sueltos: un segmentado
-        // dice "elige uno de los dos", dos cápsulas se leen como dos acciones.
+        // El segmentado ocupa el lugar del título. Se queda `Picker` y NO se
+        // envuelve en glass: el sistema ya le pone su cápsula, y glass dentro
+        // de glass es lo que Apple desaconseja. Tampoco se parte en dos
+        // botones: un segmentado dice "elige uno de los dos".
         if compacto {
             ToolbarItem(placement: .title) {
                 pickerTipo.frame(maxWidth: 190)
             }
+            // Arriba solo lo que dice QUÉ SE ESTÁ VIENDO: el mes y los filtros,
+            // cada uno su botón. Juntos en uno, el botón parecía una etiqueta
+            // y su menú mezclaba elegir periodo con abrir filtros, que no
+            // tienen nada que ver. Ahora caben porque la lupa y el `+` se
+            // fueron abajo.
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                selectorMes
+                botonFiltros
+            }
         }
-        // Cápsula de glass CLARA con el símbolo en verde, no rellena de verde.
-        //
-        // Empezó siendo `.glassProminent`, que tiñe el material entero: en
-        // oscuro `Paleta.brand` es #2FBF71 —un verde pensado para leerse COMO
-        // TEXTO sobre negro— y debajo de un símbolo blanco daba ~2.4:1. Con
-        // `.glass` el material se queda limpio y el verde pasa al símbolo, que
-        // es donde ese tono sí funciona: sobre el glass de una barra oscura se
-        // recorta de sobra.
-        //
-        // Encaja además con la ley de color de `Palette.swift`, que reserva el
-        // verde para lo seleccionado y las cifras: un botón no es ninguna de
-        // las dos cosas, y rellenarlo lo convertía en el elemento más pesado de
-        // la pantalla. El sistema sigue resolviendo forma, sombra, borde y
-        // refracción, que es lo que quitó el halo doble.
-        // **Mes y filtros separados no caben, medido en pantalla.** Con los
-        // seis elementos (volver · segmentado · Sep ⌄ · filtros · + · lupa) el
-        // segmentado se queda en ~155 pt y "Income | Expenses" necesita ~190:
-        // sale "Inco… | Expe…", que es peor que esconder un filtro. Así que van
-        // al overflow, con las dos condiciones: el mes ESCRITO con su chevron
-        // —nunca tres puntos— y la señal de filtros activos a la vista.
-        if compacto {
-            ToolbarItem(placement: .topBarTrailing) { menuPeriodoYFiltros }
+        // En iPad el `+` se queda arriba; en el teléfono baja a la barra
+        // inferior, porque arriba conviven ya el segmentado, el mes, los
+        // filtros y la lupa del sistema, y con cinco el segmentado se trunca.
+        if !compacto {
+            ToolbarItem(placement: .topBarTrailing) { botonNuevo }
         }
-        // El espaciador ROMPE el grupo de glass. Sin él, "qué estoy viendo"
-        // (el mes) y "qué puedo hacer" (el `+`) se funden en una sola cápsula
-        // sin tener nada que ver. Separados, cada cosa es una cápsula, que es
-        // lo que hacen las referencias del Teléfono.
-        //
-        // La lupa NO se puede meter en el mismo grupo que el `+`: la coloca el
-        // sistema al declarar `.searchToolbarBehavior(.minimize)` y va siempre
-        // en su propio grupo. El grupo compacto lupa+`+` del Calendario no es
-        // alcanzable desde `.searchable`.
-        if compacto { ToolbarSpacer(.fixed, placement: .topBarTrailing) }
-        ToolbarItem(placement: .topBarTrailing) { botonNuevo }
     }
 
-    /// El overflow del teléfono, con las dos condiciones que lo hacen legible:
+    /// **La barra inferior del teléfono: lupa a la izquierda, resumen a la
+    /// derecha.**
     ///
-    /// - **El mes va escrito, con su chevron.** El chevron es lo que dice que
-    ///   despliega algo; sin él el botón se lee como una etiqueta. Y escrito y
-    ///   no detrás de tres puntos porque en una tesorería el periodo no es un
-    ///   ajuste cualquiera: es la diferencia entre mirar septiembre o agosto.
-    ///   Es además donde se recupera el subtítulo que se va con el título.
-    /// - **Se tiñe y lleva el contador** cuando hay filtros puestos. Escondida
-    ///   esa señal, un filtro activo explicaría una lista vacía sin que se
-    ///   pueda saber por qué.
+    /// Se dibuja aquí y no con `ToolbarItem(placement: .bottomBar)`, que sería
+    /// lo natural, por una razón medida en pantalla: dentro del `TabView` de
+    /// iPhone la barra inferior del sistema queda DEBAJO de la barra de
+    /// pestañas flotante de iOS 26 y no se ve ninguna de las dos cosas. Con
+    /// `safeAreaInset` la barra se apila por encima, que es lo que hace falta.
     ///
-    /// Va en su propio `ToolbarItem` y no dentro de un grupo: agrupado, el menú
-    /// se anclaba al grupo entero y se desplegaba pegado a la izquierda,
-    /// tapando el segmentado y saliendo de un sitio que no era el del botón.
-    private var menuPeriodoYFiltros: some View {
-        Menu {
-            Section(L.t("Mes", "Month")) {
-                ForEach(vm.mesesDisponibles, id: \.self) { m in
-                    opcionMes(Fechas.mes(m), marcada: vm.mes == m) { vm.mes = m }
-                }
-                opcionMes(Self.todosLosMeses, marcada: vm.mes == nil) { vm.mes = nil }
-            }
-            Section(L.t("Filtros", "Filters")) {
-                Button {
-                    mostrarFiltros = true
-                } label: {
-                    Label(filtrosActivos > 0
-                          ? L.t("Categoría y estado · \(filtrosActivos)",
-                                "Category and status · \(filtrosActivos)")
-                          : L.t("Categoría y estado", "Category and status"),
-                          systemImage: "line.3.horizontal.decrease")
-                }
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Text(etiquetaMesCorta).lineLimit(1)
-                Image(systemName: "chevron.down").font(.caption.weight(.semibold))
-                if filtrosActivos > 0 { contador(filtrosActivos) }
-            }
-            .font(.subheadline.weight(.medium))
-        }
-        .buttonStyle(.glass)
-        .tint(filtrosActivos > 0 ? Paleta.brand : nil)
-        .accessibilityLabel(L.t("Mes y filtros", "Month and filters"))
-    }
-
-    /// En el teléfono es solo el `+` —la barra ya va justa con el segmentado y
-    /// el menú—; en iPad cabe la palabra. Dos ramas y no un ternario en
-    /// `.labelStyle`: los estilos son tipos distintos y un ternario entre ellos
-    /// no compila, el mismo motivo por el que `pickerCategoria` de la hoja de
-    /// captura está partido en dos.
+    /// A la izquierda va el `+` y no la lupa: la lupa la genera `.searchable`
+    /// y el sistema no deja moverla aquí abajo (ver el comentario largo de
+    /// `pantalla`). El `+` es entonces lo que baja, que es la salida que el
+    /// propio encargo prevé cuando no cabe todo arriba.
+    ///
+    /// Va DENTRO de la barra y no flotando encima: con el total en la esquina
+    /// derecha, un botón suelto ahí lo taparía.
     @ViewBuilder
+    private var barraInferior: some View {
+        if compacto {
+            HStack(spacing: Esp.hueco) {
+                botonNuevo
+
+                Spacer(minLength: Esp.hueco)
+
+                // Cápsula de material, pero SIN estilo de botón: el resumen
+                // informa y no se toca, y darle apariencia de control mentiría
+                // sobre eso. El material está para que las filas se difuminen
+                // por debajo al desplazarse.
+                resumenPie
+                    .padding(.horizontal, Esp.chip)
+                    .padding(.vertical, 8)
+                    .glassEffect(.regular, in: .capsule)
+            }
+            .padding(.horizontal, Esp.pantalla)
+            .padding(.bottom, Esp.hueco)
+        }
+    }
+
+    /// El resumen de la lista: cuántos movimientos y cuánto suman.
+    ///
+    /// El conteo pierde la palabra pero NO el número: al borrarse el título se
+    /// va también su subtítulo, así que este es el único sitio de la pantalla
+    /// que dice cuántos hay, que es lo que revela si la lista está filtrada.
+    ///
+    /// El total pesa más que el conteo a propósito: es el dato de cuadre, el
+    /// que el tesorero compara contra el estado financiero y contra el
+    /// depósito. Iba en el mismo gris tenue que su etiqueta.
+    private var resumenPie: some View {
+        HStack(spacing: 6) {
+            Text("\(vm.itemsFiltrados.count)")
+                .foregroundStyle(.secondary)
+            Text("·").foregroundStyle(.tertiary)
+            Text(Money.firmado(vm.total, ingreso: vm.tipo == .ingreso))
+                .fontWeight(.semibold)
+                .foregroundStyle(Money.color(ingreso: vm.tipo == .ingreso))
+        }
+        .font(.footnote)
+        .monospacedDigit()
+    }
+
+    /// Con el texto en las dos plataformas: en iPad cabe en la barra, y en el
+    /// teléfono vive en la barra inferior, donde también sobra sitio. Un `+`
+    /// suelto obliga a adivinar qué crea.
     private var botonNuevo: some View {
-        let boton = Button {
+        Button {
             Task { hoja = .nueva(folio: await vm.nuevoFolio()) }
         } label: {
             Label(L.t("Nuevo", "New"), systemImage: "plus")
         }
         .buttonStyle(.glass)
         .tint(Paleta.brand)
-
-        if compacto {
-            boton.labelStyle(.iconOnly)
-        } else {
-            boton.labelStyle(.titleAndIcon)
-        }
     }
 
     private var pickerTipo: some View {
@@ -335,7 +335,10 @@ struct MovimientosView: View {
     private var listaColumna: some View {
         lista
             .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
+            // El pie solo en iPad: en el teléfono se convirtió en la barra
+            // inferior, con la lupa a la izquierda y el resumen a la derecha.
             .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
+            .safeAreaInset(edge: .bottom, spacing: 0) { barraInferior }
             .colchonInferior()
     }
 
@@ -651,18 +654,26 @@ struct MovimientosView: View {
                      tarjeta: sizeClass != .regular)
     }
 
+    /// El pie de la columna del iPad. En el teléfono no existe: se convirtió
+    /// en la barra inferior, con la lupa a la izquierda y el resumen a la
+    /// derecha.
+    @ViewBuilder
     private var pieLista: some View {
-        HStack {
-            Text(L.t("\(vm.itemsFiltrados.count) movimientos", "\(vm.itemsFiltrados.count) entries"))
-            Spacer()
-            Text(Money.firmado(vm.total, ingreso: vm.tipo == .ingreso))
-                .monospacedDigit().fontWeight(.semibold)
-                .foregroundStyle(Money.color(ingreso: vm.tipo == .ingreso))
+        if !compacto {
+            HStack {
+                Text(L.t("\(vm.itemsFiltrados.count) movimientos",
+                         "\(vm.itemsFiltrados.count) entries"))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(Money.firmado(vm.total, ingreso: vm.tipo == .ingreso))
+                    .monospacedDigit().fontWeight(.semibold)
+                    .foregroundStyle(Money.color(ingreso: vm.tipo == .ingreso))
+            }
+            .font(.caption)
+            .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+            // Igual que la cabecera: el material va donde hay algo que
+            // difuminar.
+            .background(.regularMaterial)
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
-        // Igual que la cabecera: el material va donde hay algo que difuminar.
-        .background(.regularMaterial)
     }
 }
