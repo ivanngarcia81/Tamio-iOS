@@ -167,12 +167,72 @@ struct MovimientosView: View {
         // las dos cosas, y rellenarlo lo convertía en el elemento más pesado de
         // la pantalla. El sistema sigue resolviendo forma, sombra, borde y
         // refracción, que es lo que quitó el halo doble.
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            // El mes y los filtros solo se esconden en el teléfono, que es
-            // donde no caben. En iPad siguen en la cabecera de la columna.
-            if compacto { menuPeriodoYFiltros }
-            botonNuevo
+        // **Mes y filtros separados no caben, medido en pantalla.** Con los
+        // seis elementos (volver · segmentado · Sep ⌄ · filtros · + · lupa) el
+        // segmentado se queda en ~155 pt y "Income | Expenses" necesita ~190:
+        // sale "Inco… | Expe…", que es peor que esconder un filtro. Así que van
+        // al overflow, con las dos condiciones: el mes ESCRITO con su chevron
+        // —nunca tres puntos— y la señal de filtros activos a la vista.
+        if compacto {
+            ToolbarItem(placement: .topBarTrailing) { menuPeriodoYFiltros }
         }
+        // El espaciador ROMPE el grupo de glass. Sin él, "qué estoy viendo"
+        // (el mes) y "qué puedo hacer" (el `+`) se funden en una sola cápsula
+        // sin tener nada que ver. Separados, cada cosa es una cápsula, que es
+        // lo que hacen las referencias del Teléfono.
+        //
+        // La lupa NO se puede meter en el mismo grupo que el `+`: la coloca el
+        // sistema al declarar `.searchToolbarBehavior(.minimize)` y va siempre
+        // en su propio grupo. El grupo compacto lupa+`+` del Calendario no es
+        // alcanzable desde `.searchable`.
+        if compacto { ToolbarSpacer(.fixed, placement: .topBarTrailing) }
+        ToolbarItem(placement: .topBarTrailing) { botonNuevo }
+    }
+
+    /// El overflow del teléfono, con las dos condiciones que lo hacen legible:
+    ///
+    /// - **El mes va escrito, con su chevron.** El chevron es lo que dice que
+    ///   despliega algo; sin él el botón se lee como una etiqueta. Y escrito y
+    ///   no detrás de tres puntos porque en una tesorería el periodo no es un
+    ///   ajuste cualquiera: es la diferencia entre mirar septiembre o agosto.
+    ///   Es además donde se recupera el subtítulo que se va con el título.
+    /// - **Se tiñe y lleva el contador** cuando hay filtros puestos. Escondida
+    ///   esa señal, un filtro activo explicaría una lista vacía sin que se
+    ///   pueda saber por qué.
+    ///
+    /// Va en su propio `ToolbarItem` y no dentro de un grupo: agrupado, el menú
+    /// se anclaba al grupo entero y se desplegaba pegado a la izquierda,
+    /// tapando el segmentado y saliendo de un sitio que no era el del botón.
+    private var menuPeriodoYFiltros: some View {
+        Menu {
+            Section(L.t("Mes", "Month")) {
+                ForEach(vm.mesesDisponibles, id: \.self) { m in
+                    opcionMes(Fechas.mes(m), marcada: vm.mes == m) { vm.mes = m }
+                }
+                opcionMes(Self.todosLosMeses, marcada: vm.mes == nil) { vm.mes = nil }
+            }
+            Section(L.t("Filtros", "Filters")) {
+                Button {
+                    mostrarFiltros = true
+                } label: {
+                    Label(filtrosActivos > 0
+                          ? L.t("Categoría y estado · \(filtrosActivos)",
+                                "Category and status · \(filtrosActivos)")
+                          : L.t("Categoría y estado", "Category and status"),
+                          systemImage: "line.3.horizontal.decrease")
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(etiquetaMesCorta).lineLimit(1)
+                Image(systemName: "chevron.down").font(.caption.weight(.semibold))
+                if filtrosActivos > 0 { contador(filtrosActivos) }
+            }
+            .font(.subheadline.weight(.medium))
+        }
+        .buttonStyle(.glass)
+        .tint(filtrosActivos > 0 ? Paleta.brand : nil)
+        .accessibilityLabel(L.t("Mes y filtros", "Month and filters"))
     }
 
     /// En el teléfono es solo el `+` —la barra ya va justa con el segmentado y
@@ -204,48 +264,6 @@ struct MovimientosView: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-    }
-
-    /// El overflow del teléfono. **No es un botón mudo**, a propósito:
-    ///
-    /// - Su etiqueta ES el mes. Escondido detrás de tres puntos, el periodo que
-    ///   se está mirando dejaría de verse, y en una tesorería la diferencia
-    ///   entre estar en septiembre o en agosto no es un ajuste cualquiera. Es
-    ///   además donde se recupera el subtítulo que se va con el título.
-    /// - Se tiñe y lleva el contador cuando hay filtros puestos. Escondida esa
-    ///   señal, un filtro activo explicaría una lista vacía sin que se pueda
-    ///   saber por qué.
-    private var menuPeriodoYFiltros: some View {
-        Menu {
-            Section(L.t("Mes", "Month")) {
-                ForEach(vm.mesesDisponibles, id: \.self) { m in
-                    opcionMes(Fechas.mes(m), marcada: vm.mes == m) { vm.mes = m }
-                }
-                opcionMes(Self.todosLosMeses, marcada: vm.mes == nil) { vm.mes = nil }
-            }
-            Section {
-                Button {
-                    mostrarFiltros = true
-                } label: {
-                    Label(filtrosActivos > 0
-                          ? L.t("Filtros · \(filtrosActivos)", "Filters · \(filtrosActivos)")
-                          : L.t("Filtros", "Filters"),
-                          systemImage: "line.3.horizontal.decrease")
-                }
-            }
-        } label: {
-            // Abreviado: en la barra del teléfono conviven el segmentado, este
-            // botón, el `+` y la lupa, y con el mes escrito entero el `+` se
-            // cae de la barra sin avisar. "Sep" sigue diciendo el periodo, que
-            // es lo que no se puede perder de vista; el nombre completo está
-            // dentro del menú.
-            HStack(spacing: 5) {
-                Text(etiquetaMesCorta).lineLimit(1)
-                if filtrosActivos > 0 { contador(filtrosActivos) }
-            }
-            .font(.subheadline.weight(.medium))
-        }
-        .tint(filtrosActivos > 0 ? Paleta.brand : nil)
     }
 
     /// El repositorio real puede fallar por red o porque RLS niegue el acceso.
@@ -460,20 +478,25 @@ struct MovimientosView: View {
         + ((vm.tipo == .ingreso ? vm.soloSinDepositar : vm.soloPendientes) ? 1 : 0)
     }
 
-    /// Chip de filtros de la columna del iPad. La cápsula, el borde y la
-    /// sombra las pone `.glass`; el verde entra como TINTE del material cuando
-    /// hay algo aplicado, no como relleno plano.
+    /// Botón de filtros. La cápsula, el borde y la sombra las pone `.glass`;
+    /// el verde tiñe el material cuando hay algo aplicado, y el contador dice
+    /// cuánto. Esa señal no se puede perder: un filtro puesto explica una lista
+    /// vacía, y sin ella el usuario no tiene forma de saber por qué.
+    ///
+    /// En el teléfono va solo el icono de deslizadores, que es el símbolo del
+    /// sistema para esto; en iPad cabe la palabra.
     private var botonFiltros: some View {
         Button { mostrarFiltros = true } label: {
             HStack(spacing: 5) {
                 Image(systemName: "line.3.horizontal.decrease")
-                Text(L.t("Filtros", "Filters"))
+                if !compacto { Text(L.t("Filtros", "Filters")) }
                 if filtrosActivos > 0 { contador(filtrosActivos) }
             }
             .font(.subheadline.weight(.medium))
         }
         .buttonStyle(.glass)
         .tint(filtrosActivos > 0 ? Paleta.brand : nil)
+        .accessibilityLabel(L.t("Filtros", "Filters"))
     }
 
     private func contador(_ n: Int) -> some View {
@@ -548,10 +571,15 @@ struct MovimientosView: View {
         .presentationDetents([.medium])
     }
 
-    /// El chip del mes. Antes llevaba chevron de desplegable y una acción
-    /// VACÍA: parecía un selector, no lo era, y la lista traía todos los meses
-    /// aunque el chip nombrara uno. Ofrece solo los meses con movimientos —un
-    /// calendario libre dejaría caer en meses vacíos— más "Todos los meses".
+    /// El selector de mes, **con el mes escrito y su chevron**. El chevron es
+    /// lo que dice que despliega algo; sin él el botón se lee como una
+    /// etiqueta. Y el mes va escrito y no detrás de tres puntos porque en una
+    /// tesorería el periodo no es un ajuste cualquiera: es la diferencia entre
+    /// estar mirando septiembre o agosto. Es además donde se recupera el
+    /// subtítulo que se va con el título.
+    ///
+    /// Ofrece solo los meses con movimientos —un calendario libre dejaría caer
+    /// en meses vacíos— más "Todos los meses".
     private var selectorMes: some View {
         Menu {
             ForEach(vm.mesesDisponibles, id: \.self) { m in
@@ -561,7 +589,9 @@ struct MovimientosView: View {
             opcionMes(Self.todosLosMeses, marcada: vm.mes == nil) { vm.mes = nil }
         } label: {
             HStack(spacing: 4) {
-                Text(etiquetaMes)
+                // Abreviado en el teléfono, donde el ancho de la barra decide;
+                // entero en iPad, donde la cabecera de la columna tiene sitio.
+                Text(compacto ? etiquetaMesCorta : etiquetaMes).lineLimit(1)
                 Image(systemName: "chevron.down").font(.caption.weight(.semibold))
             }
             .font(.subheadline.weight(.medium))
