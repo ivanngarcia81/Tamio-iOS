@@ -27,8 +27,11 @@ final class DepositosViewModel {
     private(set) var pendientesTotal: Int = 0   // siempre refleja los pendientes reales
     var seleccionId: String?
 
-    /// Cuentas bancarias disponibles para "Asignar cuenta".
-    let cuentas = ["Banorte ··4821", "BBVA ··7730", L.t("Efectivo en caja", "Cash on hand")]
+    /// Cuentas bancarias donde se puede depositar. **Vienen del repositorio**,
+    /// no de un literal en el ViewModel: estaban escritas a mano aquí, así que
+    /// una iglesia con otro banco no tenía forma de nombrarlo y el corte se
+    /// quedaba "Sin asignar" para siempre. Su sitio definitivo es Ajustes.
+    private(set) var cuentas: [String] = []
 
     init(repo: DepositosRepository = MockDepositosRepository()) {
         self.repo = repo
@@ -45,6 +48,7 @@ final class DepositosViewModel {
         // independientemente de la pestaña activa (pendientes vs. depositados).
         let todosLospendientes = (try? await repo.cortes(estado: .pendiente)) ?? []
         pendientesTotal = todosLospendientes.count
+        cuentas = (try? await repo.cuentas()) ?? []
     }
 
     var seleccion: Corte? { items.first { $0.id == seleccionId } }
@@ -53,32 +57,90 @@ final class DepositosViewModel {
     /// Corte por id (para el detalle en la ruta compacta, siempre fresco).
     func corte(_ id: String) -> Corte? { items.first { $0.id == id } }
 
+    /// La cuenta que enseña el subtítulo de la barra. Era "Banorte ··4821"
+    /// escrito a mano: la barra nombraba una cuenta aunque ningún corte
+    /// pendiente fuera a ella.
+    var cuentaResumen: String? {
+        let cuentasPendientes = Set(items.filter(\.sinDepositar).map(\.registro.cuenta))
+            .filter { $0 != Corte.sinAsignar && !$0.isEmpty }
+        return cuentasPendientes.count == 1 ? cuentasPendientes.first : nil
+    }
+
     // MARK: - Acciones
 
-    /// Marca/desmarca un movimiento del corte y recalcula los totales.
+    /// Marca/desmarca un movimiento del corte. Los totales ya no se
+    /// "recalculan": son propiedades calculadas del corte.
     @MainActor
     func toggleMovimiento(corteId: String, movId: Int) async {
-        guard let ci = items.firstIndex(where: { $0.id == corteId }),
-              let mi = items[ci].movimientos.firstIndex(where: { $0.id == movId }) else { return }
-        items[ci].movimientos[mi].seleccionado.toggle()
-        items[ci] = Self.recomputar(items[ci])
-        try? await repo.actualizar(items[ci])
+        await editar(corteId) { c in
+            guard let mi = c.movimientos.firstIndex(where: { $0.id == movId }) else { return }
+            c.movimientos[mi].seleccionado.toggle()
+        }
+    }
+
+    /// Marca o desmarca todos de golpe. Un corte de catorce movimientos se
+    /// vaciaba a mano, toque por toque.
+    @MainActor
+    func marcarTodos(corteId: String, _ valor: Bool) async {
+        await editar(corteId) { c in
+            for i in c.movimientos.indices { c.movimientos[i].seleccionado = valor }
+        }
+    }
+
+    /// Agrega dinero en caja al corte. **Antes no existía**: un corte nuevo
+    /// nacía vacío y no había forma de meterle un solo movimiento, así que el
+    /// importe que se tecleaba al crearlo no tenía nada detrás.
+    @MainActor
+    func agregarMovimiento(corteId: String, _ mov: MovimientoCaja) async {
+        await editar(corteId) { c in
+            var nuevo = mov
+            // Id local del corte: el siguiente libre, para no chocar con los
+            // que ya están aunque se borre uno de en medio.
+            nuevo.id = (c.movimientos.map(\.id).max() ?? 0) + 1
+            c.movimientos.append(nuevo)
+        }
+    }
+
+    @MainActor
+    func quitarMovimiento(corteId: String, movId: Int) async {
+        await editar(corteId) { c in
+            c.movimientos.removeAll { $0.id == movId }
+        }
     }
 
     /// Asigna la cuenta bancaria del depósito.
     @MainActor
     func asignarCuenta(corteId: String, cuenta: String) async {
-        guard let ci = items.firstIndex(where: { $0.id == corteId }) else { return }
-        items[ci].registro.cuenta = cuenta
-        try? await repo.actualizar(items[ci])
+        await editar(corteId) { $0.registro.cuenta = cuenta }
+    }
+
+    /// Da de alta una cuenta y se la asigna al corte.
+    @MainActor
+    func agregarCuenta(_ nombre: String, aCorte corteId: String?) async {
+        let limpio = nombre.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !limpio.isEmpty else { return }
+        try? await repo.agregarCuenta(limpio)
+        cuentas = (try? await repo.cuentas()) ?? cuentas
+        if let corteId { await asignarCuenta(corteId: corteId, cuenta: limpio) }
+    }
+
+    /// Cambia el periodo contable al que suma el depósito. El checklist decía
+    /// "cambia el periodo al registrar el depósito" y no había dónde cambiarlo.
+    @MainActor
+    func cambiarPeriodo(corteId: String, _ periodo: String) async {
+        await editar(corteId) { $0.registro.periodo = periodo }
+    }
+
+    /// Cambia la fecha del depósito. Un corte podía quedarse en "Por definir".
+    @MainActor
+    func cambiarFecha(corteId: String, _ fecha: Date) async {
+        await editar(corteId) { $0.registro.fecha = Self.textoFecha(fecha) }
     }
 
     /// Adjunta (registra el nombre de) la ficha del banco.
     @MainActor
     func adjuntarFicha(corteId: String, nombre: String) async {
-        guard let ci = items.firstIndex(where: { $0.id == corteId }) else { return }
-        items[ci].fichaAdjunta = nombre
-        try? await repo.actualizar(items[ci])
+        await editar(corteId) { $0.fichaAdjunta = nombre }
     }
 
     /// Marca el corte como depositado; sale de la pestaña Pendientes.
@@ -88,30 +150,24 @@ final class DepositosViewModel {
         await cargar()
     }
 
-    /// Crea un corte nuevo (pendiente) con la cuenta y monto dados.
+    /// Crea un corte nuevo (pendiente). **Sin importe tecleado**: el monto de
+    /// un corte es la suma de sus movimientos, así que un número escrito aquí
+    /// era una cifra sin nada detrás que además desaparecía al primer toque.
     @MainActor
-    func crearCorte(titulo: String, cuenta: String, monto: Centavos) async {
+    func crearCorte(titulo: String, cuenta: String, efectivoEstimado: Centavos?) async {
         let nuevo = Corte(
             id: UUID().uuidString,
-            titulo: titulo.isEmpty ? L.t("Corte sin título", "Untitled cut") : titulo,
-            subtitulo: L.t("0 movimientos · \(cuenta)", "0 entries · \(cuenta)"),
-            descripcion: L.t("Corte creado hoy · agrega los movimientos en caja",
-                             "Cut created today · add the cash entries"),
-            montoTotal: monto, estado: .pendiente,
-            efectivoSeleccionado: monto, efectivoEstimado: monto,
-            chequesMonto: 0, chequesCount: 0,
-            listoParaDepositar: monto, seleccionados: 0, totalSeleccionables: 0,
-            chequeos: [
-                Chequeo(id: 1, tipo: .duda,
-                        titulo: L.t("Corte nuevo", "New cut"),
-                        detalle: L.t("Agrega los movimientos en caja y revisa antes de depositar.",
-                                     "Add the cash entries and review before depositing."),
-                        enlace: nil)
-            ],
+            titulo: titulo.trimmingCharacters(in: .whitespaces).isEmpty
+                ? L.t("Corte sin título", "Untitled cut")
+                : titulo.trimmingCharacters(in: .whitespaces),
+            descripcion: L.t("Corte creado hoy · agrega el dinero en caja que va en este depósito",
+                             "Cut created today · add the cash entries this deposit covers"),
+            estado: .pendiente,
             movimientos: [],
-            registro: RegistroDeposito(cuenta: cuenta,
-                                       fecha: L.t("Hoy", "Today"),
-                                       periodo: periodoActual, monto: monto)
+            registro: RegistroDeposito(cuenta: cuenta.isEmpty ? Corte.sinAsignar : cuenta,
+                                       fecha: Self.textoFecha(Date()),
+                                       periodo: Self.periodoActual),
+            efectivoEstimado: efectivoEstimado
         )
         try? await repo.crear(nuevo)
         estado = .pendiente
@@ -119,24 +175,15 @@ final class DepositosViewModel {
         seleccionId = nuevo.id
     }
 
-    // MARK: - Cálculo
+    // MARK: - Interno
 
-    /// Recalcula los chips (efectivo, cheques, listo, contadores) desde la
-    /// selección actual de movimientos. Es lo que hace "vivos" los totales.
-    private static func recomputar(_ c: Corte) -> Corte {
-        var c = c
-        let sel = c.movimientos.filter { $0.seleccionado }
-        let efectivo = sel.filter { !$0.esCheque }.reduce(0) { $0 + $1.monto }
-        let cheques = sel.filter { $0.esCheque }
-        c.efectivoSeleccionado = efectivo
-        c.chequesMonto = cheques.reduce(0) { $0 + $1.monto }
-        c.chequesCount = cheques.count
-        c.seleccionados = sel.count
-        c.totalSeleccionables = c.movimientos.count
-        c.listoParaDepositar = efectivo + c.chequesMonto
-        c.montoTotal = c.listoParaDepositar
-        c.registro.monto = c.listoParaDepositar
-        return c
+    /// Aplica un cambio al corte en memoria y lo persiste. Los ocho métodos de
+    /// arriba repetían este mismo `firstIndex` + `actualizar`.
+    @MainActor
+    private func editar(_ corteId: String, _ cambio: (inout Corte) -> Void) async {
+        guard let ci = items.firstIndex(where: { $0.id == corteId }) else { return }
+        cambio(&items[ci])
+        try? await repo.actualizar(items[ci])
     }
 
     private static func ordenar(_ cortes: [Corte], por orden: OrdenCorte) -> [Corte] {
@@ -146,11 +193,21 @@ final class DepositosViewModel {
         }
     }
 
-    private var periodoActual: String {
-        let f = DateFormatter()
-        f.locale = L.locale
-        f.dateFormat = "LLLL yyyy"
-        return f.string(from: Date()).capitalized
+    static func textoFecha(_ fecha: Date) -> String {
+        let formato = L.esEspanol ? "EEEE d 'de' MMMM" : "EEEE, MMM d"
+        return L.formateador(formato).string(from: fecha).capitalized
     }
 
+    static var periodoActual: String { periodo(Date()) }
+
+    static func periodo(_ fecha: Date) -> String {
+        L.formateador("LLLL yyyy").string(from: fecha).capitalized
+    }
+
+    /// Los doce meses alrededor de hoy, para el menú de periodo contable.
+    static var periodosCercanos: [String] {
+        let cal = Calendar.current
+        return (-6...5).compactMap { cal.date(byAdding: .month, value: $0, to: Date()) }
+            .map { periodo($0) }
+    }
 }

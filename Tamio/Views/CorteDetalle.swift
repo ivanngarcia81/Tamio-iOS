@@ -2,19 +2,31 @@ import SwiftUI
 
 /// Detalle de un corte de caja (depósito): cabecera con estado, tres chips KPI,
 /// checklist "Antes de depositar", movimientos en caja, y la tarjeta "Se
-/// registrará así" con la ficha del banco. Fiel al handoff. Los botones se
-/// cablean por callbacks; la vista padre los enruta al ViewModel/repositorio.
+/// registrará así" con la ficha del banco. Los botones se cablean por
+/// callbacks; la vista padre los enruta al ViewModel/repositorio.
 struct CorteDetalle: View {
     let corte: Corte
     var cuentas: [String] = []
     var onNuevoCorte: (() -> Void)? = nil
     var onToggleMovimiento: ((Int) -> Void)? = nil
+    var onMarcarTodos: ((Bool) -> Void)? = nil
+    var onAgregarMovimiento: ((MovimientoCaja) -> Void)? = nil
+    var onQuitarMovimiento: ((Int) -> Void)? = nil
     var onAsignarCuenta: ((String) -> Void)? = nil
+    var onAgregarCuenta: ((String) -> Void)? = nil
+    var onCambiarPeriodo: ((String) -> Void)? = nil
+    var onCambiarFecha: ((Date) -> Void)? = nil
     var onAdjuntarFicha: ((String) -> Void)? = nil
     var onMarcarDepositado: (() -> Void)? = nil
+    var onIrAPorRevisar: (() -> Void)? = nil
 
     @State private var mostrarImportador = false
     @State private var confirmarDeposito = false
+    @State private var mostrarNuevoMovimiento = false
+    @State private var mostrarNuevaCuenta = false
+    @State private var mostrarFecha = false
+    @State private var nombreCuenta = ""
+    @State private var fechaEditada = Date()
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
@@ -42,6 +54,7 @@ struct CorteDetalle: View {
         .colchonInferior()
         .safeAreaInset(edge: .bottom) { barraDepositar }
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .fileImporter(isPresented: $mostrarImportador,
                       allowedContentTypes: [.image, .pdf],
                       allowsMultipleSelection: false) { resultado in
@@ -49,15 +62,49 @@ struct CorteDetalle: View {
                 onAdjuntarFicha?(url.lastPathComponent)
             }
         }
+        .sheet(isPresented: $mostrarNuevoMovimiento) {
+            NuevoMovimientoCajaView(folioSugerido: folioSugerido) { mov in
+                onAgregarMovimiento?(mov)
+            }
+        }
+        .alert(L.t("Cuenta nueva", "New account"), isPresented: $mostrarNuevaCuenta) {
+            TextField(L.t("Banco y últimos dígitos", "Bank and last digits"), text: $nombreCuenta)
+            Button(L.t("Agregar", "Add")) {
+                onAgregarCuenta?(nombreCuenta)
+                nombreCuenta = ""
+            }
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) { nombreCuenta = "" }
+        } message: {
+            Text(L.t("Por ejemplo «Chase ··7730». Se asigna a este corte.",
+                     "For example “Chase ··7730”. It will be assigned to this cut."))
+        }
         .confirmationDialog(L.t("¿Marcar este corte como depositado?",
                                 "Mark this cut as deposited?"),
                             isPresented: $confirmarDeposito, titleVisibility: .visible) {
             Button(L.t("Marcar depositado", "Mark deposited")) { onMarcarDepositado?() }
             Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
         } message: {
-            Text(L.t("Se registrará \(Money.fmt(corte.registro.monto)) en \(corte.registro.cuenta).",
-                     "\(Money.fmt(corte.registro.monto)) will be recorded to \(corte.registro.cuenta)."))
+            Text(mensajeConfirmacion)
         }
+        .sheet(isPresented: $mostrarFecha) { hojaFecha }
+    }
+
+    /// El folio que se propone al capturar: el siguiente al mayor del corte.
+    private var folioSugerido: String {
+        let numeros = corte.movimientos.compactMap { Int($0.folio) }
+        guard let mayor = numeros.max() else { return "" }
+        return String(mayor + 1)
+    }
+
+    /// El mensaje del diálogo dice lo que de verdad se va a registrar. Antes
+    /// prometía un monto que salía de un campo guardado aparte de la selección.
+    private var mensajeConfirmacion: String {
+        if corte.sinCuenta {
+            return L.t("Este corte no tiene cuenta asignada. Asígnala antes de registrarlo.",
+                       "This cut has no account assigned. Assign one before recording it.")
+        }
+        return L.t("Se registrará \(Money.fmt(corte.montoTotal)) en \(corte.registro.cuenta), en el periodo \(corte.registro.periodo).",
+                   "\(Money.fmt(corte.montoTotal)) will be recorded to \(corte.registro.cuenta), in period \(corte.registro.periodo).")
     }
 
     // MARK: - Cabecera
@@ -98,12 +145,19 @@ struct CorteDetalle: View {
 
                 filaChip(L.t("Efectivo seleccionado", "Cash selected"),
                          monto: corte.efectivoSeleccionado,
-                         sub: L.t("De \(Money.fmt(corte.efectivoEstimado)) estimados en caja",
-                                  "Of \(Money.fmt(corte.efectivoEstimado)) estimated on hand"))
+                         // Sin conteo de caja no se enseña un estimado
+                         // inventado: antes un corte nuevo decía "De $0.00
+                         // estimados en caja" bajo el efectivo que sí tenía.
+                         sub: corte.efectivoEstimado.map {
+                             L.t("De \(Money.fmt($0)) estimados en caja",
+                                 "Of \(Money.fmt($0)) estimated on hand")
+                         })
                 Divider()
                 filaChip(L.t("Cheques (\(corte.chequesCount))", "Checks (\(corte.chequesCount))"),
                          monto: corte.chequesMonto,
-                         sub: L.t("Se depositan con la misma ficha", "Deposited on the same slip"))
+                         sub: corte.chequesCount == 0
+                            ? nil
+                            : L.t("Se depositan con la misma ficha", "Deposited on the same slip"))
                 Divider()
                 filaChip(L.t("Listo para depositar", "Ready to deposit"),
                          monto: corte.listoParaDepositar,
@@ -145,15 +199,49 @@ struct CorteDetalle: View {
                     HStack {
                         TituloSeccion(texto: L.t("MOVIMIENTOS DEL CORTE", "ENTRIES IN THIS DEPOSIT"))
                         Spacer()
-                        TituloSeccion(texto: L.t("MONTO", "AMOUNT"))
+                        if corte.totalSeleccionables > 0, corte.sinDepositar {
+                            botonMarcarTodos
+                        }
                     }
-                    ForEach(Array(corte.movimientos.enumerated()), id: \.element.id) { i, m in
-                        filaMovimiento(m)
-                        if i < corte.movimientos.count - 1 { Divider() }
+                    if corte.movimientos.isEmpty {
+                        Text(L.t("Todavía no hay dinero en caja en este corte.",
+                                 "No cash entries in this cut yet."))
+                            .font(.subheadline).foregroundStyle(.secondary)
+                            .padding(.vertical, 4)
+                    } else {
+                        ForEach(Array(corte.movimientos.enumerated()), id: \.element.id) { i, m in
+                            filaMovimiento(m)
+                            if i < corte.movimientos.count - 1 { Divider() }
+                        }
+                    }
+                    if corte.sinDepositar {
+                        Divider()
+                        Button { mostrarNuevoMovimiento = true } label: {
+                            Label(L.t("Agregar dinero en caja", "Add cash entry"),
+                                  systemImage: "plus.circle.fill")
+                                .font(.subheadline.weight(.medium))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Paleta.brand)
+                        .padding(.top, 2)
                     }
                 }
             }
         }
+    }
+
+    /// Marca o desmarca los movimientos de golpe. Un corte de catorce se
+    /// vaciaba toque por toque.
+    private var botonMarcarTodos: some View {
+        let todosMarcados = corte.seleccionados == corte.totalSeleccionables
+        return Button {
+            onMarcarTodos?(!todosMarcados)
+        } label: {
+            Text(todosMarcados ? L.t("Ninguno", "None") : L.t("Todos", "All"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Paleta.enlace)
+        }
+        .buttonStyle(.plain)
     }
 
     private func filaChequeo(_ c: Chequeo) -> some View {
@@ -165,7 +253,7 @@ struct CorteDetalle: View {
                 HStack {
                     Text(c.titulo).font(.subheadline.weight(.semibold))
                     Spacer()
-                    if let enlace = c.enlace { enlaceChequeo(enlace) }
+                    enlaceChequeo(c)
                 }
                 Text(c.detalle).font(.caption).foregroundStyle(.secondary)
             }
@@ -178,8 +266,12 @@ struct CorteDetalle: View {
                 Image(systemName: m.seleccionado ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(m.seleccionado ? Paleta.brand : .secondary)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(m.categoria) · \(m.folio)").font(.subheadline.weight(.medium)).lineLimit(1)
-                    Text(m.cuando).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    Text(L.t("\(m.categoria) · Folio \(m.folio)", "\(m.categoria) · Folio \(m.folio)"))
+                        .font(.subheadline.weight(.medium)).lineLimit(1)
+                    // La forma (efectivo o cheque nº) manda sobre la hora: es
+                    // lo que decide en qué chip suma y lo que pide el banco.
+                    Text("\(m.referencia) · \(m.cuando)")
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer(minLength: 8)
                 Text(Money.fmt(m.monto)).font(.subheadline.weight(.semibold)).monospacedDigit()
@@ -189,22 +281,79 @@ struct CorteDetalle: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            if corte.sinDepositar {
+                Button(role: .destructive) { onQuitarMovimiento?(m.id) } label: {
+                    Label(L.t("Quitar del corte", "Remove from cut"), systemImage: "trash")
+                }
+            }
+        }
     }
 
-    /// El enlace del checklist. "Asignar cuenta" abre un menú de cuentas; los
-    /// demás son texto informativo (su destino llega en un slice posterior).
+    /// El enlace del checklist. Antes era `Text` con `Paleta.enlace` para todos
+    /// menos "Asignar cuenta": "Ir a Por revisar" tenía color de enlace y no
+    /// llevaba a ningún sitio, el mismo falso enlace que ya se quitó de
+    /// `FieldRow` y del pie de la tarjeta "Por revisar" del Inicio.
     @ViewBuilder
-    private func enlaceChequeo(_ enlace: String) -> some View {
-        if enlace == L.t("Asignar cuenta", "Assign account"), !cuentas.isEmpty {
-            Menu {
-                ForEach(cuentas, id: \.self) { cta in
-                    Button(cta) { onAsignarCuenta?(cta) }
-                }
-            } label: {
-                Text(enlace).font(.caption.weight(.semibold)).foregroundStyle(Paleta.enlace)
+    private func enlaceChequeo(_ c: Chequeo) -> some View {
+        switch c.accion {
+        case .asignarCuenta:
+            menuCuentas { Text(c.enlace ?? "").font(.caption.weight(.semibold)) }
+        case .irAPorRevisar:
+            Button { onIrAPorRevisar?() } label: {
+                Text(c.enlace ?? "").font(.caption.weight(.semibold))
             }
-        } else {
-            Text(enlace).font(.caption).foregroundStyle(Paleta.enlace)
+            .buttonStyle(.plain).foregroundStyle(Paleta.enlace)
+        case .cambiarPeriodo:
+            menuPeriodos { Text(c.enlace ?? "").font(.caption.weight(.semibold)) }
+        case nil:
+            EmptyView()
+        }
+    }
+
+    /// El menú de cuentas, con alta incluida. Se usa en el checklist y en "Se
+    /// registrará así": eran dos copias del mismo `ForEach`.
+    @ViewBuilder
+    private func menuCuentas<E: View>(@ViewBuilder etiqueta: () -> E) -> some View {
+        Menu {
+            ForEach(cuentas, id: \.self) { cta in
+                Button {
+                    onAsignarCuenta?(cta)
+                } label: {
+                    if cta == corte.registro.cuenta {
+                        Label(cta, systemImage: "checkmark")
+                    } else {
+                        Text(cta)
+                    }
+                }
+            }
+            Divider()
+            Button {
+                mostrarNuevaCuenta = true
+            } label: {
+                Label(L.t("Otra cuenta…", "Another account…"), systemImage: "plus")
+            }
+        } label: {
+            etiqueta().foregroundStyle(Paleta.enlace)
+        }
+    }
+
+    @ViewBuilder
+    private func menuPeriodos<E: View>(@ViewBuilder etiqueta: () -> E) -> some View {
+        Menu {
+            ForEach(DepositosViewModel.periodosCercanos, id: \.self) { p in
+                Button {
+                    onCambiarPeriodo?(p)
+                } label: {
+                    if p == corte.registro.periodo {
+                        Label(p, systemImage: "checkmark")
+                    } else {
+                        Text(p)
+                    }
+                }
+            }
+        } label: {
+            etiqueta().foregroundStyle(Paleta.enlace)
         }
     }
 
@@ -241,14 +390,14 @@ struct CorteDetalle: View {
                     .padding(.bottom, 8)
                 filaCuenta
                 Divider()
-                filaRegistro(L.t("Fecha", "Date"), corte.registro.fecha)
+                filaFecha
                 Divider()
-                filaRegistro(L.t("Periodo", "Period"), corte.registro.periodo)
+                filaPeriodo
                 Divider()
-                filaRegistro(L.t("Monto", "Amount"), Money.fmt(corte.registro.monto), fuerte: true)
+                filaRegistro(L.t("Monto", "Amount"), Money.fmt(corte.montoTotal), fuerte: true)
 
                 if conBoton, corte.sinDepositar {
-                    botonDepositar.padding(.top, 14)
+                    botonDepositar(glass: false).padding(.top, 14)
                 }
             }
         }
@@ -263,8 +412,10 @@ struct CorteDetalle: View {
                         Image(systemName: "doc.fill").foregroundStyle(Paleta.brand)
                         Text(ficha).font(.subheadline).lineLimit(1)
                         Spacer()
-                        Button(L.t("Cambiar", "Change")) { mostrarImportador = true }
-                            .font(.caption).buttonStyle(.borderless)
+                        if corte.sinDepositar {
+                            Button(L.t("Cambiar", "Change")) { mostrarImportador = true }
+                                .font(.caption).buttonStyle(.borderless)
+                        }
                     }
                 } else {
                     Text(L.t("Foto o PDF de la ficha del banco", "Photo or PDF of the bank slip"))
@@ -280,14 +431,30 @@ struct CorteDetalle: View {
         }
     }
 
-    private var botonDepositar: some View {
-        Button { confirmarDeposito = true } label: {
-            Text(L.t("Marcar depositado", "Mark deposited"))
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity)
+    /// Sin cuenta o sin un peso seleccionado el botón va apagado: antes se
+    /// podía confirmar un corte de $0.00 "Sin asignar", y salía de Pendientes
+    /// sin que nadie hubiera ido al banco.
+    ///
+    /// `glass` en la barra flotante del teléfono, donde se ve el contenido por
+    /// debajo; relleno sólido dentro de la tarjeta del iPad, donde no hay nada
+    /// que difuminar y el glass se resuelve como un gris plano.
+    @ViewBuilder
+    private func botonDepositar(glass: Bool) -> some View {
+        let etiqueta = Text(L.t("Marcar depositado", "Mark deposited"))
+            .fontWeight(.semibold)
+            .frame(maxWidth: .infinity)
+        let apagado = corte.sinCuenta || corte.montoTotal == 0
+        if glass {
+            Button { confirmarDeposito = true } label: { etiqueta }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+                .disabled(apagado)
+        } else {
+            Button { confirmarDeposito = true } label: { etiqueta }
+                .buttonStyle(.borderedProminent)
+                .tint(Paleta.brand)
+                .disabled(apagado)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(Paleta.brand)
     }
 
     /// La acción principal, fijada sobre el tab bar en compacto. Dentro del
@@ -295,14 +462,13 @@ struct CorteDetalle: View {
     @ViewBuilder
     private var barraDepositar: some View {
         if sizeClass == .compact, corte.sinDepositar {
-            VStack(spacing: 0) {
-                Divider()
-                botonDepositar
-                    .padding(.horizontal, Esp.pantalla)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-            }
-            .background(.bar)
+            // Flota sobre el contenido, como el pie de Ingresos/Gastos y de
+            // Aportantes: el `Divider` + `.bar` era el patrón anterior a
+            // Liquid Glass y dibujaba un filete duro de lado a lado. El
+            // contenido se difumina por debajo con `scrollEdgeEffectStyle`.
+            botonDepositar(glass: true)
+                .padding(.horizontal, Esp.pantalla)
+                .padding(.bottom, Esp.hueco)
         }
     }
 
@@ -311,23 +477,84 @@ struct CorteDetalle: View {
         HStack {
             Text(L.t("Cuenta", "Account")).font(.subheadline).foregroundStyle(.secondary)
             Spacer()
-            if cuentas.isEmpty {
+            if cuentas.isEmpty || !corte.sinDepositar {
                 Text(corte.registro.cuenta).font(.subheadline)
             } else {
-                Menu {
-                    ForEach(cuentas, id: \.self) { cta in
-                        Button(cta) { onAsignarCuenta?(cta) }
-                    }
-                } label: {
+                menuCuentas {
                     HStack(spacing: 4) {
                         Text(corte.registro.cuenta).font(.subheadline)
                         Image(systemName: "chevron.up.chevron.down").font(.caption2)
                     }
-                    .foregroundStyle(Paleta.brand)
                 }
             }
         }
         .padding(.vertical, 9)
+    }
+
+    /// Fila "Fecha", editable. Un corte podía quedarse en "Por definir" y no
+    /// había dónde definirla.
+    private var filaFecha: some View {
+        HStack {
+            Text(L.t("Fecha", "Date")).font(.subheadline).foregroundStyle(.secondary)
+            Spacer()
+            if corte.sinDepositar {
+                Button { mostrarFecha = true } label: {
+                    HStack(spacing: 4) {
+                        Text(corte.registro.fecha).font(.subheadline)
+                        Image(systemName: "calendar").font(.caption2)
+                    }
+                    .foregroundStyle(Paleta.enlace)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text(corte.registro.fecha).font(.subheadline)
+            }
+        }
+        .padding(.vertical, 9)
+    }
+
+    /// Fila "Periodo", editable. El checklist pedía cambiar el periodo desde el
+    /// primer día y no existía el control para hacerlo.
+    private var filaPeriodo: some View {
+        HStack {
+            Text(L.t("Periodo", "Period")).font(.subheadline).foregroundStyle(.secondary)
+            Spacer()
+            if corte.sinDepositar {
+                menuPeriodos {
+                    HStack(spacing: 4) {
+                        Text(corte.registro.periodo).font(.subheadline)
+                        Image(systemName: "chevron.up.chevron.down").font(.caption2)
+                    }
+                }
+            } else {
+                Text(corte.registro.periodo).font(.subheadline)
+            }
+        }
+        .padding(.vertical, 9)
+    }
+
+    private var hojaFecha: some View {
+        NavigationStack {
+            DatePicker(L.t("Fecha del depósito", "Deposit date"),
+                       selection: $fechaEditada, displayedComponents: .date)
+                .datePickerStyle(.graphical)
+                .padding(Esp.pantalla)
+                .navigationTitle(L.t("Fecha del depósito", "Deposit date"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(L.t("Cancelar", "Cancel")) { mostrarFecha = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(L.t("Listo", "Done")) {
+                            onCambiarFecha?(fechaEditada)
+                            mostrarFecha = false
+                        }
+                        .fontWeight(.semibold).tint(Paleta.brand)
+                    }
+                }
+        }
+        .presentationDetents([.medium, .large])
     }
 
     private func filaRegistro(_ label: String, _ valor: String, fuerte: Bool = false) -> some View {

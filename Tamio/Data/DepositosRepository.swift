@@ -5,6 +5,10 @@ protocol DepositosRepository {
     func crear(_ corte: Corte) async throws
     func actualizar(_ corte: Corte) async throws
     func marcarDepositado(id: String) async throws
+    /// Cuentas donde se puede depositar. Estaban escritas a mano en el
+    /// ViewModel, así que no había forma de dar de alta la del banco propio.
+    func cuentas() async throws -> [String]
+    func agregarCuenta(_ nombre: String) async throws
 }
 
 /// Datos falsos que reproducen la pantalla de Depósitos del handoff. Usa un
@@ -12,6 +16,9 @@ protocol DepositosRepository {
 /// persistan mientras la app vive (mañana este almacén es GRDB).
 struct MockDepositosRepository: DepositosRepository {
     private static var almacen: [Corte] = pendientes + depositados
+    private static var cuentasAlmacen: [String] = [
+        "Banorte ··4821", "Chase ··7730", "BBVA ··9014",
+    ]
 
     func cortes(estado: EstadoDeposito) async throws -> [Corte] {
         try? await Task.sleep(nanoseconds: 150_000_000)
@@ -31,78 +38,102 @@ struct MockDepositosRepository: DepositosRepository {
     func marcarDepositado(id: String) async throws {
         guard let i = Self.almacen.firstIndex(where: { $0.id == id }) else { return }
         Self.almacen[i].estado = .depositado
-        Self.almacen[i].descripcion = L.t("Depositado hoy", "Deposited today")
+        Self.almacen[i].descripcion = L.t(
+            "Depositado el \(DepositosViewModel.textoFecha(Date()))",
+            "Deposited \(DepositosViewModel.textoFecha(Date()))")
     }
 
+    func cuentas() async throws -> [String] { Self.cuentasAlmacen }
+
+    func agregarCuenta(_ nombre: String) async throws {
+        guard !Self.cuentasAlmacen.contains(nombre) else { return }
+        Self.cuentasAlmacen.append(nombre)
+    }
+
+    // MARK: - Semilla
+
+    /// Tres cortes de prueba con dinero real de un fin de semana: efectivo
+    /// mezclado con cheques numerados, un culto entre semana 100 % en efectivo,
+    /// y un corte grande con tres cheques. Los importes de la fila y del
+    /// detalle **salen de sumar los movimientos**, no de un campo escrito.
     private static var pendientes: [Corte] {
         [
             Corte(
                 id: "1",
-                titulo: L.t("Corte del domingo 23", "Sunday 23 cut"),
-                subtitulo: L.t("14 movimientos · Banorte ··4821", "14 entries · Banorte ··4821"),
-                descripcion: L.t("Dinero en caja del domingo 23 de agosto · revísalo antes de llevarlo al banco",
-                                 "Cash from Sunday Aug 23 · review before taking it to the bank"),
-                montoTotal: 18_540_00, estado: .pendiente,
-                efectivoSeleccionado: 8_045_00, efectivoEstimado: 19_720_00,
-                chequesMonto: 3_400_00, chequesCount: 2,
-                listoParaDepositar: 11_445_00, seleccionados: 4, totalSeleccionables: 5,
-                chequeos: [
-                    Chequeo(id: 1, tipo: .aviso,
-                            titulo: L.t("2 movimientos marcados por revisar", "2 entries flagged for review"),
-                            detalle: L.t("No se cuentan en los totales del mes hasta que los confirmes, así que tampoco entran en este depósito.",
-                                         "They don't count in monthly totals until confirmed, so they're not in this deposit either."),
-                            enlace: L.t("Ir a Por revisar", "Go to Review")),
-                    Chequeo(id: 2, tipo: .ok,
-                            titulo: L.t("El efectivo alcanza", "Cash is enough"),
-                            detalle: L.t("Vas a depositar $8,045.00 en efectivo de los $19,720.00 estimados en caja a esa fecha.",
-                                         "You'll deposit $8,045.00 in cash of the $19,720.00 estimated on hand by that date."),
-                            enlace: nil),
-                    Chequeo(id: 3, tipo: .duda,
-                            titulo: L.t("Periodo contable: agosto 2026", "Accounting period: August 2026"),
-                            detalle: L.t("Si este dinero es de julio, cambia el periodo al registrar el depósito: suma en el periodo que elijas, no en la fecha en que lo llevas al banco.",
-                                         "If this is July's money, change the period when recording: it adds to the period you pick, not the bank date."),
-                            enlace: nil),
-                ],
+                titulo: L.t("Culto domingo 6 de septiembre", "Sunday, September 6 service"),
+                descripcion: L.t("Dinero en caja del domingo 6 · revísalo antes de llevarlo al banco",
+                                 "Cash from Sunday, Sep 6 · review before taking it to the bank"),
+                estado: .pendiente,
                 movimientos: [
-                    MovimientoCaja(id: 1, categoria: L.t("Diezmo", "Tithe"), folio: "1042",
-                                   cuando: L.t("Domingo 23 · 12:38 p.m.", "Sunday 23 · 12:38 p.m."), monto: 1_200_00, seleccionado: true),
-                    MovimientoCaja(id: 2, categoria: L.t("Ofrenda misionera", "Mission offering"), folio: "1041",
-                                   cuando: L.t("Domingo 23 · contada por los ujieres", "Sunday 23 · counted by ushers"), monto: 6_845_00, seleccionado: true),
-                    MovimientoCaja(id: 3, categoria: L.t("Diezmo", "Tithe"), folio: "1040",
-                                   cuando: L.t("Cheque 3841 · Banamex", "Check 3841 · Banamex"), monto: 2_500_00, seleccionado: true, esCheque: true),
+                    MovimientoCaja(id: 1, categoria: L.t("Diezmo", "Tithe"), folio: "1051",
+                                   cuando: L.t("Domingo 6 · 12:38 p.m.", "Sunday 6 · 12:38 p.m."),
+                                   monto: 1_500_00, seleccionado: true),
+                    MovimientoCaja(id: 2, categoria: L.t("Ofrenda general", "General offering"), folio: "1052",
+                                   cuando: L.t("Domingo 6 · contada por los ujieres", "Sunday 6 · counted by ushers"),
+                                   monto: 2_050_00, seleccionado: true),
+                    MovimientoCaja(id: 3, categoria: L.t("Ofrenda misionera", "Mission offering"), folio: "1053",
+                                   cuando: L.t("Domingo 6 · contada por los ujieres", "Sunday 6 · counted by ushers"),
+                                   monto: 600_00, seleccionado: true),
+                    MovimientoCaja(id: 4, categoria: L.t("Diezmo", "Tithe"), folio: "1054",
+                                   cuando: L.t("Domingo 6 · sobre nominativo", "Sunday 6 · named envelope"),
+                                   monto: 1_700_00, seleccionado: true,
+                                   esCheque: true, numeroCheque: "3841"),
                 ],
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
-                                           fecha: L.t("Lunes 24 de agosto", "Monday, Aug 24"),
-                                           periodo: L.t("Agosto 2026", "August 2026"), monto: 11_445_00)
+                                           fecha: L.t("Lunes 7 de septiembre", "Monday, Sep 7"),
+                                           periodo: L.t("Septiembre 2026", "September 2026")),
+                efectivoEstimado: 6_200_00,
+                porRevisar: 2
             ),
             Corte(
                 id: "2",
-                titulo: L.t("Ofrendas de miércoles 19", "Wednesday 19 offerings"),
-                subtitulo: L.t("6 movimientos · Sin cuenta asignada", "6 entries · No account assigned"),
-                descripcion: L.t("Dinero en caja del miércoles 19 de agosto · falta asignar la cuenta",
-                                 "Cash from Wednesday Aug 19 · account not assigned yet"),
-                montoTotal: 3_180_00, estado: .pendiente,
-                efectivoSeleccionado: 3_180_00, efectivoEstimado: 3_180_00,
-                chequesMonto: 0, chequesCount: 0,
-                listoParaDepositar: 3_180_00, seleccionados: 6, totalSeleccionables: 6,
-                chequeos: [
-                    Chequeo(id: 1, tipo: .aviso,
-                            titulo: L.t("Sin cuenta asignada", "No account assigned"),
-                            detalle: L.t("Elige a qué cuenta va este depósito antes de registrarlo.",
-                                         "Pick which account this deposit goes to before recording it."),
-                            enlace: L.t("Asignar cuenta", "Assign account")),
-                    Chequeo(id: 2, tipo: .ok,
-                            titulo: L.t("Todo en efectivo", "All cash"),
-                            detalle: L.t("Los 6 movimientos son en efectivo y suman $3,180.00.",
-                                         "All 6 entries are cash, totaling $3,180.00."), enlace: nil),
-                ],
+                titulo: L.t("Ofrendas miércoles 2 de septiembre", "Wednesday, September 2 offerings"),
+                descripcion: L.t("Dinero en caja del miércoles 2 · todo en efectivo",
+                                 "Cash from Wednesday, Sep 2 · all cash"),
+                estado: .pendiente,
                 movimientos: [
-                    MovimientoCaja(id: 1, categoria: L.t("Ofrenda de miércoles", "Wednesday offering"), folio: "1039",
-                                   cuando: L.t("Miércoles 19 · culto", "Wednesday 19 · service"), monto: 3_180_00, seleccionado: true),
+                    MovimientoCaja(id: 1, categoria: L.t("Ofrenda general", "General offering"), folio: "1048",
+                                   cuando: L.t("Miércoles 2 · culto", "Wednesday 2 · service"),
+                                   monto: 1_200_00, seleccionado: true),
+                    MovimientoCaja(id: 2, categoria: L.t("Donación jóvenes", "Youth donation"), folio: "1049",
+                                   cuando: L.t("Miércoles 2 · culto", "Wednesday 2 · service"),
+                                   monto: 420_00, seleccionado: true),
+                    MovimientoCaja(id: 3, categoria: L.t("Misiones", "Missions"), folio: "1050",
+                                   cuando: L.t("Miércoles 2 · culto", "Wednesday 2 · service"),
+                                   monto: 300_00, seleccionado: true),
                 ],
-                registro: RegistroDeposito(cuenta: L.t("Sin asignar", "Unassigned"),
-                                           fecha: L.t("Por definir", "To be set"),
-                                           periodo: L.t("Agosto 2026", "August 2026"), monto: 3_180_00)
+                registro: RegistroDeposito(cuenta: "Chase ··7730",
+                                           fecha: L.t("Jueves 3 de septiembre", "Thursday, Sep 3"),
+                                           periodo: L.t("Septiembre 2026", "September 2026")),
+                efectivoEstimado: 1_920_00
+            ),
+            Corte(
+                id: "3",
+                titulo: L.t("Culto especial y fondo de construcción", "Special service and building fund"),
+                descripcion: L.t("Corte grande · tres cheques y el efectivo del culto especial",
+                                 "Large cut · three checks plus the special service cash"),
+                estado: .pendiente,
+                movimientos: [
+                    MovimientoCaja(id: 1, categoria: L.t("Diezmo", "Tithe"), folio: "1055",
+                                   cuando: L.t("Domingo 6 · sobre nominativo", "Sunday 6 · named envelope"),
+                                   monto: 2_250_00, seleccionado: true,
+                                   esCheque: true, numeroCheque: "4102"),
+                    MovimientoCaja(id: 2, categoria: L.t("Diezmo", "Tithe"), folio: "1056",
+                                   cuando: L.t("Domingo 6 · sobre nominativo", "Sunday 6 · named envelope"),
+                                   monto: 1_800_00, seleccionado: true,
+                                   esCheque: true, numeroCheque: "4103"),
+                    MovimientoCaja(id: 3, categoria: L.t("Ofrenda general", "General offering"), folio: "1057",
+                                   cuando: L.t("Domingo 6 · culto especial", "Sunday 6 · special service"),
+                                   monto: 2_100_00, seleccionado: true),
+                    MovimientoCaja(id: 4, categoria: L.t("Fondo de construcción", "Building fund"), folio: "1058",
+                                   cuando: L.t("Domingo 6 · sobre nominativo", "Sunday 6 · named envelope"),
+                                   monto: 1_280_00, seleccionado: true,
+                                   esCheque: true, numeroCheque: "4104"),
+                ],
+                registro: RegistroDeposito(cuenta: "Banorte ··4821",
+                                           fecha: L.t("Lunes 7 de septiembre", "Monday, Sep 7"),
+                                           periodo: L.t("Septiembre 2026", "September 2026")),
+                efectivoEstimado: 2_100_00
             ),
         ]
     }
@@ -111,27 +142,24 @@ struct MockDepositosRepository: DepositosRepository {
         [
             Corte(
                 id: "10",
-                titulo: L.t("Corte del domingo 16", "Sunday 16 cut"),
-                subtitulo: L.t("11 movimientos · Banorte ··4821", "11 entries · Banorte ··4821"),
+                titulo: L.t("Corte del domingo 16 de agosto", "Sunday, August 16 cut"),
                 descripcion: L.t("Depositado el lunes 17 de agosto", "Deposited Monday, Aug 17"),
-                montoTotal: 14_320_00, estado: .depositado,
-                efectivoSeleccionado: 9_820_00, efectivoEstimado: 9_820_00,
-                chequesMonto: 4_500_00, chequesCount: 3,
-                listoParaDepositar: 14_320_00, seleccionados: 11, totalSeleccionables: 11,
-                chequeos: [
-                    Chequeo(id: 1, tipo: .ok, titulo: L.t("Depósito registrado", "Deposit recorded"),
-                            detalle: L.t("Ficha adjunta el lunes 17 de agosto por Iván García.",
-                                         "Slip attached Monday, Aug 17 by Iván García."), enlace: nil),
-                ],
+                estado: .depositado,
                 movimientos: [
                     MovimientoCaja(id: 1, categoria: L.t("Diezmo", "Tithe"), folio: "1030",
                                    cuando: L.t("Domingo 16", "Sunday 16"), monto: 5_320_00, seleccionado: true),
-                    MovimientoCaja(id: 2, categoria: L.t("Ofrenda", "Offering"), folio: "1029",
+                    MovimientoCaja(id: 2, categoria: L.t("Ofrenda general", "General offering"), folio: "1029",
                                    cuando: L.t("Domingo 16", "Sunday 16"), monto: 4_500_00, seleccionado: true),
+                    MovimientoCaja(id: 3, categoria: L.t("Diezmo", "Tithe"), folio: "1028",
+                                   cuando: L.t("Domingo 16 · sobre nominativo", "Sunday 16 · named envelope"),
+                                   monto: 4_500_00, seleccionado: true,
+                                   esCheque: true, numeroCheque: "2277"),
                 ],
                 registro: RegistroDeposito(cuenta: "Banorte ··4821",
                                            fecha: L.t("Lunes 17 de agosto", "Monday, Aug 17"),
-                                           periodo: L.t("Agosto 2026", "August 2026"), monto: 14_320_00)
+                                           periodo: L.t("Agosto 2026", "August 2026")),
+                efectivoEstimado: 9_820_00,
+                fichaAdjunta: "ficha-banorte-17ago.pdf"
             ),
         ]
     }
