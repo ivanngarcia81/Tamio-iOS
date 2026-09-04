@@ -2,125 +2,227 @@ import Foundation
 
 protocol ReportesRepository {
     func tipos() -> [ReporteTipo]
-    /// Periodos disponibles, del más reciente al más antiguo ("Agosto 2026" …).
-    func periodos() -> [String]
-    /// Categorías de ingreso para filtrar (sin incluir "Todas").
-    func categorias() -> [String]
-    /// Estado financiero de un periodo, opcionalmente acotado a una categoría.
-    /// `categoria == nil` significa "Todas las categorías".
-    func estadoFinanciero(periodo: String, categoria: String?) async -> EstadoFinanciero
+    /// Periodos con movimientos, del más reciente al más antiguo.
+    func periodos() async -> [PeriodoContable]
+    /// Categorías de ingreso presentes en los datos, para filtrar.
+    func categorias() async -> [String]
+    /// Estado financiero de un periodo, opcionalmente acotado a una categoría
+    /// de ingreso. `categoria == nil` significa "todas". `nil` si no hay nada
+    /// que reportar todavía.
+    func estadoFinanciero(periodo: String, categoria: String?) async -> EstadoFinanciero?
 }
 
-/// Datos falsos que reproducen el reporte "Estado financiero" del handoff.
-/// Los filtros derivan las cifras del mes elegido y acotan la dona por categoría,
-/// para que los botones hagan algo real hoy; mañana el motor rellena lo mismo.
-struct MockReportesRepository: ReportesRepository {
+/// **El reporte no es un dato: es una consulta.**
+///
+/// Lee los mismos movimientos que enseña Ingresos/Gastos, los mismos depósitos
+/// que enseña Depósitos y el saldo de apertura que se teclea en Ajustes.
+/// Sustituye a `MockReportesRepository`, que llevaba el estado financiero
+/// entero escrito a mano —48.320,00 de ingresos, 21.145,50 de gastos, seis
+/// meses de tabla y cuatro porcentajes de presupuesto— y era la única pantalla
+/// de Tesorería que no tocaba un movimiento real. La cifra que se imprime,
+/// se firma y se manda al pastor era la única que nadie había calculado.
+struct ReportesCalculados: ReportesRepository {
+    private let movimientos = repositorioMovimientos()
+    private let depositos = repositorioDepositos()
+
     func tipos() -> [ReporteTipo] {
         [
             ReporteTipo(id: "estado", titulo: L.t("Estado financiero", "Financial statement"),
                         subtitulo: L.t("Ingresos, gastos y saldo", "Income, expenses & balance")),
-            ReporteTipo(id: "categoria", titulo: L.t("Ingresos por categoría", "Income by category"),
-                        subtitulo: L.t("Desglose con gráfica", "Breakdown with chart")),
-            ReporteTipo(id: "aportantes", titulo: L.t("Aportantes", "Givers"),
-                        subtitulo: L.t("Por miembro, con totales", "Per member, with totals")),
-            ReporteTipo(id: "depositos", titulo: L.t("Depósitos del periodo", "Period deposits"),
-                        subtitulo: L.t("Conciliación bancaria", "Bank reconciliation")),
             ReporteTipo(id: "anual", titulo: L.t("Reporte anual", "Annual report"),
                         subtitulo: L.t("Los doce meses en una hoja", "All twelve months on one page")),
         ]
     }
 
-    func periodos() -> [String] { base.mensual.map(\.mes).reversed() }
-
-    func categorias() -> [String] { base.composicion.map(\.nombre) }
-
-    func estadoFinanciero(periodo: String, categoria: String?) async -> EstadoFinanciero {
-        try? await Task.sleep(nanoseconds: 120_000_000)
-        return derivar(periodo: periodo, categoria: categoria)
+    func periodos() async -> [PeriodoContable] {
+        let claves = Set(await aprobados().map { Fechas.clavePeriodo($0.fecha) })
+        return claves.sorted(by: >).map(PeriodoContable.init)
     }
 
-    // MARK: - Derivación
+    func categorias() async -> [String] {
+        let ingresos = await aprobados().filter(\.esIngreso)
+        return CalculadoraReportes.porCategoria(ingresos, agrupar: false).map(\.nombre)
+    }
 
-    /// Reconstruye el estado para el mes pedido a partir de la tabla mensual
-    /// (cifras reales por mes) y, si hay categoría, acota la dona e ingresos.
-    private func derivar(periodo: String, categoria: String?) -> EstadoFinanciero {
-        guard let i = base.mensual.firstIndex(where: { $0.mes == periodo }) else { return base }
-        let fila = base.mensual[i]
-        let previa = i > 0 ? base.mensual[i - 1] : nil
-
-        func delta(_ actual: Centavos, _ anterior: Centavos?) -> Double? {
-            guard let anterior, anterior != 0 else { return nil }
-            return Double(actual - anterior) / Double(anterior)
-        }
-
-        // Composición del mes: escala la base al ingreso del mes elegido.
-        let baseIngresos = base.mensual.last?.ingresos ?? fila.ingresos
-        let factor = baseIngresos > 0 ? Double(fila.ingresos) / Double(baseIngresos) : 1
-        var composicion = base.composicion.map {
-            CategoriaMonto(nombre: $0.nombre, monto: Centavos((Double($0.monto) * factor).rounded()))
-        }
-
-        var ingresosMes = fila.ingresos
-        // Filtro por categoría: la dona y el ingreso se acotan a esa categoría.
-        if let categoria { composicion = composicion.filter { $0.nombre == categoria } }
-        if categoria != nil { ingresosMes = composicion.reduce(0) { $0 + $1.monto } }
-        let balanceNeto = ingresosMes - fila.gastos
-
-        return EstadoFinanciero(
+    func estadoFinanciero(periodo: String, categoria: String?) async -> EstadoFinanciero? {
+        async let movs = aprobados()
+        async let pend = pendientes()
+        async let deps = depositosBancarios()
+        return CalculadoraReportes.estado(
             periodo: periodo,
-            ingresosMes: ingresosMes,
-            gastosMes: fila.gastos,
-            balanceNeto: balanceNeto,
-            mesAnterior: previa?.balance ?? 0,
-            mesAnteriorNombre: previa?.mes ?? "—",
-            deltaIngresos: delta(ingresosMes, previa?.ingresos),
-            deltaGastos: delta(fila.gastos, previa?.gastos),
-            deltaBalance: delta(balanceNeto, previa?.balance),
-            saldoPeriodo: balanceNeto,
-            saldoSerie: base.saldoSerie,
-            composicion: composicion,
-            composicionMesCorto: String(periodo.split(separator: " ").first ?? "").lowercased(),
-            gastoTotal: fila.gastos,
-            presupuesto: base.presupuesto,
-            mensual: base.mensual
+            categoria: categoria,
+            movimientos: await movs,
+            pendientes: await pend,
+            depositos: await deps,
+            saldoApertura: ConfiguracionIglesiaViewModel.compartido.config.saldoInicial
         )
     }
 
-    /// Dataset completo (agosto 2026), del que se derivan los demás periodos.
-    private var base: EstadoFinanciero {
-        EstadoFinanciero(
-            periodo: L.t("Agosto 2026", "August 2026"),
-            ingresosMes: 48_320_00, gastosMes: 21_145_50, balanceNeto: 27_174_50,
-            mesAnterior: 26_690_00, mesAnteriorNombre: L.t("Julio 2026", "July 2026"),
-            deltaIngresos: 0.042, deltaGastos: 0.11, deltaBalance: 0.018,
-            saldoPeriodo: 27_174_50,
-            saldoSerie: [
-                MesAporte(mes: L.mes("Mar"), monto: 23_540_00), MesAporte(mes: L.mes("Abr"), monto: 24_205_00),
-                MesAporte(mes: L.mes("May"), monto: 17_780_00), MesAporte(mes: L.mes("Jun"), monto: 29_820_00),
-                MesAporte(mes: L.mes("Jul"), monto: 26_690_00), MesAporte(mes: L.mes("Ago"), monto: 27_174_50),
-            ],
-            composicion: [
-                CategoriaMonto(nombre: L.t("Diezmos", "Tithes"), monto: 25_120_00),
-                CategoriaMonto(nombre: L.t("Ofrendas", "Offerings"), monto: 10_630_00),
-                CategoriaMonto(nombre: L.t("Misiones", "Missions"), monto: 7_250_00),
-                CategoriaMonto(nombre: L.t("Eventos", "Events"), monto: 5_320_00),
-            ],
-            composicionMesCorto: L.t("agosto", "August"),
-            gastoTotal: 21_145_50,
-            presupuesto: [
-                GastoPresupuesto(categoria: L.t("Servicios", "Utilities"), pct: 30),
-                GastoPresupuesto(categoria: L.t("Mantenimiento", "Maintenance"), pct: 24),
-                GastoPresupuesto(categoria: L.t("Misiones", "Missions"), pct: 18),
-                GastoPresupuesto(categoria: L.t("Materiales", "Supplies"), pct: 15),
-            ],
-            mensual: [
-                FilaMensual(mes: L.t("Marzo 2026", "March 2026"), ingresos: 39_780_00, gastos: 16_240_00, balance: 23_540_00, delta: nil),
-                FilaMensual(mes: L.t("Abril 2026", "April 2026"), ingresos: 43_110_00, gastos: 18_905_00, balance: 24_205_00, delta: 0.028),
-                FilaMensual(mes: L.t("Mayo 2026", "May 2026"), ingresos: 40_260_00, gastos: 22_480_00, balance: 17_780_00, delta: -0.265),
-                FilaMensual(mes: L.t("Junio 2026", "June 2026"), ingresos: 46_940_00, gastos: 17_120_00, balance: 29_820_00, delta: 0.677),
-                FilaMensual(mes: L.t("Julio 2026", "July 2026"), ingresos: 45_730_00, gastos: 19_040_00, balance: 26_690_00, delta: -0.105),
-                FilaMensual(mes: L.t("Agosto 2026", "August 2026"), ingresos: 48_320_00, gastos: 21_145_50, balance: 27_174_50, delta: 0.018),
-            ]
-        )
+    // MARK: - Origen
+
+    /// **Solo lo aprobado cuenta.** Es la regla de la app web, que filtra por
+    /// `estado = 'aprobado'` en todas sus agregaciones, y la que ya declara el
+    /// propio modelo: un movimiento que espera visto bueno todavía no es un
+    /// hecho contable. Los devueltos no llegan siquiera: la lista los excluye.
+    private func aprobados() async -> [Movimiento] {
+        await todos().filter { $0.estadoRevision == .aprobado }
+    }
+
+    private func pendientes() async -> [Movimiento] {
+        await todos().filter(\.marcadoPendiente)
+    }
+
+    private func todos() async -> [Movimiento] {
+        async let ingresos = try? movimientos.lista(tipo: .ingreso)
+        async let gastos = try? movimientos.lista(tipo: .gasto)
+        return ((await ingresos) ?? []) + ((await gastos) ?? [])
+    }
+
+    /// Los depósitos ya registrados. Solo un corte depositado tiene fila en
+    /// `depositos_bancarios`: mientras el dinero no ha ido al banco no hay
+    /// depósito que reportar, únicamente un corte armado.
+    private func depositosBancarios() async -> [DepositoBancario] {
+        let cortes = (try? await depositos.cortes(estado: .depositado)) ?? []
+        return cortes.compactMap(\.deposito)
     }
 }
+
+/// La aritmética del estado financiero, aparte del repositorio para que se
+/// pueda leer entera de una vez. Igual que `CalculadoraRevisiones`: entra lo
+/// que ya existe, sale lo que la pantalla enseña, y nada se guarda.
+enum CalculadoraReportes {
+
+    /// Cuántos meses enseña la mini gráfica y la tabla mensual.
+    static let mesesDeHistoria = 6
+
+    static func estado(periodo: String,
+                       categoria: String?,
+                       movimientos: [Movimiento],
+                       pendientes: [Movimiento],
+                       depositos: [DepositoBancario],
+                       saldoApertura: Centavos) -> EstadoFinanciero? {
+        let porMes = Dictionary(grouping: movimientos) { Fechas.clavePeriodo($0.fecha) }
+        guard !porMes.isEmpty else { return nil }
+        // Un periodo que no existe en los datos cae al más reciente: es lo que
+        // pasa al arrancar con un filtro guardado de un mes que se quedó vacío.
+        let clave = porMes[periodo] != nil ? periodo : (porMes.keys.max() ?? periodo)
+        let delMes = porMes[clave] ?? []
+
+        // La tabla mensual y la serie salen de TODOS los meses, no solo del
+        // elegido: son el contexto contra el que se lee el mes.
+        let filas = mensual(porMes)
+        guard let i = filas.firstIndex(where: { $0.clave == clave }) else { return nil }
+        let fila = filas[i]
+        let previa = i > 0 ? filas[i - 1] : nil
+
+        // El filtro de categoría acota los INGRESOS. Los gastos no se tocan:
+        // las categorías del menú son de ingreso, y recortar el gasto por una
+        // de ellas daría un balance que no significa nada.
+        var ingresos = delMes.filter(\.esIngreso)
+        if let categoria {
+            ingresos = ingresos.filter { nombreCategoria($0) == categoria }
+        }
+        let ingresosMes = suma(ingresos)
+        let gastosMes = fila.gastos
+        let balance = ingresosMes - gastosMes
+
+        return EstadoFinanciero(
+            periodo: PeriodoContable(clave: clave),
+            ingresosMes: ingresosMes,
+            gastosMes: gastosMes,
+            deltaIngresos: variacion(de: previa?.ingresos, a: ingresosMes),
+            deltaGastos: variacion(de: previa?.gastos, a: gastosMes),
+            deltaBalance: variacion(de: previa?.balance, a: balance),
+            mesAnterior: previa?.balance,
+            mesAnteriorNombre: previa?.mes,
+            saldoAnterior: saldoAnterior(hasta: clave, movimientos: movimientos,
+                                         apertura: saldoApertura),
+            saldoSerie: serie(filas, hasta: i),
+            composicion: porCategoria(ingresos),
+            gastosPorCategoria: porCategoria(delMes.filter { !$0.esIngreso }),
+            depositos: depositos.filter { $0.periodo == clave }
+                .sorted { $0.fecha < $1.fecha },
+            pendientes: pendientes.filter { Fechas.clavePeriodo($0.fecha) == clave }.count,
+            mensual: Array(filas.suffix(mesesDeHistoria))
+        )
+    }
+
+    /// **El saldo de tesorería al cierre del mes anterior**: lo que la iglesia
+    /// ya tenía antes del primer movimiento registrado (Ajustes → Iglesia) más
+    /// todo lo aprobado con fecha anterior a este periodo. Cubre los dos casos,
+    /// la iglesia que arrancó en Tamio desde cero y la que llegó con dinero ya
+    /// en caja. Es la misma definición que `saldoAnteriorDe` en la app web.
+    static func saldoAnterior(hasta clave: String,
+                              movimientos: [Movimiento],
+                              apertura: Centavos) -> Centavos {
+        let anteriores = movimientos.filter { Fechas.clavePeriodo($0.fecha) < clave }
+        let ingresos = suma(anteriores.filter(\.esIngreso))
+        let gastos = suma(anteriores.filter { !$0.esIngreso })
+        return apertura + ingresos - gastos
+    }
+
+    /// Un resumen por mes, del más antiguo al más reciente. Solo meses con
+    /// movimientos: un mes vacío en medio de la tabla no informa de nada y en
+    /// una iglesia que empezó en marzo llenaría el reporte de ceros.
+    static func mensual(_ porMes: [String: [Movimiento]]) -> [FilaMensual] {
+        var previo: Centavos?
+        return porMes.keys.sorted().map { clave in
+            let movs = porMes[clave] ?? []
+            let ingresos = suma(movs.filter(\.esIngreso))
+            let gastos = suma(movs.filter { !$0.esIngreso })
+            let balance = ingresos - gastos
+            let fila = FilaMensual(clave: clave, ingresos: ingresos, gastos: gastos,
+                                   delta: variacion(de: previo, a: balance))
+            previo = balance
+            return fila
+        }
+    }
+
+    /// La serie de la mini gráfica: los meses que preceden al elegido, sin
+    /// pasarse de él. Antes se copiaba siempre la misma lista de la semilla,
+    /// así que cambiar de mes movía los KPI y dejaba la gráfica en agosto.
+    private static func serie(_ filas: [FilaMensual], hasta i: Int) -> [MesAporte] {
+        filas[...i].suffix(mesesDeHistoria).map { f in
+            let fecha = Fechas.fechaDePeriodo(f.clave)
+            return MesAporte(mes: fecha.map(L.mesCorto) ?? f.clave, monto: f.balance)
+        }
+    }
+
+    /// Agrupa por CLAVE de categoría y no por la etiqueta escrita: "Ofrenda
+    /// misionera" y "Ofrenda del miércoles" son las dos ofrendas, y la dona no
+    /// tiene por qué partirlas. La que la iglesia se inventó conserva su
+    /// nombre. Con `agrupar`, a partir del cuarto se acumulan en "Otras" para
+    /// que la suma de la dona siga siendo el total del periodo.
+    static func porCategoria(_ movs: [Movimiento], agrupar: Bool = true) -> [CategoriaMonto] {
+        let ordenadas = Dictionary(grouping: movs, by: nombreCategoria)
+            .map { CategoriaMonto(nombre: $0.key, monto: suma($0.value)) }
+            .sorted { $0.monto > $1.monto }
+        guard agrupar, ordenadas.count > Paleta.donut.count else { return ordenadas }
+        let visibles = ordenadas.prefix(Paleta.donut.count - 1)
+        let resto = ordenadas.dropFirst(Paleta.donut.count - 1).reduce(0) { $0 + $1.monto }
+        return visibles + [CategoriaMonto(nombre: L.t("Otras", "Other"), monto: resto)]
+    }
+
+    /// El nombre con el que se agrupa: la etiqueta de su clave, o lo escrito
+    /// si no se parece a nada del catálogo.
+    static func nombreCategoria(_ m: Movimiento) -> String {
+        m.claveCategoria.map(Catalogos.etiqueta(de:)) ?? m.categoria
+    }
+
+    private static func suma(_ movs: [Movimiento]) -> Centavos {
+        movs.reduce(0) { $0 + $1.monto }
+    }
+
+    /// `nil` si no hay periodo anterior o fue cero: eso no es un +100%, es que
+    /// no hay con qué comparar.
+    private static func variacion(de anterior: Centavos?, a actual: Centavos) -> Double? {
+        guard let anterior, anterior > 0 else { return nil }
+        return Double(actual - anterior) / Double(anterior)
+    }
+}
+
+/// El repositorio que usa la pantalla. **También en modo revisión se calcula**:
+/// los datos de ejemplo son movimientos y cortes de verdad, así que el reporte
+/// sale de ellos igual que en producción. Es lo mismo que ya se hizo con la
+/// bandeja "Por revisar".
+func repositorioReportes() -> ReportesRepository { ReportesCalculados() }

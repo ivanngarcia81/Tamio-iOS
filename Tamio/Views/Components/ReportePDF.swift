@@ -5,7 +5,10 @@ import SwiftUI
 /// que se ve en la vista previa. Ancho fijo tamaño carta (lo envuelve PDFExport).
 struct ReporteHojaPDF: View {
     let e: EstadoFinanciero
-    let periodo: String
+    /// El periodo sale del propio reporte. Venía por parámetro y era la clave
+    /// cruda del filtro, así que la hoja podía encabezar un mes distinto del
+    /// que traían las cifras.
+    var periodo: String { e.periodo.etiqueta }
     /// El membrete sale de Ajustes. Antes el nombre de la iglesia estaba
     /// escrito dentro de esta vista, así que el documento no tenía forma de
     /// coincidir con lo que el tesorero había configurado.
@@ -89,7 +92,6 @@ struct ReporteHojaPDF: View {
 /// compartir/exportar el PDF real generado con ImageRenderer.
 struct ReportePDFSheet: View {
     let e: EstadoFinanciero
-    let periodo: String
     @Environment(\.dismiss) private var dismiss
     @State private var pdfURL: URL?
 
@@ -99,7 +101,7 @@ struct ReportePDFSheet: View {
             // llegar a la mitad derecha de una hoja que no cabía. Escalada,
             // cabe entera.
             ScrollView {
-                HojaCartaEscalada { ReporteHojaPDF(e: e, periodo: periodo) }
+                HojaCartaEscalada { ReporteHojaPDF(e: e) }
                     .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
                     .padding(Esp.panel)
             }
@@ -120,8 +122,11 @@ struct ReportePDFSheet: View {
             }
         }
         .onAppear {
-            pdfURL = PDFExport.render(ReporteHojaPDF(e: e, periodo: periodo),
-                                      nombre: "Estado-financiero-\(periodo.replacingOccurrences(of: " ", with: "-"))")
+            pdfURL = PDFExport.render(ReporteHojaPDF(e: e),
+                                      // La clave del periodo y no el mes escrito:
+                                      // el nombre del archivo ordena bien y no
+                                      // cambia según el idioma del aparato.
+                                      nombre: "Estado-financiero-\(e.periodo.clave)")
         }
     }
 }

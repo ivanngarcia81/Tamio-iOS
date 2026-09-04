@@ -67,7 +67,15 @@ struct ReportesView: View {
 
     @ViewBuilder
     private var preview: some View {
-        if vm.seleccionId == "estado", let e = vm.estado {
+        if vm.sinDatos {
+            // No es que el reporte esté vacío: es que no hay movimientos
+            // aprobados con los que hacerlo.
+            ContentUnavailableView(
+                L.t("Todavía no hay nada que reportar", "Nothing to report yet"),
+                systemImage: "chart.bar.doc.horizontal",
+                description: Text(L.t("Los reportes salen de los movimientos aprobados. Captura ingresos y gastos, o dales el visto bueno en Por revisar.",
+                                      "Reports are built from approved transactions. Record income and expenses, or approve them in To review.")))
+        } else if vm.seleccionId == "estado", let e = vm.estado {
             estadoFinanciero(e)
         } else {
             ContentUnavailableView(L.t("Próximamente", "Coming soon"), systemImage: "doc.text.magnifyingglass",
@@ -85,25 +93,45 @@ struct ReportesView: View {
                     Text(L.t("No se incluye en el PDF", "Not included in the PDF")).font(.caption).foregroundStyle(.tertiary)
                 }
                 chips(e)
+                if e.pendientes > 0 { avisoPendientes(e) }
                 tarjetas(e)
                 tablaMensual(e)
             }
             .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
-        .sheet(isPresented: $mostrarPDF) { ReportePDFSheet(e: e, periodo: vm.periodoSel) }
+        .sheet(isPresented: $mostrarPDF) { ReportePDFSheet(e: e) }
+    }
+
+    /// **Lo que el reporte deja fuera, dicho en el reporte.** Solo cuentan los
+    /// movimientos aprobados; sin este aviso, la diferencia contra la pantalla
+    /// de Ingresos —que sí enseña los pendientes— parece un error de la app.
+    private func avisoPendientes(_ e: EstadoFinanciero) -> some View {
+        HStack(spacing: Esp.hueco) {
+            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Paleta.Estado.pendiente.color)
+            Text(e.pendientes == 1
+                 ? L.t("1 movimiento de este mes espera visto bueno y no está en estas cifras.",
+                       "1 transaction this month is awaiting approval and isn't in these figures.")
+                 : L.t("\(e.pendientes) movimientos de este mes esperan visto bueno y no están en estas cifras.",
+                       "\(e.pendientes) transactions this month are awaiting approval and aren't in these figures."))
+                .font(.footnote)
+            Spacer()
+        }
+        .padding(Esp.chip)
+        .background(Paleta.avisoFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func barraFiltros(_ e: EstadoFinanciero) -> some View {
         HStack(spacing: 10) {
             // Periodo: elige el mes; recarga las cifras de ese mes.
             Menu {
-                ForEach(vm.periodos, id: \.self) { p in
-                    Button { Task { await vm.seleccionarPeriodo(p) } } label: {
-                        if p == vm.periodoSel { Label(p, systemImage: "checkmark") } else { Text(p) }
+                ForEach(vm.periodos) { p in
+                    Button { Task { await vm.seleccionarPeriodo(p.clave) } } label: {
+                        if p.clave == vm.periodoSel { Label(p.etiqueta, systemImage: "checkmark") }
+                        else { Text(p.etiqueta) }
                     }
                 }
-            } label: { chipFiltro(vm.periodoSel) }
+            } label: { chipFiltro(vm.periodoEtiqueta) }
 
             // Categoría: acota la dona y el ingreso a una categoría (o todas).
             Menu {
@@ -148,6 +176,9 @@ struct ReportesView: View {
         }
     }
 
+    /// **El cuarto chip es el saldo final, no el balance del mes pasado.** Era
+    /// "Mes anterior", que repetía una cifra que la tabla ya da y dejaba fuera
+    /// la única que responde "¿cuánto tiene la iglesia?".
     @ViewBuilder
     private func chipsLista(_ e: EstadoFinanciero) -> some View {
         chipKPI(L.t("Ingresos del mes", "Income this month"), e.ingresosMes, Paleta.brand,
@@ -156,8 +187,9 @@ struct ReportesView: View {
                 delta: e.deltaGastos, invert: true, sub: L.t("vs mes anterior", "vs last month"))
         chipKPI(L.t("Balance neto", "Net balance"), e.balanceNeto, Paleta.brand,
                 delta: e.deltaBalance, invert: false, sub: L.t("vs mes anterior", "vs last month"))
-        chipKPI(L.t("Mes anterior", "Previous month"), e.mesAnterior, Paleta.morado,
-                delta: nil, invert: false, sub: e.mesAnteriorNombre)
+        chipKPI(L.t("Saldo final", "Ending balance"), e.saldoFinal, Paleta.morado,
+                delta: nil, invert: false,
+                sub: L.t("con el saldo anterior", "including previous balance"))
     }
 
     private func chipKPI(_ titulo: String, _ monto: Centavos, _ color: Color, delta: Double?, invert: Bool, sub: String) -> some View {
@@ -182,7 +214,8 @@ struct ReportesView: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
             tarjetaSaldo(e)
             CategoryDonutChart(categorias: e.composicion, mesCorto: e.composicionMesCorto)
-            tarjetaPresupuesto(e)
+            tarjetaGastos(e)
+            if !e.depositos.isEmpty { tarjetaDepositos(e) }
         }
     }
 
@@ -190,7 +223,7 @@ struct ReportesView: View {
         Tarjeta {
             VStack(alignment: .leading, spacing: 8) {
                 TituloSeccion(texto: L.t("SALDO DEL PERIODO", "PERIOD BALANCE"))
-                AmountText(cents: e.saldoPeriodo, size: 26)
+                AmountText(cents: e.balanceNeto, size: 26)
                 Chart(e.saldoSerie) { m in
                     BarMark(x: .value("Mes", m.mes), y: .value("Saldo", m.monto))
                         .foregroundStyle(m.mes == e.saldoSerie.last?.mes ? Paleta.brand : Paleta.brandMuted)
@@ -201,20 +234,59 @@ struct ReportesView: View {
         }
     }
 
-    private func tarjetaPresupuesto(_ e: EstadoFinanciero) -> some View {
+    /// **Gastos por categoría, con el porcentaje medido contra el INGRESO.**
+    /// Sustituye a "gasto contra presupuesto", que enseñaba cuatro porcentajes
+    /// fijos de un presupuesto que en Tamio no existe. El % contra el ingreso
+    /// es el de la app web, y es el que informa: "mantenimiento fue el 12% de
+    /// lo que entró" dice algo; "% de lo que gastamos" no dice nada nuevo.
+    private func tarjetaGastos(_ e: EstadoFinanciero) -> some View {
         Tarjeta {
             VStack(alignment: .leading, spacing: 10) {
-                TituloSeccion(texto: L.t("GASTO CONTRA PRESUPUESTO", "SPEND VS BUDGET"))
+                TituloSeccion(texto: L.t("GASTOS POR CATEGORÍA", "EXPENSES BY CATEGORY"))
                 AmountText(cents: e.gastoTotal, size: 26)
-                ForEach(e.presupuesto) { p in
+                if e.gastosPorCategoria.isEmpty {
+                    Text(L.t("Sin gastos en el periodo", "No expenses this period"))
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                ForEach(e.gastosPorCategoria) { g in
                     HStack {
-                        Text(p.categoria).font(.subheadline)
+                        Text(g.nombre).font(.subheadline).lineLimit(1)
                         Spacer()
-                        Text("\(p.pct)%").font(.subheadline.weight(.medium)).foregroundStyle(.secondary).monospacedDigit()
+                        Text(Money.fmt(g.monto)).font(.subheadline).monospacedDigit()
+                        Text(porcentaje(g.monto, de: e.ingresosMes))
+                            .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                            .frame(width: 44, alignment: .trailing)
                     }
                 }
             }
         }
+    }
+
+    /// Los depósitos del periodo. Van con su aclaración: son traspasos de caja
+    /// a banco, no ingresos, así que su total puede superar lo ingresado en el
+    /// mes sin que eso sea un descuadre.
+    private func tarjetaDepositos(_ e: EstadoFinanciero) -> some View {
+        Tarjeta {
+            VStack(alignment: .leading, spacing: 10) {
+                TituloSeccion(texto: L.t("DEPÓSITOS DEL PERIODO", "PERIOD DEPOSITS"))
+                AmountText(cents: e.depositosTotal, size: 26)
+                ForEach(e.depositos) { d in
+                    HStack {
+                        Text(d.cuenta).font(.subheadline).lineLimit(1)
+                        Spacer()
+                        Text(Money.fmt(d.monto)).font(.subheadline).monospacedDigit()
+                    }
+                }
+                Text(L.t("No suman al saldo: mueven efectivo de la caja al banco.",
+                         "Not added to the balance: they move cash from the box to the bank."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func porcentaje(_ parte: Centavos, de total: Centavos) -> String {
+        guard total > 0 else { return "—" }
+        return "\(Int((Double(parte) / Double(total) * 100).rounded()))%"
     }
 
     // MARK: - Tabla mensual
@@ -235,9 +307,12 @@ struct ReportesView: View {
                     .padding(.vertical, 8)
                     Divider()
                     ForEach(e.mensual) { f in
-                        let esUltimo = f.id == e.mensual.last?.id
+                        // El mes destacado es el que se está viendo, no el
+                        // último de la tabla: con el filtro puesto en junio, la
+                        // fila resaltada tiene que ser junio.
+                        let esActual = f.clave == e.periodo.clave
                         HStack(spacing: 6) {
-                            Text(f.mes).fontWeight(esUltimo ? .semibold : .regular)
+                            Text(f.mes).fontWeight(esActual ? .semibold : .regular)
                                 .lineLimit(1).minimumScaleFactor(0.8)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).frame(width: 92, alignment: .trailing)
@@ -248,8 +323,8 @@ struct ReportesView: View {
                         }
                         .font(.subheadline).monospacedDigit()
                         .padding(.vertical, 9)
-                        .background(esUltimo ? Paleta.brandFill : .clear)
-                        if !esUltimo { Divider() }
+                        .background(esActual ? Paleta.brandFill : .clear)
+                        if f.id != e.mensual.last?.id { Divider() }
                     }
                 }
             }
