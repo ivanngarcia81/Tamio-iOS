@@ -1,12 +1,25 @@
 import SwiftUI
 import Charts
 
-/// Pantalla Reportes: lista de tipos de reporte + vista previa. El "Estado
-/// financiero" muestra chips KPI, tarjetas y la tabla mensual. Layout seguro.
+/// Pantalla Reportes: lista de tipos de reporte + vista previa.
+///
+/// **En el teléfono la pantalla no existía.** El maestro-detalle se resolvía
+/// solo por ancho: en iPad pintaba la columna y el reporte, y en iPhone
+/// únicamente la lista, cuyas filas usaban `onTapGesture` para mover una
+/// selección que allí no se veía. Tocar "Estado financiero" pintaba la fila de
+/// verde y nada más: no había forma de llegar al reporte, ni al PDF, ni a
+/// compartirlo. Ahora la rama compacta empuja el detalle, como Ingresos y
+/// Depósitos, y los controles del reporte suben a la barra.
 struct ReportesView: View {
     @State private var vm = ReportesViewModel()
     @State private var mostrarPDF = false
+    /// El reporte abierto en el teléfono (empujado en la pila).
+    @State private var abierto: ReporteTipo?
     @Environment(\.horizontalSizeClass) private var sizeClass
+
+    /// Ver `MovimientosView`: la barra es de la pantalla entera, así que subir
+    /// los controles solo tiene sentido cuando la pantalla ES el reporte.
+    private var compacto: Bool { sizeClass == .compact }
 
     var body: some View {
         GeometryReader { geo in
@@ -17,7 +30,10 @@ struct ReportesView: View {
                     preview
                 }
             } else {
-                listaColumna.background(.regularMaterial)
+                listaColumna
+                    .navigationDestination(item: $abierto) { t in
+                        detalleCompacto(t)
+                    }
             }
         }
         .encabezadoNav(L.t("Reportes", "Reports"), L.t("Listos para imprimir o compartir", "Ready to print or share"))
@@ -27,22 +43,16 @@ struct ReportesView: View {
 
     // MARK: - Lista de reportes
 
-    @ViewBuilder
     private var listaColumna: some View {
-        // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
-        listaColumnaCore
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-    }
-
-    @ViewBuilder
-    private var listaColumnaCore: some View {
         List {
             Section {
                 ForEach(vm.tipos) { t in
                     filaReporte(t)
                         .contentShape(Rectangle())
-                        .onTapGesture { vm.seleccionId = t.id }
+                        .onTapGesture {
+                            vm.seleccionId = t.id
+                            if compacto { abierto = t }
+                        }
                 }
             } header: {
                 Text(L.t("Tesorería", "Treasury"))
@@ -50,23 +60,115 @@ struct ReportesView: View {
                     .textCase(nil)
             }
         }
+        // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
 
     private func filaReporte(_ t: ReporteTipo) -> some View {
-        let sel = t.id == vm.seleccionId
-        return VStack(alignment: .leading, spacing: 2) {
-            Text(t.titulo).font(.subheadline.weight(.semibold)).foregroundStyle(sel ? Paleta.brand : .primary)
-            Text(t.subtitulo).font(.caption).foregroundStyle(.secondary)
+        // En iPad la fila marca la selección de la columna; en el teléfono
+        // lleva a otra pantalla, y eso se dice con un chevrón. Pintarla de
+        // verde allí sería anunciar una selección que no se queda a la vista.
+        let sel = !compacto && t.id == vm.seleccionId
+        return HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(t.titulo).font(.subheadline.weight(.semibold))
+                    .foregroundStyle(sel ? Paleta.brand : .primary)
+                Text(t.subtitulo).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if compacto {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 12)
-        .filaDeLista(seleccionada: sel, tarjeta: sizeClass != .regular)
+        .filaDeLista(seleccionada: sel, tarjeta: compacto)
+    }
+
+    // MARK: - Detalle en el teléfono
+
+    /// **La barra va sin título.** Con el nombre del reporte puesto ahí, el
+    /// sistema no encontraba sitio para la segunda cápsula y se llevaba la
+    /// categoría al menú "···" — un filtro escondido detrás de tres puntos no
+    /// dice qué se está viendo, que es justo para lo que está arriba. El
+    /// nombre pasa a encabezar el contenido, como en el detalle de un
+    /// movimiento.
+    private func detalleCompacto(_ t: ReporteTipo) -> some View {
+        contenido(t, titulo: t.titulo)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { barraCompacta }
+            .safeAreaInset(edge: .bottom) { barraInferior }
+    }
+
+    /// **La barra del teléfono: arriba lo que dice QUÉ SE ESTÁ VIENDO.**
+    /// El mes y la categoría son eso; el PDF y compartir son acciones y bajan.
+    /// Con las dos cápsulas y el título caben de sobra: en un iPhone el límite
+    /// medido está en unas cuatro.
+    @ToolbarContentBuilder
+    private var barraCompacta: some ToolbarContent {
+        if vm.estado != nil {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                menuPeriodo { chipFiltro(vm.periodoEtiqueta) }
+                // **La categoría va como icono, no como cápsula de texto.** Con
+                // "September 2026" y "All categories" seguidas el sistema no
+                // encontraba sitio para la segunda y se la llevaba al menú
+                // "···", que es donde un filtro deja de decir qué se está
+                // viendo. Es el mismo botón de filtros de Ingresos, y como allí
+                // se tiñe de verde cuando hay uno puesto.
+                menuCategoria {
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(vm.categoriaSel == nil ? Color.primary : Paleta.brand)
+                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+                        .background(Color(.tertiarySystemFill), in: Capsule())
+                        .accessibilityLabel(L.t("Categoría: \(vm.categoriaEtiqueta)",
+                                                "Category: \(vm.categoriaEtiqueta)"))
+                }
+            }
+        }
+    }
+
+    /// Abajo, la acción a la izquierda y el dato de cuadre a la derecha, igual
+    /// que en Ingresos. El saldo final es lo que el tesorero compara contra la
+    /// cuenta, así que es lo que va en la cápsula.
+    @ViewBuilder
+    private var barraInferior: some View {
+        if let e = vm.estado, vm.seleccionId == "estado" {
+            BarraInferior {
+                HStack(spacing: Esp.hueco) {
+                    Button { mostrarPDF = true } label: {
+                        Label(L.t("PDF", "PDF"), systemImage: "doc.text")
+                    }
+                    .buttonStyle(.glass).tint(Paleta.brand)
+                    ShareLink(item: vm.resumenTexto) {
+                        Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+                            .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.glass).tint(Paleta.brand)
+                }
+            } resumen: {
+                HStack(spacing: 6) {
+                    Text(L.t("Saldo", "Balance")).foregroundStyle(.secondary)
+                    Text(Money.fmt(e.saldoFinal)).fontWeight(.semibold)
+                }
+                .font(.footnote).monospacedDigit()
+            }
+        }
     }
 
     // MARK: - Vista previa
 
+    /// La columna derecha del iPad: el reporte que marque la selección.
     @ViewBuilder
     private var preview: some View {
+        if let t = vm.seleccion { contenido(t) } else { EmptyView() }
+    }
+
+    @ViewBuilder
+    private func contenido(_ t: ReporteTipo, titulo: String? = nil) -> some View {
         if vm.sinDatos {
             // No es que el reporte esté vacío: es que no hay movimientos
             // aprobados con los que hacerlo.
@@ -75,18 +177,24 @@ struct ReportesView: View {
                 systemImage: "chart.bar.doc.horizontal",
                 description: Text(L.t("Los reportes salen de los movimientos aprobados. Captura ingresos y gastos, o dales el visto bueno en Por revisar.",
                                       "Reports are built from approved transactions. Record income and expenses, or approve them in To review.")))
-        } else if vm.seleccionId == "estado", let e = vm.estado {
-            estadoFinanciero(e)
+        } else if t.id == "estado", let e = vm.estado {
+            estadoFinanciero(e, titulo: titulo)
         } else {
             ContentUnavailableView(L.t("Próximamente", "Coming soon"), systemImage: "doc.text.magnifyingglass",
                                    description: Text(L.t("Este reporte llega en un próximo slice.", "This report is coming in a later slice.")))
         }
     }
 
-    private func estadoFinanciero(_ e: EstadoFinanciero) -> some View {
+    private func estadoFinanciero(_ e: EstadoFinanciero, titulo: String? = nil) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                barraFiltros(e)
+                if let titulo {
+                    Text(titulo).font(.title2.weight(.bold))
+                }
+                // En iPad la tira de filtros se queda en la columna: la barra
+                // es de la pantalla entera y allí compartiría sitio con la
+                // sidebar. En el teléfono ya subió a la barra.
+                if !compacto { barraFiltros }
                 HStack {
                     TituloSeccion(texto: L.t("RESUMEN EN PANTALLA", "ON-SCREEN SUMMARY"))
                     Spacer()
@@ -97,9 +205,10 @@ struct ReportesView: View {
                 tarjetas(e)
                 tablaMensual(e)
             }
-            .padding(Esp.panel)
+            .padding(compacto ? Esp.pantalla : Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .sheet(isPresented: $mostrarPDF) { ReportePDFSheet(e: e) }
     }
 
@@ -121,50 +230,59 @@ struct ReportesView: View {
         .background(Paleta.avisoFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func barraFiltros(_ e: EstadoFinanciero) -> some View {
+    private var barraFiltros: some View {
         HStack(spacing: 10) {
-            // Periodo: elige el mes; recarga las cifras de ese mes.
-            Menu {
-                ForEach(vm.periodos) { p in
-                    Button { Task { await vm.seleccionarPeriodo(p.clave) } } label: {
-                        if p.clave == vm.periodoSel { Label(p.etiqueta, systemImage: "checkmark") }
-                        else { Text(p.etiqueta) }
-                    }
-                }
-            } label: { chipFiltro(vm.periodoEtiqueta) }
-
-            // Categoría: acota la dona y el ingreso a una categoría (o todas).
-            Menu {
-                Button { Task { await vm.seleccionarCategoria(nil) } } label: {
-                    if vm.categoriaSel == nil { Label(L.t("Todas las categorías", "All categories"), systemImage: "checkmark") }
-                    else { Text(L.t("Todas las categorías", "All categories")) }
-                }
-                Divider()
-                ForEach(vm.categorias, id: \.self) { c in
-                    Button { Task { await vm.seleccionarCategoria(c) } } label: {
-                        if c == vm.categoriaSel { Label(c, systemImage: "checkmark") } else { Text(c) }
-                    }
-                }
-            } label: { chipFiltro(vm.categoriaEtiqueta) }
-
+            menuPeriodo { chipFiltro(vm.periodoEtiqueta) }
+            menuCategoria { chipFiltro(vm.categoriaEtiqueta) }
             Spacer()
             ShareLink(item: vm.resumenTexto) {
                 Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
             .tint(Color.secondary)
             Button { mostrarPDF = true } label: {
                 Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.text").fontWeight(.semibold)
             }
-            .buttonStyle(.borderedProminent).tint(Paleta.brand)
+            .buttonStyle(.glass).tint(Paleta.brand)
         }
     }
 
+    /// Periodo: elige el mes; recarga las cifras de ese mes.
+    private func menuPeriodo<E: View>(@ViewBuilder etiqueta: () -> E) -> some View {
+        Menu {
+            ForEach(vm.periodos) { p in
+                Button { Task { await vm.seleccionarPeriodo(p.clave) } } label: {
+                    if p.clave == vm.periodoSel { Label(p.etiqueta, systemImage: "checkmark") }
+                    else { Text(p.etiqueta) }
+                }
+            }
+        } label: { etiqueta() }
+    }
+
+    /// Categoría: acota la dona y el ingreso a una categoría (o todas).
+    private func menuCategoria<E: View>(@ViewBuilder etiqueta: () -> E) -> some View {
+        Menu {
+            Button { Task { await vm.seleccionarCategoria(nil) } } label: {
+                if vm.categoriaSel == nil { Label(L.t("Todas las categorías", "All categories"), systemImage: "checkmark") }
+                else { Text(L.t("Todas las categorías", "All categories")) }
+            }
+            Divider()
+            ForEach(vm.categorias, id: \.self) { c in
+                Button { Task { await vm.seleccionarCategoria(c) } } label: {
+                    if c == vm.categoriaSel { Label(c, systemImage: "checkmark") } else { Text(c) }
+                }
+            }
+        } label: { etiqueta() }
+    }
+
     private func chipFiltro(_ t: String) -> some View {
-        HStack(spacing: 4) { Text(t); Image(systemName: "chevron.down").font(.caption2) }
-            .font(.subheadline).foregroundStyle(.primary)
-            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-            .background(Color(.tertiarySystemFill), in: Capsule())
+        HStack(spacing: 4) {
+            Text(t).lineLimit(1)
+            Image(systemName: "chevron.down").font(.caption2)
+        }
+        .font(.subheadline).foregroundStyle(.primary)
+        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+        .background(Color(.tertiarySystemFill), in: Capsule())
     }
 
     // MARK: - Chips KPI
@@ -197,7 +315,7 @@ struct ReportesView: View {
             Text(titulo).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             AmountText(cents: monto, size: 22)
             if let delta { DeltaBadge(pct: delta, sufijo: sub, invert: invert).font(.caption) }
-            else { Text(sub).font(.caption).foregroundStyle(.secondary) }
+            else { Text(sub).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Esp.tarjeta)
@@ -298,10 +416,10 @@ struct ReportesView: View {
                 VStack(spacing: 0) {
                     HStack(spacing: 6) {
                         Text(L.t("MES", "MONTH")).frame(maxWidth: .infinity, alignment: .leading)
-                        Text(L.t("INGRESOS", "INCOME")).frame(width: 92, alignment: .trailing)
-                        Text(L.t("GASTOS", "EXPENSES")).frame(width: 92, alignment: .trailing)
-                        Text(L.t("BALANCE", "BALANCE")).frame(width: 92, alignment: .trailing)
-                        Text("").frame(width: 52, alignment: .trailing)
+                        Text(L.t("INGRESOS", "INCOME")).frame(width: anchoCol, alignment: .trailing)
+                        Text(L.t("GASTOS", "EXPENSES")).frame(width: anchoCol, alignment: .trailing)
+                        Text(L.t("BALANCE", "BALANCE")).frame(width: anchoCol, alignment: .trailing)
+                        if !compacto { Text("").frame(width: 52, alignment: .trailing) }
                     }
                     .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     .padding(.vertical, 8)
@@ -315,13 +433,18 @@ struct ReportesView: View {
                             Text(f.mes).fontWeight(esActual ? .semibold : .regular)
                                 .lineLimit(1).minimumScaleFactor(0.8)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).frame(width: 92, alignment: .trailing)
-                            Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).frame(width: 92, alignment: .trailing)
-                            Text(Money.fmt(f.balance)).fontWeight(.semibold).frame(width: 92, alignment: .trailing)
-                            Group { if let d = f.delta { DeltaBadge(pct: d) } else { Text("") } }
-                                .frame(width: 52, alignment: .trailing)
+                            Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).frame(width: anchoCol, alignment: .trailing)
+                            Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).frame(width: anchoCol, alignment: .trailing)
+                            Text(Money.fmt(f.balance)).fontWeight(.semibold).frame(width: anchoCol, alignment: .trailing)
+                            // La variación se cae en el teléfono: con cuatro
+                            // columnas de dinero no cabe, y es lo único que se
+                            // puede deducir mirando las dos filas.
+                            if !compacto {
+                                Group { if let d = f.delta { DeltaBadge(pct: d) } else { Text("") } }
+                                    .frame(width: 52, alignment: .trailing)
+                            }
                         }
-                        .font(.subheadline).monospacedDigit()
+                        .font(compacto ? .caption : .subheadline).monospacedDigit()
                         .padding(.vertical, 9)
                         .background(esActual ? Paleta.brandFill : .clear)
                         if f.id != e.mensual.last?.id { Divider() }
@@ -330,4 +453,8 @@ struct ReportesView: View {
             }
         }
     }
+
+    /// Las columnas de dinero se estrechan en el teléfono: con 92 pt cada una
+    /// no quedaba sitio para el nombre del mes.
+    private var anchoCol: CGFloat { compacto ? 74 : 92 }
 }
