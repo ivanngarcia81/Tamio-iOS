@@ -150,21 +150,7 @@ struct NuevoMovimientoView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker(L.t("Tipo", "Type"), selection: $tipo) {
-                    Text(L.t("Ingreso", "Income")).tag(TipoMovimiento.ingreso)
-                    Text(L.t("Gasto", "Expense")).tag(TipoMovimiento.gasto)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal).padding(.top, 8)
-                .disabled(editando)
-                .onChange(of: tipo) { _, nuevo in
-                    categoria = nuevo == .ingreso ? (Catalogos.categorias(nuevo).first ?? "") : ""
-                }
-                .onChange(of: aportante) { _, _ in
-                    if sinAportante { darConstanciaAnual = false }
-                }
-
-                importeView.padding(.vertical, 12)
+                importeView.padding(.top, 8).padding(.bottom, 12)
 
                 Form {
                     seccionDetalle
@@ -174,9 +160,31 @@ struct NuevoMovimientoView: View {
                     if !editando { seccionGuardarOtro }
                 }
             }
-            .navigationTitle(tituloPantalla)
+            // **El segmentado ocupa el lugar del título.** Decía lo mismo que
+            // el título —"Nuevo ingreso" con "Ingreso" marcado debajo— y para
+            // repetirlo se comía una fila entera encima del importe, que es lo
+            // primero que se teclea. Al editar no aparece: el tipo de un
+            // movimiento ya guardado no se cambia, y un segmentado desactivado
+            // ocupa sitio para no dejar hacer nada.
+            .navigationTitle(editando ? tituloPantalla : "")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: tipo) { _, nuevo in
+                categoria = nuevo == .ingreso ? (Catalogos.categorias(nuevo).first ?? "") : ""
+            }
+            .onChange(of: aportante) { _, _ in
+                if sinAportante { darConstanciaAnual = false }
+            }
             .toolbar {
+                if !editando {
+                    ToolbarItem(placement: .title) {
+                        Picker(L.t("Tipo", "Type"), selection: $tipo) {
+                            Text(L.t("Ingreso", "Income")).tag(TipoMovimiento.ingreso)
+                            Text(L.t("Gasto", "Expense")).tag(TipoMovimiento.gasto)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(maxWidth: 200)
+                    }
+                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
