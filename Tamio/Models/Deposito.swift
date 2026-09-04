@@ -91,6 +91,32 @@ struct Corte: Identifiable, Hashable {
     /// Nombre del archivo de la ficha del banco adjunta (nil = sin adjuntar).
     var fichaAdjunta: String? = nil
 
+    // MARK: - Doble conteo
+    //
+    // El tesorero cuenta el dinero y lo captura; el ASISTENTE cuenta el mismo
+    // dinero por su lado y firma que le sale la misma cantidad. Por eso
+    // `segundaConteo` es un importe y no un booleano: es SU cuenta, para poder
+    // compararla contra `montoTotal`, que la app calcula sola.
+    //
+    // El conteo va A CIEGAS —el asistente no ve el total antes de escribir el
+    // suyo, o el control se vuelve un sello— y firma `presencial`: en el mismo
+    // teléfono, que es como se hace cuando los dos están contando la mesa.
+    // Las columnas ya existen en Supabase; la app todavía no las enseña.
+
+    var dobleFirmaPedida: Bool = false
+    var segundaFirma: String? = nil
+    var segundaFirmaRol: String? = nil
+    var segundaFirmaEn: String? = nil
+    var segundaFirmaModo: String? = nil
+    /// El importe que contó el asistente, en centavos.
+    var segundaConteo: Centavos? = nil
+
+    /// Diferencia entre lo que contó el asistente y lo que suma el corte.
+    /// `nil` mientras no haya segundo conteo. Cero es que cuadra.
+    var diferenciaConteo: Centavos? {
+        segundaConteo.map { $0 - montoTotal }
+    }
+
     // MARK: - Derivados
 
     var efectivo: [Movimiento] { movimientos.filter(\.esEfectivo) }

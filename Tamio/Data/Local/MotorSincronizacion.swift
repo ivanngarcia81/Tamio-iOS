@@ -41,6 +41,11 @@ final class MotorSincronizacion {
             try await bajarCambios()
             try await bajarAportantes()
             try await bajarIglesia()
+            // Los cortes DESPUÉS de los movimientos: el corte apunta a
+            // movimientos por id, y resolver un puntero a algo que todavía no
+            // ha bajado deja el corte vacío hasta la vuelta siguiente.
+            try await bajarCortes()
+            try await bajarCorteMovimientos()
             ultimaSincronizacion = Date()
             estado = .reposo
         } catch {
@@ -89,6 +94,14 @@ final class MotorSincronizacion {
         }
         if op.entidad == "aportante" {
             try await subirAportante(op)
+            return
+        }
+        if op.entidad == "corte" {
+            try await subirCorte(op)
+            return
+        }
+        if op.entidad == "corteMovimiento" {
+            try await subirCorteMovimiento(op)
             return
         }
         guard let fila = try await cola.read({ db in
@@ -401,6 +414,243 @@ final class MotorSincronizacion {
             if let ultimo = filas.last?.updatedAt {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('movimiento', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
+    // MARK: - Depósitos
+
+    /// Lo que viaja a `cortes`. **`periodo` y `ficha` no van**: en Supabase no
+    /// tienen columna en esta tabla, pertenecen a `depositos_bancarios`, que
+    /// solo nace cuando el dinero llega al banco. Hasta entonces viven como
+    /// borrador en el teléfono.
+    private struct CorteRemoto: Encodable {
+        let uid: String
+        let churchId: String
+        let nombre: String
+        let fecha: String
+        let cuentaBanco: String
+        let estado: String
+        let notas: String
+        let dobleFirmaPedida: Bool
+        let segundaFirma: String?
+        let segundaFirmaRol: String?
+        let segundaFirmaEn: String?
+        let segundaFirmaModo: String?
+        let segundaConteo: Int?
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, nombre, fecha, estado, notas, deleted
+            case churchId          = "church_id"
+            case cuentaBanco       = "cuenta_banco"
+            case dobleFirmaPedida  = "doble_firma_pedida"
+            case segundaFirma      = "segunda_firma"
+            case segundaFirmaRol   = "segunda_firma_rol"
+            case segundaFirmaEn    = "segunda_firma_en"
+            case segundaFirmaModo  = "segunda_firma_modo"
+            case segundaConteo     = "segunda_conteo"
+        }
+    }
+
+    private func subirCorte(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try CorteFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+
+        let remoto = CorteRemoto(
+            uid: fila.id, churchId: churchIdActivo, nombre: fila.titulo,
+            fecha: fila.fecha, cuentaBanco: fila.cuenta, estado: fila.estado,
+            notas: fila.descripcion,
+            dobleFirmaPedida: fila.dobleFirmaPedida,
+            segundaFirma: fila.segundaFirma, segundaFirmaRol: fila.segundaFirmaRol,
+            segundaFirmaEn: fila.segundaFirmaEn, segundaFirmaModo: fila.segundaFirmaModo,
+            segundaConteo: fila.segundaConteo,
+            deleted: fila.borrado)
+
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear, .actualizar, .eliminar:
+            // `upsert` y no `insert`/`update` por separado: el mismo corte
+            // puede haber salido ya desde otro aparato, y un alta repetida no
+            // debe reventar la cola entera.
+            try await supabase.from("cortes").upsert(remoto, onConflict: "uid")
+                .execute()
+        case .none:
+            return
+        }
+    }
+
+    /// La tabla puente: dos columnas útiles y nada más.
+    private struct CorteMovimientoRemoto: Encodable {
+        let uid: String
+        let churchId: String
+        let corteUid: String
+        let txUid: String
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, deleted
+            case churchId = "church_id"
+            case corteUid = "corte_uid"
+            case txUid    = "tx_uid"
+        }
+    }
+
+    private func subirCorteMovimiento(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try CorteMovimientoFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+
+        let remoto = CorteMovimientoRemoto(
+            uid: fila.id, churchId: churchIdActivo,
+            corteUid: fila.corteId, txUid: fila.movimientoId,
+            deleted: fila.borrado)
+        try await supabase.from("corte_movimientos").upsert(remoto, onConflict: "uid")
+            .execute()
+    }
+
+    private struct CorteRemotoLeido: Decodable {
+        let uid: String
+        let nombre: String?
+        let fecha: String?
+        let cuentaBanco: String?
+        let estado: String?
+        let notas: String?
+        let depositoUid: String?
+        let registradoPor: String?
+        let dobleFirmaPedida: Bool?
+        let segundaFirma: String?
+        let segundaFirmaRol: String?
+        let segundaFirmaEn: String?
+        let segundaFirmaModo: String?
+        let segundaConteo: Int?
+        let updatedAt: String?
+        let deleted: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case uid, nombre, fecha, estado, notas, deleted
+            case cuentaBanco       = "cuenta_banco"
+            case depositoUid       = "deposito_uid"
+            case registradoPor     = "registrado_por"
+            case dobleFirmaPedida  = "doble_firma_pedida"
+            case segundaFirma      = "segunda_firma"
+            case segundaFirmaRol   = "segunda_firma_rol"
+            case segundaFirmaEn    = "segunda_firma_en"
+            case segundaFirmaModo  = "segunda_firma_modo"
+            case segundaConteo     = "segunda_conteo"
+            case updatedAt         = "updated_at"
+        }
+    }
+
+    private func bajarCortes() async throws {
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'corte'")
+        }
+        var consulta = supabase.from("cortes").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [CorteRemotoLeido] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                let tienePendiente = try OperacionPendiente
+                    .filter(Column("registroId") == r.uid).fetchCount(db) > 0
+                if tienePendiente { continue }
+
+                if r.deleted == true {
+                    try CorteFila.deleteOne(db, key: r.uid)
+                    continue
+                }
+                // `periodo` y `ficha` son borrador local y no viajan, así que
+                // se conservan los que ya hubiera en vez de vaciarlos.
+                let previo = try CorteFila.fetchOne(db, key: r.uid)
+                // Campo a campo y no en un solo `init`: con veinte argumentos
+                // y sus `??`, el comprobador de tipos de Swift se rinde.
+                var fila = previo ?? CorteFila(id: r.uid)
+                fila.titulo = r.nombre ?? ""
+                fila.descripcion = r.notas ?? ""
+                fila.estado = r.estado ?? CorteFila.abierto
+                fila.cuenta = r.cuentaBanco ?? ""
+                fila.fecha = r.fecha ?? ""
+                fila.depositoId = r.depositoUid
+                fila.registradoPor = r.registradoPor ?? ""
+                fila.dobleFirmaPedida = r.dobleFirmaPedida ?? false
+                fila.segundaFirma = r.segundaFirma
+                fila.segundaFirmaRol = r.segundaFirmaRol
+                fila.segundaFirmaEn = r.segundaFirmaEn
+                fila.segundaFirmaModo = r.segundaFirmaModo
+                fila.segundaConteo = r.segundaConteo
+                fila.actualizadoEn = r.updatedAt
+                fila.borrado = false
+                try fila.save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('corte', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
+    private struct CorteMovimientoLeido: Decodable {
+        let uid: String
+        let corteUid: String?
+        let txUid: String?
+        let updatedAt: String?
+        let deleted: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case uid, deleted
+            case corteUid  = "corte_uid"
+            case txUid     = "tx_uid"
+            case updatedAt = "updated_at"
+        }
+    }
+
+    private func bajarCorteMovimientos() async throws {
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'corteMovimiento'")
+        }
+        var consulta = supabase.from("corte_movimientos").select()
+            .eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [CorteMovimientoLeido] = try await consulta
+            .order("updated_at", ascending: true).limit(1000).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                let tienePendiente = try OperacionPendiente
+                    .filter(Column("registroId") == r.uid).fetchCount(db) > 0
+                if tienePendiente { continue }
+                guard let corteUid = r.corteUid, let txUid = r.txUid else { continue }
+
+                if r.deleted == true {
+                    // Borrado lógico: el movimiento vuelve a quedar libre. Se
+                    // BORRA la fila local en vez de marcarla, porque el índice
+                    // único solo mira las vivas y una fila muerta no aporta.
+                    try CorteMovimientoFila.deleteOne(db, key: r.uid)
+                    continue
+                }
+                // El índice único local rechazaría un segundo corte vivo para
+                // el mismo movimiento. Si el servidor manda uno, gana el
+                // servidor: se retira el anterior antes de guardar.
+                try db.execute(sql: """
+                    delete from corteMovimiento where movimientoId = ? and id <> ? and borrado = 0
+                    """, arguments: [txUid, r.uid])
+
+                try CorteMovimientoFila(id: r.uid, corteId: corteUid,
+                                        movimientoId: txUid,
+                                        actualizadoEn: r.updatedAt,
+                                        borrado: false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('corteMovimiento', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
                     """, arguments: [ultimo])
             }

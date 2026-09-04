@@ -14,13 +14,23 @@ struct OfflineMovimientosRepository: MovimientosRepository {
 
     func lista(tipo: TipoMovimiento) async throws -> [Movimiento] {
         let tipoStr = tipo == .ingreso ? "ingreso" : "gasto"
-        let filas = try await cola.read { db in
+        return try await cola.read { db in
             try MovimientoFila
                 .filter(Column("tipo") == tipoStr && Column("borrado") == false)
                 .order(Column("fecha").desc)
                 .fetchAll(db)
+                .map(\.movimiento)
+                // `sinDepositar` se resuelve aquí, contra la tabla puente: es
+                // una AUSENCIA —que ningún corte depositado lo reclame—, no un
+                // campo del movimiento. La columna local existe por espejo del
+                // esquema, pero su valor guardado no manda.
+                .map { m in
+                    var m = m
+                    m.sinDepositar = (try? OfflineDepositosRepository.sinDepositar(m.id, db)) ?? true
+                    m.incluidoEnCorte = (try? OfflineDepositosRepository.enAlgunCorte(m.id, db)) ?? false
+                    return m
+                }
         }
-        return filas.map(\.movimiento)
     }
 
     func crear(_ m: Movimiento) async throws {

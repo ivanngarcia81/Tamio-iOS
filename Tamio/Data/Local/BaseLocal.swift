@@ -153,6 +153,65 @@ final class BaseLocal {
             try db.create(index: "idx_aportante_borrado", on: "aportante",
                           columns: ["borrado"])
         }
+
+        // **Depósitos.** Dos tablas y no una, igual que en Supabase: el corte
+        // no contiene dinero, contiene punteros a movimientos que ya viven en
+        // `movimiento`. Guardar aquí una copia del importe sería pedir que se
+        // contradigan, como ya pasó cuando el corte llevaba sus propios
+        // `MovimientoCaja`.
+        m.registerMigration("v4_cortes") { db in
+            // Espejo de `cortes`.
+            try db.create(table: "corte") { t in
+                t.primaryKey("id", .text)
+                t.column("titulo", .text).notNull().defaults(to: "")
+                t.column("descripcion", .text).notNull().defaults(to: "")
+                t.column("estado", .text).notNull().defaults(to: "abierto")
+                t.column("cuenta", .text).notNull().defaults(to: "")
+                t.column("fecha", .text).notNull().defaults(to: "")
+                // `periodo` y `ficha` NO tienen columna en `cortes`: en Supabase
+                // viven en `depositos_bancarios`, que solo existe cuando el
+                // corte ya se depositó. Aquí se guardan como borrador para que
+                // el tesorero pueda fijarlos ANTES de ir al banco; al depositar
+                // pasarán a su fila definitiva. Hasta entonces no suben.
+                t.column("periodo", .text).notNull().defaults(to: "")
+                t.column("ficha", .text)
+                t.column("depositoId", .text)
+                t.column("registradoPor", .text).notNull().defaults(to: "")
+                // Doble conteo: el asistente cuenta el mismo dinero por su lado
+                // y firma que le sale igual. `segundaConteo` es SU importe, no
+                // una copia del total, para poder compararlos.
+                t.column("dobleFirmaPedida", .boolean).notNull().defaults(to: false)
+                t.column("segundaFirma", .text)
+                t.column("segundaFirmaRol", .text)
+                t.column("segundaFirmaEn", .text)
+                t.column("segundaFirmaModo", .text)
+                t.column("segundaConteo", .integer)
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+            try db.create(index: "idx_corte_estado", on: "corte",
+                          columns: ["estado", "borrado"])
+
+            // Espejo de `corte_movimientos`: la agrupación pura. Dos columnas
+            // útiles y nada más — sin monto, sin categoría, sin copia de nada.
+            try db.create(table: "corteMovimiento") { t in
+                t.primaryKey("id", .text)
+                t.column("corteId", .text).notNull()
+                t.column("movimientoId", .text).notNull()
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+            try db.create(index: "idx_corteMov_corte", on: "corteMovimiento",
+                          columns: ["corteId", "borrado"])
+            // **La misma regla que impone Postgres** con `idx_corte_movs_tx_vivo`:
+            // un movimiento vivo pertenece a UN corte, nunca a dos. Sin esto el
+            // teléfono aceptaría offline lo que el servidor va a rechazar al
+            // sincronizar — depositar el mismo diezmo dos veces.
+            try db.execute(sql: """
+                create unique index idx_corteMov_movVivo
+                on corteMovimiento (movimientoId) where borrado = 0
+                """)
+        }
         return m
     }
 

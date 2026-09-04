@@ -127,3 +127,102 @@ struct OperacionPendiente: Codable, FetchableRecord, MutablePersistableRecord {
         id = inserted.rowID
     }
 }
+
+// MARK: - Depósitos
+
+/// Un corte tal y como vive en SQLite. Espejo de `cortes` de Supabase, más dos
+/// campos de borrador —`periodo` y `ficha`— que allí no tienen columna porque
+/// pertenecen a `depositos_bancarios`, la fila que solo nace cuando el dinero
+/// llega al banco.
+struct CorteFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "corte"
+
+    var id: String
+    var titulo: String
+    var descripcion: String
+    var estado: String
+    var cuenta: String
+    var fecha: String
+    var periodo: String
+    var ficha: String?
+    var depositoId: String?
+    var registradoPor: String
+    var dobleFirmaPedida: Bool
+    var segundaFirma: String?
+    var segundaFirmaRol: String?
+    var segundaFirmaEn: String?
+    var segundaFirmaModo: String?
+    var segundaConteo: Int?
+    var actualizadoEn: String?
+    var borrado: Bool
+
+    /// Los estados de Supabase, que no son los de la app: allí un corte está
+    /// "abierto" o "cerrado", aquí `pendiente` o `depositado`.
+    static let abierto = "abierto"
+    static let depositado = "depositado"
+
+    /// Corte vacío con solo su id, para rellenarlo campo a campo al bajarlo.
+    init(id: String) {
+        self.id = id
+        titulo = ""; descripcion = ""; estado = Self.abierto
+        cuenta = ""; fecha = ""; periodo = ""
+        ficha = nil; depositoId = nil; registradoPor = ""
+        dobleFirmaPedida = false
+        segundaFirma = nil; segundaFirmaRol = nil
+        segundaFirmaEn = nil; segundaFirmaModo = nil; segundaConteo = nil
+        actualizadoEn = nil; borrado = false
+    }
+
+    init(_ c: Corte, actualizadoEn: String? = nil, borrado: Bool = false) {
+        id = c.id
+        titulo = c.titulo
+        descripcion = c.descripcion
+        estado = c.estado == .depositado ? Self.depositado : Self.abierto
+        cuenta = c.registro.cuenta
+        fecha = c.registro.fecha
+        periodo = c.registro.periodo
+        ficha = c.fichaAdjunta
+        depositoId = nil
+        registradoPor = ""
+        dobleFirmaPedida = c.dobleFirmaPedida
+        segundaFirma = c.segundaFirma
+        segundaFirmaRol = c.segundaFirmaRol
+        segundaFirmaEn = c.segundaFirmaEn
+        segundaFirmaModo = c.segundaFirmaModo
+        segundaConteo = c.segundaConteo
+        self.actualizadoEn = actualizadoEn
+        self.borrado = borrado
+    }
+
+    /// El corte SIN sus movimientos: los resuelve el repositorio desde la tabla
+    /// puente. Aquí no se guarda ninguna copia que pueda quedarse vieja.
+    var corte: Corte {
+        Corte(
+            id: id,
+            titulo: titulo,
+            descripcion: descripcion,
+            estado: estado == Self.depositado ? .depositado : .pendiente,
+            movimientos: [],
+            registro: RegistroDeposito(cuenta: cuenta, fecha: fecha, periodo: periodo),
+            fichaAdjunta: ficha,
+            dobleFirmaPedida: dobleFirmaPedida,
+            segundaFirma: segundaFirma,
+            segundaFirmaRol: segundaFirmaRol,
+            segundaFirmaEn: segundaFirmaEn,
+            segundaFirmaModo: segundaFirmaModo,
+            segundaConteo: segundaConteo
+        )
+    }
+}
+
+/// La tabla puente `corte_movimientos`: qué movimiento va en qué corte y nada
+/// más. Sin importe, sin categoría — el dinero vive en `movimiento`.
+struct CorteMovimientoFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "corteMovimiento"
+
+    var id: String
+    var corteId: String
+    var movimientoId: String
+    var actualizadoEn: String?
+    var borrado: Bool
+}

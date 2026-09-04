@@ -37,7 +37,7 @@ final class DepositosViewModel {
     /// quedaba "Sin asignar" para siempre. Su sitio definitivo es Ajustes.
     private(set) var cuentas: [String] = []
 
-    init(repo: DepositosRepository = MockDepositosRepository()) {
+    init(repo: DepositosRepository = repositorioDepositos()) {
         self.repo = repo
     }
 
