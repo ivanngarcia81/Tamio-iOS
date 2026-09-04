@@ -18,6 +18,30 @@ enum Fechas {
         "\(corta(d)), \(hora)"
     }
 
+    /// El intervalo de un periodo del Dashboard. `hace: 1` devuelve el mismo
+    /// periodo inmediatamente anterior, que es contra el que se compara para
+    /// dar la variación.
+    static func intervalo(_ periodo: Periodo, hace periodos: Int = 0,
+                          desde hoy: Date = Date()) -> Range<Date> {
+        let cal = Calendar.current
+        switch periodo {
+        case .mes:
+            let inicio = cal.date(byAdding: .month, value: -periodos, to: inicioDeMes(hoy)) ?? hoy
+            return inicio ..< (cal.date(byAdding: .month, value: 1, to: inicio) ?? inicio)
+        case .trimestre:
+            // El trimestre acaba al final del mes en curso, no en el trimestre
+            // natural: es "los últimos tres meses", que es lo que se consulta.
+            let fin = cal.date(byAdding: .month, value: 1 - periodos * 3,
+                               to: inicioDeMes(hoy)) ?? hoy
+            return (cal.date(byAdding: .month, value: -3, to: fin) ?? fin) ..< fin
+        case .anio:
+            let anio = cal.component(.year, from: hoy) - periodos
+            let inicio = cal.date(from: DateComponents(year: anio, month: 1, day: 1)) ?? hoy
+            let fin = cal.date(from: DateComponents(year: anio + 1, month: 1, day: 1)) ?? hoy
+            return inicio ..< fin
+        }
+    }
+
     /// Días naturales que faltan para el corte de mes. Hoy el corte es el
     /// último día del mes natural; el día en que Ajustes deje configurar otro
     /// (muchas iglesias cierran el último domingo), este es el único sitio que

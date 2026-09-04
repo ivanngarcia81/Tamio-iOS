@@ -202,9 +202,10 @@ struct DashboardView: View {
         KPICard(titulo: L.t("Ingresos del periodo", "Period income")) {
             AmountText(cents: d.ingresos, size: 24)
         } pie: {
-            Text(L.t("\(d.registrosIngreso) registros · \(d.diezmos) diezmos",
-                     "\(d.registrosIngreso) records · \(d.diezmos) tithes"))
-                .foregroundStyle(.secondary)
+            // El MISMO pie que Gastos. Leídas una al lado de la otra, una con
+            // conteo y otra con variación contaban cosas distintas, y la de
+            // Ingresos sin variación se entendía como que no se había movido.
+            pieMovimientos(d.registrosIngreso, d.deltaIngresos)
         }
     }
 
@@ -212,7 +213,18 @@ struct DashboardView: View {
         KPICard(titulo: L.t("Gastos del periodo", "Period expenses")) {
             AmountText(cents: d.gastos, size: 24)
         } pie: {
-            DeltaBadge(pct: d.deltaGastos, sufijo: vm.periodoAnteriorLegible, invert: true)
+            pieMovimientos(d.registrosGasto, d.deltaGastos, invert: true)
+        }
+    }
+
+    /// Cuántos movimientos y cómo varía, en una línea. La variación desaparece
+    /// sola cuando no hay periodo anterior con el que comparar.
+    private func pieMovimientos(_ registros: Int, _ delta: Double?,
+                                invert: Bool = false) -> some View {
+        HStack(spacing: 6) {
+            Text(L.t("\(registros) registros", "\(registros) records"))
+                .foregroundStyle(.secondary)
+            DeltaBadge(pct: delta, sufijo: vm.periodoAnteriorLegible, invert: invert)
         }
     }
 
@@ -260,8 +272,7 @@ struct DashboardView: View {
         KPICard(titulo: L.t("Ingresos", "Income")) {
             AmountText(cents: d.ingresos, size: 22)
         } pie: {
-            Text("\(d.registrosIngreso) " + L.t("registros", "records"))
-                .foregroundStyle(.secondary)
+            pieMovimientos(d.registrosIngreso, d.deltaIngresos)
         }
     }
 
@@ -269,7 +280,7 @@ struct DashboardView: View {
         KPICard(titulo: L.t("Gastos", "Expenses")) {
             AmountText(cents: d.gastos, size: 22)
         } pie: {
-            DeltaBadge(pct: d.deltaGastos, sufijo: vm.periodoAnteriorLegible, invert: true)
+            pieMovimientos(d.registrosGasto, d.deltaGastos, invert: true)
         }
     }
 

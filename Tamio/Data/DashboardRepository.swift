@@ -13,16 +13,18 @@ struct MockDashboardRepository: DashboardRepository {
     func cargar(periodo: Periodo) async throws -> DashboardData {
         try? await Task.sleep(nanoseconds: 200_000_000)
 
-        // El periodo escala los flujos; el saldo en caja es un saldo, no.
-        let factor: Int
-        switch periodo {
-        case .mes: factor = 1
-        case .trimestre: factor = 3
-        case .anio: factor = 12
-        }
+        // Las cifras de tesorería salen de los MISMOS movimientos que enseña
+        // la pantalla de Ingresos/Gastos. Iban por su cuenta —48.320,00 por un
+        // factor según el periodo— y contradecían a la pantalla que las tiene
+        // una capa más abajo: Inicio decía "$48,320.00 · 132 registros" de
+        // septiembre y la lista de Ingresos, con los mismos movimientos
+        // delante, sumaba $23,863.00 en 8.
+        let movimientos = MockMovimientosRepository.todos
+        let actual = Self.resumen(movimientos, en: Fechas.intervalo(periodo))
+        let anterior = Self.resumen(movimientos, en: Fechas.intervalo(periodo, hace: 1))
 
-        let ingresos = 48_320_00 * factor
-        let gastos = 21_145_50 * factor
+        let ingresos = actual.ingresos
+        let gastos = actual.gastos
 
         return DashboardData(
             church: Church(id: "1",
@@ -34,23 +36,74 @@ struct MockDashboardRepository: DashboardRepository {
             saldoCaja: 126_480_25,
             ingresos: ingresos,
             gastos: gastos,
-            deltaSaldo: 0.042,
-            deltaGastos: 0.11,
-            registrosIngreso: 132 * factor,
-            diezmos: 18 * factor,
+            // Sin periodo anterior no hay variación que enseñar. Iban escritas
+            // a mano (4,2% y 11,0%) sobre unos datos de ejemplo que solo
+            // cubren la última semana: no había con qué compararlos.
+            deltaSaldo: nil,
+            deltaIngresos: Self.variacion(de: anterior.ingresos, a: actual.ingresos),
+            deltaGastos: Self.variacion(de: anterior.gastos, a: actual.gastos),
+            registrosIngreso: actual.registrosIngreso,
+            registrosGasto: actual.registrosGasto,
+            diezmos: actual.diezmos,
             pendientes: MockRevisarRepository.porRevisarCount,
             tramos: Self.seisMeses,
-            // Suman 48,320.00 → 52% / 22% / 15% / 11%, y el total de la dona
-            // coincide con "Ingresos de agosto" (centro "$48.3k").
-            ingresosPorCategoria: [
-                CategoriaMonto(nombre: L.t("Diezmos", "Tithes"), monto: 25_120_00 * factor),
-                CategoriaMonto(nombre: L.t("Ofrendas", "Offerings"), monto: 10_630_00 * factor),
-                CategoriaMonto(nombre: L.t("Misiones", "Missions"), monto: 7_250_00 * factor),
-                CategoriaMonto(nombre: L.t("Eventos", "Events"), monto: 5_320_00 * factor),
-            ],
+            // La dona reparte EXACTAMENTE los ingresos del periodo, así que
+            // su centro y la tarjeta de Ingresos no pueden discrepar.
+            ingresosPorCategoria: actual.porCategoria,
             recientes: Self.recientes,
             semana: Self.semana
         )
+    }
+
+    /// Lo que hay que saber de un tramo de tiempo, sacado de los movimientos.
+    private struct Resumen {
+        var ingresos: Centavos = 0
+        var gastos: Centavos = 0
+        var registrosIngreso = 0
+        var registrosGasto = 0
+        var diezmos = 0
+        var porCategoria: [CategoriaMonto] = []
+    }
+
+    private static func resumen(_ movimientos: [Movimiento], en rango: Range<Date>) -> Resumen {
+        let delRango = movimientos.filter { rango.contains($0.fecha) }
+        let ingresos = delRango.filter(\.esIngreso)
+        var r = Resumen()
+        r.ingresos = ingresos.reduce(0) { $0 + $1.monto }
+        let gastos = delRango.filter { !$0.esIngreso }
+        r.gastos = gastos.reduce(0) { $0 + $1.monto }
+        r.registrosIngreso = ingresos.count
+        r.registrosGasto = gastos.count
+        r.diezmos = ingresos.filter { $0.claveCategoria == .diezmo }.count
+        r.porCategoria = porCategoria(ingresos)
+        return r
+    }
+
+    /// Los ingresos agrupados por categoría, de mayor a menor. Se agrupa por
+    /// CLAVE y no por la etiqueta escrita: "Ofrenda misionera" y "Ofrenda del
+    /// miércoles" son las dos ofrendas y la dona no tiene por qué partirlas en
+    /// dos porciones. La que la iglesia se inventó y no se parece a nada del
+    /// catálogo conserva su nombre tal cual.
+    ///
+    /// La dona tiene cuatro colores: a partir del cuarto se acumulan en
+    /// "Otras", que además mantiene su suma igual al total del periodo.
+    private static func porCategoria(_ ingresos: [Movimiento]) -> [CategoriaMonto] {
+        let porNombre = Dictionary(grouping: ingresos) { m in
+            m.claveCategoria.map(Catalogos.etiqueta(de:)) ?? m.categoria
+        }
+            .map { CategoriaMonto(nombre: $0.key, monto: $0.value.reduce(0) { $0 + $1.monto }) }
+            .sorted { $0.monto > $1.monto }
+        guard porNombre.count > Paleta.donut.count else { return porNombre }
+        let visibles = porNombre.prefix(Paleta.donut.count - 1)
+        let resto = porNombre.dropFirst(Paleta.donut.count - 1).reduce(0) { $0 + $1.monto }
+        return visibles + [CategoriaMonto(nombre: L.t("Otras", "Other"), monto: resto)]
+    }
+
+    /// Variación de un periodo al siguiente. `nil` si el anterior fue cero: no
+    /// es un +100%, es que no hay con qué comparar.
+    private static func variacion(de anterior: Centavos, a actual: Centavos) -> Double? {
+        guard anterior > 0 else { return nil }
+        return Double(actual - anterior) / Double(anterior)
     }
 
     private static var seisMeses: [MesResumen] {

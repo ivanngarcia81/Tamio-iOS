@@ -39,6 +39,21 @@ struct MockMiembrosRepository: MiembrosRepository {
         Self.almacen.removeAll { $0.id == id }
     }
 
+    /// La fecha de nacimiento que codifica un RFC de persona física: cuatro
+    /// letras y luego AAMMDD. Si no tiene esa forma se devuelve vacío antes
+    /// que inventar una fecha.
+    private static func nacimientoDeRFC(_ rfc: String) -> String {
+        let s = Array(rfc)
+        guard s.count >= 10,
+              let aa = Int(String(s[4...5])), let mm = Int(String(s[6...7])),
+              let dd = Int(String(s[8...9])), (1...12).contains(mm), (1...31).contains(dd)
+        else { return "" }
+        // Todo el padrón de ejemplo nació en el siglo XX.
+        let comps = DateComponents(year: 1900 + aa, month: mm, day: dd)
+        guard let fecha = Calendar.current.date(from: comps) else { return "" }
+        return Fechas.corta(fecha)
+    }
+
     /// Historial de aportes que suma EXACTAMENTE `total`, hacia atrás desde
     /// hace `diasDesdeUltimo`, uno cada `cada` días. Las fechas son relativas a
     /// hoy a propósito: con fechas fijas, la constancia de todo el mundo se
@@ -64,6 +79,10 @@ struct MockMiembrosRepository: MiembrosRepository {
     }
 
     private static var todos: [Aportante] {
+        // La fecha de nacimiento sale del RFC de cada quien. Iba fija en "20
+        // sep 1987" para los once, mientras el RFC de Ana Lucía codificaba el
+        // 1-ene-1988: en México ese desajuste se ve a la primera, y el RFC es
+        // justo lo que lleva la constancia fiscal.
         func mk(_ id: String, _ nombre: String, _ estado: EstadoMiembro, _ rol: String, _ desde: String,
                 _ tel: String, _ correo: String, _ total: Centavos, _ idf: String,
                 _ frecuencia: FrecuenciaAporte = .semanal,
@@ -71,7 +90,7 @@ struct MockMiembrosRepository: MiembrosRepository {
             Aportante(
                 id: id, nombre: nombre, estado: estado, rol: rol, miembroDesde: desde,
                 telefono: tel, correo: correo,
-                nacimiento: L.t("20 sep 1987", "Sep 20, 1987"),
+                nacimiento: Self.nacimientoDeRFC(idf),
                 direccion: L.t("Priv. Los Encinos 8, Guadalupe", "8 Los Encinos, Guadalupe"),
                 estadoCivil: L.t("Casado", "Married"),
                 idFiscal: idf, congregaDesde: "2016",

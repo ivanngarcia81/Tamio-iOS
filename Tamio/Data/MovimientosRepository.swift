@@ -35,6 +35,12 @@ struct MockMovimientosRepository: MovimientosRepository {
     /// folios 05xx: el primer gasto nuevo saltaba de "0518" a "1045".
     private static var folios: [TipoMovimiento: Int] = [.ingreso: 1044, .gasto: 521]
 
+    /// La semilla más lo capturado en esta sesión. El Dashboard la lee para
+    /// no llevar su propia contabilidad en paralelo: encabezaba "$48,320 · 132
+    /// registros" de septiembre mientras la pantalla de Ingresos, con los
+    /// mismos movimientos delante, sumaba $23,863 en 8.
+    static var todos: [Movimiento] { almacen }
+
     func lista(tipo: TipoMovimiento) async throws -> [Movimiento] {
         try? await Task.sleep(nanoseconds: 120_000_000)
         return Self.almacen.filter { $0.tipo == tipo }.sorted { $0.fecha > $1.fecha }
@@ -80,7 +86,7 @@ struct MockMovimientosRepository: MovimientosRepository {
         let f = DateFormatter()
         f.locale = L.locale
         f.dateFormat = L.t("d 'de' MMMM yyyy", "MMM d, yyyy")
-        return "\(f.string(from: fecha)), \(hora) · iPad"
+        return "\(f.string(from: fecha)), \(hora) · \(Dispositivo.nombre)"
     }
 
     private static var semilla: [Movimiento] {

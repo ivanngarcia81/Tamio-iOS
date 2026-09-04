@@ -426,7 +426,11 @@ struct NuevoMovimientoView: View {
             comprobante: comprobante,
             auditoria: existente?.auditoria ?? [
                 AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
-                           detalle: L.t("Ahora · iPad", "Just now · iPad"))
+                           // El aparato iba escrito como "iPad" pasara lo que
+                           // pasara: en un iPhone el rastro de auditoría decía
+                           // que el movimiento se capturó en otro dispositivo.
+                           detalle: L.t("Ahora · \(Dispositivo.nombre)",
+                                        "Just now · \(Dispositivo.nombre)"))
             ],
             pagadoA: tipo == .gasto ? (pagadoA.isEmpty ? nil : pagadoA) : nil,
             rfc: rfc.isEmpty ? nil : rfc,

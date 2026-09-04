@@ -353,8 +353,11 @@ final class MotorSincronizacion {
         c.secretarioCargo = r.secretarioCargo ?? "Secretario"
         c.imprimirFirmas = r.imprimirFirmas ?? true
 
+        // Copia inmutable antes de entrar al closure: capturar la `var` es un
+        // error en Swift 6, no solo un aviso.
+        let configuracion = c
         try await cola.write { db in
-            try IglesiaFila(id: churchIdActivo, c).save(db)
+            try IglesiaFila(id: churchIdActivo, configuracion).save(db)
         }
     }
 

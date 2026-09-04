@@ -141,6 +141,14 @@ enum Catalogos {
             .trimmingCharacters(in: .whitespaces)
     }
 
+    /// La etiqueta canónica de una clave, en el idioma de la app. Es con la
+    /// que se rotula un grupo de categorías (la dona de Inicio), para no tener
+    /// que elegir una de las variantes que la iglesia haya escrito.
+    static func etiqueta(de clave: CategoriaClave) -> String {
+        (catalogoIngreso + catalogoGasto).first { $0.clave == clave }?.etiqueta
+            ?? clave.rawValue
+    }
+
     /// La clave de una etiqueta guardada, venga del idioma que venga. `nil`
     /// para una categoría que la iglesia se inventó y que no se parece a
     /// ninguna del catálogo: esas son las que salen en gris, y ahora **solo**

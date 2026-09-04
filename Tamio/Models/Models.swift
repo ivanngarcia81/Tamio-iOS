@@ -88,11 +88,22 @@ struct DashboardData {
     let saldoCaja: Centavos
     let ingresos: Centavos
     let gastos: Centavos
-    /// Variación vs. periodo anterior, en fracción (0.042 = +4.2%). `nil` si no aplica.
+    /// Variación vs. periodo anterior, en fracción (0.042 = +4.2%). `nil`
+    /// cuando no hay periodo anterior con el que comparar, que es lo que le
+    /// pasa a una iglesia en su primer mes con la app.
+    ///
+    /// Ingresos tiene la suya desde ahora: la tarjeta de Gastos enseñaba
+    /// "▲11.0% vs agosto" y la de Ingresos, justo al lado y del mismo tamaño,
+    /// no enseñaba variación ninguna. Leídas juntas parecía que los ingresos
+    /// no se habían movido.
     let deltaSaldo: Double?
+    let deltaIngresos: Double?
     let deltaGastos: Double?
-    /// Pie de la tarjeta de ingresos: "132 registros · 18 diezmos".
+    /// Cuántos movimientos hay detrás de cada cifra. Los gastos no lo decían:
+    /// la tarjeta de Ingresos llevaba conteo y la de Gastos variación, así que
+    /// las dos mitades de la misma fila contaban cosas distintas.
     let registrosIngreso: Int
+    let registrosGasto: Int
     let diezmos: Int
     let pendientes: Int
     /// Días para el corte de mes (para el subtítulo del saludo). **No es un

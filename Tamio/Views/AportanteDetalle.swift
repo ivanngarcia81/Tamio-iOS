@@ -117,7 +117,9 @@ struct AportanteDetalle: View {
                     .tint(Color.secondary)
                 menuDocumentos
             }
-            // Estrecho (iPhone): Edit+Delete arriba, PDF abajo
+            // Estrecho (iPhone): Editar arriba, documentos abajo. (El botón
+            // de eliminar se fue con 6f7a544: dar de baja a alguien del padrón
+            // es de Secretaría, no de Tesorería.)
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     Button { onEditar?() } label: { Label(L.t("Editar", "Edit"), systemImage: "pencil") }
