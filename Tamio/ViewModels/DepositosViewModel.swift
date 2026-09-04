@@ -148,7 +148,7 @@ final class DepositosViewModel {
 
     private var periodoActual: String {
         let f = DateFormatter()
-        f.locale = Locale.current
+        f.locale = L.locale
         f.dateFormat = "LLLL yyyy"
         return f.string(from: Date()).capitalized
     }

@@ -40,7 +40,10 @@ struct MockMiembrosRepository: MiembrosRepository {
     }
 
     private static func serie(_ base: Int) -> [MesAporte] {
-        let et = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago"]
+        // Las etiquetas iban sin `L.mes`: la gráfica de asistencia de
+        // Secretaría (MembresiaRepository) sí lo hacía, así que en inglés una
+        // decía "Jan Feb Mar" y esta "Ene Feb Mar" en la misma app.
+        let et = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago"].map(L.mes)
         let vals = [3_000_00, 3_200_00, 3_600_00, 3_100_00, 3_300_00, 3_600_00, 3_300_00, base]
         return zip(et, vals).map { MesAporte(mes: $0.0, monto: $0.1) }
     }

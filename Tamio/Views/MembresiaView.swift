@@ -772,7 +772,7 @@ private struct NuevoMiembroSheet: View {
     }
 
     private static let fmtCorto: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = L.t("d MMM yyyy", "MMM d, yyyy"); f.locale = Locale.current; return f
+        let f = DateFormatter(); f.dateFormat = L.t("d MMM yyyy", "MMM d, yyyy"); f.locale = L.locale; return f
     }()
 
     var body: some View {
@@ -1246,7 +1246,7 @@ private struct SeguimientoSheet: View {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none
-        f.locale = Locale.current
+        f.locale = L.locale
         return f
     }()
 

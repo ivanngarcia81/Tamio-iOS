@@ -384,7 +384,10 @@ struct NuevoMovimientoView: View {
     }
 
     private func armarMovimiento() -> Movimiento {
-        let f = DateFormatter(); f.dateFormat = "HH:mm"
+        // POSIX: `hora` se guarda y se ordena, no se elige por preferencia.
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "HH:mm"
         let persona: String?
         if tipo == .ingreso {
             persona = nombreAportante

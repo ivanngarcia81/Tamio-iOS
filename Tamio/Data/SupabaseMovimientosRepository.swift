@@ -285,7 +285,10 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
     }
 
     private func parseHora(_ text: String?) -> String {
+        // POSIX como en `MotorSincronizacion`: la hora se guarda y se ordena,
+        // así que no puede depender del calendario del dispositivo.
         let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
         df.dateFormat = "HH:mm"
         return df.string(from: parseDate(text))
     }

@@ -3,8 +3,9 @@ import Foundation
 /// **Un solo formato de fecha para las vistas de detalle.** El detalle de
 /// aprobación mostraba "Aug 30, 2026" y el de transacción "September 3, 2026,
 /// 12:05": el mismo tipo de dato con dos formatos distintos según la pantalla.
-/// Aquí vive el único, y sigue al idioma del sistema (`Locale.current`), como
-/// el resto de la app desde que se quitaron los `es_MX` forzados.
+/// Aquí vive el único, y sigue al idioma de la APP (`L.locale`), no al del
+/// dispositivo: con el iPhone en español y la app en inglés, `Locale.current`
+/// escribía los meses en español dentro de una pantalla traducida.
 enum Fechas {
     /// "28 ago 2026" · "Aug 28, 2026" — la forma de las filas de campo.
     static func corta(_ d: Date) -> String {
@@ -32,12 +33,7 @@ enum Fechas {
         return fmt(mismoAnio ? "LLLL" : "LLLL yyyy").string(from: d).capitalized
     }
 
-    private static func fmt(_ formato: String) -> DateFormatter {
-        let f = DateFormatter()
-        f.locale = Locale.current
-        f.dateFormat = formato
-        return f
-    }
+    private static func fmt(_ formato: String) -> DateFormatter { L.formateador(formato) }
 
     // MARK: - Lectura de la semilla
 

@@ -472,7 +472,10 @@ private struct NuevoEventoSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private static let fmtHora: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "HH:mm"
+        return f
     }()
 
     private static let miembrosMock = [

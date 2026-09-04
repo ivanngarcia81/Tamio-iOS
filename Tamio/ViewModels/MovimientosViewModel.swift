@@ -163,7 +163,7 @@ final class MovimientosViewModel {
 
     private func encabezado(_ dia: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale.current
+        f.locale = L.locale
         f.dateFormat = "EEEE d"
         let s = f.string(from: dia).uppercased()
         return Calendar.current.isDateInToday(dia) ? L.t("HOY · ", "TODAY · ") + s : s

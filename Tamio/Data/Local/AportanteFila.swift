@@ -95,16 +95,13 @@ struct AportanteFila: Codable, FetchableRecord, PersistableRecord {
     private static func serie(_ aportes: [Aporte]) -> [MesAporte] {
         let cal = Calendar.current
         let hoy = Date()
-        let f = DateFormatter()
-        f.locale = Locale.current
-        f.dateFormat = "MMM"
         return (0..<8).reversed().compactMap { atras in
             guard let mes = cal.date(byAdding: .month, value: -atras, to: hoy) else { return nil }
             let comps = cal.dateComponents([.year, .month], from: mes)
             let suma = aportes
                 .filter { cal.dateComponents([.year, .month], from: $0.fecha) == comps }
                 .reduce(0) { $0 + $1.monto }
-            return MesAporte(mes: f.string(from: mes).capitalized, monto: suma)
+            return MesAporte(mes: L.mesCorto(mes), monto: suma)
         }
     }
 

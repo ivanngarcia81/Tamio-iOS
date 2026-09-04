@@ -16,14 +16,51 @@ enum L {
         esEspanol ? es : en
     }
 
+    // MARK: - Fechas
+
+    /// **El locale del idioma de la app**, que no tiene por qué ser el del
+    /// dispositivo. Hoy `esEspanol` se deduce del sistema y por tanto esto es
+    /// siempre `Locale.current` —se conserva la región del usuario: es_MX,
+    /// es_ES, en_GB—, pero en cuanto Ajustes ofrezca elegir idioma dejarán de
+    /// coincidir. Todo formateador de fechas de la interfaz tiene que seguir a
+    /// este; `Locale.current` a secas escribe los meses en el idioma del
+    /// teléfono dentro de una pantalla traducida.
+    ///
+    /// Los formateadores de la capa de datos (ISO, CSV) son otra cosa y siguen
+    /// con `en_US_POSIX`: ahí el formato es un contrato, no una preferencia.
+    static var locale: Locale {
+        let sistema = Locale.current
+        let sistemaEsEspanol = sistema.language.languageCode?.identifier != "en"
+        guard sistemaEsEspanol != esEspanol else { return sistema }
+        return Locale(identifier: esEspanol ? "es" : "en")
+    }
+
+    /// El único constructor de `DateFormatter` que deben usar las vistas:
+    /// `DateFormatter()` a secas hereda `Locale.current`.
+    static func formateador(_ formato: String) -> DateFormatter {
+        let f = DateFormatter()
+        f.locale = locale
+        f.dateFormat = formato
+        return f
+    }
+
+    /// `"Ene"` · `"Jan"` — la etiqueta de mes de las gráficas.
+    ///
+    /// Recortado a tres letras a propósito: en español ICU abrevia septiembre
+    /// como "sept", y la tabla de esta misma clase (y por tanto la gráfica de
+    /// asistencia, que va por `L.mes`) dice "Sep". Sin el recorte las dos
+    /// gráficas de la app escribirían el mismo mes de dos formas, y en un eje
+    /// de barras el ancho desigual se nota.
+    static func mesCorto(_ d: Date) -> String {
+        let s = formateador("MMM").string(from: d).prefix(3)
+        return s.prefix(1).uppercased() + s.dropFirst()
+    }
+
     /// Mes en curso escrito ("Septiembre 2026" · "September 2026"), para los
     /// subtítulos de los hubs. Iba a mano como "Agosto 2026" mientras Inicio
     /// leía la fecha real, así que Tesorería encabezaba un mes y Inicio otro.
     static var mesEnCurso: String {
-        let f = DateFormatter()
-        f.locale = Locale.current
-        f.dateFormat = "LLLL yyyy"
-        let s = f.string(from: Date())
+        let s = formateador("LLLL yyyy").string(from: Date())
         return String(s.prefix(1)).uppercased() + String(s.dropFirst())
     }
 

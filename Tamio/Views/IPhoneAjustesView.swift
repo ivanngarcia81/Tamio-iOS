@@ -177,7 +177,7 @@ private struct AjustesSyncTexto {
                 return L.t("Sin sincronizar todavía", "Not synced yet")
             }
             let f = DateFormatter()
-            f.locale = Locale.current
+            f.locale = L.locale
             f.dateStyle = .short
             f.timeStyle = .short
             return f.string(from: fecha)

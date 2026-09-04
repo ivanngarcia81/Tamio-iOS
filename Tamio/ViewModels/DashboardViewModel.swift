@@ -36,7 +36,7 @@ final class DashboardViewModel {
         switch periodo {
         case .mes:
             let f = DateFormatter()
-            f.locale = Locale.current
+            f.locale = L.locale
             f.dateFormat = "LLLL yyyy"
             return f.string(from: Date()).capitalized
         case .trimestre:
@@ -57,7 +57,7 @@ final class DashboardViewModel {
         case .mes:
             let anterior = cal.date(byAdding: .month, value: -1, to: Date()) ?? Date()
             let f = DateFormatter()
-            f.locale = Locale.current
+            f.locale = L.locale
             f.dateFormat = "LLLL"
             return L.t("vs \(f.string(from: anterior))", "vs \(f.string(from: anterior))")
         case .trimestre:

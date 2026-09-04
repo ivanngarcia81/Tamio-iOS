@@ -78,7 +78,7 @@ struct MockMovimientosRepository: MovimientosRepository {
     /// fecha en la cabecera y otra distinta, con la misma hora, en el rastro.
     private static func creadoEn(_ fecha: Date, _ hora: String) -> String {
         let f = DateFormatter()
-        f.locale = Locale.current
+        f.locale = L.locale
         f.dateFormat = L.t("d 'de' MMMM yyyy", "MMM d, yyyy")
         return "\(f.string(from: fecha)), \(hora) · iPad"
     }

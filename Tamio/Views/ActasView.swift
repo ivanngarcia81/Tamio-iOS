@@ -512,7 +512,10 @@ private struct NuevaActaSheet: View {
     // MARK: - Build Acta
 
     private func fmtHora(_ date: Date) -> String {
+        // POSIX: una hora en 24 h no es una preferencia regional, y con un
+        // calendario no gregoriano el dispositivo devolvería otros dígitos.
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "HH:mm"
         return f.string(from: date)
     }
@@ -525,12 +528,12 @@ private struct NuevaActaSheet: View {
 
         let fmtLargo = DateFormatter()
         fmtLargo.dateFormat = L.t("d 'de' MMMM 'de' yyyy", "MMMM d, yyyy")
-        fmtLargo.locale = Locale.current
+        fmtLargo.locale = L.locale
         let fechaLarga = fmtLargo.string(from: fecha)
 
         let fmtCorto = DateFormatter()
         fmtCorto.dateFormat = L.t("d 'de' MMMM", "MMMM d")
-        fmtCorto.locale = Locale.current
+        fmtCorto.locale = L.locale
         let fechaCorta = fmtCorto.string(from: fecha)
 
         let horaTxt = tieneHoraInicio

@@ -481,7 +481,7 @@ struct DashboardView: View {
 
     private func fechaCorte(_ dias: Int) -> String {
         let f = DateFormatter()
-        f.locale = Locale.current
+        f.locale = L.locale
         f.dateFormat = L.esEspanol ? "EEEE d 'de' MMMM" : "EEEE, MMMM d"
         let s = f.string(from: Date())
         let fecha = s.prefix(1).uppercased() + s.dropFirst()
@@ -493,7 +493,7 @@ struct DashboardView: View {
 
     private var mesCorto: String {
         let f = DateFormatter()
-        f.locale = Locale.current
+        f.locale = L.locale
         f.dateFormat = "MMMM"
         return f.string(from: Date())
     }
