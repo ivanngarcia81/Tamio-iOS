@@ -500,6 +500,7 @@ private struct SeccionCuenta: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
     }
 }
 
@@ -519,8 +520,11 @@ private struct SeccionIglesia: View {
 
                 // Logo
                 GrupoConf {
-                    Button { } label: {
-                        HStack(spacing: 14) {
+                    // Ni botón ni "Añadir" en verde ni chevron: no hay
+                    // selector de logo en ninguna parte. En el teléfono esta
+                    // misma fila ya decía "Próximamente"; aquí prometía una
+                    // pantalla con tres señales distintas a la vez.
+                    HStack(spacing: 14) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(L.t("Logo", "Logo"))
                                     .font(.system(size: 16, weight: .semibold))
@@ -530,9 +534,9 @@ private struct SeccionIglesia: View {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Text(L.t("Añadir", "Add"))
-                                .font(.system(size: 15.5, weight: .medium))
-                                .foregroundStyle(Paleta.brand)
+                            Text(L.t("Próximamente", "Coming soon"))
+                                .font(.system(size: 15.5))
+                                .foregroundStyle(.tertiary)
                             // Las iniciales de la IGLESIA, que es de quien
                             // sería el logo. Iban escritas "IG" a mano, que
                             // resultaban ser las de la persona.
@@ -542,13 +546,9 @@ private struct SeccionIglesia: View {
                                 .frame(width: 46, height: 46)
                                 .background(Paleta.brand,
                                             in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            Image(systemName: "chevron.right")
-                                .font(.caption2).foregroundStyle(.tertiary)
-                        }
-                        .frame(minHeight: 64)
-                        .padding(.horizontal, Esp.pantalla)
                     }
-                    .buttonStyle(.plain)
+                    .frame(minHeight: 64)
+                    .padding(.horizontal, Esp.pantalla)
                 }
 
                 // Información
@@ -623,6 +623,7 @@ private struct SeccionIglesia: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .task { await cfg.cargar() }
         .onAppear { aperturaTexto = textoApertura }
         .onDisappear {
@@ -748,6 +749,7 @@ private struct SeccionInstitucion: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
     }
 }
 
@@ -798,29 +800,18 @@ private struct SeccionTesorero: View {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(p.firma).font(.system(size: 15.5))
+                                // Gris y no ámbar: el ámbar avisaba de algo
+                                // que hay que resolver, y no hay forma de
+                                // resolverlo todavía.
                                 Text(L.t("Sin cargar", "Not uploaded"))
-                                    .font(.system(size: 13)).foregroundStyle(Paleta.aviso)
+                                    .font(.system(size: 13)).foregroundStyle(.tertiary)
                             }
                             Spacer()
-                            Button { } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "waveform.path.ecg")
-                                        .font(.system(size: 14))
-                                    Text(L.t("Añadir", "Add"))
-                                        .font(.system(size: 15))
-                                }
-                                .foregroundStyle(Paleta.aviso)
-                                .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
-                                .background(Paleta.avisoFill,
-                                            in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(Paleta.avisoStroke,
-                                                style: StrokeStyle(lineWidth: 1, dash: [4, 2]))
-                                )
-                            }
-                            Image(systemName: "chevron.right")
-                                .font(.caption2).foregroundStyle(.tertiary)
+                            // Era un botón ámbar con borde punteado —el gesto
+                            // visual de "falta esto, tócame"— y la acción
+                            // vacía. No hay captura de firma en la app.
+                            Text(L.t("Próximamente", "Coming soon"))
+                                .font(.system(size: 15)).foregroundStyle(.tertiary)
                         }
                         .frame(minHeight: 64)
                         .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
@@ -832,6 +823,7 @@ private struct SeccionTesorero: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
     }
 }
 
@@ -1031,6 +1023,7 @@ private struct SeccionAcceso: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
         // El contador solo se recalculaba al terminar una sincronización, así
         // que al abrir Ajustes después de capturar sin señal decía cero.
         .task { await motor.recontarPendientes() }
@@ -1178,6 +1171,7 @@ private struct SeccionCategorias: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .task { await vm.cargar() }
         .alert(L.t("Nueva categoría", "New category"), isPresented: $creando) {
             TextField(L.t("Nombre", "Name"), text: $nombreNuevo)
@@ -1288,6 +1282,7 @@ private struct SeccionPreferencias: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
     }
 }
 
@@ -1411,6 +1406,7 @@ private struct SeccionZona: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .sheet(item: $paquete) { CompartirArchivo(url: $0) }
         .sheet(item: $csvMovimientos) { CompartirArchivo(url: $0) }
         .sheet(item: $csvAportantes) { CompartirArchivo(url: $0) }

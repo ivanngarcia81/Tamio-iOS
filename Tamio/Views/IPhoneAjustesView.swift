@@ -59,19 +59,26 @@ struct IPhoneAjustesView: View {
                     Text(L.t("Zona de riesgo", "Danger zone")).foregroundStyle(Paleta.negativo)
                 }
             } footer: {
-                Text(L.t("Respaldos, restauración y borrado de datos. Los cambios aquí no se pueden deshacer.",
-                         "Backups, restoration, and data deletion. Changes here cannot be undone."))
+                // La versión va aquí, al pie de la última sección, y no
+                // flotando sobre la lista con `safeAreaInset`. Con el borde
+                // suave de iOS 26 el contenido corre por debajo de la barra de
+                // pestañas, así que ese texto acababa impreso encima de la
+                // fila de Preferencias.
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(L.t("Respaldos, restauración y borrado de datos. Los cambios aquí no se pueden deshacer.",
+                             "Backups, restoration, and data deletion. Changes here cannot be undone."))
+                    Text(VersionApp.pie)
+                        .foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Ajustes", "Settings"))
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(for: AjustesRuta.self) { ruta in destino(ruta) }
-        .safeAreaInset(edge: .bottom) {
-            Text(VersionApp.pie).font(.caption2).foregroundStyle(.tertiary)
-                .frame(maxWidth: .infinity).padding(.bottom, 8)
-        }
         .task { await cfg.cargar() }
         .onDisappear { Task { await cfg.guardarYa() } }
     }
@@ -264,6 +271,7 @@ private struct AjustesCuentaView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Cuenta", "Account"))
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -351,6 +359,7 @@ private struct AjustesIglesiaView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Iglesia", "Church"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { aperturaTexto = apertura == 0 ? "" : Money.fmt(apertura) }
@@ -418,15 +427,18 @@ private struct AjustesInstitucionView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
+                // La flecha de "abrir fuera" prometía un visor que no existe.
                 HStack {
-                    Text(L.t("Vista previa del PDF", "PDF preview")).foregroundStyle(.secondary).font(.subheadline)
+                    Text(L.t("Vista previa del PDF", "PDF preview")).font(.subheadline)
                     Spacer()
-                    Image(systemName: "arrow.up.right.square").foregroundStyle(.tertiary).font(.subheadline)
+                    Text(L.t("Próximamente", "Coming soon"))
+                        .font(.subheadline).foregroundStyle(.tertiary)
                 }
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Institución", "Institution"))
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -496,6 +508,7 @@ private struct AjustesTesorerosView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Tesorero y pastor", "Treasurer & pastor"))
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -673,6 +686,7 @@ private struct AjustesAccesoView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Acceso y áreas", "Access & areas"))
         .navigationBarTitleDisplayMode(.inline)
         // El contador solo se recalculaba al terminar una sincronización, así
@@ -836,6 +850,7 @@ private struct AjustesCategoriasView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Categorías", "Categories"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.cargar() }
@@ -1008,6 +1023,7 @@ private struct AjustesPreferenciasView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Preferencias", "Preferences"))
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -1152,19 +1168,20 @@ private struct AjustesZonaView: View {
                 .buttonStyle(.plain)
                 .disabled(true).opacity(0.4)
             } footer: {
-                Text(L.t("Borrar y reiniciar se encienden cuando exista la restauración: hoy no habría a dónde volver.",
-                         "Delete and reset will be enabled once restore exists: today there would be nothing to go back to."))
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(L.t("Borrar y reiniciar se encienden cuando exista la restauración: hoy no habría a dónde volver.",
+                             "Delete and reset will be enabled once restore exists: today there would be nothing to go back to."))
+                    Text(VersionApp.pie)
+                        .foregroundStyle(.quaternary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Zona de riesgo", "Danger zone"))
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
-            Text(VersionApp.pie)
-                .font(.caption2).foregroundStyle(.quaternary)
-                .frame(maxWidth: .infinity).padding(.bottom, 8)
-        }
         // Una hoja por archivo: `ShareLink` necesita el item al construirse y
         // aquí no existe hasta que el trabajo termina.
         .sheet(item: $paquete) { CompartirArchivo(url: $0) }
