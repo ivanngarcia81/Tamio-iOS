@@ -229,25 +229,21 @@ struct MovimientoDetalle: View {
                             // primer segmento no le dice nada a nadie.
                             Text((archivo as NSString).lastPathComponent)
                                 .font(.subheadline).lineLimit(1).truncationMode(.middle)
-                            HStack(spacing: 12) {
-                                // "Ver" era texto verde no tocable: parecía el
-                                // enlace para abrir el documento y no lo era,
-                                // pese a que el almacén ya sabía firmar la URL.
-                                Button(L.t("Ver", "View")) { verComprobante() }
-                                    .buttonStyle(.plain).foregroundStyle(Paleta.enlace)
-                                    .disabled(abriendoComprobante)
-                                Button(L.t("Reemplazar", "Replace")) { mostrarImportador = true }
-                                    .buttonStyle(.plain).foregroundStyle(Paleta.enlace)
-                            }
-                            .font(.caption)
+                            // Solo "Reemplazar": ver el comprobante es el
+                            // botón de arriba, y tenerlo también aquí era la
+                            // misma duplicación por el otro lado.
+                            Button(L.t("Reemplazar", "Replace")) { mostrarImportador = true }
+                                .buttonStyle(.plain).foregroundStyle(Paleta.enlace)
+                                .font(.caption)
                         }
                         Spacer()
                     }
                 } else {
-                    Button { mostrarImportador = true } label: {
-                        Label(L.t("Adjuntar comprobante", "Attach receipt"), systemImage: "paperclip")
-                            .font(.subheadline)
-                    }
+                    // Aquí NO va otro "Adjuntar comprobante": esa acción es la
+                    // del botón de arriba. Convivían las dos, una gris y otra
+                    // verde, para lo mismo. Esta tarjeta enseña el estado.
+                    Text(L.t("Sin comprobante.", "No receipt."))
+                        .font(.subheadline).foregroundStyle(.secondary)
                 }
                 if abriendoComprobante {
                     Text(L.t("Abriendo…", "Opening…"))

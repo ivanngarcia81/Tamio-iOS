@@ -63,12 +63,24 @@ final class RevisarViewModel {
         mostrarToast(mensaje(r, kind))
     }
 
+    /// Lo que "Aprobar todo" puede aprobar. Solo el visto bueno: un duplicado
+    /// probable, un gasto sin comprobante o una categoría vacía piden una
+    /// decisión sobre ESE movimiento, y aprobarlos en bloque es exactamente lo
+    /// que su bandera existe para evitar. Se resuelven uno a uno.
+    static let aprobablesEnBloque: Set<RevisionTipo> = [.vistoBueno]
+
+    var aprobablesCount: Int {
+        todos.filter { !$0.archivado && Self.aprobablesEnBloque.contains($0.tipo) }.count
+    }
+
     @MainActor
     func aprobarTodo() async {
-        await repo.resolverTodos()
+        let cuantos = aprobablesCount
+        await repo.resolverTodos(tipos: Self.aprobablesEnBloque)
         await cargar()
         seleccionId = visibles.first?.id
-        mostrarToast(L.t("Se aprobaron los asuntos pendientes.", "Pending items were approved."))
+        mostrarToast(L.t("Se aprobaron \(cuantos) asuntos que esperaban visto bueno.",
+                         "\(cuantos) items awaiting approval were approved."))
     }
 
     @MainActor

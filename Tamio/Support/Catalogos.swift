@@ -152,6 +152,38 @@ enum Catalogos {
         return raices.first { _, formas in formas.contains { n.contains($0) } }?.0
     }
 
+    /// Cargos y roles de las personas de la iglesia. Iban como literales
+    /// españoles dentro de los `Picker` de Ajustes, así que con la app en
+    /// inglés el cuerpo del PDF salía traducido y las firmas debajo decían
+    /// "Pastor / Tesorero / Secretario". Lo que la iglesia ESCRIBE en esos
+    /// campos es suyo y se respeta; lo que la app OFRECE es interfaz.
+    enum Cargos {
+        /// "Tesorero" y "Tesorera" son la misma palabra en inglés. Sin quitar
+        /// el repetido, el `ForEach(id: \.self)` del Picker tendría dos
+        /// opciones con la misma identidad, que SwiftUI no sabe distinguir.
+        private static func sinRepetir(_ v: [String]) -> [String] {
+            var vistos = Set<String>()
+            return v.filter { vistos.insert($0).inserted }
+        }
+
+        static var tesoreria: [String] {
+            sinRepetir([L.t("Tesorero", "Treasurer"),
+                        L.t("Tesorera", "Treasurer"),
+                        L.t("Administrador", "Administrator")])
+        }
+        static var pastoral: [String] {
+            [L.t("Pastor", "Pastor"),
+             L.t("Pastor principal", "Lead pastor"),
+             L.t("Pastor asociado", "Associate pastor")]
+        }
+        static var roles: [String] {
+            [L.t("Tesorero", "Treasurer"),
+             L.t("Secretaria", "Secretary"),
+             L.t("Pastor", "Pastor"),
+             L.t("Administrador", "Administrator")]
+        }
+    }
+
     static var metodos: [String] {
         [L.t("Efectivo", "Cash"),
          L.t("Transferencia", "Transfer"),

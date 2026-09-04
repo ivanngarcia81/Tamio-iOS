@@ -5,11 +5,14 @@ extension View {
     /// usa `navigationSubtitle` (el sistema lo centra y espacia solo, sin tocar
     /// los bordes); en versiones anteriores cae a solo el título. Sustituye al
     /// `VStack` manual en el toolbar, que se apretaba contra el borde superior.
+    /// El subtítulo es opcional: una pantalla que ya enseña ese dato en un
+    /// control tocable no tiene que repetirlo aquí (Ingresos decía el mes en
+    /// la barra y otra vez en el chip, justo debajo).
     @ViewBuilder
-    func encabezadoNav(_ titulo: String, _ subtitulo: String) -> some View {
+    func encabezadoNav(_ titulo: String, _ subtitulo: String?) -> some View {
         if #available(iOS 26.0, *) {
             self.navigationTitle(titulo)
-                .navigationSubtitle(subtitulo)
+                .navigationSubtitle(subtitulo ?? "")
                 .toolbarBackground(Paleta.brandFill, for: .navigationBar)
                 .toolbarBackground(.visible, for: .navigationBar)
         } else {

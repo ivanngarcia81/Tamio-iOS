@@ -403,7 +403,7 @@ private struct AjustesTesorerosView: View {
         List {
             Section {
                 campoF(L.t("Nombre del tesorero", "Treasurer name"), $tes, "p. ej. Iván García")
-                pickerF(L.t("Cargo", "Title"), $tesCargo, ["Tesorero", "Tesorera", "Administrador"])
+                pickerF(L.t("Cargo", "Title"), $tesCargo, Catalogos.Cargos.tesoreria)
                 HStack {
                     Text(L.t("Firma", "Signature")).font(.subheadline)
                     Spacer()
@@ -419,7 +419,7 @@ private struct AjustesTesorerosView: View {
 
             Section {
                 campoF(L.t("Nombre del pastor", "Pastor name"), $pastor, "p. ej. Samuel Ríos")
-                pickerF(L.t("Cargo", "Title"), $pasCargo, ["Pastor", "Pastor principal", "Pastor asociado"])
+                pickerF(L.t("Cargo", "Title"), $pasCargo, Catalogos.Cargos.pastoral)
                 HStack {
                     Text(L.t("Firma", "Signature")).font(.subheadline)
                     Spacer()
@@ -462,7 +462,13 @@ private struct AjustesTesorerosView: View {
         HStack {
             Text(label).font(.subheadline).foregroundStyle(.secondary)
             Spacer()
-            Picker("", selection: bind) { ForEach(opts, id: \.self) { Text($0) } }.labelsHidden()
+            // `conValorVigente`: un cargo guardado en el otro idioma no está
+            // entre las opciones y el Picker saldría en blanco, que es el
+            // mismo fallo que Catalogos documenta para las categorías.
+            Picker("", selection: bind) {
+                ForEach(Catalogos.conValorVigente(opts, bind.wrappedValue), id: \.self) { Text($0) }
+            }
+            .labelsHidden()
         }
     }
 }
@@ -500,7 +506,7 @@ private struct AjustesAccesoView: View {
             Section {
                 campoF(L.t("Correo electrónico", "Email"), $invEmail, "tesorero@iglesia.org")
                 campoF(L.t("Nombre", "Name"), $invNom, L.t("Opcional", "Optional"))
-                pickerF(L.t("Rol", "Role"), $invRol, ["Tesorero", "Secretaria", "Pastor", "Administrador"])
+                pickerF(L.t("Rol", "Role"), $invRol, Catalogos.Cargos.roles)
                 Button { } label: {
                     Text(L.t("Enviar invitación", "Send invitation")).font(.subheadline.weight(.medium))
                         .foregroundStyle(Color(.tertiaryLabel))
@@ -585,7 +591,13 @@ private struct AjustesAccesoView: View {
         HStack {
             Text(label).font(.subheadline).foregroundStyle(.secondary)
             Spacer()
-            Picker("", selection: bind) { ForEach(opts, id: \.self) { Text($0) } }.labelsHidden()
+            // `conValorVigente`: un cargo guardado en el otro idioma no está
+            // entre las opciones y el Picker saldría en blanco, que es el
+            // mismo fallo que Catalogos documenta para las categorías.
+            Picker("", selection: bind) {
+                ForEach(Catalogos.conValorVigente(opts, bind.wrappedValue), id: \.self) { Text($0) }
+            }
+            .labelsHidden()
         }
     }
 

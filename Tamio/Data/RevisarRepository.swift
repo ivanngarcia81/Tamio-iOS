@@ -3,7 +3,10 @@ import Foundation
 protocol RevisarRepository {
     func asuntos() async -> [Revision]
     func resolver(id: String) async
-    func resolverTodos() async
+    /// Resuelve de golpe solo los tipos que se le pasen. No existe un
+    /// "resuélvelo todo": un duplicado o un gasto sin comprobante no se
+    /// aprueban en bloque, que es justo lo que su bandera está pidiendo.
+    func resolverTodos(tipos: Set<RevisionTipo>) async
     func restaurar(_ r: Revision) async
     func actualizar(_ r: Revision) async
 }
@@ -19,7 +22,9 @@ struct MockRevisarRepository: RevisarRepository {
         return Self.almacen
     }
     func resolver(id: String) async { Self.almacen.removeAll { $0.id == id } }
-    func resolverTodos() async { Self.almacen.removeAll { !$0.archivado } }
+    func resolverTodos(tipos: Set<RevisionTipo>) async {
+        Self.almacen.removeAll { !$0.archivado && tipos.contains($0.tipo) }
+    }
     func restaurar(_ r: Revision) async {
         if !Self.almacen.contains(where: { $0.id == r.id }) {
             Self.almacen.insert(r, at: 0)

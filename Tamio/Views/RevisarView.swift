@@ -32,13 +32,19 @@ struct RevisarView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                // El conteo dice cuántos de los pendientes va a tocar: antes
+                // decía "Aprobar todo" y aprobaba también el duplicado y el
+                // gasto sin comprobante que había en la lista.
                 Button { Task { await vm.aprobarTodo() } } label: {
-                    Text(L.t("Aprobar todo", "Approve all"))
+                    Text(vm.aprobablesCount == vm.porRevisarCount
+                         ? L.t("Aprobar todo", "Approve all")
+                         : L.t("Aprobar \(vm.aprobablesCount) de \(vm.porRevisarCount)",
+                               "Approve \(vm.aprobablesCount) of \(vm.porRevisarCount)"))
                         .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
                         .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                         .background(Paleta.brand, in: Capsule())
                 }
-                .disabled(vm.porRevisarCount == 0)
+                .disabled(vm.aprobablesCount == 0)
             }
         }
         .overlay(alignment: .bottom) { toastView }

@@ -62,7 +62,9 @@ struct MovimientosView: View {
                     }
             }
         }
-        .encabezadoNav(tituloBarra, subtituloBarra)
+        // Sin subtítulo: decía el mes y justo debajo el chip decía el mismo
+        // mes otra vez. Se queda el chip, que además se puede tocar.
+        .encabezadoNav(tituloBarra, nil)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -156,11 +158,6 @@ struct MovimientosView: View {
     private var tituloBarra: String {
         vm.tipo == .ingreso ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses")
     }
-
-    /// Solo el mes: el conteo y el total viven en el pie de la lista, que es
-    /// donde se consultan tras filtrar. Antes el header los repetía literal.
-    /// Y decía SIEMPRE el mes en curso, mirara uno el mes que mirara.
-    private var subtituloBarra: String { etiquetaMes }
 
     // MARK: - Columna maestra
 
@@ -415,7 +412,11 @@ struct MovimientosView: View {
             }
         }
         .padding(.vertical, 6)
-        .filaDeLista(seleccionada: esSel, tarjeta: sizeClass != .regular)
+        // La selección persistente es idioma de iPad, donde la lista y el
+        // detalle conviven. En iPhone la fila navega y volver dejaba la última
+        // tocada con barra verde y fondo tintado, como si siguiera abierta.
+        .filaDeLista(seleccionada: esSel && sizeClass == .regular,
+                     tarjeta: sizeClass != .regular)
     }
 
     private var pieLista: some View {

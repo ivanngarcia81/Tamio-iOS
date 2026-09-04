@@ -57,11 +57,17 @@ struct NuevoMovimientoView: View {
         self.onGuardar = onGuardar
         self.onNuevoFolio = onNuevoFolio
         let t = existente?.tipo ?? tipo
-        let cats = Catalogos.categorias(t)
         _folioActual = State(initialValue: existente?.folio ?? folio)
         _tipo = State(initialValue: t)
         _importe = State(initialValue: existente.map { Self.aTexto($0.monto) } ?? "")
-        _categoria = State(initialValue: existente?.categoria ?? (cats.first ?? ""))
+        // Un gasto nuevo arranca SIN categoría. Antes tomaba la primera del
+        // catálogo, así que se guardaba como "Compensación" a quien no llegó a
+        // tocar el campo, y un gasto mal clasificado no se nota hasta el
+        // reporte anual. En un ingreso sí se preselecciona: es el diezmo del
+        // domingo, cientos de capturas seguidas, y ahí obligar a un toque de
+        // más por registro cuesta más de lo que evita.
+        _categoria = State(initialValue: existente?.categoria
+                           ?? (t == .ingreso ? (Catalogos.categorias(t).first ?? "") : ""))
         _subcategoria = State(initialValue: existente?.subcategoria ?? "")
         _fecha = State(initialValue: existente?.fecha ?? Date())
         _metodo = State(initialValue: existente?.metodo ?? (Catalogos.metodos.first ?? ""))
@@ -129,7 +135,7 @@ struct NuevoMovimientoView: View {
     private var metodos: [String] { Catalogos.conValorVigente(Catalogos.metodos, metodo) }
 
     private var guardadoHabilitado: Bool {
-        !importe.isEmpty && (tipo == .ingreso || !pagadoA.isEmpty)
+        !importe.isEmpty && !categoria.isEmpty && (tipo == .ingreso || !pagadoA.isEmpty)
     }
 
     var body: some View {
@@ -142,8 +148,8 @@ struct NuevoMovimientoView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal).padding(.top, 8)
                 .disabled(editando)
-                .onChange(of: tipo) { _, _ in
-                    categoria = categorias.first ?? categoria
+                .onChange(of: tipo) { _, nuevo in
+                    categoria = nuevo == .ingreso ? (Catalogos.categorias(nuevo).first ?? "") : ""
                 }
                 .onChange(of: aportante) { _, _ in
                     if sinAportante { darConstanciaAnual = false }
@@ -278,6 +284,14 @@ struct NuevoMovimientoView: View {
         Picker(tipo == .ingreso ? L.t("Tipo de ingreso", "Income type")
                                 : L.t("Categoría", "Category"),
                selection: $categoria) {
+            // La opción vacía solo existe mientras no se ha elegido: una vez
+            // hay categoría, dejar "Elegir categoría" en la lista invitaría a
+            // volver a un estado que no se puede guardar.
+            if categoria.isEmpty {
+                Text(L.t("Elegir categoría", "Choose category"))
+                    .foregroundStyle(.secondary)
+                    .tag("")
+            }
             ForEach(categorias, id: \.self) { Text($0).tag($0) }
         }
     }
@@ -468,7 +482,7 @@ struct NuevoMovimientoView: View {
         onGuardar(armarMovimiento())
         // Reinicia el formulario sin cerrar la hoja
         importe = ""
-        categoria = categorias.first ?? ""
+        categoria = tipo == .ingreso ? (Catalogos.categorias(tipo).first ?? "") : ""
         subcategoria = ""
         fecha = Date()
         metodo = "Efectivo"
