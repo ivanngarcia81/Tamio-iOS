@@ -25,20 +25,11 @@ struct DashboardView: View {
 
     var body: some View {
         scrollContent
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task {
-                            folioNuevo = await movimientosRepo.siguienteFolio(tipo: .ingreso)
-                            mostrarNuevo = true
-                        }
-                    } label: {
-                        Label(L.t("Nuevo", "New"), systemImage: "plus")
-                    }
-                    .buttonStyle(.glass)
-                    .tint(Paleta.brand)
-                }
-            }
+            .toolbar { barra }
+            // El `+` baja a la barra inferior del teléfono, como en los dos
+            // pilotos: arriba se queda el segmentado, que es lo que dice qué se
+            // está viendo. En iPad no aplica.
+            .safeAreaInset(edge: .bottom) { barraInferior }
             .sheet(isPresented: $mostrarNuevo) {
                 NuevoMovimientoView(tipo: .ingreso, folio: folioNuevo, existente: nil) { m in
                     Task { await guardar(m) }
@@ -52,6 +43,51 @@ struct DashboardView: View {
                 Text(errorGuardado ?? "")
             }
             .task { await vm.cargar() }
+    }
+
+    /// **El segmentado ocupa el lugar del título.** "Inicio" es lo mismo que ya
+    /// dice la pestaña en la que estás, y el saludo hace de H1; el periodo, en
+    /// cambio, gobierna todas las cifras de la pantalla y no se veía en la
+    /// barra. En iPad el segmentado se queda en la columna, donde cabe al lado
+    /// del saludo y donde la barra es de la pantalla entera.
+    @ToolbarContentBuilder
+    private var barra: some ToolbarContent {
+        if esIPad {
+            ToolbarItem(placement: .topBarTrailing) { botonNuevo }
+        } else {
+            ToolbarItem(placement: .title) {
+                segmentado.frame(maxWidth: 240)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var barraInferior: some View {
+        if !esIPad, let d = vm.data {
+            BarraInferior { botonNuevo } resumen: {
+                // El saldo en caja encabeza la pantalla, pero se pierde al
+                // primer desplazamiento: es el dato que el tesorero compara, y
+                // en la cápsula sigue a la vista todo el rato.
+                HStack(spacing: 6) {
+                    Text(L.t("Caja", "Cash")).foregroundStyle(.secondary)
+                    Text(Money.fmt(d.saldoCaja)).fontWeight(.semibold)
+                }
+                .font(.footnote).monospacedDigit()
+            }
+        }
+    }
+
+    private var botonNuevo: some View {
+        Button {
+            Task {
+                folioNuevo = await movimientosRepo.siguienteFolio(tipo: .ingreso)
+                mostrarNuevo = true
+            }
+        } label: {
+            Label(L.t("Nuevo", "New"), systemImage: "plus")
+        }
+        .buttonStyle(.glass)
+        .tint(Paleta.brand)
     }
 
     /// Guarda y recarga los indicadores. Un fallo se avisa: dar por guardado
@@ -77,12 +113,15 @@ struct DashboardView: View {
                 .background(Color(.systemGroupedBackground))
                 .encabezadoNav(L.t("Inicio", "Home"), vm.periodoLegible)
                 .navigationBarTitleDisplayMode(.inline)
+                .scrollEdgeEffectStyle(.soft, for: .all)
         } else {
             ScrollView { innerContent }
-            .colchonInferior()
                 .background(Color(.systemGroupedBackground))
-                .navigationTitle(L.t("Inicio", "Home"))
+                // El título se lo queda el segmentado; borrarlo con
+                // `toolbar(removing:)` se llevaría también el item puesto ahí.
+                .navigationTitle("")
                 .navigationBarTitleDisplayMode(.inline)
+                .scrollEdgeEffectStyle(.soft, for: .all)
         }
     }
 
@@ -120,10 +159,9 @@ struct DashboardView: View {
                 segmentado.frame(width: 240).padding(.top, 6)
             }
         } else {
-            VStack(alignment: .leading, spacing: 12) {
-                saludoView
-                segmentado
-            }
+            // La tira de controles entre el saludo y las tarjetas desaparece:
+            // el segmentado subió a la barra.
+            saludoView
         }
     }
 
