@@ -38,9 +38,9 @@ extension View {
 /// se sostiene sin el recapado del scroll del bloque anterior: quitar el verde
 /// sin nada que pase por debajo solo deja la barra vacía.
 ///
-/// El verde no se va de la app: pasa a ser el tinte del `.glassProminent` del
-/// botón principal, donde tiñe el material en vez de taparlo, y sigue donde ya
-/// estaba (montos, fila seleccionada, sidebar activa, chips activos).
+/// El verde no se va de la app: pasa al SÍMBOLO del botón principal, sobre una
+/// cápsula de glass limpia, y sigue donde ya estaba (montos, fila
+/// seleccionada, sidebar activa, chips activos).
 ///
 /// **También en iPad**, donde había una razón de más para quitarlo: allí el
 /// maestro-detalle es un `HStack` dentro de un solo `NavigationStack`, así que

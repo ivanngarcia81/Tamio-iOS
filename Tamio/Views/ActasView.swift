@@ -45,7 +45,7 @@ struct ActasView: View {
                 Button { mostrarNueva = true } label: {
                     Label(L.t("Nuevo", "New"), systemImage: "plus")
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.glass)
                 .tint(Paleta.brand)
             }
         }

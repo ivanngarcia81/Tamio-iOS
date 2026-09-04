@@ -46,7 +46,7 @@ struct RevisarView: View {
                          : L.t("Aprobar \(vm.aprobablesCount) de \(vm.porRevisarCount)",
                                "Approve \(vm.aprobablesCount) of \(vm.porRevisarCount)"))
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.glass)
                 .tint(Paleta.brand)
                 .disabled(vm.aprobablesCount == 0)
             }

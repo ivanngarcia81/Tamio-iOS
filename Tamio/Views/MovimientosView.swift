@@ -153,11 +153,20 @@ struct MovimientosView: View {
                 pickerTipo.frame(maxWidth: 190)
             }
         }
-        // Acción principal de la pantalla, y solo esta: `.glassProminent` con
-        // el verde como TINTE del material. Antes era una cápsula verde plana
-        // dibujada a mano dentro de una barra que ya pinta su propio fondo, de
-        // ahí el halo doble. El sistema resuelve forma, sombra, borde y
-        // refracción.
+        // Cápsula de glass CLARA con el símbolo en verde, no rellena de verde.
+        //
+        // Empezó siendo `.glassProminent`, que tiñe el material entero: en
+        // oscuro `Paleta.brand` es #2FBF71 —un verde pensado para leerse COMO
+        // TEXTO sobre negro— y debajo de un símbolo blanco daba ~2.4:1. Con
+        // `.glass` el material se queda limpio y el verde pasa al símbolo, que
+        // es donde ese tono sí funciona: sobre el glass de una barra oscura se
+        // recorta de sobra.
+        //
+        // Encaja además con la ley de color de `Palette.swift`, que reserva el
+        // verde para lo seleccionado y las cifras: un botón no es ninguna de
+        // las dos cosas, y rellenarlo lo convertía en el elemento más pesado de
+        // la pantalla. El sistema sigue resolviendo forma, sombra, borde y
+        // refracción, que es lo que quitó el halo doble.
         ToolbarItemGroup(placement: .topBarTrailing) {
             // El mes y los filtros solo se esconden en el teléfono, que es
             // donde no caben. En iPad siguen en la cabecera de la columna.
@@ -178,7 +187,7 @@ struct MovimientosView: View {
         } label: {
             Label(L.t("Nuevo", "New"), systemImage: "plus")
         }
-        .buttonStyle(.glassProminent)
+        .buttonStyle(.glass)
         .tint(Paleta.brand)
 
         if compacto {

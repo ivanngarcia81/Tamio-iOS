@@ -40,7 +40,7 @@ struct AgendaView: View {
                 Button { mostrarNuevo = true } label: {
                     Label(L.t("Nuevo", "New"), systemImage: "plus")
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.glass)
                 .tint(Paleta.brand)
             }
         }

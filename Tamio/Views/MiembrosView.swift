@@ -56,7 +56,7 @@ struct MiembrosView: View {
                 Button { hoja = .nueva } label: {
                     Label(L.t("Nuevo", "New"), systemImage: "plus")
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.glass)
                 .tint(Paleta.brand)
             }
         }
