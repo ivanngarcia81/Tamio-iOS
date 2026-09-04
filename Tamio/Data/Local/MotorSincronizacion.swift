@@ -30,6 +30,46 @@ final class MotorSincronizacion {
 
     private init() {}
 
+    // MARK: - Lo que se enseña
+
+    /// El estado del motor en una frase, para las dos pantallas de Ajustes.
+    ///
+    /// Vivía suelto dentro de la vista del iPhone, así que el iPad no lo tenía
+    /// y se inventaba el suyo: un `@State` que decía "Sincronizado" siempre y
+    /// un contador que subía de tres en tres al pulsar. Quien lo enseña no
+    /// puede ser quien decide qué dice.
+    var estadoLegible: String {
+        // Sin sesión, `sincronizar()` se da la vuelta en la primera línea. Si
+        // no se dice, la pantalla queda en "Sin sincronizar todavía" y el
+        // botón parece roto: no lo está, es que no hay a dónde subir.
+        guard !ModoRevision.sinLogin else {
+            return L.t("Sin sesión", "Not signed in")
+        }
+        switch estado {
+        case .sincronizando: return L.t("Sincronizando…", "Syncing…")
+        case .fallo(let detalle): return detalle
+        case .reposo:
+            guard let fecha = ultimaSincronizacion else {
+                return L.t("Sin sincronizar todavía", "Not synced yet")
+            }
+            let f = DateFormatter()
+            f.locale = L.locale
+            f.dateStyle = .short
+            f.timeStyle = .short
+            return f.string(from: fecha)
+        }
+    }
+
+    /// Los cambios que esperan turno, en la frase que se lee en pantalla.
+    /// Si tiene sentido ofrecer el botón de sincronizar a mano.
+    var puedeSincronizar: Bool { !ModoRevision.sinLogin && estado != .sincronizando }
+
+    var pendientesLegible: String {
+        pendientes == 1
+            ? L.t("1 cambio", "1 change")
+            : L.t("\(pendientes) cambios", "\(pendientes) changes")
+    }
+
     // MARK: - API
 
     @MainActor

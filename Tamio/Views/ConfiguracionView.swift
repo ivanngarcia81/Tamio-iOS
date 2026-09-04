@@ -780,9 +780,13 @@ private struct SeccionTesorero: View {
 // MARK: - Acceso
 
 private struct SeccionAcceso: View {
-    @State private var estadoSync = L.t("Sincronizado", "Synced")
-    @State private var subidos = 0
-    @State private var bajados = 0
+    /// Singleton observable: leer sus propiedades dentro de `body` basta para
+    /// que la pantalla se refresque cuando la sincronización avanza. Antes
+    /// esta sección tenía tres `@State` propios —"Sincronizado" fijo y dos
+    /// contadores a cero— que no miraban el motor: enseñaba un estado
+    /// inventado mientras la sincronización de verdad podía estar fallando.
+    private let motor = MotorSincronizacion.compartido
+
     @State private var padronVisible = false
 
     var body: some View {
@@ -831,23 +835,27 @@ private struct SeccionAcceso: View {
                 }
 
                 // Sincronización
-                GrupoConf(titulo: L.t("SINCRONIZACIÓN (BETA)", "SYNC (BETA)"),
-                          nota: L.t("Se sincroniza sola: al abrir, al guardar y al reconectar. Piloto: solo la lista de miembros. Requiere sesión e internet.",
-                                    "Syncs automatically: on open, save, and reconnect. Pilot: member list only. Requires login and internet.")) {
-                    FilaConf(label: L.t("Estado", "Status"), valor: estadoSync)
+                GrupoConf(titulo: L.t("SINCRONIZACIÓN", "SYNC"),
+                          nota: L.t("Se sincroniza sola al abrir, al guardar y al reconectar. Aquí puedes forzarla a mano.",
+                                    "Syncs automatically on open, save, and reconnect. Tap to force a manual sync.")) {
+                    FilaConf(label: L.t("Estado", "Status"), valor: motor.estadoLegible)
                     Divider()
-                    FilaConf(label: L.t("Último cambio", "Last change"),
-                             valor: "\(subidos) \(L.t("subidos", "uploaded")) · \(bajados) \(L.t("bajados", "downloaded"))",
-                             valorColor: .secondary)
+                    // "Sin subir" y no "último cambio": lo que le importa a
+                    // quien mira esto es si algo suyo se quedó en el aparato,
+                    // no cuántas filas viajaron la última vez.
+                    FilaConf(label: L.t("Sin subir", "Not uploaded"),
+                             valor: motor.pendientesLegible)
                     Divider()
                     Button {
-                        subidos += 3; bajados += 1
+                        Task { await motor.sincronizar() }
                     } label: {
                         Text(L.t("Sincronizar ahora", "Sync now"))
-                            .font(.system(size: 16)).foregroundStyle(Paleta.brand)
+                            .font(.system(size: 16))
+                            .foregroundStyle(motor.puedeSincronizar ? Paleta.brand : .secondary)
                             .frame(maxWidth: .infinity).frame(minHeight: 52)
                     }
                     .buttonStyle(.plain)
+                    .disabled(!motor.puedeSincronizar)
                 }
 
                 // Plan
@@ -881,6 +889,9 @@ private struct SeccionAcceso: View {
             .frame(maxWidth: .infinity, alignment: .center)
         }
         .background(Color(.systemGroupedBackground))
+        // El contador solo se recalculaba al terminar una sincronización, así
+        // que al abrir Ajustes después de capturar sin señal decía cero.
+        .task { await motor.recontarPendientes() }
     }
 }
 
@@ -1106,7 +1117,12 @@ private struct SeccionPreferencias: View {
 // MARK: - Zona de riesgo
 
 private struct SeccionZona: View {
-    @State private var ultimoRespaldo = L.t("Ninguno", "None")
+    /// No es `@State`: no hay nada que lo cambie todavía. Lo era, y el botón
+    /// "Respaldar ahora" se limitaba a escribir "Hoy 9:41" en esta línea sin
+    /// respaldar nada — la pantalla se daba por respaldada a sí misma. Un
+    /// botón apagado y una fila que dice "Ninguno" son la verdad hasta que el
+    /// respaldo exista de verdad.
+    private let ultimoRespaldo = L.t("Ninguno", "None")
 
     var body: some View {
         ScrollView {
@@ -1125,13 +1141,14 @@ private struct SeccionZona: View {
                     }
                     .padding(.horizontal, Esp.pantalla).padding(.vertical, 18)
                     Divider()
-                    Button { ultimoRespaldo = L.t("Hoy 9:41", "Today 9:41") } label: {
+                    Button { } label: {
                         Text(L.t("Respaldar ahora", "Backup now"))
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(Paleta.brand)
                             .frame(maxWidth: .infinity).frame(minHeight: 54)
                     }
                     .buttonStyle(.plain)
+                    .disabled(true).opacity(0.4)
                 }
 
                 // Respaldos
@@ -1140,8 +1157,12 @@ private struct SeccionZona: View {
                                     "The full backup can be saved outside the device and used to restore on another device.")) {
                     FilaConf(label: L.t("Último respaldo", "Last backup"), valor: ultimoRespaldo)
                     Divider()
+                    // Sin chevron ni acción: el chevron prometía una pantalla
+                    // que no existe, y el `accion: {}` hacía que la fila se
+                    // hundiera al tocarla sin llevar a ningún sitio.
                     FilaConf(label: L.t("Exportar a un archivo", "Export to a file"),
-                             chevron: true, accion: {})
+                             valor: L.t("Próximamente", "Coming soon"),
+                             valorColor: Color(.tertiaryLabel))
                 }
 
                 // Mantenimiento
@@ -1160,27 +1181,31 @@ private struct SeccionZona: View {
 
                 // Restaurar
                 GrupoConf {
-                    Button { } label: {
-                        HStack(spacing: 14) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(L.t("Restaurar un respaldo", "Restore a backup"))
-                                    .font(.system(size: 16)).foregroundStyle(.primary)
-                                Text(L.t("Reemplaza todo lo capturado después de la fecha del respaldo.",
-                                         "Replaces everything captured after the backup date."))
-                                    .font(.system(size: 13.5)).foregroundStyle(.tertiary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption2).foregroundStyle(.tertiary)
+                    // Texto y no botón: restaurar todavía no existe, y un
+                    // botón con chevron sobre "reemplaza todo lo capturado"
+                    // invita a pulsar lo más caro de la pantalla para nada.
+                    HStack(spacing: 14) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(L.t("Restaurar un respaldo", "Restore a backup"))
+                                .font(.system(size: 16)).foregroundStyle(.primary)
+                            Text(L.t("Reemplaza todo lo capturado después de la fecha del respaldo.",
+                                     "Replaces everything captured after the backup date."))
+                                .font(.system(size: 13.5)).foregroundStyle(.tertiary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
+                        Spacer()
+                        Text(L.t("Próximamente", "Coming soon"))
+                            .font(.system(size: 15)).foregroundStyle(.tertiary)
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
                 }
 
                 // Borrar datos
                 GrupoConf {
+                    // Apagado como en el teléfono: era un botón rojo con la
+                    // acción vacía y SIN confirmación, o sea el único de la
+                    // zona de riesgo que no preguntaba nada antes de no hacer
+                    // nada. Se enciende cuando haya respaldo al que volver.
                     Button(role: .destructive) { } label: {
                         HStack {
                             Text(L.t("Borrar datos de este iPad", "Erase data from this iPad"))
@@ -1192,8 +1217,13 @@ private struct SeccionZona: View {
                         .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
                     }
                     .buttonStyle(.plain)
-                    Text(L.t("Borrar los datos locales no afecta el respaldo en iCloud ni lo que vean los demás usuarios de la iglesia.",
-                             "Erasing local data doesn't affect the iCloud backup or what other church users see."))
+                    .disabled(true).opacity(0.4)
+                    // Decía "no afecta el respaldo en iCloud". No hay respaldo
+                    // en iCloud: lo que devuelve los datos es el servidor de la
+                    // iglesia, y prometer una red de seguridad que no existe es
+                    // justo lo que no puede hacer un texto de la zona de riesgo.
+                    Text(L.t("Borra solo la copia de este aparato. Lo que ya se sincronizó sigue en el servidor de la iglesia y vuelve a bajar al entrar de nuevo.",
+                             "Erases only this device's copy. Anything already synced stays on the church server and downloads again on next sign-in."))
                         .font(.system(size: 12.5)).foregroundStyle(.tertiary)
                         .padding(.horizontal, Esp.pantalla).padding(.bottom, 14)
                 }

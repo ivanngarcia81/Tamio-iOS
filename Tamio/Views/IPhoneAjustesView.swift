@@ -164,27 +164,6 @@ struct IPhoneAjustesView: View {
 
 // MARK: - Cuenta
 
-/// Lo que la pantalla cuenta de la sincronización. Que el número de cambios
-/// sin subir esté a la vista es lo que evita que alguien dé por guardado en el
-/// servidor algo que solo está en su teléfono.
-private struct AjustesSyncTexto {
-    static func estado(_ motor: MotorSincronizacion) -> String {
-        switch motor.estado {
-        case .sincronizando: return L.t("Sincronizando…", "Syncing…")
-        case .fallo(let detalle): return detalle
-        case .reposo:
-            guard let fecha = motor.ultimaSincronizacion else {
-                return L.t("Sin sincronizar todavía", "Not synced yet")
-            }
-            let f = DateFormatter()
-            f.locale = L.locale
-            f.dateStyle = .short
-            f.timeStyle = .short
-            return f.string(from: fecha)
-        }
-    }
-}
-
 private struct AjustesCuentaView: View {
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     @State private var confirmarCierre = false
@@ -487,8 +466,6 @@ private struct AjustesAccesoView: View {
     /// que la pantalla se refresque cuando la sincronización avanza.
     private let motor = MotorSincronizacion.compartido
 
-    private var estadoSync: String { AjustesSyncTexto.estado(motor) }
-
     @Binding var invEmail: String
     @Binding var invNom: String
     @Binding var invRol: String
@@ -529,14 +506,14 @@ private struct AjustesAccesoView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                valorF(L.t("Estado", "Status"), estadoSync)
-                valorF(L.t("Sin subir", "Not uploaded"),
-                       "\(motor.pendientes) " + L.t("cambios", "changes"))
+                valorF(L.t("Estado", "Status"), motor.estadoLegible)
+                valorF(L.t("Sin subir", "Not uploaded"), motor.pendientesLegible)
                 Button { Task { await motor.sincronizar() } } label: {
-                    Text(L.t("Sincronizar ahora", "Sync now")).font(.subheadline).foregroundStyle(Paleta.brand)
+                    Text(L.t("Sincronizar ahora", "Sync now")).font(.subheadline)
+                        .foregroundStyle(motor.puedeSincronizar ? Paleta.brand : .secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .disabled(motor.estado == .sincronizando)
+                .disabled(!motor.puedeSincronizar)
             } header: {
                 Text(L.t("Sincronización", "Sync")).textCase(nil)
             } footer: {
@@ -585,6 +562,9 @@ private struct AjustesAccesoView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(L.t("Acceso y áreas", "Access & areas"))
         .navigationBarTitleDisplayMode(.inline)
+        // El contador solo se recalculaba al terminar una sincronización, así
+        // que al abrir Ajustes después de capturar sin señal decía cero.
+        .task { await motor.recontarPendientes() }
     }
 
     private func campoF(_ label: String, _ bind: Binding<String>, _ hint: String) -> some View {
