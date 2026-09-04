@@ -16,7 +16,9 @@ struct OfflineMovimientosRepository: MovimientosRepository {
         let tipoStr = tipo == .ingreso ? "ingreso" : "gasto"
         return try await cola.read { db in
             try MovimientoFila
-                .filter(Column("tipo") == tipoStr && Column("borrado") == false)
+                .filter(Column("tipo") == tipoStr && Column("borrado") == false
+                        // Un devuelto se conserva pero no cuenta en el mes.
+                        && Column("estadoRevision") != EstadoRevision.rechazado.rawValue)
                 .order(Column("fecha").desc)
                 .fetchAll(db)
                 .map(\.movimiento)
@@ -30,6 +32,12 @@ struct OfflineMovimientosRepository: MovimientosRepository {
                     m.incluidoEnCorte = (try? OfflineDepositosRepository.enAlgunCorte(m.id, db)) ?? false
                     return m
                 }
+        }
+    }
+
+    func porId(_ id: String) async throws -> Movimiento? {
+        try await cola.read { db in
+            try MovimientoFila.fetchOne(db, key: id)?.movimiento
         }
     }
 

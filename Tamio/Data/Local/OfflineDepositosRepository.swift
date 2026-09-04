@@ -210,7 +210,7 @@ struct OfflineDepositosRepository: DepositosRepository {
             select count(*) from movimiento m
             left join corteMovimiento cm on cm.movimientoId = m.id and cm.borrado = 0
             where m.tipo = 'ingreso' and m.borrado = 0
-              and m.marcadoPendiente = 1 and cm.id is null
+              and m.estadoRevision = 'pendiente' and cm.id is null
             """) ?? 0
         return c
     }

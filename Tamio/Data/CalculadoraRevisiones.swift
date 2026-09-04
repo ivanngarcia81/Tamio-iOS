@@ -145,25 +145,21 @@ extension CalculadoraRevisiones {
     private static var aprobar: AccionRevision {
         .init(label: L.t("Aprobar", "Approve"), kind: .aprobar, prominente: true)
     }
-    private static var pedir: AccionRevision {
-        .init(label: L.t("Pedir dato", "Request info"), kind: .pedir)
-    }
-    private static var editarPrim: AccionRevision {
-        .init(label: L.t("Editar", "Edit"), kind: .editar, prominente: true)
-    }
-    private static var editarSec: AccionRevision {
-        .init(label: L.t("Editar", "Edit"), kind: .editar)
-    }
     private static var devolver: AccionRevision {
         .init(label: L.t("Devolver al tesorero", "Return to treasurer"), kind: .devolver)
     }
-    private static func resolver(_ es: String, _ en: String) -> AccionRevision {
-        .init(label: L.t(es, en), kind: .resolver, prominente: true)
+    /// Abrir la hoja de edición. **El nombre dice qué se va a hacer allí**, no
+    /// cómo se llama la pantalla: "Adjuntar y aprobar" es lo único que apaga un
+    /// aviso de gasto sin comprobante, y decirle "Editar" lo escondería.
+    private static func editar(_ es: String, _ en: String,
+                               prominente: Bool = true) -> AccionRevision {
+        .init(label: L.t(es, en), kind: .editar, prominente: prominente)
     }
-    /// "Ir al corte": lleva a otra pantalla, no resuelve nada, así que no va en
-    /// verde prominente.
-    private static func navegar(_ es: String, _ en: String) -> AccionRevision {
-        .init(label: L.t(es, en), kind: .resolver, navegacion: true)
+    /// Lleva a otro sitio: chevron y tinte neutro, que el verde prominente
+    /// queda para lo que cierra el asunto.
+    private static func navegar(_ es: String, _ en: String,
+                                _ kind: AccionKind) -> AccionRevision {
+        .init(label: L.t(es, en), kind: kind, navegacion: true)
     }
 
     // MARK: Piezas comunes
@@ -223,7 +219,7 @@ extension CalculadoraRevisiones {
         base(m, tipo: .vistoBueno,
              descripcion: L.t("«\(m.titular)» por \(Money.fmt(m.monto)) se registró el \(fecha(m)) y quedó en espera de tu visto bueno. Hasta que se apruebe no cuenta en los totales del mes ni sale en el estado financiero.",
                               "«\(m.titular)» for \(Money.fmt(m.monto)) was recorded on \(fecha(m)) and is awaiting your approval. Until approved it doesn't count in monthly totals or appear in the financial statement."),
-             acciones: [aprobar, devolver, pedir],
+             acciones: [aprobar, editar("Editar", "Edit", prominente: false), devolver],
              toast: L.t("Aprobado.", "Approved."))
     }
 
@@ -231,7 +227,11 @@ extension CalculadoraRevisiones {
         base(m, tipo: .sinComprobante,
              descripcion: L.t("Este gasto de \(Money.fmt(m.monto)) no tiene comprobante, y pasa de \(Money.fmt(umbralComprobante)). Sin él no se puede justificar en una auditoría ni ante la asamblea.",
                               "This \(Money.fmt(m.monto)) expense has no receipt, and it's over \(Money.fmt(umbralComprobante)). Without one it can't be justified in an audit or before the assembly."),
-             acciones: [resolver("Adjuntar comprobante", "Attach receipt"), editarSec, pedir],
+             // Aquí NO va "Aprobar": esta alerta habla de un movimiento que YA
+             // está aprobado, y no cuelga del estado sino de que falte el
+             // archivo. Aprobar dejaría la lista idéntica y el usuario volvería
+             // a pulsar. Lo único que la apaga es subir el comprobante.
+             acciones: [editar("Adjuntar y aprobar", "Attach and approve"), devolver],
              toast: L.t("Comprobante adjuntado.", "Receipt attached."))
     }
 
@@ -239,7 +239,7 @@ extension CalculadoraRevisiones {
         base(m, tipo: .categoriaVacia,
              descripcion: L.t("Este movimiento se quedó sin categoría, así que no suma en ningún renglón del reporte del mes. Suele pasar al importar un archivo con la columna en blanco.",
                               "This entry has no category, so it doesn't add to any line of the monthly report. It usually happens when importing a file with that column blank."),
-             acciones: [editarPrim, pedir],
+             acciones: [editar("Asignar categoría", "Assign category"), devolver],
              toast: L.t("Categoría asignada.", "Category assigned."))
     }
 
@@ -247,7 +247,7 @@ extension CalculadoraRevisiones {
         base(m, tipo: .sinVincular,
              descripcion: L.t("Este ingreso no está vinculado a ningún aportante del padrón, así que NO saldrá en su constancia anual — el papel que la iglesia entrega en enero.",
                               "This income isn't linked to anyone in the directory, so it will NOT appear on their annual giving statement — the paper the church hands out in January."),
-             acciones: [resolver("Vincular aportante", "Link giver"), editarSec, pedir],
+             acciones: [editar("Vincular aportante", "Link giver"), devolver],
              toast: L.t("Aportante vinculado.", "Giver linked."))
     }
 
@@ -257,8 +257,12 @@ extension CalculadoraRevisiones {
         var r = base(m, tipo: .duplicado,
                      descripcion: L.t("Hay otro movimiento por el mismo importe y del mismo origen a pocos días de este. Puede ser un cobro repetido o dos aportes de verdad; solo tú puedes decidirlo.",
                                       "There's another entry for the same amount and source within a few days of this one. It could be a double entry or two genuine gifts; only you can tell."),
-                     acciones: [resolver("No es duplicado", "Not a duplicate"), devolver],
-                     toast: L.t("Marcado como no duplicado.", "Marked as not a duplicate."))
+                     // Sin "No es duplicado": no habría dato que cambiar —el
+                     // movimiento no está mal— así que el aviso volvería a
+                     // salir en el siguiente cálculo. Lo que sí resuelve es
+                     // corregir uno de los dos, o devolver el que sobra.
+                     acciones: [editar("Editar", "Edit"), devolver],
+                     toast: L.t("Movimiento corregido.", "Entry corrected."))
         r.seccionSecundaria = L.t("EL OTRO MOVIMIENTO", "THE OTHER ENTRY")
         r.camposSecundarios = campos(gemelo)
         return r
@@ -287,7 +291,7 @@ extension CalculadoraRevisiones {
                       valor: c.segundaConteo.map(Money.fmt) ?? L.t("Sin contar", "Not counted"),
                       resalte: c.conteoDescuadra ? .rojo : .ninguno),
             ],
-            acciones: [navegar("Ir al corte", "Go to the cut")],
+            acciones: [navegar("Ir al corte", "Go to the cut", .irAlCorte)],
             toastResuelto: L.t("Corte firmado.", "Cut signed."))
     }
 
@@ -305,7 +309,7 @@ extension CalculadoraRevisiones {
                 .init(label: L.t("Nombre", "Name"), valor: a.nombre),
                 .init(label: L.t("Estado", "Status"), valor: a.estado.etiqueta),
             ],
-            acciones: [navegar("Restaurar", "Restore")],
+            acciones: [navegar("Restaurar", "Restore", .restaurar)],
             toastResuelto: L.t("Aportante restaurado.", "Giver restored."))
     }
 }

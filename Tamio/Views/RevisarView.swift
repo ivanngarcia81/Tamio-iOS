@@ -5,7 +5,9 @@ import SwiftUI
 /// lista maestro-detalle, acciones por tipo (Aprobar/Editar/Devolver/…), toast
 /// con Deshacer y "Aprobar todo". Fiel al handoff.
 struct RevisarView: View {
+    @Environment(Navegacion.self) private var nav: Navegacion?
     @State private var vm = RevisarViewModel()
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var abierto: Revision?
     @State private var editando: Revision?
 
@@ -13,12 +15,13 @@ struct RevisarView: View {
         GeometryReader { geo in
             if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
-                    // Ancha a propósito (las filas llevan tres botones dentro)
-                    // pero con el MISMO material que las otras diez columnas
-                    // maestras: era la única opaca de la app.
+                    // Ancha a propósito: las filas llevan sus botones dentro.
+                    // Sin material detrás de la columna — ahí no tenía nada que
+                    // difuminar y se resolvía como un gris plano; el material
+                    // vive donde la lista pasa por debajo. Mismo cambio que ya
+                    // se hizo en Ingresos/Gastos, Aportantes y Depósitos.
                     listaColumna
                         .frame(width: Esp.columnaMaestraAncha)
-                        .background(.regularMaterial)
                     Divider()
                     if let a = vm.seleccion { detalle(a) } else { vacio }
                 }
@@ -31,10 +34,10 @@ struct RevisarView: View {
                     }
             }
         }
-        .encabezadoNav(L.t("Por revisar", "To review"),
-                       L.t("\(vm.porRevisarCount) movimientos esperan tu visto bueno",
-                           "\(vm.porRevisarCount) entries awaiting review"))
-        .navigationBarTitleDisplayMode(.large)
+        .encabezadoNav(L.t("Por revisar", "To review"), subtituloBarra)
+        // `.large` solo en iPad, igual que en Depósitos: en el teléfono la raíz
+        // no scrollea y el título grande dejaba una franja vacía.
+        .navigationBarTitleDisplayMode(sizeClass == .compact ? .inline : .large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 // El conteo dice cuántos de los pendientes va a tocar: antes
@@ -61,6 +64,15 @@ struct RevisarView: View {
             }
         }
         .task { await vm.cargar() }
+    }
+
+    /// El subtítulo dice lo que hay, no solo cuántos: "movimientos esperan tu
+    /// visto bueno" era falso desde que la bandeja lista siete cosas distintas
+    /// y solo una es un visto bueno pendiente.
+    private var subtituloBarra: String {
+        let n = vm.porRevisarCount
+        return L.t("\(n) asunto\(n == 1 ? "" : "s") por revisar",
+                   "\(n) item\(n == 1 ? "" : "s") to review")
     }
 
     // MARK: - Toast
@@ -98,6 +110,7 @@ struct RevisarView: View {
             .padding(.horizontal, Esp.pantalla)
             .padding(.vertical, 8)
         }
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .colchonInferior()
     }
 
@@ -190,6 +203,10 @@ struct RevisarView: View {
                 .font(.caption2).foregroundStyle(.tertiary).padding(Esp.tarjeta)
             }
         }
+        .background(Color(.systemGroupedBackground))
+        // El desvanecido de borde: la fila deja de aparecer y desaparecer de
+        // golpe al cruzar por detrás de la barra.
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .colchonInferior()
     }
 
@@ -317,9 +334,20 @@ struct RevisarView: View {
     private func activar(_ ac: AccionRevision, _ a: Revision) {
         switch ac.kind {
         case .editar: editando = a
-        case .pedir: Task { await vm.pedirDato(a) }
-        case .aprobar, .devolver, .resolver: Task { await vm.resolver(a, kind: ac.kind) }
+        case .irAlCorte: irAlCorte(a)
+        case .aprobar, .devolver, .restaurar:
+            Task { await vm.resolver(a, kind: ac.kind) }
         }
+    }
+
+    /// **Lleva al corte concreto**, no a la lista. El id del asunto es
+    /// "co-<id del corte>-firma": de ahí sale a cuál abrir.
+    private func irAlCorte(_ a: Revision) {
+        let partes = a.id.split(separator: "-").map(String.init)
+        guard partes.count >= 2, partes[0] == "co" else { return }
+        nav?.corteDestacado = partes[1]
+        nav?.seccion = "depositos"
+        nav?.pestana = .tesoreria
     }
 
     private func tarjetaCampos(_ titulo: String, _ campos: [CampoRevision]) -> some View {

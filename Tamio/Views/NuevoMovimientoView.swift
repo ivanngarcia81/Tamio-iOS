@@ -435,7 +435,7 @@ struct NuevoMovimientoView: View {
             pagadoA: tipo == .gasto ? (pagadoA.isEmpty ? nil : pagadoA) : nil,
             rfc: rfc.isEmpty ? nil : rfc,
             notasAuditoria: notas.isEmpty ? nil : notas,
-            marcadoPendiente: tipo == .gasto && marcadoPendiente,
+            estadoRevision: (tipo == .gasto && marcadoPendiente) ? .pendiente : .aprobado,
             incluidoEnCorte: incluidoEnCorte,
             darConstanciaAnual: tipo == .ingreso && darConstanciaAnual,
             repiteMensual: repiteMensual,

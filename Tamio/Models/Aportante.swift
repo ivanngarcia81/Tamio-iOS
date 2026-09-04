@@ -70,7 +70,9 @@ struct Pariente: Identifiable {
 struct Aportante: Identifiable, Hashable {
     var id: String   // var: Supabase asigna el UID al crear (vacío = nuevo)
     let nombre: String
-    let estado: EstadoMiembro
+    /// `var`: la bandeja reactiva a un aportante dado de baja desde su asunto
+    /// "Restaurar", que antes solo apagaba el aviso sin tocar al aportante.
+    var estado: EstadoMiembro
     let rol: String            // "diezmo" / "donador" — para el subtítulo de la lista
     let miembroDesde: String   // "2018"
 

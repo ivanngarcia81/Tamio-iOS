@@ -54,6 +54,9 @@ struct DepositosView: View {
             }
         }
         .task { await vm.cargar() }
+        // "Ir al corte" de la bandeja señala CUÁL: se abre ese, no la lista.
+        .onChange(of: nav?.corteDestacado) { _, id in abrirDestacado(id) }
+        .onAppear { abrirDestacado(nav?.corteDestacado) }
     }
 
     // MARK: - Barra
@@ -175,6 +178,13 @@ struct DepositosView: View {
             },
             onQuitarFirma: { Task { await vm.quitarFirma(corteId: c.id) } }
         )
+    }
+
+    private func abrirDestacado(_ id: String?) {
+        guard let id, vm.corte(id) != nil else { return }
+        vm.seleccionId = id
+        if sizeClass == .compact { abierto = vm.corte(id) }
+        nav?.corteDestacado = nil   // se consume: no debe reabrirse al volver
     }
 
     /// Mueve la sidebar en iPad y la pestaña en iPhone. Poner solo `seccion`

@@ -1,5 +1,19 @@
 import Foundation
 
+/// El punto de la revisión en que está un movimiento. Los rawValue son los que
+/// viajan a `transactions.estado`.
+enum EstadoRevision: String {
+    case pendiente, aprobado, rechazado
+
+    var etiqueta: String {
+        switch self {
+        case .pendiente: return L.t("Espera visto bueno", "Awaiting approval")
+        case .aprobado:  return L.t("Aprobado", "Approved")
+        case .rechazado: return L.t("Devuelto al tesorero", "Returned to treasurer")
+        }
+    }
+}
+
 /// Un movimiento completo, como lo pide la pantalla Ingresos/Gastos del handoff:
 /// además de lo de la lista, trae los campos del detalle, la nota, el estado de
 /// depósito, el comprobante y el rastro de auditoría.
@@ -37,7 +51,23 @@ struct Movimiento: Identifiable {
     var pagadoA: String? = nil          // beneficiario del gasto (required para gastos)
     var rfc: String? = nil
     var notasAuditoria: String? = nil
-    var marcadoPendiente: Bool = false  // envía a "Por revisar"
+    /// **En qué punto de la revisión está.** Tres valores, los mismos que
+    /// `transactions.estado` en Supabase: `pendiente` espera visto bueno,
+    /// `aprobado` cuenta en los totales, `rechazado` fue devuelto al tesorero y
+    /// NO cuenta en ningún sitio.
+    ///
+    /// Antes solo existía `marcadoPendiente`, un booleano, así que "devolver al
+    /// tesorero" no tenía dónde escribirse: la bandeja hacía lo mismo que
+    /// aprobar y solo cambiaba el texto del aviso. Dos acciones opuestas con el
+    /// mismo efecto.
+    var estadoRevision: EstadoRevision = .aprobado
+
+    /// Conveniencia sobre `estadoRevision`, para no reescribir los sitios que
+    /// solo preguntan "¿espera visto bueno?".
+    var marcadoPendiente: Bool {
+        get { estadoRevision == .pendiente }
+        set { estadoRevision = newValue ? .pendiente : .aprobado }
+    }
     var incluidoEnCorte: Bool = true
     /// Solo ingresos. **Por omisión NO**, igual que la hoja de captura y que la
     /// app web (`emitir_constancia` nace en 0). Estaba en `true` aquí, y como

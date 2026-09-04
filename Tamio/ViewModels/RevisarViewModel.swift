@@ -63,7 +63,12 @@ final class RevisarViewModel {
     func resolver(_ r: Revision, kind: AccionKind) async {
         ultimoResuelto = r
         let sig = siguienteA(r.id)
-        await repo.resolver(id: r.id)
+        switch kind {
+        case .aprobar: await repo.aprobar(id: r.id)
+        case .devolver: await repo.devolver(id: r.id)
+        case .restaurar: await repo.reactivarMiembro(id: r.id)
+        case .editar, .irAlCorte: return   // los resuelve otra pantalla
+        }
         await cargar()
         if seleccionId == r.id || seleccion == nil { seleccionId = sig ?? visibles.first?.id }
         mostrarToast(mensaje(r, kind))
@@ -82,7 +87,7 @@ final class RevisarViewModel {
     @MainActor
     func aprobarTodo() async {
         let cuantos = aprobablesCount
-        await repo.resolverTodos(tipos: Self.aprobablesEnBloque)
+        await repo.aprobarPendientes()
         await cargar()
         seleccionId = visibles.first?.id
         mostrarToast(L.t("Se aprobaron \(cuantos) asuntos que esperaban visto bueno.",
@@ -90,15 +95,9 @@ final class RevisarViewModel {
     }
 
     @MainActor
-    func pedirDato(_ r: Revision) async {
-        mostrarToast(L.t("Se pidió más información sobre «\(r.concepto)».",
-                         "More info requested about «\(r.concepto)»."))
-    }
-
-    @MainActor
     func deshacer() async {
         guard let r = ultimoResuelto else { return }
-        await repo.restaurar(r)
+        await repo.revertir(r)
         ultimoResuelto = nil
         toast = nil
         await cargar()
@@ -142,11 +141,14 @@ final class RevisarViewModel {
             return L.t("«\(r.concepto)» quedó aprobado: ya cuenta en los totales del mes.",
                        "«\(r.concepto)» was approved: it now counts in monthly totals.")
         case .devolver:
-            return L.t("«\(r.concepto)» se devolvió al tesorero.", "«\(r.concepto)» was returned to the treasurer.")
-        case .resolver where r.tipo == .archivado:
-            return L.t("«\(r.concepto)» se restauró.", "«\(r.concepto)» was restored.")
-        default:
-            return L.t("«\(r.concepto)» quedó revisado.", "«\(r.concepto)» was reviewed.")
+            // Dice lo que de verdad pasa: no es "revisado", es que sale de los
+            // totales del mes hasta que alguien lo arregle.
+            return L.t("«\(r.concepto)» se devolvió al tesorero y deja de contar en el mes.",
+                       "«\(r.concepto)» was returned to the treasurer and no longer counts this month.")
+        case .restaurar:
+            return L.t("«\(r.concepto)» volvió al padrón.", "«\(r.concepto)» is back in the directory.")
+        case .editar, .irAlCorte:
+            return ""
         }
     }
 

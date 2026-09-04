@@ -53,7 +53,28 @@ enum RevisionTipo: String, CaseIterable, Identifiable {
 }
 
 /// Qué hace un botón del detalle.
-enum AccionKind { case aprobar, editar, devolver, resolver, pedir }
+/// Qué hace un botón del detalle. **Cada caso es un comportamiento distinto**:
+/// antes `aprobar`, `devolver` y `resolver` acababan los tres en la misma
+/// llamada y solo cambiaba el texto del aviso, así que devolver un movimiento
+/// al tesorero hacía lo mismo que aprobarlo. Y `pedir` no pedía nada a nadie:
+/// enseñaba "Se pidió más información" y ahí acababa.
+enum AccionKind {
+    /// Da el visto bueno: el movimiento pasa a `aprobado` y cuenta en los
+    /// totales. **Solo tiene sentido en un movimiento pendiente**: las demás
+    /// alertas no cuelgan del estado sino del dato, así que aprobar no las
+    /// apagaría y el usuario pulsaría un botón que no cambia nada.
+    case aprobar
+    /// Abre la hoja de edición, que es donde se arregla el hueco. El nombre del
+    /// botón dice qué se va a hacer allí ("Adjuntar y aprobar", "Vincular
+    /// aportante"), no cómo se llama la pantalla que abre.
+    case editar
+    /// Devuelve al tesorero: pasa a `rechazado` y deja de contar en el mes.
+    case devolver
+    /// Lleva al corte que espera la segunda firma.
+    case irAlCorte
+    /// Reactiva a un aportante dado de baja.
+    case restaurar
+}
 
 /// Un botón de acción del detalle ("Aprobar", "Editar", "Adjuntar comprobante"…).
 struct AccionRevision: Identifiable {

@@ -13,6 +13,10 @@ protocol MovimientosRepository {
     /// que cancelar la hoja no deja huecos en la numeración. El folio
     /// definitivo lo asigna `crear`.
     func siguienteFolio(tipo: TipoMovimiento) async -> String
+    /// Un movimiento por id, **incluidos los devueltos**. Las listas los
+    /// excluyen —un movimiento devuelto no cuenta en el mes—, así que sin esto
+    /// deshacer un "devolver" no podría encontrarlo.
+    func porId(_ id: String) async throws -> Movimiento?
 }
 
 /// El repositorio que usa la app: la base del teléfono, siempre. Escribe local
@@ -53,9 +57,19 @@ struct MockMovimientosRepository: MovimientosRepository {
         return m
     }
 
+    /// **Los devueltos no salen.** Un movimiento rechazado se conserva con su
+    /// historial —esa es la diferencia entre devolver y eliminar— pero no
+    /// cuenta en el mes ni suma en ningún total, así que no puede aparecer en
+    /// la lista como si nada.
     func lista(tipo: TipoMovimiento) async throws -> [Movimiento] {
         try? await Task.sleep(nanoseconds: 120_000_000)
-        return Self.todos.filter { $0.tipo == tipo }.sorted { $0.fecha > $1.fecha }
+        return Self.todos
+            .filter { $0.tipo == tipo && $0.estadoRevision != .rechazado }
+            .sorted { $0.fecha > $1.fecha }
+    }
+
+    func porId(_ id: String) async throws -> Movimiento? {
+        Self.todos.first { $0.id == id }
     }
 
     func crear(_ m: Movimiento) async throws {
@@ -276,7 +290,7 @@ struct MockMovimientosRepository: MovimientosRepository {
                                        detalle: creadoEn(dias(0), "10:15"))],
                 pagadoA: "PSE&G", rfc: nil,
                 notasAuditoria: L.t("Factura de agosto de 2026", "August 2026 bill"),
-                marcadoPendiente: false, incluidoEnCorte: false, darConstanciaAnual: false,
+                estadoRevision: .aprobado, incluidoEnCorte: false, darConstanciaAnual: false,
                 repiteMensual: false),
             Movimiento(id: "105", tipo: .gasto, categoria: L.t("Suministros", "Supplies"),
                 persona: "Costco",
@@ -292,7 +306,7 @@ struct MockMovimientosRepository: MovimientosRepository {
                 pagadoA: "Costco", rfc: nil,
                 notasAuditoria: L.t("Compra para la oficina de la iglesia",
                                     "Purchase for the church office"),
-                marcadoPendiente: false, incluidoEnCorte: false, darConstanciaAnual: false,
+                estadoRevision: .aprobado, incluidoEnCorte: false, darConstanciaAnual: false,
                 repiteMensual: false),
             Movimiento(id: "106", tipo: .gasto, categoria: L.t("Misiones", "Missions"),
                 persona: L.t("Iglesia Misionera La Esperanza", "La Esperanza Mission Church"),
@@ -309,7 +323,7 @@ struct MockMovimientosRepository: MovimientosRepository {
                 rfc: nil,
                 notasAuditoria: L.t("Cheque preparado, pendiente de entrega",
                                     "Check prepared, pending delivery"),
-                marcadoPendiente: true, incluidoEnCorte: false, darConstanciaAnual: false,
+                estadoRevision: .pendiente, incluidoEnCorte: false, darConstanciaAnual: false,
                 repiteMensual: false),
         ]
         return v

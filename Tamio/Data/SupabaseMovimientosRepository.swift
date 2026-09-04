@@ -141,6 +141,16 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
     /// los movimientos borrados y de mezclar ingresos con gastos, dejaba una
     /// ventana entre la lectura y la escritura en la que otra captura se
     /// llevaba el mismo número. Ahora el contador vive en Postgres.
+    /// El motor de sincronización nunca pide un movimiento suelto por id: baja
+    /// por cursor. Existe para cumplir el protocolo, y va contra la tabla.
+    func porId(_ id: String) async throws -> Movimiento? {
+        let filas: [TransaccionDTO] = try await supabase
+            .from("transactions").select().eq("uid", value: id).limit(1)
+            .execute().value
+        guard let dto = filas.first else { return nil }
+        return mapear(dto, nombres: [:])
+    }
+
     func siguienteFolio(tipo: TipoMovimiento) async -> String {
         let previsto: Int? = try? await supabase
             .rpc("folio_previsto", params: ParamsFolio(churchId: churchIdActivo,
@@ -224,7 +234,7 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
             pagadoA: dto.beneficiario,
             rfc: dto.beneficiarioRfc,
             notasAuditoria: dto.notas,
-            marcadoPendiente: dto.estado == "pendiente",
+            estadoRevision: EstadoRevision(rawValue: dto.estado ?? "") ?? .aprobado,
             incluidoEnCorte: false,
             darConstanciaAnual: (dto.emitirConstancia ?? 0) != 0,
             repiteMensual: false,
@@ -261,7 +271,7 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
             beneficiario: m.pagadoA,
             beneficiarioRfc: m.rfc,
             emitirConstancia: m.darConstanciaAnual ? 1 : 0,
-            estado: m.marcadoPendiente ? "pendiente" : "aprobado",
+            estado: m.estadoRevision.rawValue,
             notas: m.notasAuditoria,
             registradoPor: m.registradoPor,
             folio: folioSeq.map(String.init) ?? m.folio,

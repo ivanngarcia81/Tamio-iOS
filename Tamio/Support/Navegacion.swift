@@ -13,6 +13,10 @@ final class Navegacion {
     /// Sección elegida en la sidebar del iPad. Los identificadores son los
     /// mismos que enruta `RootView`.
     var seccion = "inicio"
+    /// El corte que hay que abrir al llegar a Depósitos. Lo pone "Ir al corte"
+    /// de la bandeja: sin esto el botón llevaba a la lista y el tesorero tenía
+    /// que buscar a mano cuál de los tres esperaba su firma.
+    var corteDestacado: String?
     /// Pestaña elegida en el TabView del iPhone.
     var pestana: Pestana = .inicio
 

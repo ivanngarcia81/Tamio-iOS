@@ -875,7 +875,7 @@ private extension MotorSincronizacion {
                 pagadoA: beneficiario,
                 rfc: beneficiarioRfc,
                 notasAuditoria: notas,
-                marcadoPendiente: estado == "pendiente",
+                estadoRevision: estado ?? "aprobado",
                 incluidoEnCorte: false,
                 darConstanciaAnual: (emitirConstancia ?? 0) != 0,
                 repiteMensual: false,
@@ -901,7 +901,7 @@ private extension MovimientoFila {
          hora: String, fecha: Double, registradoPor: String, miembro: String?,
          memberUid: String?, aportanteNombre: String?, categoriaCompleta: String,
          nota: String?, sinDepositar: Bool, comprobante: String?, pagadoA: String?,
-         rfc: String?, notasAuditoria: String?, marcadoPendiente: Bool,
+         rfc: String?, notasAuditoria: String?, estadoRevision: String,
          incluidoEnCorte: Bool, darConstanciaAnual: Bool, repiteMensual: Bool,
          actualizadoEn: String?, folioProvisional: Bool, borrado: Bool) {
         self.id = id; self.tipo = tipo; self.categoria = categoria
@@ -912,7 +912,7 @@ private extension MovimientoFila {
         self.aportanteNombre = aportanteNombre; self.categoriaCompleta = categoriaCompleta
         self.nota = nota; self.sinDepositar = sinDepositar; self.comprobante = comprobante
         self.pagadoA = pagadoA; self.rfc = rfc; self.notasAuditoria = notasAuditoria
-        self.marcadoPendiente = marcadoPendiente; self.incluidoEnCorte = incluidoEnCorte
+        self.estadoRevision = estadoRevision; self.incluidoEnCorte = incluidoEnCorte
         self.darConstanciaAnual = darConstanciaAnual; self.repiteMensual = repiteMensual
         self.actualizadoEn = actualizadoEn; self.folioProvisional = folioProvisional
         self.borrado = borrado

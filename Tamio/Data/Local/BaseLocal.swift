@@ -68,7 +68,7 @@ final class BaseLocal {
                 t.column("pagadoA", .text)
                 t.column("rfc", .text)
                 t.column("notasAuditoria", .text)
-                t.column("marcadoPendiente", .boolean).notNull()
+                t.column("marcadoPendiente", .boolean).notNull().defaults(to: false)
                 t.column("incluidoEnCorte", .boolean).notNull()
                 t.column("darConstanciaAnual", .boolean).notNull()
                 t.column("repiteMensual", .boolean).notNull()
@@ -238,6 +238,24 @@ final class BaseLocal {
             // Los recibos que aún no han subido: es lo que barre el motor.
             try db.create(index: "idx_deposito_sinSubir", on: "deposito",
                           columns: ["comprobantePath"])
+        }
+
+        // **El estado de revisión deja de ser un booleano.** `marcadoPendiente`
+        // solo sabía decir "espera visto bueno" o "no", así que devolver un
+        // movimiento al tesorero no tenía dónde escribirse y la bandeja hacía
+        // lo mismo que aprobar. Los tres valores son los de `transactions.estado`.
+        m.registerMigration("v6_estadoRevision") { db in
+            try db.alter(table: "movimiento") { t in
+                t.add(column: "estadoRevision", .text).notNull().defaults(to: "aprobado")
+            }
+            try db.execute(sql: """
+                update movimiento set estadoRevision = 'pendiente' where marcadoPendiente = 1
+                """)
+            // La columna vieja se queda muerta pero con valor por omisión: sin
+            // eso, un INSERT que ya no la menciona fallaría por NOT NULL.
+            try db.execute(sql: """
+                update movimiento set marcadoPendiente = 0 where marcadoPendiente is null
+                """)
         }
         return m
     }

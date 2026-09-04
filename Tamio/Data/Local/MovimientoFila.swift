@@ -30,7 +30,10 @@ struct MovimientoFila: Codable, FetchableRecord, PersistableRecord {
     var pagadoA: String?
     var rfc: String?
     var notasAuditoria: String?
-    var marcadoPendiente: Bool
+    /// Los tres valores de `transactions.estado`. Era un booleano
+    /// `marcadoPendiente`, y por eso "devolver al tesorero" no tenía dónde
+    /// escribirse.
+    var estadoRevision: String
     var incluidoEnCorte: Bool
     var darConstanciaAnual: Bool
     var repiteMensual: Bool
@@ -64,7 +67,7 @@ struct MovimientoFila: Codable, FetchableRecord, PersistableRecord {
         pagadoA = m.pagadoA
         rfc = m.rfc
         notasAuditoria = m.notasAuditoria
-        marcadoPendiente = m.marcadoPendiente
+        estadoRevision = m.estadoRevision.rawValue
         incluidoEnCorte = m.incluidoEnCorte
         darConstanciaAnual = m.darConstanciaAnual
         repiteMensual = m.repiteMensual
@@ -96,7 +99,7 @@ struct MovimientoFila: Codable, FetchableRecord, PersistableRecord {
             pagadoA: pagadoA,
             rfc: rfc,
             notasAuditoria: notasAuditoria,
-            marcadoPendiente: marcadoPendiente,
+            estadoRevision: EstadoRevision(rawValue: estadoRevision) ?? .aprobado,
             incluidoEnCorte: incluidoEnCorte,
             darConstanciaAnual: darConstanciaAnual,
             repiteMensual: repiteMensual,
