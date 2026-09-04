@@ -77,12 +77,11 @@ struct DepositosView: View {
         // sin fondo propio, pegado al `+`. Es el mismo arreglo que ya se hizo
         // en Aportantes con Archivo y "Nuevo".
         ToolbarItem(placement: .topBarTrailing) { menuOrdenar }
-        // En iPad el `+` se queda arriba, apartado con su espaciador; en el
-        // teléfono baja a la barra inferior, como en las otras dos pantallas.
-        if !compacto {
-            ToolbarSpacer(.fixed, placement: .topBarTrailing)
-            ToolbarItem(placement: .topBarTrailing) { botonNuevo }
-        }
+        // **El `+` vuelve arriba**, como en Ingresos y Aportantes: abajo
+        // flotaba sobre la lista y tapaba la última fila. Con dos opciones en
+        // el segmentado y un solo menú al lado, aquí cabía de sobra.
+        if !compacto { ToolbarSpacer(.fixed, placement: .topBarTrailing) }
+        ToolbarItem(placement: .topBarTrailing) { botonNuevo }
     }
 
     /// Lleva su nombre escrito. Era un `arrow.up.arrow.down.circle` mudo: un
@@ -132,10 +131,16 @@ struct DepositosView: View {
     /// Sin lupa: Depósitos no tiene buscador ni lo tenía. Una lista de cortes
     /// pendientes es corta por definición —si crece, el problema es que nadie
     /// va al banco, no que falte un buscador—.
+    /// El pie: anclado y del ancho de la columna, no una cápsula flotando
+    /// sobre la última fila.
     @ViewBuilder
-    private var barraInferior: some View {
+    private var pieLista: some View {
         if compacto {
-            BarraInferior { botonNuevo } resumen: { resumenPie }
+            HStack { resumenPie }
+                .font(.caption)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+                .background(.regularMaterial)
         }
     }
 
@@ -209,7 +214,7 @@ struct DepositosView: View {
     private func listaColumna(wide: Bool) -> some View {
         lista(wide: wide)
             .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
-            .safeAreaInset(edge: .bottom, spacing: 0) { barraInferior }
+            .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
             .colchonInferior()
     }
 

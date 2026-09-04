@@ -175,50 +175,21 @@ struct MovimientosView: View {
         // botones: un segmentado dice "elige uno de los dos".
         if compacto {
             ToolbarItem(placement: .title) {
-                pickerTipo.frame(maxWidth: 190)
+                pickerTipo.frame(maxWidth: 160)
             }
-            // Arriba solo lo que dice QUÉ SE ESTÁ VIENDO: el mes y los filtros,
-            // cada uno su botón. Juntos en uno, el botón parecía una etiqueta
-            // y su menú mezclaba elegir periodo con abrir filtros, que no
-            // tienen nada que ver. Ahora caben porque la lupa y el `+` se
-            // fueron abajo.
-            // **Un solo control, no dos.** El mes y los filtros son la misma
-            // pregunta —qué recorte de la lista estoy viendo— y ocupaban dos
-            // cápsulas seguidas. Ahora el botón DICE el mes, que es lo que
-            // tiene que seguir viéndose arriba, y al pulsarlo la hoja abre con
-            // el mes dentro, encima de la categoría y el estado.
-            ToolbarItem(placement: .topBarTrailing) {
+            // Arriba, lo que dice QUÉ SE ESTÁ VIENDO y la acción de crear.
+            //
+            // **El `+` vuelve a la barra.** Bajó a flotar sobre la lista cuando
+            // arriba convivían el segmentado, el mes, los filtros y la lupa;
+            // desde que el mes y los filtros comparten cápsula hay sitio, y
+            // abajo tapaba la fila de detrás.
+            ToolbarItemGroup(placement: .topBarTrailing) {
                 botonFiltros
+                botonNuevo
             }
         }
-        // En iPad el `+` se queda arriba; en el teléfono baja a la barra
-        // inferior, porque arriba conviven ya el segmentado, el mes, los
-        // filtros y la lupa del sistema, y con cinco el segmentado se trunca.
         if !compacto {
             ToolbarItem(placement: .topBarTrailing) { botonNuevo }
-        }
-    }
-
-    /// **La barra inferior del teléfono: lupa a la izquierda, resumen a la
-    /// derecha.**
-    ///
-    /// Se dibuja aquí y no con `ToolbarItem(placement: .bottomBar)`, que sería
-    /// lo natural, por una razón medida en pantalla: dentro del `TabView` de
-    /// iPhone la barra inferior del sistema queda DEBAJO de la barra de
-    /// pestañas flotante de iOS 26 y no se ve ninguna de las dos cosas. Con
-    /// `safeAreaInset` la barra se apila por encima, que es lo que hace falta.
-    ///
-    /// A la izquierda va el `+` y no la lupa: la lupa la genera `.searchable`
-    /// y el sistema no deja moverla aquí abajo (ver el comentario largo de
-    /// `pantalla`). El `+` es entonces lo que baja, que es la salida que el
-    /// propio encargo prevé cuando no cabe todo arriba.
-    ///
-    /// Va DENTRO de la barra y no flotando encima: con el total en la esquina
-    /// derecha, un botón suelto ahí lo taparía.
-    @ViewBuilder
-    private var barraInferior: some View {
-        if compacto {
-            BarraInferior { botonNuevo } resumen: { resumenPie }
         }
     }
 
@@ -338,7 +309,6 @@ struct MovimientosView: View {
             // El pie solo en iPad: en el teléfono se convirtió en la barra
             // inferior, con la lupa a la izquierda y el resumen a la derecha.
             .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
-            .safeAreaInset(edge: .bottom, spacing: 0) { barraInferior }
             .colchonInferior()
     }
 
@@ -739,12 +709,12 @@ struct MovimientosView: View {
         return m.marcadoPendiente ? L.t("Pendiente", "Flagged") : nil
     }
 
-    /// El pie de la columna del iPad. En el teléfono no existe: se convirtió
-    /// en la barra inferior, con la lupa a la izquierda y el resumen a la
-    /// derecha.
-    @ViewBuilder
+    /// **El pie, en las dos plataformas.** En el teléfono era una barra
+    /// flotante con el `+` y el resumen, y flotar aquí significa tapar: el
+    /// botón se comía la fila de debajo y la cápsula del total cortaba otra.
+    /// Ahora el `+` está arriba y esto es un pie anclado, del ancho de la
+    /// columna, como el del iPad.
     private var pieLista: some View {
-        if !compacto {
             HStack {
                 Text(L.t("\(vm.itemsFiltrados.count) movimientos",
                          "\(vm.itemsFiltrados.count) entries"))
@@ -759,6 +729,5 @@ struct MovimientosView: View {
             // Igual que la cabecera: el material va donde hay algo que
             // difuminar.
             .background(.regularMaterial)
-        }
     }
 }

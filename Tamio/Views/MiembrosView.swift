@@ -128,24 +128,20 @@ struct MiembrosView: View {
         // pantalla igual que el título y gana el control, que además se toca.
         if compacto {
             ToolbarItem(placement: .title) {
-                pickerFiltro.frame(maxWidth: 300)
+                menuFiltro
             }
         }
-        // En el teléfono, Archivo se va al lado IZQUIERDO. A la derecha
-        // conviven el segmentado de tres opciones, el `+` y la lupa, y medido
-        // en pantalla no caben: con sitio para las tres etiquetas el `+` se
-        // cae de la barra, y recortando el segmentado sale "Remo…".
         // Compartir y "Nuevo" compartían un `ToolbarItemGroup`, así que
         // compartían UNA cápsula y Compartir no tenía la suya. Separados en
         // dos items, cada uno recupera la suya.
-        ToolbarItem(placement: .topBarTrailing) { menuArchivo }
-        // En iPad el `+` se queda arriba, apartado con su espaciador; en el
-        // teléfono baja a la barra inferior, porque arriba conviven ya el
-        // segmentado de tres opciones, Archivo y la lupa del sistema.
-        if !compacto {
-            ToolbarSpacer(.fixed, placement: .topBarTrailing)
-            ToolbarItem(placement: .topBarTrailing) { botonNuevo }
-        }
+        // **El `+` vuelve arriba y Archivo se va a la izquierda.** Con los dos
+        // a la derecha, medido en pantalla, no caben: el segmentado se recorta
+        // a "Remo…" y el `+` se cae de la barra sin avisar. Crear es la acción
+        // frecuente y se queda donde la busca el pulgar; Archivo —importar y
+        // exportar CSV— se usa una vez cada mucho.
+        ToolbarItem(placement: compacto ? .topBarLeading : .topBarTrailing) { menuArchivo }
+        if !compacto { ToolbarSpacer(.fixed, placement: .topBarTrailing) }
+        ToolbarItem(placement: .topBarTrailing) { botonNuevo }
     }
 
     private var botonNuevo: some View {
@@ -200,11 +196,49 @@ struct MiembrosView: View {
         .monospacedDigit()
     }
 
+    /// **En el teléfono, menú; en iPad, segmentado.** Medido en pantalla: con
+    /// el botón de volver, Archivo, el `+` y la lupa, un segmentado de tres
+    /// opciones se parte en "Act… Re… All", que no dice ninguna de las tres.
+    /// Es la misma salida que en Reportes y en la ficha del aportante cuando el
+    /// ancho no da: la etiqueta dice dónde estás y el menú las enseña enteras.
+    private var menuFiltro: some View {
+        Menu {
+            ForEach(Self.filtros, id: \.0) { valor, nombre in
+                Button { vm.filtro = valor } label: {
+                    if vm.filtro == valor { Label(nombre, systemImage: "checkmark") }
+                    else { Text(nombre) }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(Self.nombreFiltro(vm.filtro)).lineLimit(1)
+                Image(systemName: "chevron.down").font(.caption2)
+            }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+            .background(Color(.tertiarySystemFill), in: Capsule())
+        }
+    }
+
+    /// Un solo sitio con los tres nombres: el menú del teléfono y el segmentado
+    /// del iPad los leían por separado y podían separarse sin que nadie lo
+    /// decidiera.
+    private static var filtros: [(FiltroMiembro, String)] {
+        [(.activos, L.t("Activos", "Active")),
+         (.bajas, L.t("Bajas", "Removed")),
+         (.todos, L.t("Todos", "All"))]
+    }
+
+    private static func nombreFiltro(_ f: FiltroMiembro) -> String {
+        filtros.first { $0.0 == f }?.1 ?? ""
+    }
+
     private var pickerFiltro: some View {
         Picker(L.t("Filtro", "Filter"), selection: $vm.filtro) {
-            Text(L.t("Activos", "Active")).tag(FiltroMiembro.activos)
-            Text(L.t("Bajas", "Removed")).tag(FiltroMiembro.bajas)
-            Text(L.t("Todos", "All")).tag(FiltroMiembro.todos)
+            ForEach(Self.filtros, id: \.0) { valor, nombre in
+                Text(nombre).tag(valor)
+            }
         }
         .pickerStyle(.segmented)
         .labelsHidden()
@@ -288,7 +322,6 @@ struct MiembrosView: View {
         listaMiembros
             .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
             .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
-            .safeAreaInset(edge: .bottom, spacing: 0) { barraInferior }
     }
 
     /// En el teléfono aquí solo queda el aviso: el buscador y el segmentado se
@@ -365,11 +398,10 @@ struct MiembrosView: View {
         }
     }
 
-    /// El pie de la columna del iPad. En el teléfono no existe: se convirtió
-    /// en la barra inferior.
-    @ViewBuilder
+    /// El pie, en las dos plataformas: anclado y del ancho de la columna. En el
+    /// teléfono era una barra flotante con el `+` y el resumen, y flotar aquí
+    /// significa tapar la última fila.
     private var pieLista: some View {
-        if !compacto {
             HStack {
                 Text(L.t("\(vm.itemsFiltrados.count) aportantes · \(String(vm.anio))",
                          "\(vm.itemsFiltrados.count) givers · \(String(vm.anio))"))
@@ -380,7 +412,6 @@ struct MiembrosView: View {
             .font(.caption)
             .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
             .background(.regularMaterial)
-        }
     }
 
     @ViewBuilder

@@ -98,7 +98,18 @@ private struct FilaDeLista: ViewModifier {
             // por la esquina de la tarjeta.
             .clipShape(forma)
             .padding(.horizontal, tarjeta ? Esp.pantalla : 0)
-            .listRowInsets(EdgeInsets())
+            // **La separación entre tarjetas vive aquí, no en cada `List`.**
+            // Sin esto el espacio entre filas salía del comportamiento por
+            // omisión del `List`: entre grupos de día había aire —lo pone la
+            // cabecera de sección— pero DENTRO del grupo las tarjetas se
+            // tocaban, cantos redondeados contra cantos redondeados. Ni lista
+            // agrupada ni tarjetas sueltas.
+            //
+            // Va en el modificador porque es lo que comparten las nueve listas
+            // de la app: puesto en cada `List`, se separan solas en cuanto
+            // alguien añade la décima.
+            .listRowInsets(EdgeInsets(top: 0, leading: 0,
+                                      bottom: tarjeta ? Esp.hueco : 0, trailing: 0))
             .listRowBackground(Color.clear)
             .listRowSeparator(tarjeta ? .hidden : .automatic)
     }

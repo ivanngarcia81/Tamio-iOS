@@ -104,7 +104,8 @@ struct RevisarView: View {
 
     private var listaPhone: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            // Misma separación que las demás listas: la de `Esp`.
+            LazyVStack(spacing: Esp.hueco) {
                 ForEach(vm.visibles) { filaTargeta($0) }
             }
             .padding(.horizontal, Esp.pantalla)
@@ -157,7 +158,11 @@ struct RevisarView: View {
             }
             .padding(.horizontal, Esp.tarjeta).padding(.vertical, 4)
         }
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        // Mismo radio que `filaDeLista`: esta pantalla llevaba tarjetas de 16
+        // mientras las otras ocho iban a 10, y puestas una al lado de otra se
+        // leían como dos componentes distintos.
+        .background(Color(.secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
         .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
     }
 
