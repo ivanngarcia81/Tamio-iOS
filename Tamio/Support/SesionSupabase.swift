@@ -37,7 +37,19 @@ final class SesionSupabase {
 
     struct Perfil: Equatable {
         var nombre = ""
+        /// El correo no está en `perfiles`: sale del usuario de Auth, que es
+        /// quien lo tiene. Iba escrito a mano en tres pantallas.
+        var correo = ""
         var rol: Rol = .administrador
+
+        /// Cómo se firma lo que esta persona captura: el autor de un
+        /// movimiento, de un apunte del registro. Si el perfil no trae nombre
+        /// se usa el correo antes que dejarlo en blanco; una auditoría sin
+        /// autor no sirve para nada.
+        var firma: String {
+            let n = nombre.trimmingCharacters(in: .whitespaces)
+            return n.isEmpty ? correo : n
+        }
 
         /// Los tres valores de `perfiles.rol`. Se cae a `administrador` cuando
         /// no se reconoce el texto: es el rol sin restricciones, y quitarle
@@ -76,13 +88,15 @@ final class SesionSupabase {
             // Un perfil de ejemplo, como el resto de los datos del modo: sin
             // él la cabecera de Ajustes saldría sin nombre y no se podría
             // recorrer la pantalla.
-            perfil = Perfil(nombre: "Iván García", rol: .administrador)
+            perfil = Perfil(nombre: "Iván García", correo: "ig07644@gmail.com",
+                            rol: .administrador)
             estado = .autenticada(churchId: churchIdActivo)
             return
         }
         do {
             let sesion = try await supabase.auth.session
-            await adoptar(uid: sesion.user.id.uuidString, permitirCache: true)
+            await adoptar(uid: sesion.user.id.uuidString,
+                          correo: sesion.user.email ?? "", permitirCache: true)
         } catch {
             // Sin sesión guardada, o el refresco del token no llegó al
             // servidor. En ninguno de los dos casos hay nada que restaurar,
@@ -103,7 +117,8 @@ final class SesionSupabase {
             let sesion = try await supabase.auth.signIn(email: correo, password: contrasena)
             // En un inicio de sesión manual no se acepta la caché: el usuario
             // puede ser otro y hay que confirmar su iglesia contra el servidor.
-            await adoptar(uid: sesion.user.id.uuidString, permitirCache: false)
+            await adoptar(uid: sesion.user.id.uuidString,
+                          correo: sesion.user.email ?? "", permitirCache: false)
         } catch {
             self.error = mensaje(error)
             estado = .sinSesion
@@ -132,13 +147,16 @@ final class SesionSupabase {
     /// un fallo de red pasajero echaba al usuario de la app diciéndole que no
     /// tenía perfil asignado.
     @MainActor
-    private func adoptar(uid: String, permitirCache: Bool) async {
+    private func adoptar(uid: String, correo: String, permitirCache: Bool) async {
         let leido: (churchId: String, perfil: Perfil)?
         do {
             leido = try await leerPerfil(uid: uid)
         } catch {
             // No se pudo preguntar. La sesión sigue siendo válida.
-            if permitirCache, let guardado = Self.cache(uid: uid) {
+            if permitirCache, var guardado = Self.cache(uid: uid) {
+                // El correo lo tenemos aunque no se pueda preguntar al
+                // servidor: viene con la sesión.
+                guardado.perfil.correo = correo
                 churchIdActivo = guardado.churchId
                 perfil = guardado.perfil
                 modoSinConexion = true
@@ -164,6 +182,7 @@ final class SesionSupabase {
         }
         churchIdActivo = leido.churchId
         perfil = leido.perfil
+        perfil.correo = correo
         Self.guardarCache(uid: uid, churchId: leido.churchId, perfil: leido.perfil)
         modoSinConexion = false
         error = nil

@@ -14,6 +14,7 @@ struct IPhoneAjustesView: View {
     /// pantalla tenía los suyos y no coincidían — el teléfono decía "Iglesia
     /// Nueva Vida" y el iPad "Iglesia Getsemaní".
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     @State private var cfgApertura = ""
     @State private var invEmail    = ""
     @State private var invNom      = ""
@@ -76,7 +77,7 @@ struct IPhoneAjustesView: View {
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(for: AjustesRuta.self) { ruta in destino(ruta) }
         .safeAreaInset(edge: .bottom) {
-            Text("Tamio 1.3.5").font(.caption2).foregroundStyle(.tertiary)
+            Text(VersionApp.pie).font(.caption2).foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity).padding(.bottom, 8)
         }
         .task { await cfg.cargar() }
@@ -85,16 +86,22 @@ struct IPhoneAjustesView: View {
 
     // MARK: - Fila perfil (compacta, índice)
 
+    /// Quien ha entrado, del perfil de la sesión. Iban su nombre, su correo y
+    /// sus iniciales escritos a mano aquí, en la pantalla de Cuenta, en la del
+    /// iPad y en el pie de la sidebar: cuatro copias del mismo dato para una
+    /// app en la que cada iglesia tiene sus propios usuarios.
     private var perfil: some View {
-        HStack(spacing: 14) {
-            Text("IG")
+        let p = sesion?.perfil ?? SesionSupabase.Perfil()
+        return HStack(spacing: 14) {
+            Text(p.iniciales)
                 .font(.subheadline.weight(.bold)).foregroundStyle(.white)
                 .frame(width: 44, height: 44)
                 .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
-                Text("Iván García").font(.headline)
-                Text(L.t("Cuenta · ig07644@gmail.com", "Account · ig07644@gmail.com"))
-                    .font(.subheadline).foregroundStyle(.secondary)
+                Text(p.nombre.isEmpty ? L.t("Tu cuenta", "Your account") : p.nombre)
+                    .font(.headline)
+                Text(L.t("Cuenta · \(p.correo)", "Account · \(p.correo)"))
+                    .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
             }
         }
         .padding(.vertical, 6)
@@ -161,28 +168,50 @@ struct IPhoneAjustesView: View {
 
 // MARK: - Cuenta
 
+/// El rol, en el idioma de la app. `perfiles.rol` guarda `tesorero`,
+/// `secretaria` o `administrador`, que son claves y no texto para leer.
+enum AjustesRol {
+    static func legible(_ rol: SesionSupabase.Perfil.Rol) -> String {
+        switch rol {
+        case .tesorero:      return L.t("Tesorero · Tesorería", "Treasurer · Treasury")
+        case .secretaria:    return L.t("Secretaría", "Secretary")
+        case .administrador: return L.t("Administrador · Tesorería y Secretaría",
+                                        "Administrator · Treasury & Secretary")
+        }
+    }
+}
+
 private struct AjustesCuentaView: View {
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    private let motor = MotorSincronizacion.compartido
     @State private var confirmarCierre = false
 
     var body: some View {
         List {
             // Cabecera de perfil completa (fiel al handoff)
             Section {
+                let p = sesion?.perfil ?? SesionSupabase.Perfil()
                 HStack(spacing: 14) {
-                    Text("IG")
+                    Text(p.iniciales)
                         .font(.title2.weight(.bold)).foregroundStyle(.white)
                         .frame(width: 64, height: 64)
                         .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Iván García").font(.title3.weight(.semibold))
-                        Text("ig07644@gmail.com").font(.subheadline).foregroundStyle(.secondary)
-                        Text(L.t("Administrador · Tesorería y Secretaría",
-                                 "Admin · Treasury & Secretary"))
+                        Text(p.nombre.isEmpty ? L.t("Tu cuenta", "Your account") : p.nombre)
+                            .font(.title3.weight(.semibold))
+                        Text(p.correo).font(.subheadline).foregroundStyle(.secondary)
+                        // El rol de verdad, no "Administrador" escrito a mano:
+                        // a un tesorero le decía que era administrador.
+                        Text(AjustesRol.legible(p.rol))
                             .font(.caption).foregroundStyle(.secondary)
                         HStack(spacing: 4) {
-                            Circle().fill(Paleta.brand).frame(width: 7, height: 7)
-                            Text(L.t("Sincronizado", "Synced"))
+                            // El punto verde decía "Sincronizado" siempre, en
+                            // la misma pantalla donde ahora el estado se lee
+                            // del motor. Ver `MotorSincronizacion`.
+                            Circle()
+                                .fill(motor.haFallado ? Paleta.negativo : Paleta.brand)
+                                .frame(width: 7, height: 7)
+                            Text(motor.estadoLegible)
                                 .font(.caption2).foregroundStyle(.secondary)
                         }
                     }
@@ -195,15 +224,19 @@ private struct AjustesCuentaView: View {
                 HStack {
                     Text(L.t("Versión", "Version")).font(.subheadline)
                     Spacer()
-                    Text("1.3.5").font(.subheadline).foregroundStyle(.secondary)
+                    Text(VersionApp.completa).font(.subheadline).foregroundStyle(.secondary)
                 }
                 HStack {
                     Text(L.t("Ayuda", "Help")).font(.subheadline)
                     Spacer()
+                    Text(L.t("Próximamente", "Coming soon"))
+                        .font(.subheadline).foregroundStyle(.tertiary)
                 }
                 HStack {
                     Text(L.t("Acerca de", "About")).font(.subheadline)
                     Spacer()
+                    Text(L.t("Próximamente", "Coming soon"))
+                        .font(.subheadline).foregroundStyle(.tertiary)
                 }
             } header: {
                 Text(L.t("Aplicación", "Application")).textCase(nil)
@@ -530,8 +563,8 @@ private struct AjustesAccesoView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                valorF(L.t("Plan", "Plan"), L.t("Completo", "Full"))
-                valorF(L.t("Suscripción", "Subscription"), L.t("Cortesía", "Courtesy"))
+                valorF(L.t("Plan", "Plan"), cfg.config.planLegible)
+                valorF(L.t("Suscripción", "Subscription"), cfg.config.suscripcionLegible)
             } header: {
                 Text(L.t("Tu plan", "Your plan")).textCase(nil)
             } footer: {
@@ -1023,7 +1056,7 @@ private struct AjustesZonaView: View {
         .navigationTitle(L.t("Zona de riesgo", "Danger zone"))
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
-            Text("Compilación del 2026-08-29 18:09 UTC")
+            Text(VersionApp.pie)
                 .font(.caption2).foregroundStyle(.quaternary)
                 .frame(maxWidth: .infinity).padding(.bottom, 8)
         }

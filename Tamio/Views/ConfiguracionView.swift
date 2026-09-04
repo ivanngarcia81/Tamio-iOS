@@ -397,6 +397,7 @@ private struct SeccionCuenta: View {
     /// Opcional a propósito: las previews de esta sección se montan sin la
     /// sesión en el entorno, y un `@Environment` no opcional las haría caer.
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    private let motor = MotorSincronizacion.compartido
     @State private var confirmarCierre = false
 
     var body: some View {
@@ -406,32 +407,30 @@ private struct SeccionCuenta: View {
 
                 // Perfil
                 GrupoConf {
-                    Button { } label: {
-                        HStack(spacing: 16) {
-                            Text("IG")
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundStyle(Paleta.brand)
-                                .frame(width: 66, height: 66)
-                                .background(Paleta.brandFill, in: Circle())
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Ivan Garcia")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundStyle(.primary)
-                                Text("ig07644@gmail.com")
-                                    .font(.system(size: 14.5))
-                                    .foregroundStyle(.secondary)
-                                Text(L.t("Administrador · Tesorería y Secretaría",
-                                         "Administrator · Treasury & Secretary"))
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption2).foregroundStyle(.tertiary)
+                    // Sin `Button`: era uno con la acción vacía y un chevron,
+                    // o sea una tarjeta que prometía una pantalla de perfil
+                    // que no existe.
+                    let p = sesion?.perfil ?? SesionSupabase.Perfil()
+                    HStack(spacing: 16) {
+                        Text(p.iniciales)
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(Paleta.brand)
+                            .frame(width: 66, height: 66)
+                            .background(Paleta.brandFill, in: Circle())
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(p.nombre.isEmpty ? L.t("Tu cuenta", "Your account") : p.nombre)
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(.primary)
+                            Text(p.correo)
+                                .font(.system(size: 14.5))
+                                .foregroundStyle(.secondary)
+                            Text(AjustesRol.legible(p.rol))
+                                .font(.system(size: 14))
+                                .foregroundStyle(.secondary)
                         }
-                        .padding(Esp.tarjeta)
+                        Spacer()
                     }
-                    .buttonStyle(.plain)
+                    .padding(Esp.tarjeta)
                 }
 
                 // Sync
@@ -439,8 +438,10 @@ private struct SeccionCuenta: View {
                     HStack(spacing: 10) {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .font(.system(size: 17))
-                            .foregroundStyle(Paleta.brand)
-                        Text(L.t("Sincronizado", "Synced"))
+                            .foregroundStyle(motor.haFallado ? Paleta.negativo : Paleta.brand)
+                        // Decía "Sincronizado" siempre, aunque no se hubiera
+                        // sincronizado nunca. Ver `MotorSincronizacion`.
+                        Text(motor.estadoLegible)
                             .font(.system(size: 14.5))
                             .foregroundStyle(.secondary)
                     }
@@ -450,11 +451,18 @@ private struct SeccionCuenta: View {
 
                 // Aplicación
                 GrupoConf(titulo: L.t("APLICACIÓN", "APPLICATION")) {
-                    FilaConf(label: L.t("Versión", "Version"), valor: "1.3.5")
+                    FilaConf(label: L.t("Versión", "Version"), valor: VersionApp.completa)
                     Divider()
-                    FilaConf(label: L.t("Ayuda", "Help"), chevron: true, accion: {})
+                    // Sin chevron ni acción: el chevron prometía dos
+                    // pantallas que no existen y la fila se hundía al tocarla
+                    // sin llevar a ningún sitio. En el teléfono ya eran texto.
+                    FilaConf(label: L.t("Ayuda", "Help"),
+                             valor: L.t("Próximamente", "Coming soon"),
+                             valorColor: Color(.tertiaryLabel))
                     Divider()
-                    FilaConf(label: L.t("Acerca de", "About"), chevron: true, accion: {})
+                    FilaConf(label: L.t("Acerca de", "About"),
+                             valor: L.t("Próximamente", "Coming soon"),
+                             valorColor: Color(.tertiaryLabel))
                 }
 
                 // Cerrar sesión
@@ -524,7 +532,10 @@ private struct SeccionIglesia: View {
                             Text(L.t("Añadir", "Add"))
                                 .font(.system(size: 15.5, weight: .medium))
                                 .foregroundStyle(Paleta.brand)
-                            Text("IG")
+                            // Las iniciales de la IGLESIA, que es de quien
+                            // sería el logo. Iban escritas "IG" a mano, que
+                            // resultaban ser las de la persona.
+                            Text(cfg.config.iniciales)
                                 .font(.system(size: 17, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .frame(width: 46, height: 46)
@@ -872,9 +883,10 @@ private struct SeccionAcceso: View {
                 GrupoConf(titulo: L.t("TU PLAN", "YOUR PLAN"),
                           nota: L.t("El plan lo administra el servidor; aquí solo se consulta. Para cambios, contacta a soporte.",
                                     "The plan is managed server-side; read-only here. For changes, contact support.")) {
-                    FilaConf(label: L.t("Plan", "Plan"), valor: L.t("Completo", "Full"))
+                    FilaConf(label: L.t("Plan", "Plan"), valor: cfg.config.planLegible)
                     Divider()
-                    FilaConf(label: L.t("Suscripción", "Subscription"), valor: L.t("Cortesía", "Courtesy"))
+                    FilaConf(label: L.t("Suscripción", "Subscription"),
+                             valor: cfg.config.suscripcionLegible)
                 }
 
                 // Permisos. Los DOS: faltaba el del borrado, que es el que

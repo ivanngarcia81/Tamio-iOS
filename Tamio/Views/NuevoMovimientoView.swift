@@ -3,6 +3,15 @@ import UniformTypeIdentifiers
 
 struct NuevoMovimientoView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+
+    /// Con quién se firma lo que se captura aquí. Si el perfil no trae nombre
+    /// cae al correo, y solo si tampoco hay a un genérico: una auditoría sin
+    /// autor no sirve, pero inventarse un autor sirve todavía menos.
+    private var autor: String {
+        let f = sesion?.perfil.firma ?? ""
+        return f.isEmpty ? L.t("Sin identificar", "Unidentified") : f
+    }
 
     private let existente: Movimiento?
     private let onGuardar: (Movimiento) -> Void
@@ -418,14 +427,18 @@ struct NuevoMovimientoView: View {
             monto: Self.aCentavos(importe),
             hora: f.string(from: fecha),
             fecha: fecha,
-            registradoPor: "Iván García",
+            // Quien lo captura, de la sesión. Iba escrito a mano, así que
+            // TODO movimiento nuevo quedaba firmado por la misma persona
+            // aunque lo hubiera capturado otra — y eso es justo lo que un
+            // rastro de auditoría existe para no permitir.
+            registradoPor: autor,
             miembro: tipo == .ingreso ? nombreAportante : nil,
             categoriaCompleta: subcategoriaLimpia.map { "\(categoria) · \($0)" } ?? categoria,
             nota: concepto.isEmpty ? nil : concepto,
             sinDepositar: existente?.sinDepositar ?? (tipo == .ingreso),
             comprobante: comprobante,
             auditoria: existente?.auditoria ?? [
-                AuditEntry(id: "1", titulo: L.t("Creado · Iván García", "Created · Iván García"),
+                AuditEntry(id: "1", titulo: L.t("Creado · \(autor)", "Created · \(autor)"),
                            // El aparato iba escrito como "iPad" pasara lo que
                            // pasara: en un iPhone el rastro de auditoría decía
                            // que el movimiento se capturó en otro dispositivo.

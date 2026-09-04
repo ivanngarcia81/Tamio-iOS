@@ -55,6 +55,41 @@ struct ConfiguracionIglesia: Equatable {
     var tesoreroVePadron: Bool = false
     var tesoreroPuedeEliminar: Bool = true
 
+    // MARK: - Plan y suscripción
+
+    /// `iglesias.plan`, `sub_estado` y `sub_vence`. **Solo se leen**: el plan
+    /// lo administra el servidor y aquí no hay forma de cambiarlo, que es lo
+    /// que el pie de Ajustes lleva diciendo desde siempre. Lo que no decía es
+    /// que las dos filas —"Completo" y "Cortesía"— iban escritas a mano, así
+    /// que decían eso mismo con el plan que fuera.
+    var plan: String = ""
+    var subEstado: String = ""
+    /// Fecha ISO (`yyyy-MM-dd`), tal y como la guarda Postgres.
+    var subVence: String = ""
+
+    /// El plan, listo para enseñar. Vacío se lee "—" y no "Completo": no saber
+    /// qué plan tiene una iglesia no es lo mismo que darle el mejor.
+    var planLegible: String {
+        plan.trimmingCharacters(in: .whitespaces).isEmpty ? "—" : plan.capitalized
+    }
+
+    /// La suscripción con su vencimiento, si lo hay: "Activa · vence el 12 mar
+    /// 2027". La fecha es lo único accionable de esta fila.
+    var suscripcionLegible: String {
+        let estado = subEstado.trimmingCharacters(in: .whitespaces)
+        let base = estado.isEmpty ? "—" : estado.capitalized
+        guard !subVence.isEmpty else { return base }
+        let iso = DateFormatter()
+        iso.dateFormat = "yyyy-MM-dd"
+        iso.locale = Locale(identifier: "en_US_POSIX")
+        guard let fecha = iso.date(from: subVence) else { return base }
+        let salida = DateFormatter()
+        salida.locale = L.locale
+        salida.dateStyle = .medium
+        return base + " · " + L.t("vence el \(salida.string(from: fecha))",
+                                  "expires \(salida.string(from: fecha))")
+    }
+
     // MARK: - Derivados para los documentos
 
     /// Segunda línea del membrete: "Monterrey, Nuevo León, México".

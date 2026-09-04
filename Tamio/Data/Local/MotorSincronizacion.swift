@@ -61,6 +61,14 @@ final class MotorSincronizacion {
     }
 
     /// Los cambios que esperan turno, en la frase que se lee en pantalla.
+    /// La última vuelta no terminó. Es para el punto de color de Ajustes: un
+    /// punto verde fijo junto a "Sincronizado" era lo que había antes, y decía
+    /// lo mismo con la sincronización rota.
+    var haFallado: Bool {
+        if case .fallo = estado { return true }
+        return false
+    }
+
     /// Si tiene sentido ofrecer el botón de sincronizar a mano.
     var puedeSincronizar: Bool { !ModoRevision.sinLogin && estado != .sincronizando }
 
@@ -379,6 +387,9 @@ final class MotorSincronizacion {
             // Bajan pero no suben: ver `ConfiguracionIglesia`.
             let tesoreroVePadron: Bool?
             let tesoreroPuedeEliminar: Bool?
+            let plan: String?
+            let subEstado: String?
+            let subVence: String?
             enum CodingKeys: String, CodingKey {
                 case nombre, direccion, ciudad, estado, pais, telefono, correo, moneda
                 case codigoPostal      = "codigo_postal"
@@ -393,6 +404,9 @@ final class MotorSincronizacion {
                 case imprimirFirmas    = "imprimir_firmas"
                 case tesoreroVePadron      = "tesorero_ve_padron"
                 case tesoreroPuedeEliminar = "tesorero_puede_eliminar"
+                case plan
+                case subEstado             = "sub_estado"
+                case subVence              = "sub_vence"
             }
         }
 
@@ -426,6 +440,9 @@ final class MotorSincronizacion {
         c.imprimirFirmas = r.imprimirFirmas ?? true
         c.tesoreroVePadron = r.tesoreroVePadron ?? false
         c.tesoreroPuedeEliminar = r.tesoreroPuedeEliminar ?? true
+        c.plan = r.plan ?? ""
+        c.subEstado = r.subEstado ?? ""
+        c.subVence = r.subVence ?? ""
 
         // Copia inmutable antes de entrar al closure: capturar la `var` es un
         // error en Swift 6, no solo un aviso.

@@ -58,12 +58,14 @@ final class RegistroViewModel {
 
     /// Escribe una nota a mano (aparece arriba, en HOY).
     @MainActor
-    func escribirNota(texto: String, area: ApunteArea) async {
+    func escribirNota(texto: String, area: ApunteArea, autor: String) async {
         let nuevo = Apunte(
             id: UUID().uuidString,
             area: area,
             texto: texto,
-            autor: "Iván García",
+            // De la sesión, no escrito a mano: un apunte del registro sin el
+            // autor de verdad no vale como apunte.
+            autor: autor,
             hora: L.t("ahora", "now"),
             grupo: L.t("HOY", "TODAY"),
             fecha: L.t("Hoy · 30 de agosto", "Today · Aug 30"),

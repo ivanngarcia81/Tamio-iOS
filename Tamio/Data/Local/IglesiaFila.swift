@@ -26,6 +26,9 @@ struct IglesiaFila: Codable, FetchableRecord, PersistableRecord {
     var imprimirFirmas: Bool
     var tesoreroVePadron: Bool
     var tesoreroPuedeEliminar: Bool
+    var plan: String
+    var subEstado: String
+    var subVence: String
     var actualizadoEn: String?
 
     init(id: String, _ c: ConfiguracionIglesia, actualizadoEn: String? = nil) {
@@ -50,6 +53,9 @@ struct IglesiaFila: Codable, FetchableRecord, PersistableRecord {
         imprimirFirmas = c.imprimirFirmas
         tesoreroVePadron = c.tesoreroVePadron
         tesoreroPuedeEliminar = c.tesoreroPuedeEliminar
+        plan = c.plan
+        subEstado = c.subEstado
+        subVence = c.subVence
         self.actualizadoEn = actualizadoEn
     }
 
@@ -64,7 +70,8 @@ struct IglesiaFila: Codable, FetchableRecord, PersistableRecord {
             secretarioNombre: secretarioNombre, secretarioCargo: secretarioCargo,
             imprimirFirmas: imprimirFirmas,
             tesoreroVePadron: tesoreroVePadron,
-            tesoreroPuedeEliminar: tesoreroPuedeEliminar
+            tesoreroPuedeEliminar: tesoreroPuedeEliminar,
+            plan: plan, subEstado: subEstado, subVence: subVence
         )
     }
 }

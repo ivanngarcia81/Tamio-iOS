@@ -288,6 +288,18 @@ final class BaseLocal {
             }
         }
 
+        // **El plan y la suscripción, en el espejo local.** Las tres columnas
+        // existen en `iglesias` y las dos filas de Ajustes decían "Completo" y
+        // "Cortesía" escritas a mano, pasara lo que pasara. Solo bajan: el
+        // plan lo administra el servidor.
+        m.registerMigration("v9_planSuscripcion") { db in
+            try db.alter(table: "iglesia") { t in
+                t.add(column: "plan", .text).notNull().defaults(to: "")
+                t.add(column: "subEstado", .text).notNull().defaults(to: "")
+                t.add(column: "subVence", .text).notNull().defaults(to: "")
+            }
+        }
+
         return m
     }
 

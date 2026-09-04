@@ -71,6 +71,7 @@ struct Sidebar: View {
     /// bandeja se calcula UNA vez y lo leen todos.
     @State private var revisarVM = RevisarViewModel.compartido
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    private let motor = MotorSincronizacion.compartido
     private var iglesia: ConfiguracionIglesia { cfg.config }
     private var permisos: Permisos {
         Permisos(rol: sesion?.perfil.rol ?? .administrador, iglesia: iglesia)
@@ -184,19 +185,26 @@ struct Sidebar: View {
             SidebarRow(titulo: L.t("Configuración", "Settings"), icono: "gearshape",
                        seleccionado: seleccion == "config") { seleccion = "config" }
 
+            // Quien ha entrado, del perfil de la sesión, y el estado real de
+            // la sincronización. Decía "Iván García · Administrador · al día
+            // 9:38" con las 9:38 escritas a mano, y el punto verde no se
+            // apagaba aunque la sincronización estuviera fallando.
+            let p = sesion?.perfil ?? SesionSupabase.Perfil()
             HStack(spacing: 10) {
-                Text("IG")
+                Text(p.iniciales)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 30, height: 30)
                     .background(Color(.tertiarySystemFill), in: Circle())
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Iván García").font(.subheadline.weight(.medium)).lineLimit(1)
-                    Text(L.t("Administrador · al día 9:38", "Admin · synced 9:38"))
+                    Text(p.nombre.isEmpty ? L.t("Tu cuenta", "Your account") : p.nombre)
+                        .font(.subheadline.weight(.medium)).lineLimit(1)
+                    Text("\(AjustesRol.legible(p.rol)) · \(motor.estadoLegible)")
                         .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer(minLength: 4)
-                Circle().fill(Paleta.brand).frame(width: 8, height: 8)
+                Circle().fill(motor.haFallado ? Paleta.negativo : Paleta.brand)
+                    .frame(width: 8, height: 8)
             }
             .padding(.horizontal, Esp.pantalla)
             .padding(.top, 6)

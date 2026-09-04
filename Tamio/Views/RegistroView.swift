@@ -5,6 +5,7 @@ import SwiftUI
 /// panel de detalle. El registro guarda copias, no referencias. Fiel al handoff.
 struct RegistroView: View {
     @State private var vm = RegistroViewModel()
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     @State private var abierto: Apunte?
     @State private var escribiendo = false
 
@@ -47,7 +48,12 @@ struct RegistroView: View {
         }
         .sheet(isPresented: $escribiendo) {
             NuevaNotaView { texto, area in
-                Task { await vm.escribirNota(texto: texto, area: area) }
+                let firma = sesion?.perfil.firma ?? ""
+                Task {
+                    await vm.escribirNota(texto: texto, area: area,
+                                          autor: firma.isEmpty
+                                             ? L.t("Sin identificar", "Unidentified") : firma)
+                }
             }
         }
         .task { await vm.cargar() }
