@@ -22,13 +22,80 @@ struct MiembrosView: View {
         var id: String { switch self { case .nueva: return "n"; case .editar(let a): return "e\(a.id)" } }
     }
 
+    /// **La rama del teléfono.** Mismo criterio que en Ingresos/Gastos: no es
+    /// "¿caben lista y detalle?" —eso lo decide el ancho— sino "¿los controles
+    /// suben a la barra?", que solo tiene sentido en el teléfono. En iPad la
+    /// barra es de la pantalla entera y el buscador acabaría lejos de la lista
+    /// que filtra.
+    private var compacto: Bool { sizeClass == .compact }
+
     var body: some View {
+        pantalla
+            .toolbar { barra }
+            .sheet(item: $hoja) { item in
+                switch item {
+                case .nueva:
+                    NuevoAportanteView(existente: nil) { a in Task { await vm.crear(a) } }
+                case .editar(let a):
+                    NuevoAportanteView(existente: a) { a in Task { await vm.actualizar(a) } }
+                }
+            }
+            .sheet(item: $csvParaCompartir) { url in CompartirArchivo(url: url) }
+            .fileImporter(isPresented: $mostrarImportador,
+                          allowedContentTypes: [.commaSeparatedText, .text, .data],
+                          allowsMultipleSelection: false) { analizar($0) }
+            .sheet(item: $analisis) { a in
+                ImportarAportantesView(analisis: a) { lista in
+                    Task { await vm.importar(lista) }
+                }
+            }
+            .fileImporter(isPresented: $mostrarImportadorAportes,
+                          allowedContentTypes: [.commaSeparatedText, .text, .data],
+                          allowsMultipleSelection: false) { analizarAportes($0) }
+            .sheet(item: $analisisAportes) { a in
+                ImportarAportesView(analisis: a) { porAportante in
+                    Task { await vm.importarAportes(porAportante) }
+                }
+            }
+            .alert(L.t("No se pudo importar", "Couldn't import"),
+                   isPresented: Binding(get: { errorImportacion != nil },
+                                        set: { if !$0 { errorImportacion = nil } })) {
+                Button(L.t("Entendido", "OK"), role: .cancel) { errorImportacion = nil }
+            } message: {
+                Text(errorImportacion ?? "")
+            }
+            .task { await vm.cargar() }
+    }
+
+    /// Teléfono: buscador nativo y el título borrado, porque el segmentado que
+    /// ocupa su sitio dice lo mismo —Activos/Bajas/Todos son estados de los
+    /// aportantes, no secciones distintas de la pantalla.
+    /// iPad: título como las demás y los controles abajo, junto a la lista.
+    @ViewBuilder
+    private var pantalla: some View {
+        if compacto {
+            columnas
+                .searchable(text: $vm.busqueda,
+                            prompt: Text(L.t("Buscar por nombre, email o ID fiscal",
+                                             "Search by name, email or tax ID")))
+                .searchToolbarBehavior(.minimize)
+                .navigationTitle(L.t("Aportantes", "Contributors"))
+                .navigationBarTitleDisplayMode(.inline)
+        } else {
+            columnas
+                .encabezadoNav(L.t("Aportantes", "Contributors"),
+                               L.t("\(vm.activosCount) activos · \(vm.bajasCount) bajas",
+                                   "\(vm.activosCount) active · \(vm.bajasCount) removed"))
+                .navigationBarTitleDisplayMode(.large)
+        }
+    }
+
+    private var columnas: some View {
         GeometryReader { geo in
             if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
                     listaColumna
                         .frame(width: Esp.columnaMaestra)
-                        .background(.regularMaterial)
                     Divider()
                     if let a = vm.seleccion {
                         AportanteDetalle(a: a, onEditar: { hoja = .editar(a) })
@@ -39,7 +106,6 @@ struct MiembrosView: View {
                 }
             } else {
                 listaColumna
-                    .background(.regularMaterial)
                     .navigationDestination(item: $abierto) { a in
                         AportanteDetalle(a: a, onEditar: { hoja = .editar(a) })
                             .navigationTitle(a.nombre)
@@ -47,54 +113,47 @@ struct MiembrosView: View {
                     }
             }
         }
-        .encabezadoNav(L.t("Aportantes", "Contributors"),
-                       L.t("\(vm.activosCount) activos · \(vm.bajasCount) bajas", "\(vm.activosCount) active · \(vm.bajasCount) removed"))
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                menuArchivo
-                Button { hoja = .nueva } label: {
-                    Label(L.t("Nuevo", "New"), systemImage: "plus")
-                }
-                .buttonStyle(.glass)
-                .tint(Paleta.brand)
+    }
+
+    // MARK: - Barra
+
+    @ToolbarContentBuilder
+    private var barra: some ToolbarContent {
+        // El segmentado ocupa el lugar del título: Activos/Bajas/Todos son
+        // ESTADOS de los aportantes, no secciones distintas, así que nombran la
+        // pantalla igual que el título y gana el control, que además se toca.
+        if compacto {
+            ToolbarItem(placement: .title) {
+                pickerFiltro.frame(maxWidth: 300)
             }
         }
-        .sheet(item: $hoja) { item in
-            switch item {
-            case .nueva:
-                NuevoAportanteView(existente: nil) { a in Task { await vm.crear(a) } }
-            case .editar(let a):
-                NuevoAportanteView(existente: a) { a in Task { await vm.actualizar(a) } }
+        // En el teléfono, Archivo se va al lado IZQUIERDO. A la derecha
+        // conviven el segmentado de tres opciones, el `+` y la lupa, y medido
+        // en pantalla no caben: con sitio para las tres etiquetas el `+` se
+        // cae de la barra, y recortando el segmentado sale "Remo…".
+        ToolbarItem(placement: compacto ? .topBarLeading : .topBarTrailing) { menuArchivo }
+        // Compartir y "Nuevo" compartían un `ToolbarItemGroup`, así que
+        // compartían UNA cápsula y Compartir no tenía la suya. Separados en
+        // dos items, cada uno recupera la suya. En iPad además se apartan con
+        // un espaciador; en el teléfono no cabe y el segmentado lo necesita.
+        if !compacto { ToolbarSpacer(.fixed, placement: .topBarTrailing) }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button { hoja = .nueva } label: {
+                Label(L.t("Nuevo", "New"), systemImage: "plus")
             }
+            .buttonStyle(.glass)
+            .tint(Paleta.brand)
         }
-        .sheet(item: $csvParaCompartir) { url in
-            CompartirArchivo(url: url)
+    }
+
+    private var pickerFiltro: some View {
+        Picker(L.t("Filtro", "Filter"), selection: $vm.filtro) {
+            Text(L.t("Activos", "Active")).tag(FiltroMiembro.activos)
+            Text(L.t("Bajas", "Removed")).tag(FiltroMiembro.bajas)
+            Text(L.t("Todos", "All")).tag(FiltroMiembro.todos)
         }
-        .fileImporter(isPresented: $mostrarImportador,
-                      allowedContentTypes: [.commaSeparatedText, .text, .data],
-                      allowsMultipleSelection: false) { analizar($0) }
-        .sheet(item: $analisis) { a in
-            ImportarAportantesView(analisis: a) { lista in
-                Task { await vm.importar(lista) }
-            }
-        }
-        .fileImporter(isPresented: $mostrarImportadorAportes,
-                      allowedContentTypes: [.commaSeparatedText, .text, .data],
-                      allowsMultipleSelection: false) { analizarAportes($0) }
-        .sheet(item: $analisisAportes) { a in
-            ImportarAportesView(analisis: a) { porAportante in
-                Task { await vm.importarAportes(porAportante) }
-            }
-        }
-        .alert(L.t("No se pudo importar", "Couldn't import"),
-               isPresented: Binding(get: { errorImportacion != nil },
-                                    set: { if !$0 { errorImportacion = nil } })) {
-            Button(L.t("Entendido", "OK"), role: .cancel) { errorImportacion = nil }
-        } message: {
-            Text(errorImportacion ?? "")
-        }
-        .task { await vm.cargar() }
+        .pickerStyle(.segmented)
+        .labelsHidden()
     }
 
     /// Exporta lo que se está viendo, con los filtros y la búsqueda ya
@@ -134,6 +193,8 @@ struct MiembrosView: View {
         } label: {
             Label(L.t("Archivo", "File"), systemImage: "square.and.arrow.up")
         }
+        .buttonStyle(.glass)
+        .labelStyle(.iconOnly)
     }
 
     /// Analiza el archivo y enseña el resumen. Nada se escribe hasta que se
@@ -162,67 +223,103 @@ struct MiembrosView: View {
         }
     }
 
+    /// **Capas, no hermanos.** Mismo arreglo que en Ingresos/Gastos: la
+    /// cabecera y el pie eran hermanos de la lista dentro de un `VStack`, así
+    /// que una fila que subía se recortaba contra el borde y desaparecía de
+    /// golpe en la línea del `Divider`, y el pie cortaba la última a media
+    /// altura —el nombre partido y el subtítulo tapado. Con `safeAreaInset` el
+    /// contenido corre por debajo de las dos barras, que es lo único que
+    /// necesita material para difuminar algo.
     private var listaColumna: some View {
-        VStack(spacing: 0) {
+        listaMiembros
+            .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
+            .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
+    }
+
+    /// En el teléfono aquí solo queda el aviso: el buscador y el segmentado se
+    /// fueron a la barra. En iPad se quedan los tres, que es donde filtran algo
+    /// que tienen al lado.
+    @ViewBuilder
+    private var cabeceraLista: some View {
+        if !compacto || vm.atrasadosCount > 0 {
             VStack(spacing: 10) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField(L.t("Buscar por nombre, email o ID fiscal…", "Search by name, email or tax ID…"), text: $vm.busqueda)
-                        .textFieldStyle(.plain)
-                    if !vm.busqueda.isEmpty {
-                        Button { vm.busqueda = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
-                    }
+                if !compacto {
+                    buscadorColumna
+                    pickerFiltro
                 }
-                .font(.subheadline)
-                .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 9))
-
-                Picker(L.t("Filtro", "Filter"), selection: $vm.filtro) {
-                    Text(L.t("Activos", "Active")).tag(FiltroMiembro.activos)
-                    Text(L.t("Bajas", "Removed")).tag(FiltroMiembro.bajas)
-                    Text(L.t("Todos", "All")).tag(FiltroMiembro.todos)
-                }
-                .pickerStyle(.segmented)
-
-                // El equivalente en Tesorería de "SIN ASISTIR ÚLTIMAMENTE" de
-                // Membresía: mismo gesto, un lado para la secretaria y otro
-                // para el tesorero. Solo aparece si hay a quien mirar.
-                if vm.atrasadosCount > 0 {
-                    Button { vm.soloAtrasados.toggle() } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                            Text(L.t("\(vm.atrasadosCount) sin aportar últimamente",
-                                     "\(vm.atrasadosCount) lapsed givers"))
-                            Spacer()
-                            if vm.soloAtrasados {
-                                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                            }
-                        }
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(vm.soloAtrasados ? .white : Paleta.aviso)
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                        .frame(maxWidth: .infinity)
-                        .background(vm.soloAtrasados ? Paleta.aviso : Paleta.avisoFill,
-                                    in: RoundedRectangle(cornerRadius: 9))
-                    }
-                    .buttonStyle(.plain)
-                }
+                avisoAtrasados
             }
-            .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
-            Divider()
-
-            listaMiembros
-
-            Divider()
-            HStack {
-                Text(L.t("\(vm.itemsFiltrados.count) aportantes · \(String(vm.anio))",
-                         "\(vm.itemsFiltrados.count) givers · \(String(vm.anio))"))
-                Spacer()
-                Text("\(Money.fmt(vm.total)) MXN").monospacedDigit().fontWeight(.semibold)
-            }
-            .font(.caption).foregroundStyle(.secondary)
-            .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+            .padding(.horizontal, Esp.pantalla)
+            .padding(.vertical, compacto ? Esp.hueco : Esp.chip)
+            .background(.regularMaterial)
         }
+    }
+
+    /// El buscador de la columna del iPad. No usa `.searchable` a propósito:
+    /// ese lo coloca el sistema en la barra de la pantalla, que en iPad está
+    /// encima de las dos columnas. Filtra esta lista, así que vive pegado a
+    /// ella. Lo que sí se va es el `RoundedRectangle` con `tertiarySystemFill`.
+    private var buscadorColumna: some View {
+        HStack(spacing: Esp.hueco) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField(L.t("Buscar por nombre, email o ID fiscal…", "Search by name, email or tax ID…"),
+                      text: $vm.busqueda)
+                .textFieldStyle(.plain)
+            if !vm.busqueda.isEmpty {
+                Button { vm.busqueda = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .font(.subheadline)
+        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+        .glassEffect(.regular, in: .capsule)
+    }
+
+    /// El equivalente en Tesorería de "SIN ASISTIR ÚLTIMAMENTE" de Membresía:
+    /// mismo gesto, un lado para la secretaria y otro para el tesorero. Solo
+    /// aparece si hay a quien mirar.
+    ///
+    /// **No sube a la barra ni al overflow**, a propósito: es un aviso sobre la
+    /// lista que hay debajo y ahí es donde tiene sentido leerlo. Que además
+    /// filtre al tocarlo no lo convierte en un control de barra: escondido
+    /// dejaría de avisar, que es su primer trabajo. Se queda flotando sobre la
+    /// lista, en la única franja que le queda al teléfono.
+    @ViewBuilder
+    private var avisoAtrasados: some View {
+        if vm.atrasadosCount > 0 {
+            Button { vm.soloAtrasados.toggle() } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                    Text(L.t("\(vm.atrasadosCount) sin aportar últimamente",
+                             "\(vm.atrasadosCount) lapsed givers"))
+                    Spacer()
+                    if vm.soloAtrasados {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                    }
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(vm.soloAtrasados ? .white : Paleta.aviso)
+                .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+                .frame(maxWidth: .infinity)
+                .background(vm.soloAtrasados ? Paleta.aviso : Paleta.avisoFill,
+                            in: RoundedRectangle(cornerRadius: 9))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var pieLista: some View {
+        HStack {
+            Text(L.t("\(vm.itemsFiltrados.count) aportantes · \(String(vm.anio))",
+                     "\(vm.itemsFiltrados.count) givers · \(String(vm.anio))"))
+            Spacer()
+            Text("\(Money.fmt(vm.total)) MXN").monospacedDigit().fontWeight(.semibold)
+        }
+        .font(.caption).foregroundStyle(.secondary)
+        .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+        .background(.regularMaterial)
     }
 
     @ViewBuilder
@@ -230,7 +327,13 @@ struct MiembrosView: View {
         // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
         listaMiembrosCuerpo
             .listStyle(.plain)
+            // El suelo va en la LISTA, no en la columna: el material se fue a
+            // la cabecera y al pie, que es lo único que difumina algo.
             .scrollContentBackground(.hidden)
+            .background(Color(.systemGroupedBackground))
+            // El desvanecido de borde: la fila deja de aparecer y desaparecer
+            // de golpe al cruzar por detrás del aviso o del pie.
+            .scrollEdgeEffectStyle(.soft, for: .all)
     }
 
     @ViewBuilder
@@ -269,7 +372,10 @@ struct MiembrosView: View {
             }
         }
         .padding(.vertical, 10)
-        .filaDeLista(seleccionada: esSel, tarjeta: sizeClass != .regular)
+        // La selección persistente es idioma de iPad, donde lista y detalle
+        // conviven. En iPhone la fila navega y volver la dejaba marcada como si
+        // siguiera abierta. Mismo arreglo que en Ingresos/Gastos.
+        .filaDeLista(seleccionada: esSel && !compacto, tarjeta: compacto)
     }
 
     private func abrir(_ a: Aportante) {
