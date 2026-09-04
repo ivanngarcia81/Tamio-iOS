@@ -221,10 +221,14 @@ struct DashboardView: View {
     /// sola cuando no hay periodo anterior con el que comparar.
     private func pieMovimientos(_ registros: Int, _ delta: Double?,
                                 invert: Bool = false) -> some View {
+        // Sin el sufijo "vs agosto": en el iPhone la tarjeta mide media
+        // pantalla y con el conteo delante la línea se truncaba a "▲106.4% vs
+        // A…". El periodo con el que se compara ya lo dice el segmentado
+        // Mes|Trimestre|Año que hay justo encima.
         HStack(spacing: 6) {
             Text(L.t("\(registros) registros", "\(registros) records"))
                 .foregroundStyle(.secondary)
-            DeltaBadge(pct: delta, sufijo: vm.periodoAnteriorLegible, invert: invert)
+            DeltaBadge(pct: delta, invert: invert)
         }
     }
 

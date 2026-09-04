@@ -35,13 +35,84 @@ struct MovimientosView: View {
         }
     }
 
+    /// **La rama del teléfono.** No es la misma pregunta que "¿caben la lista y
+    /// el detalle a la vez?", que la decide el ancho contra
+    /// `Esp.anchoMaestroDetalle`. Aquí se decide si los controles suben a la
+    /// barra de navegación, y eso solo tiene sentido en el teléfono: en iPad la
+    /// barra es de la pantalla entera, así que el buscador y el segmentado
+    /// acabarían lejos de la lista que filtran y compartiendo sitio con las
+    /// acciones del detalle.
+    private var compacto: Bool { sizeClass == .compact }
+
     var body: some View {
+        pantalla
+            .toolbar { barra }
+            .confirmationDialog(
+                L.t("¿Eliminar este movimiento?", "Delete this entry?"),
+                isPresented: Binding(get: { movimientoAEliminar != nil },
+                                     set: { if !$0 { movimientoAEliminar = nil } }),
+                titleVisibility: .visible,
+                presenting: movimientoAEliminar
+            ) { m in
+                Button(L.t("Eliminar", "Delete"), role: .destructive) {
+                    Task { await vm.eliminar(m) }
+                }
+                Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
+            } message: { m in
+                Text(L.t("Se eliminará «\(m.titular)» por \(Money.fmt(m.monto)). No se puede deshacer.",
+                         "«\(m.titular)» for \(Money.fmt(m.monto)) will be deleted. This can't be undone."))
+            }
+            .sheet(item: $hoja) { item in
+                switch item {
+                case .nueva(let folio):
+                    NuevoMovimientoView(tipo: vm.tipo, folio: folio, existente: nil,
+                                        onGuardar: { m in Task { await vm.crear(m) } },
+                                        onNuevoFolio: { await vm.nuevoFolio() })
+                case .editar(let m):
+                    NuevoMovimientoView(tipo: m.tipo, folio: m.folio, existente: m) { nm in
+                        Task { await vm.actualizar(nm) }
+                    }
+                }
+            }
+            .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
+            .onChange(of: nav.seccion) { _, seccion in sincronizarConSidebar(seccion) }
+            .task { await vm.cargar() }
+            .overlay(alignment: .top) { avisoError }
+    }
+
+    /// **Las dos ramas, separadas del todo**, que es lo que distingue esta
+    /// pantalla en teléfono y en iPad.
+    ///
+    /// Teléfono: el buscador nativo (`.minimize` lo deja como cápsula de lupa
+    /// en la barra y lo despliega en campo al tocarlo; trae además el foco, el
+    /// botón de cancelar y el borrado, que el `TextField` a mano no tenía) y el
+    /// título borrado, porque el segmentado que ocupa su sitio dice lo mismo.
+    ///
+    /// iPad: título y franja de encabezado como las otras quince pantallas, y
+    /// los controles se quedan abajo, en la cabecera de la columna.
+    @ViewBuilder
+    private var pantalla: some View {
+        if compacto {
+            columnas
+                .searchable(text: $vm.busqueda,
+                            prompt: Text(L.t("Buscar folio, miembro o nota",
+                                             "Search folio, member or note")))
+                .searchToolbarBehavior(.minimize)
+                .navigationTitle(tituloBarra)
+                .navigationBarTitleDisplayMode(.inline)
+        } else {
+            columnas
+                .encabezadoNav(tituloBarra, nil)
+                .navigationBarTitleDisplayMode(.large)
+        }
+    }
+
+    private var columnas: some View {
         GeometryReader { geo in
             if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
                     listaColumna
                         .frame(width: Esp.columnaMaestra)
-                        .background(.regularMaterial)
                     Divider()
                     if let m = vm.seleccion {
                         MovimientoDetalle(m: m, onEditar: { hoja = .editar(m) },
@@ -55,7 +126,6 @@ struct MovimientosView: View {
                 }
             } else {
                 listaColumna
-                    .background(.regularMaterial)
                     .navigationDestination(item: $abierto) { m in
                         MovimientoDetalle(m: m, onEditar: { hoja = .editar(m) },
                                           onComprobante: { nombre in adjuntarComprobante(m, nombre) })
@@ -67,54 +137,106 @@ struct MovimientosView: View {
                     }
             }
         }
-        // Sin subtítulo: decía el mes y justo debajo el chip decía el mismo
-        // mes otra vez. Se queda el chip, que además se puede tocar.
-        .encabezadoNav(tituloBarra, nil)
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+    }
+
+    // MARK: - Barra
+
+    @ToolbarContentBuilder
+    private var barra: some ToolbarContent {
+        // El segmentado ocupa el lugar del título. Se queda `Picker`
+        // segmentado y NO se envuelve en glass: en iOS 26 el sistema ya le
+        // pone su cápsula, y glass dentro de glass es lo que Apple
+        // desaconseja. Tampoco se parte en dos botones sueltos: un segmentado
+        // dice "elige uno de los dos", dos cápsulas se leen como dos acciones.
+        if compacto {
+            ToolbarItem(placement: .title) {
+                pickerTipo.frame(maxWidth: 190)
+            }
+        }
+        // Acción principal de la pantalla, y solo esta: `.glassProminent` con
+        // el verde como TINTE del material. Antes era una cápsula verde plana
+        // dibujada a mano dentro de una barra que ya pinta su propio fondo, de
+        // ahí el halo doble. El sistema resuelve forma, sombra, borde y
+        // refracción.
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            // El mes y los filtros solo se esconden en el teléfono, que es
+            // donde no caben. En iPad siguen en la cabecera de la columna.
+            if compacto { menuPeriodoYFiltros }
+            botonNuevo
+        }
+    }
+
+    /// En el teléfono es solo el `+` —la barra ya va justa con el segmentado y
+    /// el menú—; en iPad cabe la palabra. Dos ramas y no un ternario en
+    /// `.labelStyle`: los estilos son tipos distintos y un ternario entre ellos
+    /// no compila, el mismo motivo por el que `pickerCategoria` de la hoja de
+    /// captura está partido en dos.
+    @ViewBuilder
+    private var botonNuevo: some View {
+        let boton = Button {
+            Task { hoja = .nueva(folio: await vm.nuevoFolio()) }
+        } label: {
+            Label(L.t("Nuevo", "New"), systemImage: "plus")
+        }
+        .buttonStyle(.glassProminent)
+        .tint(Paleta.brand)
+
+        if compacto {
+            boton.labelStyle(.iconOnly)
+        } else {
+            boton.labelStyle(.titleAndIcon)
+        }
+    }
+
+    private var pickerTipo: some View {
+        Picker(L.t("Tipo", "Type"), selection: tipoSeleccionado) {
+            Text(L.t("Ingresos", "Income")).tag(TipoMovimiento.ingreso)
+            Text(L.t("Gastos", "Expenses")).tag(TipoMovimiento.gasto)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+    }
+
+    /// El overflow del teléfono. **No es un botón mudo**, a propósito:
+    ///
+    /// - Su etiqueta ES el mes. Escondido detrás de tres puntos, el periodo que
+    ///   se está mirando dejaría de verse, y en una tesorería la diferencia
+    ///   entre estar en septiembre o en agosto no es un ajuste cualquiera. Es
+    ///   además donde se recupera el subtítulo que se va con el título.
+    /// - Se tiñe y lleva el contador cuando hay filtros puestos. Escondida esa
+    ///   señal, un filtro activo explicaría una lista vacía sin que se pueda
+    ///   saber por qué.
+    private var menuPeriodoYFiltros: some View {
+        Menu {
+            Section(L.t("Mes", "Month")) {
+                ForEach(vm.mesesDisponibles, id: \.self) { m in
+                    opcionMes(Fechas.mes(m), marcada: vm.mes == m) { vm.mes = m }
+                }
+                opcionMes(Self.todosLosMeses, marcada: vm.mes == nil) { vm.mes = nil }
+            }
+            Section {
                 Button {
-                    Task { hoja = .nueva(folio: await vm.nuevoFolio()) }
+                    mostrarFiltros = true
                 } label: {
-                    HStack(spacing: 5) { Image(systemName: "plus"); Text(L.t("Nuevo", "New")) }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                        .background(Paleta.brand, in: Capsule())
+                    Label(filtrosActivos > 0
+                          ? L.t("Filtros · \(filtrosActivos)", "Filters · \(filtrosActivos)")
+                          : L.t("Filtros", "Filters"),
+                          systemImage: "line.3.horizontal.decrease")
                 }
             }
-        }
-        .confirmationDialog(
-            L.t("¿Eliminar este movimiento?", "Delete this entry?"),
-            isPresented: Binding(get: { movimientoAEliminar != nil },
-                                 set: { if !$0 { movimientoAEliminar = nil } }),
-            titleVisibility: .visible,
-            presenting: movimientoAEliminar
-        ) { m in
-            Button(L.t("Eliminar", "Delete"), role: .destructive) {
-                Task { await vm.eliminar(m) }
+        } label: {
+            // Abreviado: en la barra del teléfono conviven el segmentado, este
+            // botón, el `+` y la lupa, y con el mes escrito entero el `+` se
+            // cae de la barra sin avisar. "Sep" sigue diciendo el periodo, que
+            // es lo que no se puede perder de vista; el nombre completo está
+            // dentro del menú.
+            HStack(spacing: 5) {
+                Text(etiquetaMesCorta).lineLimit(1)
+                if filtrosActivos > 0 { contador(filtrosActivos) }
             }
-            Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
-        } message: { m in
-            Text(L.t("Se eliminará «\(m.titular)» por \(Money.fmt(m.monto)). No se puede deshacer.",
-                     "«\(m.titular)» for \(Money.fmt(m.monto)) will be deleted. This can't be undone."))
+            .font(.subheadline.weight(.medium))
         }
-        .sheet(item: $hoja) { item in
-            switch item {
-            case .nueva(let folio):
-                NuevoMovimientoView(tipo: vm.tipo, folio: folio, existente: nil,
-                                    onGuardar: { m in Task { await vm.crear(m) } },
-                                    onNuevoFolio: { await vm.nuevoFolio() })
-            case .editar(let m):
-                NuevoMovimientoView(tipo: m.tipo, folio: m.folio, existente: m) { nm in
-                    Task { await vm.actualizar(nm) }
-                }
-            }
-        }
-        .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
-        .onChange(of: nav.seccion) { _, seccion in sincronizarConSidebar(seccion) }
-        .task { await vm.cargar() }
-        .overlay(alignment: .top) { avisoError }
+        .tint(filtrosActivos > 0 ? Paleta.brand : nil)
     }
 
     /// El repositorio real puede fallar por red o porque RLS niegue el acceso.
@@ -161,21 +283,33 @@ struct MovimientosView: View {
         vm.mes.map(Fechas.mes) ?? Self.todosLosMeses
     }
 
+    /// "Sep" · "Todos", para la barra del teléfono, donde el espacio decide.
+    private var etiquetaMesCorta: String {
+        vm.mes.map(L.mesCorto) ?? L.t("Todos", "All")
+    }
+
     private var tituloBarra: String {
         vm.tipo == .ingreso ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses")
     }
 
     // MARK: - Columna maestra
 
+    /// **Capas, no hermanos.** La cabecera y el pie eran hermanos de la lista
+    /// dentro de un `VStack`, así que una fila que subía al hacer scroll se
+    /// recortaba contra el borde del `VStack` y desaparecía de golpe en la
+    /// línea del `Divider`: no había nada que difuminar porque nada llegaba a
+    /// pasar por detrás. Y en el otro extremo el pie cortaba la última fila a
+    /// media altura.
+    ///
+    /// Con `safeAreaInset` la lista ocupa todo y el contenido corre por debajo
+    /// de las dos barras, que es lo único que necesita material para difuminar
+    /// algo. Los `Divider` sobran: con material y desvanecido de borde una
+    /// línea vuelve a leerse como pared.
     private var listaColumna: some View {
-        VStack(spacing: 0) {
-            cabeceraLista
-            Divider()
-            lista
-            Divider()
-            pieLista
-        }
-        .colchonInferior()
+        lista
+            .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
+            .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
+            .colchonInferior()
     }
 
     @ViewBuilder
@@ -183,12 +317,19 @@ struct MovimientosView: View {
         // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
         listaCuerpo
             .listStyle(.plain)
+            // El suelo va en la LISTA, no en la columna. Antes el
+            // `.regularMaterial` estaba detrás de la columna entera, donde no
+            // tenía nada que difuminar y se resolvía como un gris plano; el
+            // material se fue a la cabecera y al pie, así que aquí queda el
+            // fondo liso sobre el que corre el contenido.
             .scrollContentBackground(.hidden)
-            // Un respiro arriba y abajo. Sin él la lista arranca y acaba a ras
-            // del filete que la separa de la cabecera y del pie, así que una
-            // fila a medio desplazar se lee como cortada —el subtítulo partido
-            // justo detrás del total— en vez de como "hay más".
-            .contentMargins(.vertical, Esp.hueco, for: .scrollContent)
+            .background(Color(.systemGroupedBackground))
+            // El desvanecido de borde: la fila deja de aparecer y desaparecer
+            // de golpe al cruzar por detrás de la cabecera o del pie. Sustituye
+            // al margen de scroll que se puso antes como parche, cuando la
+            // cabecera y el pie todavía eran hermanos y no había nada por
+            // detrás de lo que desvanecerse.
+            .scrollEdgeEffectStyle(.soft, for: .all)
     }
 
     @ViewBuilder
@@ -226,36 +367,56 @@ struct MovimientosView: View {
         }
     }
 
+    /// La tira de controles. **En el teléfono no existe**: sus cuatro
+    /// controles viven en la barra, y esta franja entre el título y la lista
+    /// desaparece entera. En iPad se queda donde está —la barra es de la
+    /// pantalla completa y estos controles filtran solo la columna— pero con
+    /// los controles en glass en vez de dibujados a mano.
+    @ViewBuilder
     private var cabeceraLista: some View {
-        VStack(spacing: 10) {
-            Picker(L.t("Tipo", "Type"), selection: tipoSeleccionado) {
-                Text(L.t("Ingresos", "Income")).tag(TipoMovimiento.ingreso)
-                Text(L.t("Gastos", "Expenses")).tag(TipoMovimiento.gasto)
-            }
-            .pickerStyle(.segmented)
-
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField(L.t("Buscar folio, miembro o nota", "Search folio, member or note"),
-                          text: $vm.busqueda)
-                    .textFieldStyle(.plain)
-                if !vm.busqueda.isEmpty {
-                    Button { vm.busqueda = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+        if !compacto {
+            VStack(spacing: 10) {
+                pickerTipo
+                buscadorColumna
+                // Se agrupan para que las dos cápsulas se fundan entre sí al
+                // acercarse, que es lo que hace un contenedor de glass.
+                GlassEffectContainer(spacing: Esp.hueco) {
+                    HStack(spacing: Esp.hueco) {
+                        selectorMes
+                        Spacer()
+                        botonFiltros
                     }
                 }
             }
-            .font(.subheadline)
-            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 9))
+            .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
+            // El material vive AQUÍ, no detrás de la columna entera: detrás de
+            // la lista se resolvía como un gris plano porque no tenía nada
+            // que difuminar.
+            .background(.regularMaterial)
+        }
+    }
 
-            HStack(spacing: 8) {
-                selectorMes
-                Spacer()
-                botonFiltros
+    /// El buscador de la columna del iPad. No usa `.searchable` a propósito:
+    /// ese lo coloca el sistema en la barra de la pantalla, que en iPad está
+    /// encima de las dos columnas y del detalle. Filtra esta lista, así que
+    /// vive pegado a ella. Lo que sí se va es el `RoundedRectangle` con
+    /// `tertiarySystemFill` que hacía de fondo.
+    private var buscadorColumna: some View {
+        HStack(spacing: Esp.hueco) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField(L.t("Buscar folio, miembro o nota", "Search folio, member or note"),
+                      text: $vm.busqueda)
+                .textFieldStyle(.plain)
+            if !vm.busqueda.isEmpty {
+                Button { vm.busqueda = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
+        .font(.subheadline)
+        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+        .glassEffect(.regular, in: .capsule)
     }
 
     /// Escribe en los dos lados a la vez. La sección es la fuente de verdad
@@ -290,26 +451,28 @@ struct MovimientosView: View {
         + ((vm.tipo == .ingreso ? vm.soloSinDepositar : vm.soloPendientes) ? 1 : 0)
     }
 
+    /// Chip de filtros de la columna del iPad. La cápsula, el borde y la
+    /// sombra las pone `.glass`; el verde entra como TINTE del material cuando
+    /// hay algo aplicado, no como relleno plano.
     private var botonFiltros: some View {
         Button { mostrarFiltros = true } label: {
             HStack(spacing: 5) {
                 Image(systemName: "line.3.horizontal.decrease")
                 Text(L.t("Filtros", "Filters"))
-                if filtrosActivos > 0 {
-                    Text("\(filtrosActivos)")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.white)
-                        .frame(minWidth: 16, minHeight: 16)
-                        .background(Paleta.brand, in: Circle())
-                }
+                if filtrosActivos > 0 { contador(filtrosActivos) }
             }
             .font(.subheadline.weight(.medium))
-            .foregroundStyle(filtrosActivos > 0 ? Paleta.brand : .primary)
-            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-            .background(Capsule().fill(filtrosActivos > 0 ? Paleta.brandFill : Color(.secondarySystemFill)))
-            .overlay(Capsule().stroke(filtrosActivos > 0 ? Paleta.brandStroke : Color.clear, lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
+        .tint(filtrosActivos > 0 ? Paleta.brand : nil)
+    }
+
+    private func contador(_ n: Int) -> some View {
+        Text("\(n)")
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(minWidth: 16, minHeight: 16)
+            .background(Paleta.brand, in: Circle())
     }
 
     private var filtrosSheet: some View {
@@ -388,9 +551,14 @@ struct MovimientosView: View {
             Divider()
             opcionMes(Self.todosLosMeses, marcada: vm.mes == nil) { vm.mes = nil }
         } label: {
-            chipEtiqueta(etiquetaMes, seleccionado: vm.mes != nil, desplegable: true)
+            HStack(spacing: 4) {
+                Text(etiquetaMes)
+                Image(systemName: "chevron.down").font(.caption.weight(.semibold))
+            }
+            .font(.subheadline.weight(.medium))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
+        .tint(vm.mes != nil ? Paleta.brand : nil)
     }
 
     /// `Label` con palomita en vez de `Toggle`: dentro de un `Menu` la palomita
@@ -401,19 +569,6 @@ struct MovimientosView: View {
         Button(action: accion) {
             if marcada { Label(texto, systemImage: "checkmark") } else { Text(texto) }
         }
-    }
-
-    private func chipEtiqueta(_ texto: String, seleccionado: Bool,
-                              desplegable: Bool = false) -> some View {
-        HStack(spacing: 4) {
-            Text(texto)
-            if desplegable { Image(systemName: "chevron.down").font(.caption.weight(.semibold)) }
-        }
-        .font(.subheadline.weight(.medium))
-        .foregroundStyle(seleccionado ? Paleta.brand : .primary)
-        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-        .background(Capsule().fill(seleccionado ? Paleta.brandFill : Color(.secondarySystemFill)))
-        .overlay(Capsule().stroke(seleccionado ? Paleta.brandStroke : Color.clear, lineWidth: 1))
     }
 
     private func filaContenido(_ m: Movimiento) -> some View {
@@ -468,5 +623,7 @@ struct MovimientosView: View {
         .font(.caption)
         .foregroundStyle(.secondary)
         .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+        // Igual que la cabecera: el material va donde hay algo que difuminar.
+        .background(.regularMaterial)
     }
 }
