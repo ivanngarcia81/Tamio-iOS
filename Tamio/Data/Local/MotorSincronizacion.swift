@@ -96,6 +96,10 @@ final class MotorSincronizacion {
             try await bajarCorteMovimientos()
             try await bajarDepositos()
             try await bajarCategorias()
+            // Las definiciones recurrentes, ANTES de que la app las
+            // materialice: si otro aparato creó la renta, este tiene que
+            // conocerla para no volver a registrarla por su cuenta.
+            try await bajarRecurrentes()
             // Los recibos al final: son archivos, tardan, y ninguna otra cosa
             // depende de ellos. Que falle la subida de una foto no puede dejar
             // sin sincronizar el resto.
@@ -164,6 +168,10 @@ final class MotorSincronizacion {
         }
         if op.entidad == "categoriaCustom" {
             try await subirCategoria(op)
+            return
+        }
+        if op.entidad == "movimientoRecurrente" {
+            try await subirRecurrente(op)
             return
         }
         guard let fila = try await cola.read({ db in
@@ -974,6 +982,136 @@ final class MotorSincronizacion {
             }
         }
     }
+
+    // MARK: - Movimientos recurrentes
+
+    /// La DEFINICIÓN, no los movimientos que genera: esos suben como cualquier
+    /// otro movimiento, con su `recurrente_uid` a cuestas.
+    ///
+    /// Que la definición viaje es lo que permite que la renta se registre sola
+    /// en el iPad del pastor aunque se creara en el iPhone del tesorero. Y es
+    /// justo lo que no pasaba: `repiteMensual` era una columna local que no
+    /// tenía a dónde ir.
+    private struct RecurrenteRemoto: Encodable {
+        let uid: String
+        let churchId: String
+        let tipo: String
+        let categoria: String
+        let subcategoria: String?
+        let concepto: String?
+        let monto: Double
+        let metodoPago: String
+        let beneficiario: String?
+        let beneficiarioRfc: String?
+        let dia: Int
+        let mesInicio: String
+        let ultimoMesGenerado: String?
+        let activo: Bool
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, tipo, categoria, subcategoria, concepto, monto, dia, activo, deleted
+            case churchId          = "church_id"
+            case metodoPago        = "metodo_pago"
+            case beneficiario
+            case beneficiarioRfc   = "beneficiario_rfc"
+            case mesInicio         = "mes_inicio"
+            case ultimoMesGenerado = "ultimo_mes_generado"
+        }
+    }
+
+    private func subirRecurrente(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try MovimientoRecurrenteFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+
+        let remoto = RecurrenteRemoto(
+            uid: fila.id, churchId: churchIdActivo, tipo: fila.tipo,
+            categoria: fila.categoria, subcategoria: fila.subcategoria,
+            concepto: fila.nota,
+            // En pesos, como `transactions.monto`: la app guarda centavos.
+            monto: Double(fila.monto) / 100.0,
+            metodoPago: fila.metodo, beneficiario: fila.pagadoA,
+            beneficiarioRfc: fila.rfc, dia: fila.dia,
+            mesInicio: fila.mesInicio, ultimoMesGenerado: fila.ultimoMesGenerado,
+            activo: fila.activo, deleted: fila.borrado)
+        try await supabase.from("movimientos_recurrentes")
+            .upsert(remoto, onConflict: "uid").execute()
+    }
+
+    private struct RecurrenteRemotoLeido: Decodable {
+        let uid: String
+        let tipo: String?
+        let categoria: String?
+        let subcategoria: String?
+        let concepto: String?
+        let monto: Double?
+        let metodoPago: String?
+        let beneficiario: String?
+        let beneficiarioRfc: String?
+        let dia: Int?
+        let mesInicio: String?
+        let ultimoMesGenerado: String?
+        let activo: Bool?
+        let updatedAt: String?
+        let deleted: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case uid, tipo, categoria, subcategoria, concepto, monto, dia, activo, deleted
+            case metodoPago        = "metodo_pago"
+            case beneficiario
+            case beneficiarioRfc   = "beneficiario_rfc"
+            case mesInicio         = "mes_inicio"
+            case ultimoMesGenerado = "ultimo_mes_generado"
+            case updatedAt         = "updated_at"
+        }
+    }
+
+    private func bajarRecurrentes() async throws {
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'movimientoRecurrente'")
+        }
+        var consulta = supabase.from("movimientos_recurrentes").select()
+            .eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [RecurrenteRemotoLeido] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                let tienePendiente = try OperacionPendiente
+                    .filter(Column("registroId") == r.uid).fetchCount(db) > 0
+                if tienePendiente { continue }
+                // Borrado LÓGICO, al revés que las categorías: aquí sí hay
+                // quien apunte a la definición por id —los movimientos que
+                // generó— y borrar la fila dejaría ese vínculo colgando.
+                guard let mesInicio = r.mesInicio else { continue }
+                let def = MovimientoRecurrente(
+                    id: r.uid,
+                    tipo: r.tipo == "ingreso" ? .ingreso : .gasto,
+                    categoria: r.categoria ?? "",
+                    subcategoria: r.subcategoria,
+                    nota: r.concepto,
+                    monto: Int(((r.monto ?? 0) * 100).rounded()),
+                    metodo: r.metodoPago ?? "Efectivo",
+                    pagadoA: r.beneficiario,
+                    rfc: r.beneficiarioRfc,
+                    dia: r.dia ?? 1,
+                    mesInicio: mesInicio,
+                    ultimoMesGenerado: r.ultimoMesGenerado,
+                    activo: r.activo ?? true)
+                try MovimientoRecurrenteFila(def, actualizadoEn: r.updatedAt,
+                                             borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('movimientoRecurrente', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
 }
 
 // MARK: - Fila remota
@@ -1000,12 +1138,14 @@ private extension MotorSincronizacion {
         let registradoPor: String?
         let folio: String?
         let folioSeq: Int?
+        let recurrenteUid: String?
         let updatedAt: String?
         let deleted: Bool?
 
         enum CodingKeys: String, CodingKey {
             case uid, tipo, categoria, subcategoria, concepto, fecha, monto
             case notas, estado, folio, deleted, beneficiario
+            case recurrenteUid     = "recurrente_uid"
             case memberUid         = "member_uid"
             case metodoPago        = "metodo_pago"
             case beneficiarioRfc   = "beneficiario_rfc"
@@ -1052,7 +1192,11 @@ private extension MotorSincronizacion {
                 estadoRevision: estado ?? "aprobado",
                 incluidoEnCorte: false,
                 darConstanciaAnual: (emitirConstancia ?? 0) != 0,
-                repiteMensual: false,
+                // Igual que en el repositorio remoto: se deriva del vínculo con
+                // la serie. En `false` fijo, cada bajada borraba la marca de
+                // recurrente de un movimiento que sí lo era.
+                repiteMensual: recurrenteUid != nil,
+                recurrenteId: recurrenteUid,
                 actualizadoEn: updatedAt,
                 folioProvisional: false,
                 borrado: deleted ?? false

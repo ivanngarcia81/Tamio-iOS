@@ -81,15 +81,25 @@ struct TamioApp: App {
                     // porque la bajada puede traer alguna nueva y los conteos
                     // dependen de los movimientos que acaban de llegar.
                     await CategoriasViewModel.compartido.cargar()
-                    // **Los recurrentes al día, ANTES de subir.** Si el mes
-                    // cambió mientras la app estaba cerrada, aquí es donde se
-                    // registran las rentas de los meses que ya concluyeron; y
-                    // poniéndolo antes de sincronizar viajan en la misma
-                    // pasada en vez de esperar a la siguiente. No hay tarea
+                    await MotorSincronizacion.compartido.sincronizar()
+                    // **Los recurrentes al día, DESPUÉS de sincronizar**, y no
+                    // antes: la idempotencia vive en `ultimoMesGenerado`, y esa
+                    // marca la puede haber movido otro aparato. Materializando
+                    // primero, el iPhone y el iPad registrarían cada uno la
+                    // renta del mismo mes sin saberlo. Bajar antes es lo que
+                    // hace que la marca sea de la iglesia y no del aparato.
+                    //
+                    // Si el mes cambió mientras la app estaba cerrada, aquí es
+                    // donde se registran los meses ya concluidos. No hay tarea
                     // programada de por medio: si la app no se abre en tres
                     // meses, al abrirla se ponen los tres al día de una vez.
-                    await MaterializadorRecurrentes.alDia()
-                    await MotorSincronizacion.compartido.sincronizar()
+                    let hecho = await MaterializadorRecurrentes.alDia()
+                    // Y una segunda vuelta SOLO si de verdad se generó algo,
+                    // para que las rentas nuevas no esperen al próximo arranque
+                    // para llegar al servidor.
+                    if hecho.generados > 0 {
+                        await MotorSincronizacion.compartido.sincronizar()
+                    }
                     await CategoriasViewModel.compartido.cargar()
                 }
                 .onChange(of: fase) { _, nueva in

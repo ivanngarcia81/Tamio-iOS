@@ -27,6 +27,7 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
         let registradoPor: String?
         let folio: String?
         let folioSeq: Int?
+        let recurrenteUid: String?
         let createdAt: String?
 
         enum CodingKeys: String, CodingKey {
@@ -41,6 +42,7 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
             case emitirConstancia = "emitir_constancia"
             case registradoPor    = "registrado_por"
             case folioSeq         = "folio_seq"
+            case recurrenteUid    = "recurrente_uid"
             case createdAt        = "created_at"
         }
     }
@@ -68,12 +70,16 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
         let registradoPor: String
         let folio: String
         let folioSeq: Int?
+        /// Qué serie recurrente lo generó. Viajaba a ninguna parte: la app
+        /// guardaba la intención en local y Supabase no se enteraba.
+        let recurrenteUid: String?
 
         enum CodingKeys: String, CodingKey {
             case uid
             case churchId         = "church_id"
             case memberUid        = "member_uid"
             case tipo, categoria, subcategoria, concepto, fecha, monto, estado, notas, folio
+            case recurrenteUid    = "recurrente_uid"
             case comprobantePath  = "comprobante_path"
             case aportanteNombre  = "aportante_nombre"
             case metodoPago       = "metodo_pago"
@@ -237,7 +243,13 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
             estadoRevision: EstadoRevision(rawValue: dto.estado ?? "") ?? .aprobado,
             incluidoEnCorte: false,
             darConstanciaAnual: (dto.emitirConstancia ?? 0) != 0,
-            repiteMensual: false,
+            // **Derivado del vínculo, no de un booleano suelto.** Iba a `false`
+            // fijo, así que un movimiento recurrente perdía esa condición en
+            // cuanto daba una vuelta por el servidor: el interruptor de la hoja
+            // de captura se borraba solo. La verdad está en la serie que lo
+            // generó, y esa sí viaja.
+            repiteMensual: dto.recurrenteUid != nil,
+            recurrenteId: dto.recurrenteUid,
             memberUid: dto.memberUid,
             subcategoria: dto.subcategoria,
             aportanteNombre: dto.aportanteNombre
@@ -275,7 +287,8 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
             notas: m.notasAuditoria,
             registradoPor: m.registradoPor,
             folio: folioSeq.map(String.init) ?? m.folio,
-            folioSeq: folioSeq ?? Int(m.folio)
+            folioSeq: folioSeq ?? Int(m.folio),
+            recurrenteUid: m.recurrenteId
         )
     }
 
