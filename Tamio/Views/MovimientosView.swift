@@ -175,7 +175,7 @@ struct MovimientosView: View {
         // botones: un segmentado dice "elige uno de los dos".
         if compacto {
             ToolbarItem(placement: .title) {
-                pickerTipo.frame(maxWidth: 160)
+                pickerTipo.frame(maxWidth: 190)
             }
             // Arriba, lo que dice QUÉ SE ESTÁ VIENDO y la acción de crear.
             //
@@ -458,15 +458,17 @@ struct MovimientosView: View {
     /// cuánto. Esa señal no se puede perder: un filtro puesto explica una lista
     /// vacía, y sin ella el usuario no tiene forma de saber por qué.
     ///
-    /// **En el teléfono el botón dice el mes.** Al fundirse con el selector, el
-    /// icono a secas habría escondido el único sitio donde se leía qué mes se
-    /// está viendo, y eso es justo lo que la barra existe para decir. En iPad
-    /// siguen siendo dos controles: allí hay ancho y la cabecera de la columna
-    /// tiene sitio para los dos.
+    /// **Solo el icono; el mes vive dentro.** Llevó un tiempo el mes escrito en
+    /// la cápsula, para que se leyera arriba qué se está viendo, pero eso
+    /// gastaba el ancho que necesitaba el `+`. El mes se lee ahora en el pie de
+    /// la lista, junto al conteo y al total, y se cambia dentro de esta misma
+    /// hoja, que abre con el periodo arriba.
+    ///
+    /// En iPad son dos controles distintos: allí hay ancho y la cabecera de la
+    /// columna tiene sitio para el selector de mes y para este.
     private var botonFiltros: some View {
         Button { mostrarFiltros = true } label: {
             HStack(spacing: 5) {
-                if compacto { Text(etiquetaMesCorta).lineLimit(1) }
                 Image(systemName: "line.3.horizontal.decrease")
                 if !compacto { Text(L.t("Filtros", "Filters")) }
                 if filtrosActivos > 0 { contador(filtrosActivos) }
@@ -474,7 +476,7 @@ struct MovimientosView: View {
             .font(.subheadline.weight(.medium))
         }
         .buttonStyle(.glass)
-        .tint(filtrosActivos > 0 || (compacto && vm.mes == nil) ? Paleta.brand : nil)
+        .tint(filtrosActivos > 0 ? Paleta.brand : nil)
         .accessibilityLabel(compacto
                             ? L.t("Periodo y filtros: \(etiquetaMes)", "Period and filters: \(etiquetaMes)")
                             : L.t("Filtros", "Filters"))
@@ -658,11 +660,11 @@ struct MovimientosView: View {
         return HStack(spacing: 10) {
             // Símbolo de la categoría dentro de un círculo tintado: el punto de
             // 8×8 no se podía interpretar sin leyenda.
-            Image(systemName: Paleta.iconoCategoria(m.claveCategoria))
+            Image(systemName: Paleta.iconoCategoria(m.claveCategoria, nombre: m.categoria))
                 .font(.system(size: 13))
-                .foregroundStyle(Paleta.categoria(m.claveCategoria))
+                .foregroundStyle(Paleta.categoria(m.claveCategoria, nombre: m.categoria))
                 .frame(width: 30, height: 30)
-                .background(Paleta.categoria(m.claveCategoria).opacity(0.14), in: Circle())
+                .background(Paleta.categoria(m.claveCategoria, nombre: m.categoria).opacity(0.14), in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(m.titular).font(.subheadline.weight(.medium)).lineLimit(1)
                 Text(m.subtitulo).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -716,9 +718,14 @@ struct MovimientosView: View {
     /// columna, como el del iPad.
     private var pieLista: some View {
             HStack {
-                Text(L.t("\(vm.itemsFiltrados.count) movimientos",
-                         "\(vm.itemsFiltrados.count) entries"))
+                // **El pie dice el mes.** Al quitarlo de la cápsula de arriba
+                // se quedaba sin sitio donde leerse: las cabeceras de grupo dan
+                // el día ("jueves 3") pero no el mes. Aquí va junto al conteo y
+                // al total, que es el resto del cuadre.
+                Text(L.t("\(vm.itemsFiltrados.count) movimientos · \(etiquetaMes)",
+                         "\(vm.itemsFiltrados.count) entries · \(etiquetaMes)"))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 Spacer()
                 Text(Money.firmado(vm.total, ingreso: vm.tipo == .ingreso))
                     .monospacedDigit().fontWeight(.semibold)

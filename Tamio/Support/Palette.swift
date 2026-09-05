@@ -104,7 +104,22 @@ enum Paleta {
     /// Recibe la CLAVE y no la etiqueta: antes comparaba `contains("diezmo")`
     /// contra un texto que en inglés dice "Tithe", así que no acertaba ninguna
     /// rama y toda la lista salía del mismo gris. Ver `CategoriaClave`.
-    static func categoria(_ clave: CategoriaClave?) -> Color {
+    /// **Color de una categoría, con su nombre por si no está en el catálogo.**
+    ///
+    /// Las que la iglesia se inventa —"Fondo de edificación", "Ofrenda de
+    /// jóvenes"— no tienen clave, y sin el nombre solo cabía darles el gris de
+    /// "no reconocida". En una lista donde el resto lleva color, ese gris se
+    /// lee como error y no como "esta categoría es tuya": el catálogo tiene
+    /// seis claves de ingreso y un fondo de edificación no es un caso raro en
+    /// una iglesia, es de lo primero que se crea.
+    ///
+    /// Ahora reciben color propio, derivado del NOMBRE y por tanto estable: la
+    /// misma categoría sale siempre del mismo color, en esta pantalla y en la
+    /// siguiente. El gris queda para lo que no tiene nombre.
+    static func categoria(_ clave: CategoriaClave?, nombre: String? = nil) -> Color {
+        if clave == nil || clave == .otro, let nombre, !nombre.isEmpty {
+            return propia(nombre)
+        }
         switch clave {
         case .diezmo:        return donut[0]   // verde
         case .ofrenda:       return donut[1]   // morado
@@ -124,7 +139,8 @@ enum Paleta {
     /// gris azulado, gris, cian y verde conviviendo, no había forma de deducir
     /// qué significaba cada color, y a ese tamaño varios eran indistinguibles.
     /// Un símbolo se identifica solo.
-    static func iconoCategoria(_ clave: CategoriaClave?) -> String {
+    static func iconoCategoria(_ clave: CategoriaClave?, nombre: String? = nil) -> String {
+        if clave == nil, let nombre, !nombre.isEmpty { return iconoPropio(nombre) }
         switch clave {
         case .diezmo:        return "hands.and.sparkles.fill"
         case .ofrenda:       return "gift.fill"
@@ -149,9 +165,47 @@ enum Paleta {
         case .seguros:       return "shield.fill"
         case .varios,
              .otro:          return "tray.fill"
-        // Una categoría inventada en Ajustes: no hay símbolo que le pegue.
+        // Sin clave y sin nombre: no hay de dónde sacar nada.
         case nil:            return "circle.fill"
         }
+    }
+
+    // MARK: - Categorías propias de la iglesia
+
+    /// La paleta de las categorías propias. Son los mismos acentos que ya usa
+    /// la app —no se inventan colores nuevos—, y el reparto es estable porque
+    /// sale del nombre: no depende del orden de la lista ni de cuántas haya.
+    private static var acentosPropios: [Color] {
+        [donut[0], donut[1], donut[2], donut[3], azulCielo, ambar, morado]
+    }
+
+    /// Los símbolos de las propias. Genéricos a propósito: no se puede acertar
+    /// con el icono de una categoría que aún no existe, pero sí darle uno que
+    /// se lea como categoría y no como hueco.
+    private static let simbolosPropios = [
+        "building.columns.fill", "star.fill", "leaf.fill", "flame.fill",
+        "book.fill", "figure.2.and.child.holdinghands", "bell.fill",
+    ]
+
+    /// **Estable entre arranques y entre idiomas.** Un `hashValue` de Swift
+    /// cambia en cada ejecución, así que la misma categoría saldría de un color
+    /// distinto cada vez que se abre la app. Esta suma no cambia nunca. Y se
+    /// normaliza el nombre para que "Fondo de edificación" y "fondo de
+    /// edificacion" no acaben en dos colores.
+    private static func indicePropio(_ nombre: String, _ modulo: Int) -> Int {
+        let limpio = nombre.folding(options: [.diacriticInsensitive, .caseInsensitive],
+                                    locale: Locale(identifier: "en_US_POSIX"))
+            .filter { !$0.isWhitespace }
+        let suma = limpio.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) % 100_003 }
+        return abs(suma) % modulo
+    }
+
+    static func propia(_ nombre: String) -> Color {
+        acentosPropios[indicePropio(nombre, acentosPropios.count)]
+    }
+
+    static func iconoPropio(_ nombre: String) -> String {
+        simbolosPropios[indicePropio(nombre, simbolosPropios.count)]
     }
 
     /// **La regla de los badges.** Un badge dice en qué punto está algo, y su

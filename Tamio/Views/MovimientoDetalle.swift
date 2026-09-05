@@ -31,7 +31,7 @@ struct MovimientoDetalle: View {
     /// ella. Las acciones se quedan donde están. Es la misma frontera que en
     /// Ingresos y en Depósitos.
     private var compacto: Bool { sizeClass == .compact }
-    private var color: Color { Paleta.categoria(m.claveCategoria) }
+    private var color: Color { Paleta.categoria(m.claveCategoria, nombre: m.categoria) }
 
     /// Texto que se comparte con el sistema (ShareLink).
     private var textoCompartir: String {

@@ -984,7 +984,7 @@ private struct AjustesCategoriasView: View {
             // que la app enseña en ninguna otra pantalla.
             Circle()
                 .fill(f.deFabrica
-                      ? Paleta.categoria(f.clave)
+                      ? Paleta.categoria(f.clave, nombre: f.nombre)
                       : (Color(hexTexto: f.colorHex ?? "") ?? Paleta.pizarra))
                 .frame(width: 12, height: 12)
                 .opacity(f.huerfana ? 0.35 : 1)

@@ -1142,7 +1142,7 @@ private struct SeccionCategorias: View {
                             // en Ingresos y Gastos. Ver la nota del teléfono.
                             Circle()
                                 .fill(f.deFabrica
-                                      ? Paleta.categoria(f.clave)
+                                      ? Paleta.categoria(f.clave, nombre: f.nombre)
                                       : (Color(hexTexto: f.colorHex ?? "") ?? Paleta.pizarra))
                                 .frame(width: 12, height: 12)
                                 .opacity(f.huerfana ? 0.35 : 1)
