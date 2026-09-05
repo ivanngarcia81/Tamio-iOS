@@ -267,15 +267,11 @@ Data Protection) y qué protección le queda al respaldo en iCloud Drive.
 4. **Las dos medidas del cifrado** (§5).
 5. **Membresía sobre datos reales** (§5). El sitio ya está abierto (v15); falta
    el repositorio, la sincronización y rehacer el modelo.
-6. **`supabase/migrations/20260905_pariente_no_registrado.sql` está SIN
-   APLICAR.** Añade `parentescos.pariente_nombre`, que hoy no existe: la hoja
-   promete "si el pariente no congrega, escribe su nombre" y ese nombre no
-   tiene dónde caer.
-7. **`NuevoParienteView` usa el uid del pariente como id del parentesco**
-   (`Pariente(id: miembroId ?? UUID()...)`). Con la relación en memoria no se
-   notaba; contra la tabla `parentesco` es una colisión de clave primaria en
-   cuanto dos personas nombran al mismo pariente. Hay que separar los dos ids
-   al escribir el repositorio.
+6. **Decidir qué son `nuevo` y `recibido`.** El enum `EstadoMiembro` de iOS
+   tiene esos dos valores y en el vocabulario del web no existen: allí se
+   elige entre `activo`, `inactivo`, `visitante` y `enProceso`. Sin esa
+   decisión, la traducción entre los dos lados hay que inventarla. Es lo
+   primero del paso siguiente, antes del repositorio.
 8. Observación sin acción: el hub dice "Transacciones · 29 registros" y la
    lista dice "16 movimientos". No es un error —una suma ingresos y gastos, la
    otra solo el tipo activo— pero se leen como el mismo número.
