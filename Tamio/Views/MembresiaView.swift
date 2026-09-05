@@ -89,9 +89,21 @@ struct MembresiaView: View {
             } else {
                 contenidoCompacto
                     .navigationDestination(item: $abierto) { m in
-                        MiembroDetalle(miembro: m, resumen: vm.resumen,
-                                       onEditar: { miembroAEditar = m },
-                                       onSeguimiento: { miembroParaSeguimiento = m },
+                        // **La ficha se busca por id, no se usa la copia que
+                        // abrió la pantalla.** `abierto` guarda un valor, y un
+                        // valor no cambia: añadir un pariente o una nota de
+                        // seguimiento escribía en el ViewModel y la ficha
+                        // seguía enseñando la foto de antes, así que el botón
+                        // parecía no hacer nada. En iPad no se notaba porque
+                        // el panel derecho ya se leía de la lista.
+                        let vigente = vm.items.first { $0.id == m.id } ?? m
+                        MiembroDetalle(miembro: vigente, resumen: vm.resumen,
+                                       // Y las dos hojas se abren con la ficha
+                                       // vigente: con la copia, editar volvía
+                                       // a cargar los datos de antes y al
+                                       // guardar deshacía lo último.
+                                       onEditar: { miembroAEditar = vigente },
+                                       onSeguimiento: { miembroParaSeguimiento = vigente },
                                        onFiltrarAccion: { filtro in
                                            // La lista no está a la vista en
                                            // iPhone: aplicar el filtro sin
