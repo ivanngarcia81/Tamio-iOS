@@ -226,7 +226,7 @@ struct AportanteDetalle: View {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(a.familia.enumerated()), id: \.element.id) { i, p in
                     HStack {
-                        Text(p.relacion).font(.subheadline).foregroundStyle(.secondary)
+                        Text(p.etiqueta).font(.subheadline).foregroundStyle(.secondary)
                             .frame(width: 110, alignment: .leading)
                         Text(p.nombre).font(.subheadline)
                         Spacer()

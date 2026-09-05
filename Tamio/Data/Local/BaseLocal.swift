@@ -514,20 +514,29 @@ final class BaseLocal {
             // Tabla y no columna porque un parentesco es de DOS personas: la
             // misma fila la lee el marido y la mujer, y guardarlo en la ficha
             // de cada uno sería la misma relación escrita dos veces, libre de
-            // contradecirse.
+            // contradecirse. Se guarda UNA fila y la otra ficha la lee al
+            // revés, con `Parentescos.inverso`.
             //
-            // `parienteId` es opcional a propósito, como en el servidor: el
-            // hijo de alguien puede no estar en el padrón, y exigirlo
-            // obligaría a dar de alta a un bebé para poder decir que lo es.
+            // **Los dos extremos son personas del padrón, y no hay columna de
+            // nombre.** El nombre se lee de la ficha del otro. Aquí llegué a
+            // poner una: venía de que la hoja de alta ofrecía escribir el
+            // nombre de un pariente que no congrega, y eso no se puede
+            // sostener —la relación existiría solo en un lado, y la ficha del
+            // pariente no podría enseñarla—. Se arregló la hoja, no la tabla.
+            //
+            // `tipo` guarda la CLAVE del catálogo (`conyuge`, `padre`, `hijo`…),
+            // nunca la etiqueta traducida. Ver `docs/PADRON-WEB.md`.
             try db.create(table: "parentesco") { t in
                 t.primaryKey("id", .text)
                 t.column("miembroId", .text).notNull().indexed()
-                t.column("parienteId", .text)
-                t.column("tipo", .text).notNull().defaults(to: "")
-                t.column("nombre", .text).notNull().defaults(to: "")
+                t.column("parienteId", .text).notNull().indexed()
+                t.column("tipo", .text).notNull().defaults(to: "otro")
                 t.column("actualizadoEn", .text)
                 t.column("borrado", .boolean).notNull().defaults(to: false)
             }
+            // La misma relación entre las mismas dos personas, una sola vez.
+            try db.create(index: "idx_parentesco_par", on: "parentesco",
+                          columns: ["miembroId", "parienteId"], unique: true)
             try db.create(index: "idx_parentesco_borrado", on: "parentesco",
                           columns: ["borrado"])
         }

@@ -98,9 +98,13 @@ struct MockMiembrosRepository: MiembrosRepository {
                 aportes: historial(total: total, partes: 7,
                                    diasDesdeUltimo: diasDesdeUltimo,
                                    cada: frecuencia.dias ?? 30),
+                // Claves del catálogo, no etiquetas, y el `id` es el de la
+                // fila de parentesco: el del pariente va aparte. El cónyuge
+                // apunta a una ficha que existe en esta misma lista —"1", Ana
+                // Lucía— porque los dos extremos son personas del padrón.
                 familia: [
-                    Pariente(id: "1", relacion: L.t("Cónyuge", "Spouse"), nombre: "Ana Lucía Torres"),
-                    Pariente(id: "2", relacion: L.t("Hijo", "Son"), nombre: "Diego Medina Torres"),
+                    Pariente(id: "fam-1", tipo: "conyuge",
+                             parienteId: "1", nombre: "Ana Lucía Torres Beltrán"),
                 ]
             )
         }

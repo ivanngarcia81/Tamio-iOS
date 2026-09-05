@@ -251,7 +251,7 @@ struct MiembroDetalle: View {
                 }
                 ForEach(miembro.familia) { p in
                     HStack(spacing: 10) {
-                        Text(p.relacion).font(.subheadline).foregroundStyle(.secondary)
+                        Text(p.etiqueta).font(.subheadline).foregroundStyle(.secondary)
                             .frame(width: 90, alignment: .leading)
                         Text(p.nombre).font(.subheadline)
                         Spacer()

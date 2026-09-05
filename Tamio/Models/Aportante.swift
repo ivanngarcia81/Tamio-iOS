@@ -58,11 +58,71 @@ struct MesAporte: Identifiable {
     let monto: Centavos
 }
 
+/// El catálogo de parentescos, y su inverso.
+///
+/// **Los términos son neutros** —"Padre o madre", "Hijo o hija"— y no por
+/// corrección: la ficha de la persona NO guarda sexo, así que "hija" sería un
+/// dato que inventa la interfaz. De regalo, cada inverso queda único: el
+/// inverso de "hijo" es "padre" y punto; con términos con sexo habría que
+/// adivinar cuál de los dos poner, y adivinar es lo que esta app no hace.
+///
+/// Es el catálogo del app web, que es quien escribió la tabla `parentescos`
+/// —ver `docs/PADRON-WEB.md`—, y son sus CLAVES lo que se guarda. La etiqueta
+/// se traduce al pintar: si se guardara "Cónyuge", la app en inglés enseñaría
+/// español y la misma relación se leería distinta en cada aparato.
+enum Parentescos {
+    /// Las claves, en el orden en que se ofrecen.
+    static let tipos = ["conyuge", "padre", "hijo", "hermano", "abuelo",
+                        "nieto", "tio", "sobrino", "primo", "otro"]
+
+    /// Cómo se lee la misma fila desde la otra ficha. Se guarda UNA fila por
+    /// relación: escribirla en las dos fichas sería la misma relación dos
+    /// veces, libre de contradecirse.
+    static let inverso: [String: String] = [
+        "conyuge": "conyuge", "padre": "hijo", "hijo": "padre",
+        "hermano": "hermano", "abuelo": "nieto", "nieto": "abuelo",
+        "tio": "sobrino", "sobrino": "tio", "primo": "primo", "otro": "otro",
+    ]
+
+    static func etiqueta(_ tipo: String) -> String {
+        switch tipo {
+        case "conyuge":  return L.t("Cónyuge", "Spouse")
+        case "padre":    return L.t("Padre o madre", "Parent")
+        case "hijo":     return L.t("Hijo o hija", "Child")
+        case "hermano":  return L.t("Hermano o hermana", "Sibling")
+        case "abuelo":   return L.t("Abuelo o abuela", "Grandparent")
+        case "nieto":    return L.t("Nieto o nieta", "Grandchild")
+        case "tio":      return L.t("Tío o tía", "Uncle or aunt")
+        case "sobrino":  return L.t("Sobrino o sobrina", "Nephew or niece")
+        case "primo":    return L.t("Primo o prima", "Cousin")
+        case "otro":     return L.t("Otro", "Other")
+        // Catálogo cerrado, pero una fila que venga con algo más se enseña tal
+        // cual antes que desaparecer de la ficha.
+        default:         return tipo
+        }
+    }
+}
+
 /// Un pariente (pestaña Familia).
+///
+/// **Los dos extremos son personas del padrón.** No hay nombre suelto: el
+/// nombre se lee de la ficha del otro y por eso `nombre` es un derivado, no un
+/// dato guardado. Un pariente escrito a mano sería una relación que solo
+/// existe en un lado —la otra ficha no podría enseñarla— y media relación no
+/// es una relación.
 struct Pariente: Identifiable {
+    /// Id de la FILA de parentesco, no de la persona. Son cosas distintas: la
+    /// misma persona puede ser el pariente de varias, y usar su id aquí
+    /// convertía en una sola fila dos relaciones que no lo son.
     let id: String
-    let relacion: String   // "Cónyuge", "Hijo"
+    /// Clave del catálogo, ya vista desde la ficha que pregunta.
+    let tipo: String
+    /// La otra persona de la relación.
+    let parienteId: String
+    /// Su nombre, derivado de su ficha.
     let nombre: String
+
+    var etiqueta: String { Parentescos.etiqueta(tipo) }
 }
 
 /// Un aportante (Miembros · Tesorería): sus datos fiscales/personales y su
