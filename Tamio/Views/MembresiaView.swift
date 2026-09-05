@@ -980,7 +980,9 @@ private struct NuevoMiembroSheet: View {
         _cargos = State(initialValue: Set(allCargos.filter { knownCargos.contains($0) }))
         _cargosCustom = State(initialValue: allCargos.filter { !knownCargos.contains($0) })
 
-        _ministeriosInteres = State(initialValue: [])
+        let interesStr = d("Ministerios de interés", "Ministries of interest")
+        _ministeriosInteres = State(initialValue: interesStr.isEmpty
+                                    ? [] : Set(interesStr.components(separatedBy: ", ")))
 
         let knownInstr: [String] = ["Piano", "Guitarra", "Bajo", "Batería", "Percusión", "Metales", "Voz"]
         let instrStr = d("Instrumentos", "Instruments")
@@ -996,8 +998,18 @@ private struct NuevoMiembroSheet: View {
         _habilidades = State(initialValue: Set(allHab.filter { knownHab.contains($0) }))
         _habilidadesCustom = State(initialValue: allHab.filter { !knownHab.contains($0) })
 
-        _disponibilidad = State(initialValue: "")
-        _interesServir = State(initialValue: false)
+        _disponibilidad = State(initialValue: d("Disponibilidad", "Availability"))
+        _interesServir = State(initialValue: flag("Interés en servir", "Interested in serving"))
+
+        // La baja y el traslado se guardaban y no se volvían a leer: al editar
+        // a alguien dado de baja, la fecha volvía a hoy y el motivo en blanco,
+        // y se re-guardaban así. Quedaba una baja sin fecha ni razón, que es
+        // lo mismo que no saber qué pasó con esa persona.
+        let bajaStr = m.estado == .baja
+            ? d("Fecha de baja", "Removal date")
+            : d("Fecha de traslado", "Transfer date")
+        _fechaBaja = State(initialValue: fmt.date(from: bajaStr) ?? Date())
+        _motivoBaja = State(initialValue: d("Motivo", "Reason"))
 
         let nacStr = d("Nacimiento", "Birth date")
         _tieneFechaNac = State(initialValue: !nacStr.isEmpty)
@@ -1023,7 +1035,10 @@ private struct NuevoMiembroSheet: View {
     }
     private var cntServicio: Int {
         ministerios.count + ministeriosCustom.count + cargos.count + cargosCustom.count +
-        instrumentos.count + instrumentosCustom.count + habilidades.count + habilidadesCustom.count
+        instrumentos.count + instrumentosCustom.count + habilidades.count + habilidadesCustom.count +
+        // Los tres que la página pedía y el guardado tiraba: si no cuentan
+        // aquí, rellenarlos deja la fila con el mismo número que antes.
+        ministeriosInteres.count + (disponibilidad.isEmpty ? 0 : 1) + (interesServir ? 1 : 0)
     }
     private var cntDatos: Int {
         (tieneFechaNac ? 1 : 0) + (estadoCivil != "Sin especificar" ? 1 : 0) + (!direccion.isEmpty ? 1 : 0)
@@ -1210,6 +1225,22 @@ private struct NuevoMiembroSheet: View {
         if !todosCargos.isEmpty{ datos.append(Dato(etiqueta: L.t("Cargos", "Roles"),            valor: todosCargos.joined(separator: ", "))) }
         if !todosInstr.isEmpty { datos.append(Dato(etiqueta: L.t("Instrumentos", "Instruments"),valor: todosInstr.joined(separator: ", "))) }
         if !todosHab.isEmpty   { datos.append(Dato(etiqueta: L.t("Habilidades", "Skills"),      valor: todosHab.joined(separator: ", "))) }
+        // **Los tres campos que se escribían en el vacío.** "Ministerios de
+        // interés", la disponibilidad y el interés en servir se pedían en
+        // Servicio y habilidades y no llegaban a `datos`: al guardar
+        // desaparecían, y al reabrir la ficha volvían vacíos. Son justo los
+        // datos con los que se arma un equipo, así que no podían ser los
+        // únicos que no sobrevivían a Guardar.
+        if !ministeriosInteres.isEmpty {
+            datos.append(Dato(etiqueta: L.t("Ministerios de interés", "Ministries of interest"),
+                              valor: ministeriosInteres.sorted().joined(separator: ", ")))
+        }
+        if !disponibilidad.trimmingCharacters(in: .whitespaces).isEmpty {
+            datos.append(Dato(etiqueta: L.t("Disponibilidad", "Availability"), valor: disponibilidad))
+        }
+        if interesServir {
+            datos.append(Dato(etiqueta: L.t("Interés en servir", "Interested in serving"), valor: "✓"))
+        }
         if !estadoCivil.isEmpty && estadoCivil != "Sin especificar" {
             datos.append(Dato(etiqueta: L.t("Estado civil", "Marital status"), valor: estadoCivil))
         }
@@ -1264,7 +1295,13 @@ private struct NuevoMiembroSheet: View {
             datos: datos,
             expediente: expediente,
             movimientos: movimientos,
-            seguimientoNotas: miembroExistente?.seguimientoNotas ?? []
+            seguimientoNotas: miembroExistente?.seguimientoNotas ?? [],
+            // **Sin esta línea, "Guardar cambios" borraba los parentescos.**
+            // `familia` tiene `= []` por defecto, así que omitirla no era
+            // dejarla igual: era vaciarla. Los parentescos se dan de alta en
+            // la ficha del miembro, de modo que bastaba con editar cualquier
+            // otro dato para perderlos sin aviso.
+            familia: miembroExistente?.familia ?? []
         )
     }
 }
