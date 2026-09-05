@@ -95,7 +95,11 @@ final class MotorSincronizacion {
             // La asistencia DESPUÉS de los cultos: cada marca apunta a uno por
             // id, y una lista cuyo culto no ha bajado no se puede colocar.
             try await bajarCultos()
+            // Las tres hijas del culto, después de él y por la misma razón que
+            // los parentescos van después de las personas.
             try await bajarAsistencia()
+            try await bajarPuestos()
+            try await bajarOrden()
             try await bajarIglesia()
             // Los cortes DESPUÉS de los movimientos: el corte apunta a
             // movimientos por id, y resolver un puntero a algo que todavía no
@@ -176,6 +180,14 @@ final class MotorSincronizacion {
         }
         if op.entidad == "asistencia" {
             try await subirAsistencia(op)
+            return
+        }
+        if op.entidad == "puesto" {
+            try await subirPuesto(op)
+            return
+        }
+        if op.entidad == "orden" {
+            try await subirOrden(op)
             return
         }
         if op.entidad == "corte" {
@@ -401,6 +413,149 @@ final class MotorSincronizacion {
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
         case .none:
             return
+        }
+    }
+
+    private struct PuestoEscritura: Encodable {
+        let uid, churchId, servicioUid, puesto, nombre: String
+        let memberUid: String?
+        let deleted: Bool
+        enum CodingKeys: String, CodingKey {
+            case uid, puesto, nombre, deleted
+            case churchId    = "church_id"
+            case servicioUid = "servicio_uid"
+            case memberUid   = "member_uid"
+        }
+    }
+
+    private func subirPuesto(_ op: OperacionPendiente) async throws {
+        guard let f = try await cola.read({ db in
+            try ServicioPuestoFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+        let cuerpo = PuestoEscritura(
+            uid: f.id, churchId: churchIdActivo, servicioUid: f.servicioId,
+            puesto: f.puesto, nombre: f.nombre, memberUid: f.miembroId,
+            deleted: f.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("servicio_puestos").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("servicio_puestos").update(cuerpo)
+                .eq("uid", value: f.id).eq("church_id", value: churchIdActivo).execute()
+        case .none: return
+        }
+    }
+
+    private struct OrdenEscritura: Encodable {
+        let uid, churchId, servicioUid, hora, titulo, encargado: String
+        let posicion: Int
+        let deleted: Bool
+        enum CodingKeys: String, CodingKey {
+            case uid, posicion, hora, titulo, encargado, deleted
+            case churchId    = "church_id"
+            case servicioUid = "servicio_uid"
+        }
+    }
+
+    private func subirOrden(_ op: OperacionPendiente) async throws {
+        guard let f = try await cola.read({ db in
+            try ServicioOrdenFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+        let cuerpo = OrdenEscritura(
+            uid: f.id, churchId: churchIdActivo, servicioUid: f.servicioId,
+            hora: f.hora, titulo: f.titulo, encargado: f.encargado, posicion: f.posicion,
+            deleted: f.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("servicio_orden").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("servicio_orden").update(cuerpo)
+                .eq("uid", value: f.id).eq("church_id", value: churchIdActivo).execute()
+        case .none: return
+        }
+    }
+
+    private func bajarPuestos() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let servicioUid, puesto, nombre, memberUid: String?
+            let updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, puesto, nombre, deleted
+                case servicioUid = "servicio_uid"
+                case memberUid   = "member_uid"
+                case updatedAt   = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'puesto'")
+        }
+        var consulta = supabase.from("servicio_puestos").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true).limit(1000).execute().value
+        guard !filas.isEmpty else { return }
+        try await cola.write { db in
+            for r in filas {
+                guard let s = r.servicioUid, !s.isEmpty else { continue }
+                let pendiente = try OperacionPendiente
+                    .filter(Column("entidad") == "puesto" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if pendiente { continue }
+                try ServicioPuestoFila(id: r.uid, servicioId: s, puesto: r.puesto ?? "",
+                                       nombre: r.nombre ?? "", miembroId: r.memberUid,
+                                       actualizadoEn: r.updatedAt,
+                                       borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('puesto', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
+    private func bajarOrden() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let servicioUid, hora, titulo, encargado: String?
+            let posicion: Int?
+            let updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, posicion, hora, titulo, encargado, deleted
+                case servicioUid = "servicio_uid"
+                case updatedAt   = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'orden'")
+        }
+        var consulta = supabase.from("servicio_orden").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true).limit(1000).execute().value
+        guard !filas.isEmpty else { return }
+        try await cola.write { db in
+            for r in filas {
+                guard let s = r.servicioUid, !s.isEmpty else { continue }
+                let pendiente = try OperacionPendiente
+                    .filter(Column("entidad") == "orden" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if pendiente { continue }
+                try ServicioOrdenFila(id: r.uid, servicioId: s, posicion: r.posicion ?? 0,
+                                      hora: r.hora ?? "", titulo: r.titulo ?? "",
+                                      encargado: r.encargado ?? "", actualizadoEn: r.updatedAt,
+                                      borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('orden', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
         }
     }
 
