@@ -217,6 +217,15 @@ descubrir:
   `servicio_asistencia`, con `presente`, `razon` y `seguimiento` por persona y
   por culto. De ahí salen la racha, la última visita y el % del roster.
 
+**Antes de escribir la sincronización, leer `docs/PADRON-WEB.md`.** Esas tablas
+las creó el app web (`~/Documents/Tamio-app`) y da por sentada una semántica que
+el esquema no enseña: el estado de una persona son TRES columnas y no una —dar
+de baja es `activo = 0`, y `estado_membresia` ni se toca—, y las listas guardan
+claves de catálogo sin acentos (`musica`, `ensenanza`, `liderJovenes`), no las
+etiquetas en español que usa `MembresiaView`. Ahí está también el aviso de que
+esto ya está mal HOY en Tesorería: una baja hecha desde el teléfono deja a la
+persona contada como activa en el web.
+
 Lo que falta, en orden: el repositorio offline que lea la v15, el mapa de
 subida y bajada en `MotorSincronizacion` (la fila la escriben DOS entidades del
 outbox —Tesorería y el padrón— y cada una manda solo sus columnas, que es lo
