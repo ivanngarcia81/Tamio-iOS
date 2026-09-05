@@ -88,12 +88,22 @@ final class MembresiaViewModel {
 
     var itemsFiltrados: [Miembro] {
         items.filter { m in
-            (busqueda.isEmpty || m.nombre.localizedCaseInsensitiveContains(busqueda))
+            (busqueda.isEmpty || coincideBusqueda(m))
             && (filtroAño == nil || m.miembroDesde.contains(String(filtroAño!)))
             && (filtroEstado == nil || m.estado == filtroEstado)
             && (filtroMinisterio == nil || m.area.localizedCaseInsensitiveContains(filtroMinisterio!))
             && cumpleAccion(m)
         }
+    }
+
+    /// **El campo decía "nombre o correo" y solo buscaba por nombre.** El
+    /// correo está en `datos`, que es donde la ficha guarda todo lo que no
+    /// tiene columna propia, así que buscarlo cuesta una línea; dejar el
+    /// buscador prometiendo algo que no hacía costaba más.
+    private func coincideBusqueda(_ m: Miembro) -> Bool {
+        if m.nombre.localizedCaseInsensitiveContains(busqueda) { return true }
+        let correo = m.datos.first { $0.etiqueta == L.t("Correo", "Email") }?.valor ?? ""
+        return correo.localizedCaseInsensitiveContains(busqueda)
     }
 
     /// La misma regla que ya usaba `itemsAusentes` para las ausencias, y el
