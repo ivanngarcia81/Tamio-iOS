@@ -415,15 +415,31 @@ final class BaseLocal {
 
     /// Vacía todo lo descargado. Se usa al cerrar sesión: los datos de una
     /// iglesia no pueden quedarse en el aparato para el siguiente que entre.
+    ///
+    /// **Se borran TODAS las tablas, sin lista a mano.** Aquí había una lista
+    /// escrita tabla por tabla, y las que llegaron después —corte,
+    /// corteMovimiento, deposito— se quedaron fuera: los cortes y depósitos
+    /// de una iglesia seguían en el aparato después de cerrar sesión.
+    /// Preguntarle al esquema qué tablas hay hace imposible olvidarse de la
+    /// siguiente. Solo se salva `grdb_migrations`: borrarla haría que la
+    /// próxima apertura intentara crear tablas que ya existen.
     func limpiar() throws {
         try cola.write { db in
-            try db.execute(sql: "delete from movimiento")
-            try db.execute(sql: "delete from outbox")
-            try db.execute(sql: "delete from syncEstado")
-            try db.execute(sql: "delete from iglesia")
-            try db.execute(sql: "delete from aportante")
-            try db.execute(sql: "delete from categoriaCustom")
-            try db.execute(sql: "delete from movimientoRecurrente")
+            let tablas = try String.fetchAll(db, sql: """
+                select name from sqlite_master
+                where type = 'table'
+                  and name not like 'sqlite_%'
+                  and name not like 'grdb_%'
+                """)
+            for tabla in tablas {
+                try db.execute(sql: "delete from \"\(tabla)\"")
+            }
+        }
+        // Los recibos que aún no habían subido se quedaban en Application
+        // Support sin ninguna fila que los nombrara: la foto del depósito de
+        // una iglesia, huérfana, al alcance del siguiente que entre.
+        if let carpeta = RecibosLocales.carpeta {
+            try? FileManager.default.removeItem(at: carpeta)
         }
     }
 }
