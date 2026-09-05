@@ -85,6 +85,30 @@ Detalles que hacen perder tiempo si no se saben:
   `label BEGINSWITH`.
 - El iPhone más estrecho con iOS 26 disponible es el **17e** (390 pt). Probar
   ahí y **en inglés**, que es donde las etiquetas son más largas.
+- El tipo de target de XcodeGen es `bundle.unit-test`, **no** `bundle.unit-testing`
+  (ese es el de UI). Y hay que declarar un `schemes:` con los targets de test,
+  o `xcodebuild` contesta que "isn't a member of the specified test plan".
+
+### Cómo probar una migración, que es lo que no puede fallar en silencio
+
+Si `migrate` lanza, `BaseLocal` **se cae a una base EN MEMORIA sin avisar** y se
+pierde todo lo local: una migración rota no se ve, se nota tarde. Además, **en
+modo revisión la base ni se abre**, así que arrancar la app no prueba nada.
+
+Lo que sí lo prueba, y funcionó con la v15:
+
+1. En la copia, un target `bundle.unit-test` con `TEST_HOST` y `BUNDLE_LOADER`
+   apuntando a `Tamio.app/Tamio`, para poder `@testable import Tamio` y tocar
+   `BaseLocal.compartida`.
+2. Correr una prueba que **siembre** una fila con el código de la versión
+   ANTERIOR (`git stash` de la migración nueva basta).
+3. Restaurar la migración, recompilar y correr una segunda prueba **sobre el
+   mismo contenedor del simulador**: la fila sembrada sigue ahí, las columnas
+   nuevas traen su valor por defecto y `enMemoria` es falso.
+
+El archivo está en el contenedor de la app:
+`.../Devices/<udid>/data/Containers/Data/Application/<id>/Library/Application Support/tamio.sqlite`.
+Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.
 
 ---
 
@@ -167,19 +191,38 @@ Lo que estaba roto y ya no:
 - Los dos únicos botones de la app con la acción vacía estaban aquí.
 - La ficha decía "Miembro activo" y "Completo" a todo el mundo.
 
-**Lo que NO cambia: Membresía entera corre sobre `MockMembresiaRepository`.**
-No hay tabla `miembro` en `BaseLocal` —las catorce migraciones son todas de
-tesorería—, ni outbox, ni Supabase. El KPI del hub de Secretaría es una
-constante estática. Actas, Cartas, Servicios y Agenda están igual.
+**Membresía sigue sirviéndose de `MockMembresiaRepository`.** El KPI del hub de
+Secretaría es una constante estática. Actas, Cartas, Servicios y Agenda están
+igual.
 
-Y el modelo `Miembro` tiene forma de pantalla, no de tabla: `subtitulo` es
-"Ingresó 2019 · miembro activo", `ultimaVisita` es "23 ago", `enRoster` es "26
-de 27", la asistencia viene precalculada por meses. Nada de eso se guarda tal
-cual: hay que derivarlo de fechas y de registros de asistencia reales. Antes de
-la primera migración hay que decidir **qué relación tienen Aportante y
-Miembro**, que hoy son la misma persona en dos sitios —Aportante ya persiste y
-sincroniza— y que el propio código ya empareja: el comentario de `familia` dice
-que los parentescos viven en Secretaría y que Tesorería solo los consulta.
+Lo que sí cambió: **la v15 ya abrió el sitio en el aparato.** Y al abrirlo
+aparecieron dos cosas que ahorran mucho trabajo y que conviene no volver a
+descubrir:
+
+- **No hay tabla `miembro` ni hace falta.** `aportante` ES la fila de la
+  persona: su migración v3 se declara "Espejo de `members`" y
+  `Aportante.estado` es del tipo `EstadoMiembro`. Dos tablas serían dos
+  verdades sobre la misma persona.
+- **El servidor ya tiene TODO el dominio de Secretaría.** `public.members`
+  trae las diecisiete columnas del padrón (bautismos con fecha, ministerios,
+  cargos, instrumentos, habilidades, intereses, disponibilidad, iglesia
+  anterior, baja con motivo, `historial_estados`, `seguimiento_notas`), y
+  existen además `parentescos`, `servicios`, `servicio_asistencia`,
+  `servicio_orden`, `servicio_puestos`, `actas`, `cartas`, `agenda`,
+  `traslados_entrada`, `traslados_salida`, `mensajes`, `plantillas`,
+  `solicitudes` y `registro`. **Nada de esto hay que diseñarlo: hay que
+  reflejarlo.** Las listas viajan como arrays JSON dentro de columnas `text`,
+  y los booleanos como 0/1.
+- La asistencia que la pantalla finge tiene fuente real: `servicios` +
+  `servicio_asistencia`, con `presente`, `razon` y `seguimiento` por persona y
+  por culto. De ahí salen la racha, la última visita y el % del roster.
+
+Lo que falta, en orden: el repositorio offline que lea la v15, el mapa de
+subida y bajada en `MotorSincronizacion` (la fila la escriben DOS entidades del
+outbox —Tesorería y el padrón— y cada una manda solo sus columnas, que es lo
+que permite que no se pisen), y por último rehacer el modelo `Miembro`, que hoy
+tiene forma de pantalla y no de tabla: `subtitulo` es "Ingresó 2019 · miembro
+activo", `ultimaVisita` es "23 ago", `enRoster` es "26 de 27".
 
 ### Cifrado local — decisión pendiente
 
@@ -201,9 +244,18 @@ Data Protection) y qué protección le queda al respaldo en iCloud Drive.
    el pie no causaba ninguno de los tres problemas del teléfono.
 3. **Verificar los recurrentes en aparato** (§5). Es el riesgo real que queda.
 4. **Las dos medidas del cifrado** (§5).
-5. **Membresía sobre datos reales** (§5). Es el trabajo grande que queda en
-   Secretaría, y empieza por el modelo y por la relación Aportante ↔ Miembro.
-6. Observación sin acción: el hub dice "Transacciones · 29 registros" y la
+5. **Membresía sobre datos reales** (§5). El sitio ya está abierto (v15); falta
+   el repositorio, la sincronización y rehacer el modelo.
+6. **`supabase/migrations/20260905_pariente_no_registrado.sql` está SIN
+   APLICAR.** Añade `parentescos.pariente_nombre`, que hoy no existe: la hoja
+   promete "si el pariente no congrega, escribe su nombre" y ese nombre no
+   tiene dónde caer.
+7. **`NuevoParienteView` usa el uid del pariente como id del parentesco**
+   (`Pariente(id: miembroId ?? UUID()...)`). Con la relación en memoria no se
+   notaba; contra la tabla `parentesco` es una colisión de clave primaria en
+   cuanto dos personas nombran al mismo pariente. Hay que separar los dos ids
+   al escribir el repositorio.
+8. Observación sin acción: el hub dice "Transacciones · 29 registros" y la
    lista dice "16 movimientos". No es un error —una suma ingresos y gastos, la
    otra solo el tipo activo— pero se leen como el mismo número.
 
