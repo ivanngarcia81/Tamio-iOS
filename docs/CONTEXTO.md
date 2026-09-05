@@ -265,6 +265,33 @@ demás). La asistencia de la ficha y el panel de Asistencia siguen siendo
 inventados hasta la v16: `OfflineMembresiaRepository.asistenciaResumen()`
 devuelve vacío a propósito.
 
+**El resumen del padrón se fue de la ficha del miembro (5 de septiembre).**
+`MiembroDetalle` encabezaba con los ocho indicadores —248 en el padrón, altas
+del periodo, Ausencias e Incompletos—: en iPhone la tarjeta agrupada, en iPad
+la rejilla de ocho. Son cifras del padrón entero, así que se repetían idénticas
+en las 248 fichas y en el teléfono ocupaban media pantalla antes de decir nada
+de la persona abierta. Lo dijo Iván mirando la app: *"eso aparece en cada
+tarjeta con el nombre de la persona"*. Ese resumen ya vive donde toca —el hub
+de Secretaría en el teléfono, Informes de membresía → General en los dos—, así
+que en la ficha era un duplicado.
+
+Lo que **no** se podía perder al quitarlo: los botones "Ausencias 9" e
+"Incompletos 21" eran la ÚNICA puerta de `filtroAccion` en toda la app (la hoja
+de filtros solo tenía Año, Estado y Ministerio). Bajaron a esa hoja, como
+sección REQUIERE ACCIÓN **y en primer lugar**: puesta detrás de AÑO DE INGRESO
+y ESTADO quedaba fuera de pantalla —ocho años y cinco estados por delante—, o
+sea a tres arrastres de donde estaba a un toque. Los otros filtros recortan una
+lista; este dice a quién hay que ir a buscar.
+
+Verificado con la app corriendo, no compilando (iPhone 17e y iPad Pro 13", en
+inglés): la ficha abre en el nombre y sin ninguna cifra del padrón, la hoja
+trae REQUIERE ACCIÓN arriba con sus cifras, y tocar "Incomplete record · 21"
+deja la lista en 6 con el chip naranja y el globito en 1. Dos detalles que
+cuestan tiempo: la fila de un miembro es una `Cell` con `StaticText` dentro —no
+un `Button`—, y una opción de la hoja sí es `Button`; y en iPad no vale buscar
+"Transferred" para probar que los indicadores no están, porque es también el
+estado de una persona de la lista.
+
 ### Cifrado local — decisión pendiente
 
 Ver `docs/CIFRADO-LOCAL.md`. Recomendación escrita: **opción A ahora, B cuando

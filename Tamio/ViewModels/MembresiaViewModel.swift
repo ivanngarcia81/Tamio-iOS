@@ -1,10 +1,11 @@
 import Foundation
 import Observation
 
-/// Los dos indicadores de la ficha que exigen una acción y ahora filtran la
-/// lista. Antes los ocho números eran solo texto: ninguno llevaba a ningún
-/// lado, así que la tesorera veía "21 incompletos" y tenía que ir a buscarlos
-/// a mano.
+/// Los dos recortes del padrón que exigen una acción. Nacieron como dos de los
+/// ocho indicadores que encabezaban la ficha del miembro, donde eran solo
+/// texto: la tesorera veía "21 incompletos" y tenía que ir a buscarlos a mano.
+/// Los indicadores se fueron de la ficha —repetían el resumen del hub en cada
+/// una de las 248— pero el filtro se quedó, ahora en la hoja de filtros.
 enum FiltroAccion {
     case ausencias, incompletos
 }
@@ -24,7 +25,7 @@ final class MembresiaViewModel {
     /// distinta fecha son el mismo filtro.
     var filtroEstado: String? = nil
     var filtroMinisterio: String? = nil
-    /// Filtro que llega desde los indicadores de la ficha del miembro.
+    /// Se pone desde la sección REQUIERE ACCIÓN de la hoja de filtros.
     var filtroAccion: FiltroAccion? = nil
 
     init(repo: MembresiaRepository = repositorioMembresia()) {

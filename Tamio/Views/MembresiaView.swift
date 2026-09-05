@@ -103,21 +103,13 @@ struct MembresiaView: View {
                         // parecía no hacer nada. En iPad no se notaba porque
                         // el panel derecho ya se leía de la lista.
                         let vigente = vm.items.first { $0.id == m.id } ?? m
-                        MiembroDetalle(miembro: vigente, resumen: vm.resumen,
+                        MiembroDetalle(miembro: vigente,
                                        // Y las dos hojas se abren con la ficha
                                        // vigente: con la copia, editar volvía
                                        // a cargar los datos de antes y al
                                        // guardar deshacía lo último.
                                        onEditar: { miembroAEditar = vigente },
                                        onSeguimiento: { miembroParaSeguimiento = vigente },
-                                       onFiltrarAccion: { filtro in
-                                           // La lista no está a la vista en
-                                           // iPhone: aplicar el filtro sin
-                                           // volver a ella no se vería.
-                                           vm.filtroAccion = filtro
-                                           subtab = 0
-                                           abierto = nil
-                                       },
                                        onAgregarPariente: { p in
                                            vm.agregarPariente(miembroId: m.id, pariente: p)
                                        },
@@ -261,13 +253,9 @@ struct MembresiaView: View {
         default:
             let listActiva = subtab == 2 ? vm.itemsSeguimiento : vm.itemsFiltrados
             if let m = listActiva.first(where: { $0.id == vm.seleccionId }) ?? listActiva.first {
-                MiembroDetalle(miembro: m, resumen: vm.resumen,
+                MiembroDetalle(miembro: m,
                                onEditar: { miembroAEditar = m },
                                onSeguimiento: { miembroParaSeguimiento = m },
-                               onFiltrarAccion: { filtro in
-                                   vm.filtroAccion = filtro
-                                   subtab = 0
-                               },
                                onAgregarPariente: { p in
                                    vm.agregarPariente(miembroId: m.id, pariente: p)
                                },
@@ -355,10 +343,9 @@ struct MembresiaView: View {
         }
     }
 
-    /// El filtro que llega desde los indicadores de la ficha del miembro. Se
-    /// queda también en el teléfono: es lo único que explica por qué la lista
-    /// se ha quedado corta, y el globito del botón dice cuántos filtros hay
-    /// pero no cuál.
+    /// El chip del filtro de REQUIERE ACCIÓN. Se queda también en el teléfono:
+    /// es lo único que explica por qué la lista se ha quedado corta, y el
+    /// globito del botón dice cuántos filtros hay pero no cuál.
     @ViewBuilder
     private var avisoFiltroAccion: some View {
         if let etiqueta = vm.etiquetaFiltroAccion {
@@ -576,6 +563,37 @@ struct MembresiaView: View {
     private var filtrosSheet: some View {
         NavigationStack {
             List {
+                // **La única puerta que le queda a `filtroAccion`, y va
+                // primera.** Se aplicaba desde los indicadores del padrón que
+                // encabezaban la ficha del miembro, y esos se fueron porque
+                // repetían el resumen del hub en cada una de las 248 fichas.
+                // El filtro sí servía —"21 incompletos" y ninguna forma de
+                // verlos era el problema que resolvió—, así que baja aquí.
+                //
+                // Y va antes que el año: puesta después de AÑO DE INGRESO y
+                // ESTADO quedaba fuera de pantalla —ocho años y cinco estados
+                // por delante—, o sea a tres arrastres de donde estaba a un
+                // toque. Los otros dos recortan una lista; este dice a quién
+                // hay que ir a buscar, que es para lo que se abre la pantalla.
+                // La cifra va al lado para saber a cuántos deja antes de
+                // tocarlo.
+                if let r = vm.resumen {
+                    Section(L.t("REQUIERE ACCIÓN", "NEEDS ATTENTION")) {
+                        filaFiltro(L.t("Todos", "All"), activo: vm.filtroAccion == nil) {
+                            vm.filtroAccion = nil
+                        }
+                        filaFiltro(L.t("Con ausencias · \(r.ausencias)",
+                                       "With absences · \(r.ausencias)"),
+                                   activo: vm.filtroAccion == .ausencias) {
+                            vm.filtroAccion = .ausencias
+                        }
+                        filaFiltro(L.t("Expediente incompleto · \(r.incompletos)",
+                                       "Incomplete record · \(r.incompletos)"),
+                                   activo: vm.filtroAccion == .incompletos) {
+                            vm.filtroAccion = .incompletos
+                        }
+                    }
+                }
                 // **El año solo aquí en el teléfono.** Arriba no queda cápsula
                 // libre —la etiqueta de vista, los filtros, el `+` y la lupa
                 // ya son cuatro, y la quinta el sistema la tira sin avisar—,

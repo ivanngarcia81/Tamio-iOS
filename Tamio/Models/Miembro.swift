@@ -421,7 +421,10 @@ struct SeguimientoNota: Identifiable, Hashable, Codable {
     }
 }
 
-/// Los 8 indicadores del padrón (arriba de la ficha).
+/// Los 8 indicadores del padrón. Encabezan el hub de Secretaría y alimentan la
+/// sección REQUIERE ACCIÓN de la hoja de filtros de Membresía. **No van en la
+/// ficha de una persona**: son cifras del padrón entero, y allí se repetían
+/// idénticas en las 248 fichas.
 struct MembresiaResumen {
     /// Los tres estados en que puede estar una persona del padrón. Se
     /// excluyen entre sí y no dejan a nadie fuera.
