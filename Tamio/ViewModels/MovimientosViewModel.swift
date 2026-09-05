@@ -40,6 +40,12 @@ final class MovimientosViewModel {
     /// siempre y no el del mes que se decía estar viendo.
     var mes: Date? = Fechas.inicioDeMes(Date())
 
+    /// Las definiciones recurrentes VIVAS del tipo que se está viendo. Van
+    /// aquí y no en una pantalla aparte porque es donde están en la app web, y
+    /// porque el sitio donde se mira lo que se gasta es el sitio donde se
+    /// entiende qué se va a volver a gastar.
+    private(set) var recurrentes: [MovimientoRecurrente] = []
+
     init(tipo: TipoMovimiento, repo: MovimientosRepository = repositorioMovimientos()) {
         self.tipo = tipo
         self.repo = repo
@@ -54,6 +60,12 @@ final class MovimientosViewModel {
         } catch {
             self.error = error.localizedDescription
         }
+        // Solo las activas: una serie parada ya no se va a repetir, así que
+        // anunciarla en "lo que viene cada mes" sería mentir. Su historial
+        // sigue en la lista de movimientos, que es donde le toca.
+        recurrentes = ((try? await repositorioRecurrentes().lista()) ?? [])
+            .filter { $0.tipo == tipo && $0.activo }
+            .sorted { $0.dia < $1.dia }
         cargando = false
         ajustarMes()
         if seleccionId == nil || !items.contains(where: { $0.id == seleccionId }) {
@@ -64,17 +76,71 @@ final class MovimientosViewModel {
     // MARK: - CRUD (todo pasa por el repositorio → el motor solo cambia la impl)
 
     @MainActor func crear(_ m: Movimiento) async {
-        await ejecutar { try await self.repo.crear(m) }
-        irAlMesDe(m)
+        let conSerie = await enlazarSerie(m)
+        await ejecutar { try await self.repo.crear(conSerie) }
+        irAlMesDe(conSerie)
         await cargar()
-        seleccionId = m.id
+        seleccionId = conSerie.id
     }
 
     @MainActor func actualizar(_ m: Movimiento) async {
-        await ejecutar { try await self.repo.actualizar(m) }
-        irAlMesDe(m)
+        let conSerie = await enlazarSerie(m)
+        await ejecutar { try await self.repo.actualizar(conSerie) }
+        irAlMesDe(conSerie)
         await cargar()
-        seleccionId = m.id
+        seleccionId = conSerie.id
+    }
+
+    /// Cambia el importe, el día o el concepto de una serie. **Solo afecta a
+    /// los meses que se generen de aquí en adelante**: los ya registrados
+    /// están contados en cierres pasados y reescribirlos los descuadraría.
+    @MainActor func guardarSerie(_ r: MovimientoRecurrente) async {
+        try? await repositorioRecurrentes().actualizar(r)
+        await cargar()
+    }
+
+    /// **Parar, no borrar.** La serie deja de generar meses y su historial se
+    /// queda donde está. Es lo que hace falta cuando un contrato acaba o cuando
+    /// la renta sube y hay que crear otra.
+    @MainActor func pararSerie(_ r: MovimientoRecurrente) async {
+        var parada = r
+        parada.activo = false
+        await guardarSerie(parada)
+    }
+
+    /// **El interruptor "se repite cada mes" crea la regla.** Antes guardaba un
+    /// booleano que no generaba nada y que además se borraba solo al
+    /// sincronizar: la app decía que el gasto se repetía y el mes siguiente no
+    /// aparecía, así que el tesorero acababa capturándolo a mano igual.
+    ///
+    /// Encenderlo crea la definición; apagarlo la **para**, no la borra: los
+    /// meses que ya generó están registrados y contados, y hacerlos desaparecer
+    /// descuadraría cierres pasados.
+    private func enlazarSerie(_ m: Movimiento) async -> Movimiento {
+        let repoRec = repositorioRecurrentes()
+
+        if m.repiteMensual, m.recurrenteId == nil {
+            let def = MaterializadorRecurrentes.definicion(desde: m)
+            guard (try? await repoRec.crear(def)) != nil else { return m }
+            var enlazado = m
+            enlazado.recurrenteId = def.id
+            return enlazado
+        }
+
+        if !m.repiteMensual, let serie = m.recurrenteId {
+            if var def = try? await repoRec.lista().first(where: { $0.id == serie }), def.activo {
+                def.activo = false
+                try? await repoRec.actualizar(def)
+            }
+            var suelto = m
+            // El movimiento conserva de qué serie salió: es su procedencia, y
+            // borrarla dejaría un registro automático sin explicación en el
+            // rastro de auditoría.
+            suelto.repiteMensual = false
+            return suelto
+        }
+
+        return m
     }
 
     /// Capturar (o refechar) un movimiento en un mes distinto del que se está

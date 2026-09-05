@@ -9,6 +9,7 @@ struct MovimientosView: View {
     @State private var abierto: Movimiento?
     @State private var hoja: HojaMov?
     @State private var mostrarFiltros = false
+    @State private var serieAEditar: MovimientoRecurrente?
     /// Movimiento cuya eliminación espera confirmación. Borrar un registro
     /// financiero es más grave que marcar un corte, que ya la pide.
     @State private var movimientoAEliminar: Movimiento?
@@ -86,6 +87,11 @@ struct MovimientosView: View {
                 }
             }
             .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
+            .sheet(item: $serieAEditar) { r in
+                EditarRecurrenteView(recurrente: r,
+                                     onGuardar: { editada in Task { await vm.guardarSerie(editada) } },
+                                     onParar: { Task { await vm.pararSerie(r) } })
+            }
             .onChange(of: nav.seccion) { _, seccion in sincronizarConSidebar(seccion) }
             .task { await vm.cargar() }
             .overlay(alignment: .top) { avisoError }
@@ -335,6 +341,7 @@ struct MovimientosView: View {
     @ViewBuilder
     private var listaCuerpo: some View {
         List {
+            seccionRecurrentes
             ForEach(vm.grupos, id: \.encabezado) { grupo in
                 Section {
                     ForEach(grupo.items) { m in
@@ -365,6 +372,69 @@ struct MovimientosView: View {
                         .foregroundStyle(.secondary)
                         .textCase(nil)
                 }
+            }
+        }
+    }
+
+
+    /// **Lo que se va a registrar solo, encima de lo que ya se registró.**
+    ///
+    /// Solo aparece si hay series activas de este tipo, como en la app web. Va
+    /// ARRIBA porque es una advertencia y no un historial: estos importes
+    /// todavía no cuentan en el total del mes, y un tesorero que no sepa que le
+    /// vienen 850 al cierre está mirando un saldo que no es el suyo.
+    @ViewBuilder
+    private var seccionRecurrentes: some View {
+        if !vm.recurrentes.isEmpty {
+            Section {
+                ForEach(vm.recurrentes) { r in
+                    FilaRecurrente(recurrente: r)
+                        .contentShape(Rectangle())
+                        .onTapGesture { serieAEditar = r }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            // **Parar, no eliminar**, y por eso el rol no es
+                            // destructivo ni el icono una papelera: lo ya
+                            // registrado se conserva y una papelera prometería
+                            // lo contrario.
+                            Button {
+                                Task { await vm.pararSerie(r) }
+                            } label: {
+                                Label(L.t("Dejar de repetir", "Stop repeating"),
+                                      systemImage: "pause.circle")
+                            }
+                            .tint(.orange)
+                            Button { serieAEditar = r } label: {
+                                Label(L.t("Editar", "Edit"), systemImage: "pencil")
+                            }
+                            .tint(Paleta.brand)
+                        }
+                        .filaDeLista(seleccionada: false, tarjeta: compacto)
+                }
+            } header: {
+                // En mayúsculas como los encabezados de día ("HOY · VIERNES
+                // 4"): en minúscula esta sección se leía como una fila más y
+                // no como el rótulo de un grupo.
+                Text(vm.tipo == .ingreso
+                     ? L.t("INGRESOS FIJOS RECURRENTES", "RECURRING FIXED INCOME")
+                     : L.t("GASTOS FIJOS RECURRENTES", "RECURRING FIXED EXPENSES"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(nil)
+            } footer: {
+                Text(L.t("Aún no cuentan en el total de este mes — se registran solos cuando el mes cierra.",
+                         "Not counted in this month's total yet — they are recorded on their own when the month closes."))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    // El pie de un `Section` en `.plain` se pinta con fondo
+                    // opaco de borde a borde: una banda blanca a sangre en una
+                    // pantalla donde todo lo demás es tarjeta con margen. El
+                    // fondo se quita y el margen lo pone la app, como en el
+                    // resto de las listas.
+                    .padding(.horizontal, Esp.pantalla)
+                    .padding(.top, Esp.hueco)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
             }
         }
     }

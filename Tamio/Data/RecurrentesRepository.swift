@@ -202,6 +202,36 @@ enum MaterializadorRecurrentes {
         return resultado
     }
 
+    /// **La definición que nace al marcar el interruptor** sobre un movimiento
+    /// que se acaba de capturar.
+    ///
+    /// `ultimoMesGenerado` arranca en el mes de ese movimiento, no en `nil`:
+    /// el que la persona acaba de escribir ES la renta de ese mes y ya está
+    /// registrada. Sin esto, la definición volvería a generarla en cuanto el
+    /// mes concluyera y la renta saldría dos veces —es el mismo caso que la app
+    /// web resuelve con `skipMes`—.
+    ///
+    /// Y `mesInicio` es el mes del movimiento y no enero: un recurrente arranca
+    /// donde se crea y nunca retrocede por su cuenta.
+    static func definicion(desde m: Movimiento) -> MovimientoRecurrente {
+        let mes = MesesRecurrentes.mes(de: m.fecha)
+        let dia = Calendar(identifier: .gregorian).component(.day, from: m.fecha)
+        return MovimientoRecurrente(
+            id: UUID().uuidString,
+            tipo: m.tipo,
+            categoria: m.categoria,
+            subcategoria: m.subcategoria,
+            nota: m.nota,
+            monto: m.monto,
+            metodo: m.metodo,
+            pagadoA: m.pagadoA,
+            rfc: m.rfc,
+            dia: dia,
+            mesInicio: mes,
+            ultimoMesGenerado: mes,
+            activo: true)
+    }
+
     /// El movimiento que le toca a una definición en un mes. `crear` le pone id
     /// y folio; aquí solo se rellena lo que sale de la regla.
     static func movimiento(de def: MovimientoRecurrente,
