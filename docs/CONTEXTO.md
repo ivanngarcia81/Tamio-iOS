@@ -238,15 +238,26 @@ etiquetas en español que usa `MembresiaView`. Ahí está también el aviso de q
 esto ya está mal HOY en Tesorería: una baja hecha desde el teléfono deja a la
 persona contada como activa en el web.
 
-El estado ya es el del web —`EstadoMiembro` con `registro` y `baja`— y
-`Permisos.administraPadron` reserva alta y baja a Secretaría.
+**Hecho el 5 de septiembre, ya de noche:** `Miembro` tiene forma de fila
+(las claves del web, las listas JSON, las fechas "YYYY-MM-DD", y lo que la
+pantalla enseña se calcula), los catálogos están en `Padron` con clave y
+etiqueta, `OfflineMembresiaRepository` lee y escribe por `MiembroFila` —la
+otra cara de la fila de `aportante`, sin `frecuencia`— y `MotorSincronizacion`
+sube `miembro` y `parentesco` y baja las columnas del padrón y los
+parentescos. Verificado con pruebas unitarias contra la base local (cuatro:
+listas, dos caras sin pisarse, parentesco por los dos lados, resumen contado).
 
-Lo que falta, en orden: el repositorio offline que lea la v15, el mapa de
-subida y bajada en `MotorSincronizacion` (la fila la escriben DOS entidades del
-outbox —Tesorería y el padrón— y cada una manda solo sus columnas, que es lo
-que permite que no se pisen), y por último rehacer el modelo `Miembro`, que hoy
-tiene forma de pantalla y no de tabla: `subtitulo` es "Ingresó 2019 · miembro
-activo", `ultimaVisita` es "23 ago", `enRoster` es "26 de 27".
+**Lo que NO está verificado: la sincronización contra Supabase.** El modo
+revisión no toca la red, así que la subida y la bajada del padrón están
+comprobadas por compilación y por la forma de las estructuras contra el
+esquema real. La primera sincronización con la cuenta de verdad es la prueba
+que falta, y conviene hacerla mirando `members` en el SQL Editor.
+
+**Con el modo revisión encendido, Membresía sigue enseñando la maqueta**
+(`repositorioMembresia()` elige por `ModoRevision.sinLogin`, igual que los
+demás). La asistencia de la ficha y el panel de Asistencia siguen siendo
+inventados hasta la v16: `OfflineMembresiaRepository.asistenciaResumen()`
+devuelve vacío a propósito.
 
 ### Cifrado local — decisión pendiente
 
@@ -268,8 +279,10 @@ Data Protection) y qué protección le queda al respaldo en iCloud Drive.
    el pie no causaba ninguno de los tres problemas del teléfono.
 3. **Verificar los recurrentes en aparato** (§5). Es el riesgo real que queda.
 4. **Las dos medidas del cifrado** (§5).
-5. **Membresía sobre datos reales** (§5). El sitio ya está abierto (v15); falta
-   el repositorio, la sincronización y rehacer el modelo.
+5. **Membresía: probar la sincronización con la cuenta real** (§5). El
+   repositorio y el motor están escritos; la red no se ha ejercitado. Después,
+   la v16 de asistencia (`servicios` + `servicio_asistencia`), el seguimiento
+   con `tipo` y `completado` en el JSON, y reflejar `traslados_salida`.
 6. **Aplicar `frenar_baja_tesorero`.** Está escrito en
    `supabase/sync-p2-padron.sql` del repo del web (rama
    `claude/padron-secretaria`) y sin aplicar. Las dos apps ya esconden los

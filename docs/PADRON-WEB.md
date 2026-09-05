@@ -110,9 +110,10 @@ cadenas, devuelve lista vacía en vez de reventar. Conviene copiar ese criterio.
   así que el tesorero se entera de bajas y traslados sin preguntar".
 - **`seguimiento_notas`**: array de `{fecha, texto}`, más `seguimiento_revisado_en`.
   La hoja de seguimiento de iOS captura además **tipo** (llamada, visita,
-  oración, mensaje, cita pastoral) y **completado**, que ahí no caben. Como es
-  JSON en una columna de texto, añadir esas dos claves no rompe al web —las
-  ignora— pero hay que decidirlo a propósito y no por accidente.
+  oración, mensaje, cita pastoral) y **completado**. **Decidido el 5 de
+  septiembre: van en el mismo JSON** como claves de más —`SeguimientoNota`
+  codifica `{fecha, texto, tipo, completado}`—. El web lee `fecha` y `texto` y
+  no se rompe con lo demás; si algún día quiere el tipo, ya está ahí.
 
 ---
 
