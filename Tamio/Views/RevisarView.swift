@@ -77,18 +77,33 @@ struct RevisarView: View {
 
     // MARK: - Toast
 
+    /// **El aviso de deshacer, legible en los dos temas.**
+    ///
+    /// El fondo era `Color(.label)` con el texto en `.white`: en claro eso es
+    /// negro sobre blanco y se lee, pero `.label` en OSCURO es blanco — y el
+    /// texto seguía siendo blanco. El mensaje desaparecía entero y solo quedaba
+    /// "Deshacer" flotando en una barra en blanco. Un aviso que dice qué acabas
+    /// de hacer, ilegible justo donde se puede deshacer.
+    ///
+    /// Ahora es material, como el resto de las superficies flotantes de la app,
+    /// con el texto en `.primary`: los dos se invierten juntos y no hay tema en
+    /// el que coincidan.
     @ViewBuilder
     private var toastView: some View {
         if let t = vm.toast {
             HStack(spacing: 14) {
-                Text(t.mensaje).font(.subheadline).foregroundStyle(.white).lineLimit(2)
+                Text(t.mensaje).font(.subheadline).lineLimit(2)
                 Spacer(minLength: 8)
                 Button(L.t("Deshacer", "Undo")) { Task { await vm.deshacer() } }
                     .font(.subheadline.weight(.semibold)).foregroundStyle(Paleta.brand)
             }
             .padding(.horizontal, Esp.tarjeta).padding(.vertical, 12)
-            .background(Color(.label), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .padding(.horizontal, Esp.pantalla).padding(.bottom, 16)
+            .background(.thickMaterial, in: Capsule())
+            .overlay(Capsule().stroke(Color(.separator), lineWidth: 0.5))
+            .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
+            // Separado del borde: pegado a 16 pt quedaba contra la barra de
+            // pestañas, y las dos cápsulas se leían como una sola pieza rota.
+            .padding(.horizontal, Esp.pantalla).padding(.bottom, Esp.panel)
             .frame(maxWidth: 520)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .task(id: t.id) {
