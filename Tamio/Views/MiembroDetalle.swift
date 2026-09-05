@@ -167,7 +167,11 @@ struct MiembroDetalle: View {
                 Text(miembro.nombre)
                     .font(.title3.weight(.semibold))
                 HStack(spacing: 8) {
-                    Pill(texto: L.t("Miembro activo", "Active member"), color: miembro.estado.color)
+                    // **La pastilla decía "Miembro activo" siempre**, escrito
+                    // a mano: quien estaba de baja aparecía como activo, y
+                    // encima con el color de baja, así que el color y la
+                    // palabra se contradecían en la misma cápsula.
+                    Pill(texto: miembro.estado.etiqueta, color: miembro.estado.color)
                     Text(miembro.miembroDesde).font(.caption).foregroundStyle(.secondary)
                     Text("·").foregroundStyle(.secondary)
                     Text(miembro.area).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -262,16 +266,36 @@ struct MiembroDetalle: View {
                 }
                 if onAgregarPariente != nil {
                     Divider()
+                    // `.buttonStyle(.plain)` y el verde escrito: sin él el
+                    // tint del TabView pintaba la fila, y con el tint el
+                    // sistema le añadía además su propio fondo dentro de una
+                    // tarjeta que ya es una superficie.
                     Button { mostrarNuevoPariente = true } label: {
                         Label(L.t("Añadir pariente", "Add relative"), systemImage: "plus")
                             .font(.subheadline)
+                            .foregroundStyle(Paleta.brand)
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
         .sheet(isPresented: $mostrarNuevoPariente) {
             NuevoParienteView { p in onAgregarPariente?(p) }
         }
+    }
+
+    /// Cuántos campos del expediente están puestos. Es el mismo criterio con
+    /// el que el padrón cuenta sus "Incompletos" (`MembresiaViewModel`), así
+    /// que la ficha y la lista no pueden discrepar.
+    private var expedienteCompleto: Bool {
+        !miembro.expediente.contains { !$0.completo }
+    }
+
+    private var etiquetaExpediente: String {
+        if expedienteCompleto { return L.t("Completo", "Complete") }
+        let hechos = miembro.expediente.filter(\.completo).count
+        return L.t("\(hechos) de \(miembro.expediente.count)",
+                   "\(hechos) of \(miembro.expediente.count)")
     }
 
     private func stat(_ titulo: String, _ valor: String) -> some View {
@@ -290,7 +314,14 @@ struct MiembroDetalle: View {
                     HStack {
                         TituloSeccion(texto: L.t("EXPEDIENTE", "RECORD"))
                         Spacer()
-                        Text(L.t("Completo", "Complete")).font(.caption.weight(.semibold)).foregroundStyle(Paleta.brand)
+                        // **Decía "Completo" en verde con campos sin marcar.**
+                        // Era una etiqueta fija encima de una lista de
+                        // palomitas que contaba otra cosa, y el padrón usa
+                        // justamente ese dato para el indicador de
+                        // "Incompletos": no podían decir cosas distintas.
+                        Text(etiquetaExpediente)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(expedienteCompleto ? Paleta.brand : Paleta.aviso)
                     }
                     ForEach(miembro.expediente) { item in
                         HStack(spacing: 10) {
