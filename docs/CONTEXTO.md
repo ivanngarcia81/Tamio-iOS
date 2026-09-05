@@ -106,6 +106,18 @@ Lo que sí lo prueba, y funcionó con la v15:
    mismo contenedor del simulador**: la fila sembrada sigue ahí, las columnas
    nuevas traen su valor por defecto y `enMemoria` es falso.
 
+**Y hay que desinstalar la app entre pasos** (`xcrun simctl uninstall <udid>
+church.tamio.native`): cada instalación puede estrenar contenedor, así que
+borrar el `.sqlite` que encuentre un `find` no garantiza estar borrando el que
+va a usar la prueba siguiente.
+
+**Editar el cuerpo de una migración YA APLICADA no hace nada y no avisa.** GRDB
+solo mira el identificador: si `v15_padron` ya está en `grdb_migrations`, el
+cuerpo nuevo no corre y la columna que se añadió no existe, sin un solo error.
+Pasó al añadir `activo` a la v15. Mientras una migración no haya salido del
+Mac, se corrige y se prueba desde una base limpia; en cuanto haya salido, lo
+que toca es una migración nueva.
+
 El archivo está en el contenedor de la app:
 `.../Devices/<udid>/data/Containers/Data/Application/<id>/Library/Application Support/tamio.sqlite`.
 Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.

@@ -438,9 +438,13 @@ final class BaseLocal {
         // padrón son cientos de filas, no cientos de miles: filtrar por
         // ministerio se hace en memoria y se nota cero.
         //
-        // Lo que NO se copia: `activo` (redundante con `estado_membresia`, y
-        // dos banderas para el mismo hecho es lo que ya hubo que arreglar en
-        // el resumen del padrón) y `created_at`, que nadie lee.
+        // Lo único que no se copia es `created_at`, que nadie lee.
+        //
+        // **`activo` sí se copia, y por poco no lo hace.** Parecía redundante
+        // con `estado_membresia` —dos banderas para el mismo hecho— hasta ver
+        // el código del app web, que es quien escribió esta tabla: dar de baja
+        // es `activo = 0` + `fecha_baja` + `motivo_baja`, y `estado_membresia`
+        // NI SE TOCA. Ver `docs/PADRON-WEB.md`.
         //
         // Aquí solo se abre el sitio. Membresía sigue sirviéndose de
         // `MockMembresiaRepository` hasta que exista el repositorio que lea
@@ -473,6 +477,14 @@ final class BaseLocal {
                 // sin ellos, dentro de dos años una etiqueta gris no dice qué
                 // pasó con esa persona. La hoja ya los pedía y no tenían dónde
                 // caer.
+                //
+                // Y `activo` es LA bandera de la baja, no un duplicado de
+                // `estado_membresia`: quien está de baja conserva el estado que
+                // tenía —hay una fila así en la base ahora mismo, "enProceso"
+                // con `activo = 0`— y la etiqueta que se enseña se deriva del
+                // motivo. Sin esta columna, una baja hecha desde el teléfono
+                // dejaría a la persona contada como activa en el app web.
+                t.add(column: "activo", .boolean).notNull().defaults(to: true)
                 t.add(column: "iglesiaAnterior", .text).notNull().defaults(to: "")
                 t.add(column: "fechaBaja", .text).notNull().defaults(to: "")
                 t.add(column: "motivoBaja", .text).notNull().defaults(to: "")
