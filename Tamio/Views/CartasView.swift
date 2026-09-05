@@ -169,22 +169,21 @@ struct CartasView: View {
                              "Fields: \(vm.carta.camposCompletos) of \(vm.carta.camposTotales) complete"))
                         .font(.subheadline).foregroundStyle(.secondary)
                     Spacer()
+                    // Pintados a mano: el primario iba con `Paleta.brand` de
+                    // fondo y el texto en blanco, los mismos ~2.4:1 en oscuro
+                    // que se quitaron del resto de la app. Ahora son botones de
+                    // verdad, con el estilo que ya llevan los demás: glass con
+                    // el verde de marca el que actúa, glass en gris el otro.
                     Button { mostrarPrevia = true } label: {
                         Text(L.t("Vista previa", "Preview"))
                             .font(.subheadline.weight(.medium)).lineLimit(1)
-                            .foregroundStyle(Paleta.brand)
-                            .padding(.horizontal, Esp.chip).padding(.vertical, 6)
-                            .background(Paleta.brandFill, in: Capsule())
                     }
-                    .fixedSize()
+                    .buttonStyle(.glass).tint(Color.secondary).fixedSize()
                     Button { mostrarFirmaAlert = true } label: {
                         Text(L.t("Firmar y enviar", "Sign & send"))
                             .font(.subheadline.weight(.semibold)).lineLimit(1)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, Esp.chip).padding(.vertical, 6)
-                            .background(Paleta.brand, in: Capsule())
                     }
-                    .fixedSize()
+                    .buttonStyle(.glass).tint(Paleta.brand).fixedSize()
                 }
 
                 // Preview de la carta

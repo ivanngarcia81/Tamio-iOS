@@ -134,20 +134,21 @@ struct ServiciosView: View {
 
                 // Botones de acción
                 HStack(spacing: 10) {
+                    // Pintados a mano: el primario iba con `Paleta.brand` de
+                    // fondo y el texto en blanco, los mismos ~2.4:1 en oscuro
+                    // que se quitaron del resto de la app. Ahora son botones de
+                    // verdad, con el estilo que ya llevan los demás: glass con
+                    // el verde de marca el que actúa, glass en gris el otro.
                     Button { mostrarAsistencia = true } label: {
                         Text(L.t("Tomar asistencia", "Take attendance"))
                             .font(.subheadline.weight(.medium))
-                            .foregroundStyle(Paleta.brand)
-                            .padding(.horizontal, Esp.chip).padding(.vertical, 8)
-                            .background(Paleta.brandFill, in: Capsule())
                     }
+                    .buttonStyle(.glass).tint(Color.secondary)
                     Button { mostrarAsignar = true } label: {
                         Text(L.t("Asignar", "Assign"))
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, Esp.chip).padding(.vertical, 8)
-                            .background(Paleta.brand, in: Capsule())
                     }
+                    .buttonStyle(.glass).tint(Paleta.brand)
                     Spacer()
                 }
 

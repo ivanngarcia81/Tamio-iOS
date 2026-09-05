@@ -183,9 +183,13 @@ struct MiembroDetalle: View {
 
     private var botonesMiembro: some View {
         HStack(spacing: 10) {
-            Button { onSeguimiento() } label: { Text(L.t("Seguimiento", "Follow-up")) }.buttonStyle(.bordered).tint(Color.secondary)
+            // Mismo par que en la ficha del aportante: glass en los dos, el
+            // verde para el que cambia el dato. `.borderedProminent` daba
+            // relleno verde con el texto en blanco.
+            Button { onSeguimiento() } label: { Text(L.t("Seguimiento", "Follow-up")) }
+                .buttonStyle(.glass).tint(Color.secondary)
             Button { onEditar() } label: { Label(L.t("Editar", "Edit"), systemImage: "pencil").fontWeight(.semibold) }
-                .buttonStyle(.borderedProminent).tint(Paleta.brand)
+                .buttonStyle(.glass).tint(Paleta.brand)
         }
     }
 

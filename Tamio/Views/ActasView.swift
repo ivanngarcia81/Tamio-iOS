@@ -128,34 +128,52 @@ struct ActasView: View {
 
     // MARK: - Detalle
 
+    @ViewBuilder
+    private func estadoActa(_ acta: Acta) -> some View {
+        Pill(texto: acta.estado.etiqueta, color: acta.estado.color)
+        if acta.estado == .borrador {
+            Text(L.t("Guardado hace 2 minutos", "Saved 2 minutes ago"))
+                .font(.caption).foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+    }
+
+    @ViewBuilder
+    private func accionesActa(_ acta: Acta) -> some View {
+        if acta.estado == .borrador || acta.estado == .pendienteAprobacion {
+            // Pintados a mano: el primario iba con `Paleta.brand` de fondo y el
+            // texto en blanco, los mismos ~2.4:1 en oscuro que se quitaron del
+            // resto de la app. Ahora son botones de verdad, con el estilo que
+            // ya llevan los demás: glass con el verde de marca el que actúa,
+            // glass en gris el otro.
+            Button { mostrarFirmas = true } label: {
+                Text(L.t("Recopilar firmas", "Collect signatures"))
+                    .font(.subheadline.weight(.medium)).lineLimit(1)
+            }
+            .buttonStyle(.glass).tint(Color.secondary).fixedSize()
+            Button { mostrarCerrarAlert = true } label: {
+                Text(L.t("Cerrar acta", "Close minutes"))
+                    .font(.subheadline.weight(.semibold)).lineLimit(1)
+            }
+            .buttonStyle(.glass).tint(Paleta.brand).fixedSize()
+        }
+    }
+
     private func detalle(_ acta: Acta) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Barra de estado del acta
-                HStack(spacing: 10) {
-                    Pill(texto: acta.estado.etiqueta, color: acta.estado.color)
-                    if acta.estado == .borrador {
-                        Text(L.t("Guardado hace 2 minutos", "Saved 2 minutes ago"))
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if acta.estado == .borrador || acta.estado == .pendienteAprobacion {
-                        Button { mostrarFirmas = true } label: {
-                            Text(L.t("Recopilar firmas", "Collect signatures"))
-                                .font(.subheadline.weight(.medium)).lineLimit(1)
-                                .foregroundStyle(Paleta.brand)
-                                .padding(.horizontal, Esp.chip).padding(.vertical, 6)
-                                .background(Paleta.brandFill, in: Capsule())
-                        }
-                        .fixedSize()
-                        Button { mostrarCerrarAlert = true } label: {
-                            Text(L.t("Cerrar acta", "Close minutes"))
-                                .font(.subheadline.weight(.semibold)).lineLimit(1)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, Esp.chip).padding(.vertical, 6)
-                                .background(Paleta.brand, in: Capsule())
-                        }
-                        .fixedSize()
+                // **Barra de estado: una fila si cabe, dos si no.**
+                // Era un `HStack` con la etiqueta, el "guardado hace…" y dos
+                // botones de ancho fijo. En el teléfono los botones no ceden y
+                // el texto se quedaba sin ancho: se dibujaba EN VERTICAL, una
+                // letra por línea, ocupando media pantalla. Se veía ya antes,
+                // y empeoró al pasar los botones a glass, que son más anchos
+                // que las cápsulas pintadas a mano.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { estadoActa(acta); Spacer(); accionesActa(acta) }
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 10) { estadoActa(acta); Spacer() }
+                        HStack(spacing: 10) { accionesActa(acta); Spacer() }
                     }
                 }
 

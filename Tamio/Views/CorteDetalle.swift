@@ -363,7 +363,7 @@ struct CorteDetalle: View {
                 filaRegistro(L.t("Monto", "Amount"), Money.fmt(corte.montoTotal), fuerte: true)
 
                 if conBoton, corte.sinDepositar {
-                    botonDepositar(glass: false).padding(.top, 14)
+                    botonDepositar().padding(.top, 14)
                 }
             }
         }
@@ -488,26 +488,24 @@ struct CorteDetalle: View {
     /// podía confirmar un corte de $0.00 "Sin asignar", y salía de Pendientes
     /// sin que nadie hubiera ido al banco.
     ///
-    /// `glass` en la barra flotante del teléfono, donde se ve el contenido por
-    /// debajo; relleno sólido dentro de la tarjeta del iPad, donde no hay nada
-    /// que difuminar y el glass se resuelve como un gris plano.
-    @ViewBuilder
-    private func botonDepositar(glass: Bool) -> some View {
-        let etiqueta = Text(L.t("Marcar depositado", "Mark deposited"))
-            .fontWeight(.semibold)
-            .frame(maxWidth: .infinity)
+    /// **Un solo estilo, sin parámetro.** Tenía uno —`glass:`— para elegir
+    /// entre glass en la barra del teléfono y relleno sólido en la tarjeta del
+    /// iPad, pero las dos ramas rellenaban de verde con el texto en blanco:
+    /// `.glassProminent` y `.borderedProminent` acaban en lo mismo. Ahora las
+    /// dos usan `.glass`, así que el parámetro no distinguía nada.
+    private func botonDepositar() -> some View {
         let apagado = corte.sinCuenta || corte.montoTotal == 0
-        if glass {
-            Button { mostrarRegistro = true } label: { etiqueta }
-                .buttonStyle(.glassProminent)
-                .tint(Paleta.brand)
-                .disabled(apagado)
-        } else {
-            Button { mostrarRegistro = true } label: { etiqueta }
-                .buttonStyle(.borderedProminent)
-                .tint(Paleta.brand)
-                .disabled(apagado)
+        // `.glass` y no `.glassProminent`: el prominente rellena de verde con
+        // el texto en blanco, que es lo que se quitó de la app. Sigue siendo la
+        // acción principal por el peso de la tipografía y por ocupar el ancho.
+        return Button { mostrarRegistro = true } label: {
+            Text(L.t("Marcar depositado", "Mark deposited"))
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
         }
+            .buttonStyle(.glass)
+            .tint(Paleta.brand)
+            .disabled(apagado)
     }
 
     /// La acción principal, fijada sobre el tab bar en compacto. Dentro del
@@ -519,7 +517,7 @@ struct CorteDetalle: View {
             // Aportantes: el `Divider` + `.bar` era el patrón anterior a
             // Liquid Glass y dibujaba un filete duro de lado a lado. El
             // contenido se difumina por debajo con `scrollEdgeEffectStyle`.
-            botonDepositar(glass: true)
+            botonDepositar()
                 .padding(.horizontal, Esp.pantalla)
                 .padding(.bottom, Esp.hueco)
         }
