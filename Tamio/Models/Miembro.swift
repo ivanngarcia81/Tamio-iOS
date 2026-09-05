@@ -126,6 +126,21 @@ struct EstadoMiembro: Hashable {
     var color: Color { estadoVisual.color }
 }
 
+/// Lo que se cuenta de la asistencia de una persona en un periodo. Sale de
+/// `servicioAsistencia`: nada de esto se guarda.
+struct AsistenciaMiembro: Hashable {
+    /// Cultos a los que vino, de los que hubo mientras estuvo en el padrón.
+    let presentes: Int
+    let servicios: Int
+    /// Cultos SEGUIDOS sin venir, desde el más reciente hacia atrás. Se corta
+    /// en cuanto aparece uno al que sí vino.
+    let rachaSinAsistir: Int
+    /// El último al que vino, "YYYY-MM-DD". `nil` si no vino a ninguno.
+    let ultimaVisita: String?
+
+    var pct: Int { servicios > 0 ? Int((Double(presentes) / Double(servicios) * 100).rounded()) : 0 }
+}
+
 /// Un punto de la gráfica de asistencia del miembro (un mes).
 struct MesAsistencia: Identifiable {
     var id: String { mes }
@@ -200,12 +215,11 @@ struct Miembro: Identifiable, Hashable {
     /// mantiene; Tesorería solo los consulta en la ficha del aportante.
     var familia: [Pariente] = []
 
-    // Asistencia. Hasta la v16 no hay de dónde contarla.
-    var asistenciaPct = 0
+    // Asistencia, contada desde `servicioAsistencia` (v16). `nil` mientras no
+    // haya cultos con lista tomada: entonces la ficha enseña un guion y no un
+    // cero, que dice otra cosa.
+    var asistenciaResumen: AsistenciaMiembro? = nil
     var asistencia: [MesAsistencia] = []
-    var enRoster = ""
-    var rachaSinAsistir = ""
-    var ultimaVisita = ""
     /// Razón pastoral de la pestaña Seguimiento. `nil` = no necesita.
     var seguimientoRazon: String? = nil
     /// Nota contextual de "Sin asistir últimamente" ("· enfermedad").
@@ -293,6 +307,33 @@ struct Miembro: Identifiable, Hashable {
     }
 
     var expedienteCompleto: Bool { !expediente.contains { !$0.completo } }
+
+    // MARK: - Asistencia, para leer
+
+    var asistenciaPct: Int { asistenciaResumen?.pct ?? 0 }
+
+    /// Cuántos cultos vino de los que hubo: "26 de 27".
+    var enRoster: String {
+        guard let a = asistenciaResumen else { return "—" }
+        return L.t("\(a.presentes) de \(a.servicios)", "\(a.presentes) of \(a.servicios)")
+    }
+
+    /// Cultos seguidos sin venir, contando desde el último hacia atrás.
+    var rachaSinAsistir: String {
+        guard let a = asistenciaResumen else { return "—" }
+        return L.t("\(a.rachaSinAsistir) servicios", "\(a.rachaSinAsistir) services")
+    }
+
+    var ultimaVisita: String {
+        guard let f = asistenciaResumen?.ultimaVisita else { return "—" }
+        return Fechas.diaLegible(f)
+    }
+
+    /// **Falta de verdad**, que no es lo mismo que "no vino el domingo": son
+    /// dos cultos seguidos o más. Antes esto se decidía comparando el texto
+    /// "0 servicios" contra la cadena traducida, que es de las cosas que
+    /// dejan de funcionar al cambiar de idioma sin dar un error.
+    var tieneAusencias: Bool { (asistenciaResumen?.rachaSinAsistir ?? 0) >= 2 }
 
     /// El historial de la ficha, de más reciente a más antiguo: la alta, los
     /// bautismos y cada cambio de estado que el web dejó apuntado.

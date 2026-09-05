@@ -90,18 +90,16 @@ struct MockMembresiaRepository: MembresiaRepository {
         m1.fechaIngreso = "2014-03-14"; m1.fechaCongregacion = "2012-06-01"
         m1.bautizadoAgua = true; m1.fechaBautismoAgua = "2014-04-12"
         m1.ministerios = ["ensenanza", "ninos"]; m1.cargos = ["maestro"]; m1.instrumentos = ["voz"]
-        m1.asistenciaPct = 96; m1.asistencia = serie(0.96)
-        m1.enRoster = L.t("26 de 27", "26 of 27"); m1.rachaSinAsistir = L.t("0 servicios", "0 services")
-        m1.ultimaVisita = L.fecha("23 ago")
+        m1.asistencia = serie(0.96)
+        m1.asistenciaResumen = AsistenciaMiembro(presentes: 26, servicios: 27, rachaSinAsistir: 0, ultimaVisita: "2026-08-23")
 
         var m2 = Miembro(id: "2", nombre: "Lucía Márquez Peña")
         m2.telefono = "81 5555 6666"; m2.correo = "lucia.marquez@correo.mx"
         m2.fechaIngreso = "2019-02-08"; m2.fechaCongregacion = "2018-10-01"
         m2.bautizadoAgua = true; m2.fechaBautismoAgua = "2019-03-15"
         m2.ministerios = ["musica"]; m2.cargos = ["Coordinadora escuela bíblica"]
-        m2.asistenciaPct = 92; m2.asistencia = serie(0.92)
-        m2.enRoster = L.t("25 de 27", "25 of 27"); m2.rachaSinAsistir = L.t("0 servicios", "0 services")
-        m2.ultimaVisita = L.fecha("23 ago")
+        m2.asistencia = serie(0.92)
+        m2.asistenciaResumen = AsistenciaMiembro(presentes: 25, servicios: 27, rachaSinAsistir: 0, ultimaVisita: "2026-08-23")
 
         var m3 = Miembro(id: "3", nombre: "Pedro Salas Aguirre")
         m3.telefono = "81 7777 8888"; m3.correo = "pedro.salas@correo.mx"; m3.direccion = "Calle Hidalgo 45"
@@ -109,18 +107,16 @@ struct MockMembresiaRepository: MembresiaRepository {
         m3.fechaIngreso = "2021-06-12"; m3.fechaCongregacion = "2021-01-10"
         m3.bautizadoAgua = true; m3.fechaBautismoAgua = "2021-08-01"
         m3.ministerios = ["ujieres"]; m3.habilidades = ["electricidad"]
-        m3.asistenciaPct = 88; m3.asistencia = serie(0.88)
-        m3.enRoster = L.t("24 de 27", "24 of 27"); m3.rachaSinAsistir = L.t("0 servicios", "0 services")
-        m3.ultimaVisita = L.fecha("23 ago")
+        m3.asistencia = serie(0.88)
+        m3.asistenciaResumen = AsistenciaMiembro(presentes: 24, servicios: 27, rachaSinAsistir: 0, ultimaVisita: "2026-08-23")
 
         // Traslado EN CURSO: sigue activo hasta que se cierre. El expediente
         // vivirá en `traslados_salida`; mientras, aquí no se ve.
         var m4 = Miembro(id: "4", nombre: "Javier Medina Cruz")
         m4.telefono = "81 8899 1020"; m4.correo = "jmedina@outlook.com"
         m4.fechaIngreso = "2016-05-20"; m4.bautizadoAgua = true
-        m4.asistenciaPct = 41; m4.asistencia = serie(0.41)
-        m4.enRoster = L.t("11 de 27", "11 of 27"); m4.rachaSinAsistir = L.t("4 servicios", "4 services")
-        m4.ultimaVisita = L.fecha("26 jul")
+        m4.asistencia = serie(0.41)
+        m4.asistenciaResumen = AsistenciaMiembro(presentes: 11, servicios: 27, rachaSinAsistir: 4, ultimaVisita: "2026-07-26")
         m4.seguimientoRazon = L.t("Cuatro servicios sin asistir · traslado en curso", "Four services missed · transfer in progress")
         m4.ausenciaNota = L.t(" · traslado", " · transfer")
 
@@ -128,18 +124,16 @@ struct MockMembresiaRepository: MembresiaRepository {
         m5.telefono = "81 1010 2020"; m5.correo = "ana.torres@correo.mx"; m5.estadoCivil = "casado"
         m5.fechaIngreso = "2016-08-14"; m5.bautizadoAgua = true; m5.fechaBautismoAgua = "2016-09-04"
         m5.ministerios = ["intercesion"]
-        m5.asistenciaPct = 62; m5.asistencia = serie(0.62)
-        m5.enRoster = L.t("17 de 27", "17 of 27"); m5.rachaSinAsistir = L.t("2 servicios", "2 services")
-        m5.ultimaVisita = L.fecha("9 ago")
+        m5.asistencia = serie(0.62)
+        m5.asistenciaResumen = AsistenciaMiembro(presentes: 17, servicios: 27, rachaSinAsistir: 2, ultimaVisita: "2026-08-09")
         m5.seguimientoRazon = L.t("Dos servicios sin asistir", "Two services missed")
         m5.ausenciaNota = L.t(" · enfermedad", " · illness")
 
         var m6 = Miembro(id: "6", nombre: "Familia Ruvalcaba")
         m6.telefono = "81 3030 4040"; m6.fechaIngreso = "2015-11-01"
         m6.ministerios = ["cocina"]; m6.notas = L.t("Cuatro miembros · diezman juntos", "Four members · tithe together")
-        m6.asistenciaPct = 84; m6.asistencia = serie(0.84)
-        m6.enRoster = L.t("23 de 27", "23 of 27"); m6.rachaSinAsistir = L.t("0 servicios", "0 services")
-        m6.ultimaVisita = L.fecha("23 ago")
+        m6.asistencia = serie(0.84)
+        m6.asistenciaResumen = AsistenciaMiembro(presentes: 23, servicios: 27, rachaSinAsistir: 0, ultimaVisita: "2026-08-23")
 
         // Recibido por traslado ESTE año: nuevo y recibido a la vez, que es
         // lo que el enum viejo no dejaba ser.
@@ -147,9 +141,8 @@ struct MockMembresiaRepository: MembresiaRepository {
         m7.telefono = "81 6060 7070"; m7.correo = "daniel.guerra@correo.mx"
         m7.fechaIngreso = Fechas.claveDia(); m7.iglesiaAnterior = "Iglesia Bautista Getsemaní, Saltillo"
         m7.bautizadoAgua = true; m7.fechaBautismoAgua = "2011-05-22"; m7.ministerios = ["medios"]
-        m7.asistenciaPct = 78; m7.asistencia = serie(0.78)
-        m7.enRoster = L.t("7 de 9", "7 of 9"); m7.rachaSinAsistir = L.t("0 servicios", "0 services")
-        m7.ultimaVisita = L.fecha("23 ago")
+        m7.asistencia = serie(0.78)
+        m7.asistenciaResumen = AsistenciaMiembro(presentes: 7, servicios: 9, rachaSinAsistir: 0, ultimaVisita: "2026-08-23")
         m7.seguimientoRazon = L.t("Nuevo en el periodo", "New in the period")
 
         var m8 = Miembro(id: "8", nombre: "Rosa Elena Vega")
@@ -158,8 +151,8 @@ struct MockMembresiaRepository: MembresiaRepository {
         m8.historialEstados = [CambioEstado(de: "activo", a: "trasladado", fecha: "2026-03-14")]
         m8.bautizadoAgua = true; m8.fechaBautismoAgua = "2013-09-01"
         m8.asistencia = serie(0)
-        m8.enRoster = L.t("0 de 27", "0 of 27"); m8.rachaSinAsistir = L.t("27 servicios", "27 services")
-        m8.ultimaVisita = L.fecha("14 mar")
+        m8.asistenciaResumen = AsistenciaMiembro(presentes: 0, servicios: 27, rachaSinAsistir: 27,
+                                                 ultimaVisita: "2026-03-14")
 
         return [m1, m2, m3, m4, m5, m6, m7, m8]
     }
@@ -184,9 +177,26 @@ struct MockMembresiaRepository: MembresiaRepository {
 struct OfflineMembresiaRepository: MembresiaRepository {
 
     private var cola: DatabaseQueue { BaseLocal.compartida.cola }
+    private var asistencia: AsistenciaRepository { repositorioAsistencia() }
+
+    /// El periodo del que se cuenta la asistencia de la ficha: el año en
+    /// curso. Es el mismo que usa el web para sus altas y bajas, y el que la
+    /// pestaña de Asistencia enseña por omisión.
+    private var periodo: (String, String) {
+        let año = Calendar.current.component(.year, from: Date())
+        return ("\(año)-01-01", "\(año)-12-31")
+    }
 
     func lista() async throws -> [Miembro] {
-        try await cola.read { db in try Self.leer(db) }
+        let (desde, hasta) = periodo
+        let porMiembro = (try? await asistencia.porMiembro(desde: desde, hasta: hasta)) ?? [:]
+        return try await cola.read { db in
+            try Self.leer(db).map { m in
+                var x = m
+                x.asistenciaResumen = porMiembro[m.id]
+                return x
+            }
+        }
     }
 
     private static func leer(_ db: Database) throws -> [Miembro] {
@@ -225,13 +235,17 @@ struct OfflineMembresiaRepository: MembresiaRepository {
             recibidos: miembros.filter { $0.esNuevo(en: año) && $0.esRecibido }.count,
             trasladados: miembros.filter { $0.estado.baja?.motivo == "traslado"
                                             && Int($0.estado.baja?.fecha.prefix(4) ?? "") == año }.count,
-            ausencias: 0,
+            // Ausencias: dos cultos seguidos o más sin venir, contado de la
+            // asistencia real. Antes era un cero fijo porque no había de dónde.
+            ausencias: vivos.filter(\.tieneAusencias).count,
             incompletos: vivos.filter { !$0.expedienteCompleto }.count)
     }
 
     func asistenciaResumen() async -> AsistenciaResumen {
-        AsistenciaResumen(promedioPct: 0, serviciosPeriodo: 0, presentesPromedio: 0,
-                          mejorServicio: "—", meses: [], porTipo: [])
+        let (desde, hasta) = periodo
+        return (try? await asistencia.resumen(desde: desde, hasta: hasta))
+            ?? AsistenciaResumen(promedioPct: 0, serviciosPeriodo: 0, presentesPromedio: 0,
+                                 mejorServicio: "—", meses: [], porTipo: [])
     }
 
     func guardar(_ m: Miembro) async throws {

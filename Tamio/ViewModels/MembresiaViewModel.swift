@@ -135,7 +135,7 @@ final class MembresiaViewModel {
         switch filtroAccion {
         case nil: return true
         case .ausencias:
-            return !m.estado.esBaja && m.rachaSinAsistir != L.t("0 servicios", "0 services")
+            return !m.estado.esBaja && m.tieneAusencias
         case .incompletos:
             return m.expediente.contains { !$0.completo }
         }
@@ -171,7 +171,7 @@ final class MembresiaViewModel {
     var itemsAusentes: [Miembro] {
         items.filter { m in
             guard !m.estado.esBaja else { return false }
-            return m.rachaSinAsistir != L.t("0 servicios", "0 services")
+            return m.tieneAusencias
         }
     }
 

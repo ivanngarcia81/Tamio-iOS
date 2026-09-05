@@ -94,3 +94,239 @@ struct MockServiciosRepository: ServiciosRepository {
         ]
     }
 }
+
+// MARK: - La asistencia, contada
+
+import GRDB
+
+/// Un culto con su lista tomada, tal como lo necesita quien cuenta.
+struct CultoConLista: Identifiable, Hashable {
+    let id: String
+    let fecha: String          // "YYYY-MM-DD"
+    let tipo: String
+    /// Solo de quien tenía ficha: los visitantes sin ella van aparte.
+    let presentes: Int
+    let enLista: Int
+}
+
+/// Lo que se guarda de una persona en un culto. `razon` y `seguimiento` solo
+/// significan algo con `presente` en falso; al marcar presente se limpian,
+/// como hace el web.
+struct MarcaAsistencia: Hashable {
+    let miembroId: String
+    let nombre: String
+    var presente: Bool
+    var razon: String = ""
+    var razonOtra: String = ""
+    var seguimiento: Bool = false
+}
+
+protocol AsistenciaRepository {
+    func cultos(desde: String, hasta: String) async throws -> [CultoConLista]
+    func lista(culto: String) async throws -> [MarcaAsistencia]
+    /// Guarda por DIFERENCIAS y no borrando y reinsertando, como el web: así
+    /// el id de cada pareja (culto, persona) se conserva entre guardados y la
+    /// baja de quien se quitó viaja como lápida en vez de perderse.
+    func guardarLista(culto: String, _ marcas: [MarcaAsistencia]) async throws
+    /// Lo de cada persona en el periodo, para la ficha del padrón.
+    func porMiembro(desde: String, hasta: String) async throws -> [String: AsistenciaMiembro]
+    /// Lo de la congregación, para la pestaña Asistencia.
+    func resumen(desde: String, hasta: String) async throws -> AsistenciaResumen
+}
+
+/// La asistencia desde la base del teléfono. **Nada de esto se guarda: se
+/// cuenta.** La racha, la última visita y el porcentaje salen de las filas de
+/// `servicioAsistencia`, que es la única versión de la verdad.
+struct OfflineAsistenciaRepository: AsistenciaRepository {
+
+    private var cola: DatabaseQueue { BaseLocal.compartida.cola }
+
+    func cultos(desde: String, hasta: String) async throws -> [CultoConLista] {
+        try await cola.read { db in
+            try Row.fetchAll(db, sql: """
+                select s.id, s.fecha, s.tipo,
+                       sum(case when a.presente and not a.borrado then 1 else 0 end) as presentes,
+                       sum(case when a.borrado then 0 else 1 end) as enLista
+                  from servicio s
+                  left join servicioAsistencia a on a.servicioId = s.id
+                 where s.borrado = 0 and s.fecha >= ? and s.fecha <= ?
+                 group by s.id
+                 order by s.fecha desc
+                """, arguments: [desde, hasta])
+                .map { CultoConLista(id: $0["id"], fecha: $0["fecha"], tipo: $0["tipo"],
+                                     presentes: $0["presentes"] ?? 0, enLista: $0["enLista"] ?? 0) }
+        }
+    }
+
+    func lista(culto: String) async throws -> [MarcaAsistencia] {
+        try await cola.read { db in
+            try AsistenciaFila
+                .filter(Column("servicioId") == culto && Column("borrado") == false)
+                .fetchAll(db)
+                .map { MarcaAsistencia(miembroId: $0.miembroId, nombre: $0.nombreSnapshot,
+                                       presente: $0.presente, razon: $0.razon,
+                                       razonOtra: $0.razonOtra, seguimiento: $0.seguimiento) }
+        }
+    }
+
+    func guardarLista(culto: String, _ marcas: [MarcaAsistencia]) async throws {
+        try await cola.write { db in
+            let previas = try AsistenciaFila
+                .filter(Column("servicioId") == culto)
+                .fetchAll(db)
+            let porMiembro = Dictionary(previas.map { ($0.miembroId, $0) }, uniquingKeysWith: { a, _ in a })
+            let quedan = Set(marcas.map(\.miembroId))
+
+            for m in marcas {
+                // Presente borra la razón y el seguimiento: no se puede estar
+                // aquí y tener un motivo para no estar.
+                var fila = AsistenciaFila(
+                    id: porMiembro[m.miembroId]?.id ?? UUID().uuidString,
+                    servicioId: culto, miembroId: m.miembroId, presente: m.presente,
+                    razon: m.presente ? "" : m.razon,
+                    razonOtra: m.presente ? "" : m.razonOtra,
+                    seguimiento: m.presente ? false : m.seguimiento,
+                    nombreSnapshot: m.nombre,
+                    actualizadoEn: porMiembro[m.miembroId]?.actualizadoEn, borrado: false)
+                try fila.save(db)
+                try Self.encolar(db, id: fila.id,
+                                 operacion: porMiembro[m.miembroId] == nil ? .crear : .actualizar)
+            }
+            // Quien salió de la lista: lápida, no borrado, o el otro aparato
+            // no se entera de que se fue.
+            for vieja in previas where !quedan.contains(vieja.miembroId) && !vieja.borrado {
+                var f = vieja; f.borrado = true
+                try f.update(db)
+                try Self.encolar(db, id: f.id, operacion: .eliminar)
+            }
+        }
+    }
+
+    func porMiembro(desde: String, hasta: String) async throws -> [String: AsistenciaMiembro] {
+        try await cola.read { db in
+            // Del más reciente al más antiguo: así la racha se corta en cuanto
+            // aparece el primer culto al que sí vino.
+            let filas = try Row.fetchAll(db, sql: """
+                select a.miembroId, a.presente, s.fecha
+                  from servicioAsistencia a
+                  join servicio s on s.id = a.servicioId
+                 where a.borrado = 0 and s.borrado = 0 and s.fecha >= ? and s.fecha <= ?
+                 order by s.fecha desc
+                """, arguments: [desde, hasta])
+
+            var presentes: [String: Int] = [:]
+            var totales: [String: Int] = [:]
+            var racha: [String: Int] = [:]
+            var rachaAbierta: Set<String> = []
+            var ultima: [String: String] = [:]
+
+            for f in filas {
+                let id: String = f["miembroId"]
+                let vino: Bool = f["presente"]
+                totales[id, default: 0] += 1
+                if vino {
+                    presentes[id, default: 0] += 1
+                    if ultima[id] == nil { ultima[id] = f["fecha"] }
+                    rachaAbierta.insert(id)   // la racha ya no puede crecer
+                } else if !rachaAbierta.contains(id) {
+                    racha[id, default: 0] += 1
+                }
+            }
+            return totales.reduce(into: [String: AsistenciaMiembro]()) { r, par in
+                let (id, total) = par
+                r[id] = AsistenciaMiembro(presentes: presentes[id] ?? 0,
+                                          servicios: total,
+                                          rachaSinAsistir: racha[id] ?? 0,
+                                          ultimaVisita: ultima[id])
+            }
+        }
+    }
+
+    func resumen(desde: String, hasta: String) async throws -> AsistenciaResumen {
+        let cultos = try await cultos(desde: desde, hasta: hasta)
+        guard !cultos.isEmpty else {
+            return AsistenciaResumen(promedioPct: 0, serviciosPeriodo: 0, presentesPromedio: 0,
+                                     mejorServicio: "—", meses: [], porTipo: [])
+        }
+        let presentes = cultos.map(\.presentes)
+        let enLista = cultos.map(\.enLista).reduce(0, +)
+        let totalPresentes = presentes.reduce(0, +)
+        let promedioPct = enLista > 0 ? Int((Double(totalPresentes) / Double(enLista) * 100).rounded()) : 0
+        let mejor = cultos.max { $0.presentes < $1.presentes }
+
+        // Por mes, del más antiguo al más reciente, que es como se lee una
+        // gráfica.
+        var porMes: [String: (Int, Int)] = [:]
+        for c in cultos {
+            let mes = String(c.fecha.prefix(7))
+            porMes[mes, default: (0, 0)].0 += c.presentes
+            porMes[mes, default: (0, 0)].1 += c.enLista
+        }
+        let meses = porMes.keys.sorted().map { clave -> MesAsistenciaCongregacion in
+            let (p, t) = porMes[clave] ?? (0, 0)
+            let d = Fechas.desdeTextoFlexible("\(clave)-01")
+            return MesAsistenciaCongregacion(mes: d.map { L.mesCorto($0) } ?? clave,
+                                             presentes: p, enRoster: t)
+        }
+
+        var porTipo: [String: (Int, Int)] = [:]
+        for c in cultos {
+            porTipo[c.tipo, default: (0, 0)].0 += c.presentes
+            porTipo[c.tipo, default: (0, 0)].1 += 1
+        }
+        let tipos = porTipo
+            .map { TipoAsistencia(tipo: Cultos.etiqueta($0.key),
+                                  promedio: $0.value.1 > 0 ? $0.value.0 / $0.value.1 : 0) }
+            .sorted { $0.promedio > $1.promedio }
+
+        return AsistenciaResumen(
+            promedioPct: promedioPct,
+            serviciosPeriodo: cultos.count,
+            presentesPromedio: totalPresentes / cultos.count,
+            mejorServicio: mejor.map { "\($0.presentes) · \(Fechas.diaLegible($0.fecha))" } ?? "—",
+            meses: meses,
+            porTipo: tipos)
+    }
+
+    private static func encolar(_ db: Database, id: String,
+                                operacion: OperacionPendiente.Operacion) throws {
+        let previa = try OperacionPendiente
+            .filter(Column("entidad") == "asistencia" && Column("registroId") == id)
+            .fetchOne(db)
+        let efectiva: OperacionPendiente.Operacion =
+            (previa?.operacion == OperacionPendiente.Operacion.crear.rawValue
+             && operacion == .actualizar) ? .crear : operacion
+        try OperacionPendiente
+            .filter(Column("entidad") == "asistencia" && Column("registroId") == id)
+            .deleteAll(db)
+        var nueva = OperacionPendiente(id: nil, entidad: "asistencia", registroId: id,
+                                       operacion: efectiva.rawValue,
+                                       creadoEn: Date().timeIntervalSince1970,
+                                       intentos: 0, ultimoError: nil)
+        try nueva.insert(db)
+    }
+}
+
+/// Los tipos de culto del app web, con sus claves.
+enum Cultos {
+    static let tipos = ["dominical", "oracion", "estudio", "jovenes", "damas",
+                        "caballeros", "vigilia", "evangelistico", "especial", "otro"]
+
+    static func etiqueta(_ clave: String) -> String {
+        switch clave {
+        case "dominical":     return L.t("Culto dominical", "Sunday service")
+        case "oracion":       return L.t("Reunión de oración", "Prayer meeting")
+        case "estudio":       return L.t("Estudio bíblico", "Bible study")
+        case "jovenes":       return L.t("Jóvenes", "Youth")
+        case "damas":         return L.t("Damas", "Women")
+        case "caballeros":    return L.t("Caballeros", "Men")
+        case "vigilia":       return L.t("Vigilia", "Vigil")
+        case "evangelistico": return L.t("Evangelístico", "Evangelistic")
+        case "especial":      return L.t("Especial", "Special")
+        case "otro":          return L.t("Otro", "Other")
+        default:              return clave
+        }
+    }
+}
+
+func repositorioAsistencia() -> AsistenciaRepository { OfflineAsistenciaRepository() }
