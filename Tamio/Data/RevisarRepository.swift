@@ -75,7 +75,9 @@ struct RevisarCalculado: RevisarRepository {
         guard let a = try? await miembros.lista(filtro: .bajas)
             .first(where: { $0.id == partes[1] }) else { return }
         var vivo = a
-        vivo.estado = .activo
+        // Se quita la baja y se conserva el registro que tenía, como hace
+        // `restoreMember` en el app web.
+        vivo.estado.baja = nil
         try? await miembros.actualizar(vivo)
     }
 

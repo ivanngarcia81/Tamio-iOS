@@ -19,7 +19,10 @@ final class MembresiaViewModel {
     var seleccionId: String?
     var busqueda = ""
     var filtroAño: Int? = nil
-    var filtroEstado: EstadoMiembro? = nil
+    /// Una de `EstadoMiembro.claves`: los cuatro del registro o `baja`. Se
+    /// filtra por la clave y no por el estado entero porque dos bajas con
+    /// distinta fecha son el mismo filtro.
+    var filtroEstado: String? = nil
     var filtroMinisterio: String? = nil
     /// Filtro que llega desde los indicadores de la ficha del miembro.
     var filtroAccion: FiltroAccion? = nil
@@ -90,7 +93,7 @@ final class MembresiaViewModel {
         items.filter { m in
             (busqueda.isEmpty || coincideBusqueda(m))
             && (filtroAño == nil || m.miembroDesde.contains(String(filtroAño!)))
-            && (filtroEstado == nil || m.estado == filtroEstado)
+            && (filtroEstado == nil || m.estado.clave == filtroEstado)
             && (filtroMinisterio == nil || m.area.localizedCaseInsensitiveContains(filtroMinisterio!))
             && cumpleAccion(m)
         }
@@ -112,7 +115,7 @@ final class MembresiaViewModel {
         switch filtroAccion {
         case nil: return true
         case .ausencias:
-            return m.estado != .baja && m.rachaSinAsistir != L.t("0 servicios", "0 services")
+            return !m.estado.esBaja && m.rachaSinAsistir != L.t("0 servicios", "0 services")
         case .incompletos:
             return m.expediente.contains { !$0.completo }
         }
@@ -154,14 +157,14 @@ final class MembresiaViewModel {
     /// Miembros con racha de ausencias (para la sección "Sin asistir últimamente").
     var itemsAusentes: [Miembro] {
         items.filter { m in
-            guard m.estado != .baja else { return false }
+            guard !m.estado.esBaja else { return false }
             return m.rachaSinAsistir != L.t("0 servicios", "0 services")
         }
     }
 
     /// Top 5 por porcentaje de asistencia (excluye bajas).
     var masConstantes: [Miembro] {
-        items.filter { $0.estado != .baja }
+        items.filter { !$0.estado.esBaja }
             .sorted { $0.asistenciaPct > $1.asistenciaPct }
             .prefix(5)
             .map { $0 }

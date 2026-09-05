@@ -22,13 +22,21 @@ struct AportanteFila: Codable, FetchableRecord, PersistableRecord {
     var miembroDesde: String
     var congregaDesde: String
     var frecuencia: String
+    /// Las tres columnas del estado, como en `members`: `estado` es
+    /// `estado_membresia` y solo significa algo mientras `activo`; la baja
+    /// son `activo = 0` más fecha y motivo. Llegaron con la v15 — antes la
+    /// fila solo tenía `estado`, y una baja se escribía ahí como la palabra
+    /// "baja", que el servidor no lee.
+    var activo: Bool
+    var fechaBaja: String
+    var motivoBaja: String
     var actualizadoEn: String?
     var borrado: Bool
 
     init(_ a: Aportante, actualizadoEn: String? = nil, borrado: Bool = false) {
         id = a.id
         nombre = a.nombre
-        estado = Self.texto(a.estado)
+        estado = a.estado.registro.rawValue
         telefono = a.telefono
         correo = a.correo
         nacimiento = a.nacimiento
@@ -38,6 +46,9 @@ struct AportanteFila: Codable, FetchableRecord, PersistableRecord {
         miembroDesde = a.miembroDesde
         congregaDesde = a.congregaDesde
         frecuencia = a.frecuencia.rawValue
+        activo = !a.estado.esBaja
+        fechaBaja = a.estado.baja?.fecha ?? ""
+        motivoBaja = a.estado.baja?.motivo ?? ""
         self.actualizadoEn = actualizadoEn
         self.borrado = borrado
     }
@@ -48,7 +59,8 @@ struct AportanteFila: Codable, FetchableRecord, PersistableRecord {
         Aportante(
             id: id,
             nombre: nombre,
-            estado: Self.estado(estado),
+            estado: Self.estado(registro: estado, activo: activo,
+                                fechaBaja: fechaBaja, motivoBaja: motivoBaja),
             rol: Self.rol(aportes),
             miembroDesde: miembroDesde,
             telefono: telefono,
@@ -77,23 +89,17 @@ struct AportanteFila: Codable, FetchableRecord, PersistableRecord {
 
     // MARK: - Estado
 
-    static func texto(_ e: EstadoMiembro) -> String {
-        switch e {
-        case .activo: return "activo"
-        case .nuevo: return "nuevo"
-        case .traslado: return "traslado"
-        case .baja: return "baja"
-        case .recibido: return "recibido"
-        }
-    }
-
-    static func estado(_ texto: String) -> EstadoMiembro {
-        switch texto.lowercased() {
-        case "nuevo": return .nuevo
-        case "traslado": return .traslado
-        case "baja": return .baja
-        case "recibido": return .recibido
-        default: return .activo
-        }
+    /// De las tres columnas al estado. El mismo camino sirve para la fila
+    /// local y para la que baja de Supabase, que traen las mismas tres.
+    ///
+    /// Un `registro` que no esté en el catálogo —los "baja", "traslado",
+    /// "nuevo" y "recibido" que esta app escribía antes— se lee como activo:
+    /// la v15 ya los normaliza en la base local, y del servidor solo llegan
+    /// los del web.
+    static func estado(registro: String, activo: Bool,
+                       fechaBaja: String, motivoBaja: String) -> EstadoMiembro {
+        let r = EstadoRegistro(rawValue: registro) ?? .activo
+        return EstadoMiembro(registro: r,
+                             baja: activo ? nil : Baja(fecha: fechaBaja, motivo: motivoBaja))
     }
 }

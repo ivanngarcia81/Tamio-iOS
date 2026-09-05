@@ -224,17 +224,25 @@ final class MotorSincronizacion {
         let fechaIngreso: String?
         let fechaCongregacion: String?
         let estadoMembresia: String
+        /// **La bandera de la baja**, como entero 0/1 porque así está
+        /// declarada en `members`. Sin ella, una baja hecha desde el teléfono
+        /// dejaba a la persona contada como activa en el app web.
+        let activo: Int
+        let fechaBaja: String?
+        let motivoBaja: String?
         let frecuenciaAporte: String
         let deleted: Bool
 
         enum CodingKeys: String, CodingKey {
-            case uid, nombre, telefono, email, rfc, direccion, deleted
+            case uid, nombre, telefono, email, rfc, direccion, deleted, activo
             case churchId          = "church_id"
             case estadoCivil       = "estado_civil"
             case fechaNacimiento   = "fecha_nacimiento"
             case fechaIngreso      = "fecha_ingreso"
             case fechaCongregacion = "fecha_congregacion"
             case estadoMembresia   = "estado_membresia"
+            case fechaBaja         = "fecha_baja"
+            case motivoBaja        = "motivo_baja"
             case frecuenciaAporte  = "frecuencia_aporte"
         }
     }
@@ -250,6 +258,10 @@ final class MotorSincronizacion {
             direccion: fila.direccion, estadoCivil: fila.estadoCivil,
             fechaNacimiento: fila.nacimiento, fechaIngreso: fila.miembroDesde,
             fechaCongregacion: fila.congregaDesde, estadoMembresia: fila.estado,
+            activo: fila.activo ? 1 : 0,
+            // Nulos y no vacíos, que es lo que el web deja al restaurar.
+            fechaBaja: fila.activo ? nil : fila.fechaBaja,
+            motivoBaja: fila.activo ? nil : fila.motivoBaja,
             frecuenciaAporte: fila.frecuencia,
             deleted: op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
 
@@ -273,10 +285,14 @@ final class MotorSincronizacion {
             let telefono, email, rfc, direccion: String?
             let estadoCivil, fechaNacimiento, fechaIngreso, fechaCongregacion: String?
             let estadoMembresia, frecuenciaAporte: String?
+            let activo: Int?
+            let fechaBaja, motivoBaja: String?
             let updatedAt: String?
             let deleted: Bool?
             enum CodingKeys: String, CodingKey {
-                case uid, nombre, telefono, email, rfc, direccion, deleted
+                case uid, nombre, telefono, email, rfc, direccion, deleted, activo
+                case fechaBaja         = "fecha_baja"
+                case motivoBaja        = "motivo_baja"
                 case estadoCivil       = "estado_civil"
                 case fechaNacimiento   = "fecha_nacimiento"
                 case fechaIngreso      = "fecha_ingreso"
@@ -309,7 +325,10 @@ final class MotorSincronizacion {
 
                 var a = Aportante(
                     id: r.uid, nombre: r.nombre ?? "",
-                    estado: AportanteFila.estado(r.estadoMembresia ?? "activo"),
+                    estado: AportanteFila.estado(registro: r.estadoMembresia ?? "activo",
+                                                 activo: (r.activo ?? 1) != 0,
+                                                 fechaBaja: r.fechaBaja ?? "",
+                                                 motivoBaja: r.motivoBaja ?? ""),
                     rol: "", miembroDesde: r.fechaIngreso ?? "",
                     telefono: r.telefono ?? "", correo: r.email ?? "",
                     nacimiento: r.fechaNacimiento ?? "", direccion: r.direccion ?? "",

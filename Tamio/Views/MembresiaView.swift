@@ -9,6 +9,11 @@ struct MembresiaView: View {
     @State private var miembroParaSeguimiento: Miembro?
     @State private var mostrarFiltros = false
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+
+    /// Dar de alta y de baja es de Secretaría. El tesorero puede llegar aquí
+    /// —si la iglesia le abre el padrón— para mirar, no para mover a nadie.
+    private var administraPadron: Bool { Permisos.vigentes(sesion).administraPadron }
 
     /// **La rama del teléfono.** Mismo criterio que en Ingresos y en
     /// Aportantes: no es "¿caben lista y detalle?" —eso lo decide el ancho—
@@ -26,12 +31,13 @@ struct MembresiaView: View {
             }
             .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
             .sheet(isPresented: $mostrarNuevo) {
-                NuevoMiembroSheet(proximoId: vm.proximoId) { nuevo in
+                NuevoMiembroSheet(proximoId: vm.proximoId, puedeDarDeBaja: administraPadron) { nuevo in
                     vm.agregarMiembro(nuevo)
                 }
             }
             .sheet(item: $miembroAEditar) { m in
-                NuevoMiembroSheet(proximoId: m.id, miembroExistente: m) { editado in
+                NuevoMiembroSheet(proximoId: m.id, miembroExistente: m,
+                                  puedeDarDeBaja: administraPadron) { editado in
                     vm.editarMiembro(editado)
                 }
             }
@@ -148,9 +154,9 @@ struct MembresiaView: View {
                 // En Asistencia no hay lista que filtrar, así que el botón no
                 // se dibuja en vez de quedarse sin efecto.
                 if subtab != 1 { botonFiltros }
-                botonNuevo
+                if administraPadron { botonNuevo }
             }
-        } else {
+        } else if administraPadron {
             ToolbarItem(placement: .topBarTrailing) { botonNuevo }
         }
     }
@@ -515,7 +521,7 @@ struct MembresiaView: View {
                 // Sin guion cuando no hay dato: un "—" suelto se lee como un
                 // fallo de render. Quien está de baja no tiene asistencia que
                 // enseñar y su pastilla ya lo dice.
-                if m.estado != .baja {
+                if !m.estado.esBaja {
                     Text("\(m.asistenciaPct)%")
                         .font(.subheadline.weight(.semibold)).monospacedDigit()
                         .foregroundStyle(colorPct(m.asistenciaPct))
@@ -591,8 +597,9 @@ struct MembresiaView: View {
                     filaFiltro(L.t("Todos", "All"), activo: vm.filtroEstado == nil) {
                         vm.filtroEstado = nil
                     }
-                    ForEach([EstadoMiembro.activo, .nuevo, .recibido, .traslado, .baja], id: \.self) { e in
-                        filaFiltro(e.etiqueta, activo: vm.filtroEstado == e) { vm.filtroEstado = e }
+                    ForEach(EstadoMiembro.claves, id: \.self) { c in
+                        filaFiltro(EstadoMiembro.etiqueta(clave: c),
+                                   activo: vm.filtroEstado == c) { vm.filtroEstado = c }
                     }
                 }
                 if !vm.ministeriosDisponibles.isEmpty {
@@ -872,6 +879,9 @@ private struct PanelAsistencia: View {
 private struct NuevoMiembroSheet: View {
     let proximoId: String
     let miembroExistente: Miembro?
+    /// La baja es un acto de Secretaría; a quien no le toca, ni se le enseña
+    /// el interruptor.
+    let puedeDarDeBaja: Bool
     let onGuardar: (Miembro) -> Void
 
     // QUIÉN ES
@@ -880,13 +890,17 @@ private struct NuevoMiembroSheet: View {
     @State private var correo: String
 
     // MEMBRESÍA
-    @State private var estado: EstadoMiembro
+    /// El estado dentro del registro, y aparte la baja: son cosas distintas
+    /// y en el servidor son columnas distintas. Ver `EstadoMiembro`.
+    @State private var registro: EstadoRegistro
     @State private var fechaIngreso: Date
-    /// Una baja o un traslado no son solo un cambio de etiqueta: hay que poder
-    /// decir cuándo y por qué, o dentro de dos años nadie sabrá qué pasó con
-    /// esa persona.
+    /// Una baja no es solo un cambio de etiqueta: hay que poder decir cuándo y
+    /// por qué, o dentro de dos años nadie sabrá qué pasó con esa persona.
+    @State private var deBaja = false
     @State private var fechaBaja = Date()
-    @State private var motivoBaja = ""
+    /// Clave del catálogo; con "otro", lo que se escriba en `motivoOtro`.
+    @State private var motivoBaja = "traslado"
+    @State private var motivoOtro = ""
 
     // Vida espiritual
     @State private var bautizadoAgua: Bool
@@ -921,16 +935,18 @@ private struct NuevoMiembroSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    init(proximoId: String, miembroExistente: Miembro? = nil, onGuardar: @escaping (Miembro) -> Void) {
+    init(proximoId: String, miembroExistente: Miembro? = nil, puedeDarDeBaja: Bool,
+         onGuardar: @escaping (Miembro) -> Void) {
         self.proximoId = proximoId
         self.miembroExistente = miembroExistente
+        self.puedeDarDeBaja = puedeDarDeBaja
         self.onGuardar = onGuardar
 
         guard let m = miembroExistente else {
             _nombre = State(initialValue: "")
             _telefono = State(initialValue: "")
             _correo = State(initialValue: "")
-            _estado = State(initialValue: .activo)
+            _registro = State(initialValue: .activo)
             _fechaIngreso = State(initialValue: Date())
             _bautizadoAgua = State(initialValue: false)
             _bautizadoEspiritu = State(initialValue: false)
@@ -970,7 +986,7 @@ private struct NuevoMiembroSheet: View {
         _nombre = State(initialValue: m.nombre)
         _telefono = State(initialValue: d("Teléfono", "Phone"))
         _correo = State(initialValue: d("Correo", "Email"))
-        _estado = State(initialValue: m.estado)
+        _registro = State(initialValue: m.estado.registro)
         let fechaIngStr = d("Fecha de ingreso", "Join date")
         _fechaIngreso = State(initialValue: fmt.date(from: fechaIngStr) ?? Date())
 
@@ -1013,15 +1029,16 @@ private struct NuevoMiembroSheet: View {
         _disponibilidad = State(initialValue: d("Disponibilidad", "Availability"))
         _interesServir = State(initialValue: flag("Interés en servir", "Interested in serving"))
 
-        // La baja y el traslado se guardaban y no se volvían a leer: al editar
-        // a alguien dado de baja, la fecha volvía a hoy y el motivo en blanco,
-        // y se re-guardaban así. Quedaba una baja sin fecha ni razón, que es
-        // lo mismo que no saber qué pasó con esa persona.
-        let bajaStr = m.estado == .baja
-            ? d("Fecha de baja", "Removal date")
-            : d("Fecha de traslado", "Transfer date")
-        _fechaBaja = State(initialValue: fmt.date(from: bajaStr) ?? Date())
-        _motivoBaja = State(initialValue: d("Motivo", "Reason"))
+        // La baja se lee del estado, no de `datos`: antes se guardaba como un
+        // par etiqueta-valor y no se volvía a leer, así que al editar a
+        // alguien dado de baja la fecha volvía a hoy y el motivo en blanco.
+        if let baja = m.estado.baja {
+            _deBaja = State(initialValue: true)
+            _fechaBaja = State(initialValue: Fechas.desdeTextoFlexible(baja.fecha) ?? Date())
+            let esDelCatalogo = Baja.motivos.contains(baja.motivo) && baja.motivo != "otro"
+            _motivoBaja = State(initialValue: esDelCatalogo ? baja.motivo : "otro")
+            _motivoOtro = State(initialValue: esDelCatalogo ? "" : baja.motivo)
+        }
 
         let nacStr = d("Nacimiento", "Birth date")
         _tieneFechaNac = State(initialValue: !nacStr.isEmpty)
@@ -1096,37 +1113,50 @@ private struct NuevoMiembroSheet: View {
                 }
 
                 Section {
-                    // Baja y Traslado faltaban: no había forma de sacar a nadie
-                    // del padrón, y sin embargo la lista ya tenía un filtro de
-                    // "Bajas" al que era imposible llegar.
-                    Picker(L.t("Estado", "Status"), selection: $estado) {
-                        Text(L.t("Activo", "Active")).tag(EstadoMiembro.activo)
-                        Text(L.t("Nuevo", "New")).tag(EstadoMiembro.nuevo)
-                        Text(L.t("Recibido", "Received")).tag(EstadoMiembro.recibido)
-                        Text(L.t("Traslado", "Transfer")).tag(EstadoMiembro.traslado)
-                        Text(L.t("Baja", "Removed")).tag(EstadoMiembro.baja)
+                    // Los cuatro del registro, con las claves del app web.
+                    // "Nuevo" y "Recibido" ya no se eligen: se deducen de la
+                    // fecha de ingreso y de la iglesia anterior. Y "Traslado"
+                    // era un expediente, no un estado.
+                    Picker(L.t("Estado", "Status"), selection: $registro) {
+                        ForEach(EstadoRegistro.allCases, id: \.self) {
+                            Text($0.etiqueta).tag($0)
+                        }
                     }
                     DatePicker(L.t("Comenzó a congregarse", "Started attending"),
                                selection: $fechaIngreso, displayedComponents: .date)
                         .tint(Paleta.brand)
-                    if estado == .baja || estado == .traslado {
-                        DatePicker(estado == .baja
-                                   ? L.t("Fecha de baja", "Removal date")
-                                   : L.t("Fecha de traslado", "Transfer date"),
-                                   selection: $fechaBaja, displayedComponents: .date)
-                            .tint(Paleta.brand)
-                        TextField(L.t("Motivo", "Reason"), text: $motivoBaja, axis: .vertical)
-                            .lineLimit(2...4)
-                    }
                 } header: {
                     Text(L.t("MEMBRESÍA", "MEMBERSHIP"))
-                } footer: {
-                    if estado == .baja {
-                        Text(L.t("La persona sale del padrón activo. Su historial y sus aportes se conservan.",
-                                 "The person leaves the active roster. Their history and giving are kept."))
-                    } else if estado == .traslado {
-                        Text(L.t("Se registra su salida hacia otra congregación.",
-                                 "Records their move to another congregation."))
+                }
+
+                // **La baja va aparte del estado**, como en el servidor: la
+                // persona conserva el estado que tenía y se le añade cuándo y
+                // por qué se fue. Solo la ve quien puede darla.
+                if puedeDarDeBaja {
+                    Section {
+                        Toggle(L.t("Dar de baja del padrón", "Remove from roster"), isOn: $deBaja)
+                            .tint(Paleta.negativo)
+                        if deBaja {
+                            DatePicker(L.t("Fecha de baja", "Removal date"),
+                                       selection: $fechaBaja, displayedComponents: .date)
+                                .tint(Paleta.brand)
+                            Picker(L.t("Motivo", "Reason"), selection: $motivoBaja) {
+                                ForEach(Baja.motivos, id: \.self) {
+                                    Text(Baja.etiquetaMotivo($0)).tag($0)
+                                }
+                            }
+                            if motivoBaja == "otro" {
+                                TextField(L.t("¿Cuál?", "Which?"), text: $motivoOtro, axis: .vertical)
+                                    .lineLimit(2...4)
+                            }
+                        }
+                    } header: {
+                        Text(L.t("BAJA", "REMOVAL"))
+                    } footer: {
+                        if deBaja {
+                            Text(L.t("La persona sale del padrón activo. Su historial y sus aportes se conservan.",
+                                     "The person leaves the active roster. Their history and giving are kept."))
+                        }
                     }
                 }
 
@@ -1217,16 +1247,21 @@ private struct NuevoMiembroSheet: View {
         var datos: [Dato] = [
             Dato(etiqueta: L.t("Fecha de ingreso", "Join date"), valor: fechaStr),
         ]
-        // Sin esto, una baja quedaría como una etiqueta gris sin explicación.
-        if estado == .baja || estado == .traslado {
-            datos.append(Dato(etiqueta: estado == .baja
-                              ? L.t("Fecha de baja", "Removal date")
-                              : L.t("Fecha de traslado", "Transfer date"),
-                              valor: fmt.string(from: fechaBaja)))
-            if !motivoBaja.trimmingCharacters(in: .whitespaces).isEmpty {
-                datos.append(Dato(etiqueta: L.t("Motivo", "Reason"), valor: motivoBaja))
-            }
+        // La baja vive en el estado. Aquí solo se enseña, para que en la
+        // ficha no quede como una etiqueta gris sin explicación.
+        let estadoFinal: EstadoMiembro
+        if deBaja {
+            let motivo = motivoBaja == "otro" ? motivoOtro.trimmingCharacters(in: .whitespaces) : motivoBaja
+            estadoFinal = .baja(Fechas.claveDia(fechaBaja), motivo, registro: registro)
+            datos.append(Dato(etiqueta: L.t("Fecha de baja", "Removal date"), valor: fmt.string(from: fechaBaja)))
+            datos.append(Dato(etiqueta: L.t("Motivo", "Reason"),
+                              valor: motivoBaja == "otro" ? motivo : Baja.etiquetaMotivo(motivo)))
+        } else {
+            estadoFinal = EstadoMiembro(registro: registro, baja: nil)
         }
+        // Lo que antes eran dos estados y ahora son dos hechos de la ficha.
+        let esRecibido = !iglesiaAnterior.trimmingCharacters(in: .whitespaces).isEmpty
+        let esNuevo = año == Calendar.current.component(.year, from: Date())
         if !correo.isEmpty     { datos.append(Dato(etiqueta: L.t("Correo", "Email"),          valor: correo)) }
         if !telefono.isEmpty   { datos.append(Dato(etiqueta: L.t("Teléfono", "Phone"),         valor: telefono)) }
         if !direccion.isEmpty  { datos.append(Dato(etiqueta: L.t("Dirección", "Address"),      valor: direccion)) }
@@ -1273,18 +1308,20 @@ private struct NuevoMiembroSheet: View {
         ]
 
         let subtitulo: String
-        switch estado {
-        case .recibido: subtitulo = L.t("Recibido por traslado · 0%", "Received by transfer · 0%")
-        case .nuevo:    subtitulo = L.t("Nuevo · 0%", "New · 0%")
-        default:        subtitulo = L.t("Ingresó \(String(año)) · \(areaFinal.lowercased()) · 0%",
-                                        "Joined \(String(año)) · \(areaFinal.lowercased()) · 0%")
+        if esRecibido {
+            subtitulo = L.t("Recibido por traslado · 0%", "Received by transfer · 0%")
+        } else if esNuevo {
+            subtitulo = L.t("Nuevo · 0%", "New · 0%")
+        } else {
+            subtitulo = L.t("Ingresó \(String(año)) · \(areaFinal.lowercased()) · 0%",
+                            "Joined \(String(año)) · \(areaFinal.lowercased()) · 0%")
         }
 
         let movimientos: [MovMembresia]
         if let m = miembroExistente {
             movimientos = [MovMembresia(titulo: L.t("Información actualizada", "Information updated"), fecha: fechaStr)] + m.movimientos
         } else {
-            let tituloAlta = estado == .recibido
+            let tituloAlta = esRecibido
                 ? L.t("Recibido por traslado", "Received by transfer")
                 : L.t("Alta como miembro", "Added as member")
             movimientos = [MovMembresia(titulo: tituloAlta, fecha: fechaStr)]
@@ -1294,7 +1331,7 @@ private struct NuevoMiembroSheet: View {
             id: miembroExistente?.id ?? proximoId,
             nombre: nombre.trimmingCharacters(in: .whitespaces),
             subtitulo: subtitulo,
-            estado: estado,
+            estado: estadoFinal,
             asistenciaPct: miembroExistente?.asistenciaPct ?? 0,
             area: areaFinal,
             miembroDesde: L.t("Ingresó \(String(año))", "Joined \(String(año))"),
@@ -1302,7 +1339,7 @@ private struct NuevoMiembroSheet: View {
             enRoster: miembroExistente?.enRoster ?? "0 de 27",
             rachaSinAsistir: miembroExistente?.rachaSinAsistir ?? L.t("0 servicios", "0 services"),
             ultimaVisita: miembroExistente?.ultimaVisita ?? "—",
-            seguimientoRazon: miembroExistente?.seguimientoRazon ?? (estado == .nuevo ? L.t("Nuevo en el periodo", "New in the period") : nil),
+            seguimientoRazon: miembroExistente?.seguimientoRazon ?? (esNuevo ? L.t("Nuevo en el periodo", "New in the period") : nil),
             ausenciaNota: miembroExistente?.ausenciaNota,
             datos: datos,
             expediente: expediente,

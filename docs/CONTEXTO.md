@@ -238,6 +238,9 @@ etiquetas en español que usa `MembresiaView`. Ahí está también el aviso de q
 esto ya está mal HOY en Tesorería: una baja hecha desde el teléfono deja a la
 persona contada como activa en el web.
 
+El estado ya es el del web —`EstadoMiembro` con `registro` y `baja`— y
+`Permisos.administraPadron` reserva alta y baja a Secretaría.
+
 Lo que falta, en orden: el repositorio offline que lea la v15, el mapa de
 subida y bajada en `MotorSincronizacion` (la fila la escriben DOS entidades del
 outbox —Tesorería y el padrón— y cada una manda solo sus columnas, que es lo
@@ -267,11 +270,14 @@ Data Protection) y qué protección le queda al respaldo en iCloud Drive.
 4. **Las dos medidas del cifrado** (§5).
 5. **Membresía sobre datos reales** (§5). El sitio ya está abierto (v15); falta
    el repositorio, la sincronización y rehacer el modelo.
-6. **Decidir qué son `nuevo` y `recibido`.** El enum `EstadoMiembro` de iOS
-   tiene esos dos valores y en el vocabulario del web no existen: allí se
-   elige entre `activo`, `inactivo`, `visitante` y `enProceso`. Sin esa
-   decisión, la traducción entre los dos lados hay que inventarla. Es lo
-   primero del paso siguiente, antes del repositorio.
+6. **La barrera de alta y baja en el servidor.** `Permisos.administraPadron`
+   esconde los botones al tesorero, pero `members` no tiene disparador y sus
+   políticas solo miran `church_id`. Ponerlo rompe `/miembros` del app web,
+   donde el tesorero sí da de alta: se decide con las dos apps a la vez. Ver
+   `docs/PADRON-WEB.md` §4.
+7. **Reflejar `traslados_salida`.** Hasta entonces la pastilla "traslado en
+   curso" no se ve: dejó de ser un estado de la persona y el expediente vive
+   en esa tabla.
 8. Observación sin acción: el hub dice "Transacciones · 29 registros" y la
    lista dice "16 movimientos". No es un error —una suma ingresos y gastos, la
    otra solo el tipo activo— pero se leen como el mismo número.

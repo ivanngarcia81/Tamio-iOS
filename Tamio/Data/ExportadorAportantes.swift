@@ -21,7 +21,7 @@ enum ExportadorAportantes {
 
     static func aportantes(_ lista: [Aportante]) -> URL? {
         let filas = lista.map { a in
-            [a.id, a.nombre, estadoTexto(a.estado), a.rol, a.miembroDesde,
+            [a.id, a.nombre, a.estado.clave, a.rol, a.miembroDesde,
              a.congregaDesde, a.telefono, a.correo, a.nacimiento, a.direccion,
              a.estadoCivil, a.idFiscal, a.frecuencia.rawValue,
              CSV.importe(a.aportesTotal)]
@@ -56,15 +56,4 @@ enum ExportadorAportantes {
                            encabezados: columnasAportantes, filas: [ejemplo])
     }
 
-    /// Sin traducir: el archivo se vuelve a leer, y un "Activo" exportado en
-    /// español tiene que significar lo mismo al importarlo en inglés.
-    private static func estadoTexto(_ e: EstadoMiembro) -> String {
-        switch e {
-        case .activo:   return "activo"
-        case .nuevo:    return "nuevo"
-        case .traslado: return "traslado"
-        case .baja:     return "baja"
-        case .recibido: return "recibido"
-        }
-    }
 }

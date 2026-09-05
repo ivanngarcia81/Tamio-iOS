@@ -132,7 +132,8 @@ struct MockMembresiaRepository: MembresiaRepository {
 
             Miembro(id: "4", nombre: "Javier Medina Cruz",
                     subtitulo: L.t("Traslado en proceso","Transfer in progress"),
-                    estado: .traslado, asistenciaPct: 41,
+                    // Traslado EN CURSO: sigue activo hasta que se cierre.
+                    estado: .activo, asistenciaPct: 41,
                     area: L.t("Sin área","No area"),
                     miembroDesde: L.t("Ingresó 2021","Joined 2021"),
                     asistencia: serie(0.41),
@@ -192,7 +193,7 @@ struct MockMembresiaRepository: MembresiaRepository {
 
             Miembro(id: "7", nombre: "Daniel Guerra Salinas",
                     subtitulo: L.t("Recibido por traslado","Received by transfer"),
-                    estado: .nuevo, asistenciaPct: 78,
+                    estado: .activo, asistenciaPct: 78,
                     area: L.t("Sin área","No area"),
                     miembroDesde: L.t("Ingresó 2026","Joined 2026"),
                     asistencia: serie(0.78),
@@ -211,7 +212,7 @@ struct MockMembresiaRepository: MembresiaRepository {
 
             Miembro(id: "8", nombre: "Rosa Elena Vega",
                     subtitulo: L.t("Traslado aceptado","Transfer accepted"),
-                    estado: .baja, asistenciaPct: 0,
+                    estado: .baja("2026-03-14", "traslado"), asistenciaPct: 0,
                     area: L.t("Sin área","No area"),
                     miembroDesde: L.t("Ingresó 2013","Joined 2013"),
                     asistencia: serie(0),

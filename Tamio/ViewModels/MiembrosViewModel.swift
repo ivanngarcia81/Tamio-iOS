@@ -95,6 +95,6 @@ final class MiembrosViewModel {
     /// Suma de aportes del año de la lista visible (pie de la columna).
     var total: Centavos { itemsFiltrados.reduce(0) { $0 + $1.total(anio: anio) } }
 
-    var activosCount: Int { items.filter { $0.estado != .baja }.count }
-    var bajasCount: Int { items.filter { $0.estado == .baja }.count }
+    var activosCount: Int { items.filter { !$0.estado.esBaja }.count }
+    var bajasCount: Int { items.filter { $0.estado.esBaja }.count }
 }

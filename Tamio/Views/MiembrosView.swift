@@ -15,6 +15,11 @@ struct MiembrosView: View {
     @State private var analisisAportes: ImportadorAportes.Analisis?
     @State private var errorImportacion: String?
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+
+    /// Dar de alta es de Secretaría. El tesorero llega aquí para registrar
+    /// aportes, y a quien no tiene ficha le pone el nombre en el movimiento.
+    private var puedeDarDeAlta: Bool { Permisos.vigentes(sesion).administraPadron }
 
     private enum HojaAportante: Identifiable {
         case nueva
@@ -140,8 +145,10 @@ struct MiembrosView: View {
         // frecuente y se queda donde la busca el pulgar; Archivo —importar y
         // exportar CSV— se usa una vez cada mucho.
         ToolbarItem(placement: compacto ? .topBarLeading : .topBarTrailing) { menuArchivo }
-        if !compacto { ToolbarSpacer(.fixed, placement: .topBarTrailing) }
-        ToolbarItem(placement: .topBarTrailing) { botonNuevo }
+        if puedeDarDeAlta {
+            if !compacto { ToolbarSpacer(.fixed, placement: .topBarTrailing) }
+            ToolbarItem(placement: .topBarTrailing) { botonNuevo }
+        }
     }
 
     private var botonNuevo: some View {
@@ -430,8 +437,10 @@ struct MiembrosView: View {
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 4) {
                 Text(Money.fmt(a.total(anio: vm.anio))).font(.subheadline.weight(.semibold)).monospacedDigit()
-                if a.estado == .traslado {
-                    Text(L.t("Traslado", "Transfer"))
+                // Solo las bajas por traslado: el traslado EN CURSO no es un
+                // estado de la persona sino un expediente, y aquí no se ve.
+                if a.estado.baja?.motivo == "traslado" {
+                    Text(L.t("Trasladado", "Transferred"))
                         .font(.caption2.weight(.semibold)).foregroundStyle(Paleta.aviso)
                         .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
                         .background(Paleta.avisoFill, in: Capsule())

@@ -129,14 +129,17 @@ enum ImportadorAportantes {
         )
     }
 
+    /// Las claves del modelo, más lo que esta app escribía antes en sus
+    /// archivos: "nuevo" y "recibido" eran personas activas con una etiqueta
+    /// de más, y "traslado" era un traslado en curso, que tampoco es una
+    /// baja. Un archivo viejo no puede dar de baja a nadie por accidente.
     private static func estado(_ texto: String, _ porDefecto: EstadoMiembro) -> EstadoMiembro {
         switch texto.lowercased() {
-        case "activo", "active":     return .activo
-        case "nuevo", "new":         return .nuevo
-        case "traslado", "transfer": return .traslado
-        case "baja", "removed":      return .baja
-        case "recibido", "received": return .recibido
-        default:                     return porDefecto
+        case "active":                        return .activo
+        case "removed":                       return .baja("", "")
+        case "nuevo", "new", "recibido", "received",
+             "traslado", "transfer":          return .activo
+        default: return EstadoMiembro.desde(clave: texto) ?? porDefecto
         }
     }
 }

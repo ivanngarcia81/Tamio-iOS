@@ -41,8 +41,8 @@ struct OfflineMiembrosRepository: MiembrosRepository {
 
             let todos = filas.map { $0.aportante(aportes: porMiembro[$0.id] ?? []) }
             switch filtro {
-            case .activos: return todos.filter { $0.estado != .baja }
-            case .bajas:   return todos.filter { $0.estado == .baja }
+            case .activos: return todos.filter { !$0.estado.esBaja }
+            case .bajas:   return todos.filter { $0.estado.esBaja }
             case .todos:   return todos
             }
         }

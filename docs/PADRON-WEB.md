@@ -45,23 +45,27 @@ NULL.
 `motivo_baja` sale de un catálogo cerrado: **`traslado`, `fallecimiento`,
 `retiro`, `disciplina`, `otro`**.
 
-### Lo que esto significa para iOS, y que hoy está mal
+### Cómo lo modela iOS desde el 5 de septiembre
 
-`MotorSincronizacion.AportanteEscritura` **no manda `activo`** y escribe en
-`estado_membresia` los valores del enum de iOS (`AportanteFila.texto`). O sea:
+`EstadoMiembro` dejó de ser un enum de cinco casos y es exactamente esto:
+`registro` (los cuatro del web) y `baja` opcional con fecha y motivo. La
+etiqueta de una baja se deriva del motivo, igual que allí. `AportanteFila`,
+la subida y la bajada llevan las tres columnas, y la v15 normaliza lo que el
+enum viejo hubiera dejado en `estado`: "baja" pasa a `activo = 0`; "traslado",
+"nuevo" y "recibido" vuelven a "activo".
 
-- Dar de baja a alguien desde el teléfono lo deja **`activo = 1`** en el
-  servidor: el web lo sigue contando en el padrón activo.
-- Escribe `"baja"`, `"traslado"`, `"nuevo"` y `"recibido"` en una columna cuyo
-  vocabulario es otro.
+Antes de eso, `AportanteEscritura` no mandaba `activo` y escribía en
+`estado_membresia` el vocabulario del enum: una baja hecha desde el teléfono
+dejaba a la persona contada como activa en el web. No llegó a pasar —las ocho
+filas de la base traían valores del web— pero estaba en el código.
 
-**Todavía no ha pasado**: las ocho filas de la base traen valores del web
-(`activo`/1 y `enProceso`/0), así que el daño es latente, no hecho. Pero está en
-el código hoy, en Tesorería, y no en la parte de Membresía que falta escribir.
+Los tres casos que se fueron del enum, y en qué quedaron:
 
-`nuevo` y `recibido` no tienen equivalente en el web y hay que decidir qué son
-—probablemente `enProceso` y `activo` con `fecha_ingreso` puesta— antes de
-escribir la sincronización del padrón.
+| Era | Es |
+|---|---|
+| `nuevo` | `fecha_ingreso` dentro del periodo. Así cuenta `membresiaStats` las altas |
+| `recibido` | `iglesia_anterior` no vacío; el expediente está en `traslados_entrada` |
+| `traslado` (en curso) | Una fila viva en `traslados_salida`. La persona sigue activa hasta que se cierra. **Mientras esa tabla no se refleje, la pastilla "traslado en curso" no se ve** |
 
 ---
 
@@ -112,7 +116,28 @@ cadenas, devuelve lista vacía en vez de reventar. Conviene copiar ese criterio.
 
 ---
 
-## 4. De dónde sale la asistencia
+## 4. Quién da de alta y de baja
+
+**Decidido el 5 de septiembre: es de Secretaría.** El administrador también;
+el tesorero no, ni con `tesorero_ve_padron`, que abre la pantalla y no el acta.
+En iOS es `Permisos.administraPadron`, y esconde el "Nuevo" de Aportantes, el de
+Membresía, el interruptor de baja de la ficha y el "Restaurar" de la bandeja.
+
+El tesorero no lo necesita: un diezmo de alguien sin ficha se registra con
+`transactions.aportante_nombre`, sin dar de alta a nadie.
+
+**El web hace lo contrario.** `/miembros` está en `RUTAS_TESORERIA` y llama a
+`insertMember`, `deleteMember` y `archiveMember` — y `archiveMember` también
+pone `activo = 0`, así que es una baja sin fecha ni motivo. La baja formal, con
+las dos y con historial, ya era solo de `/membresia`.
+
+**Y la barrera de verdad no existe en ningún lado.** Las políticas de `members`
+solo miran `church_id`, y el único disparador de la base es
+`frenar_borrado_tesorero`, sobre `transactions`. Ponerle uno a `members` rompe
+`/miembros` en el web para el tesorero: hay que cambiarlo en las dos apps a la
+vez, y está pendiente.
+
+## 5. De dónde sale la asistencia
 
 `servicios` (fecha, tipo, dirige, predica, `asistentes`/`ausentes`/`visitantes`
 como arrays JSON, y conteos de `ninos`/`jovenes`/`adultos`) y
@@ -129,7 +154,7 @@ persona tenía entonces.
 
 ---
 
-## 5. Dónde está el web
+## 6. Dónde está el web
 
 `~/Documents/Tamio-app`, rama con último commit *"Fusión: la puerta del
 teléfono, el primer arranque y el mes"*. Los archivos que importan para el

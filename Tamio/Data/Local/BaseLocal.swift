@@ -506,6 +506,16 @@ final class BaseLocal {
                 t.add(column: "notas", .text).notNull().defaults(to: "")
             }
 
+            // **Lo que el enum viejo dejó escrito en `estado`.** Esta app
+            // guardaba ahí "baja", "traslado", "nuevo" y "recibido", que el
+            // servidor no lee. Una "baja" sí era una baja: pasa a `activo = 0`,
+            // sin fecha ni motivo porque nunca los tuvo. "traslado" era un
+            // traslado EN CURSO —la persona seguía en el padrón esperando la
+            // carta— y "nuevo" y "recibido" eran personas activas con una
+            // etiqueta de más: los tres vuelven a "activo".
+            try db.execute(sql: "update aportante set activo = 0, estado = 'activo' where estado = 'baja'")
+            try db.execute(sql: "update aportante set estado = 'activo' where estado in ('traslado', 'nuevo', 'recibido')")
+
             // **Los parentescos ya se editaban y no se guardaban en ninguna
             // parte**: `AportanteFila.aportante(...)` devuelve `familia: []`
             // fijo, así que el "Añadir pariente" de la ficha duraba lo que la
