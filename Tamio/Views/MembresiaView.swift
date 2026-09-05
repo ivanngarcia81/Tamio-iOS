@@ -10,19 +10,84 @@ struct MembresiaView: View {
     @State private var mostrarFiltros = false
     @Environment(\.horizontalSizeClass) private var sizeClass
 
+    /// **La rama del teléfono.** Mismo criterio que en Ingresos y en
+    /// Aportantes: no es "¿caben lista y detalle?" —eso lo decide el ancho—
+    /// sino "¿los controles suben a la barra?", que solo tiene sentido en el
+    /// teléfono. En iPad la barra es de la pantalla entera y el buscador
+    /// acabaría lejos de la lista que filtra.
+    private var compacto: Bool { sizeClass == .compact }
+
     var body: some View {
+        pantalla
+            .toolbar { barra }
+            .task { await vm.cargar() }
+            .onChange(of: subtab) { _, nuevo in
+                vm.sincronizarSeleccion(enSeguimiento: nuevo == 2)
+            }
+            .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
+            .sheet(isPresented: $mostrarNuevo) {
+                NuevoMiembroSheet(proximoId: vm.proximoId) { nuevo in
+                    vm.agregarMiembro(nuevo)
+                }
+            }
+            .sheet(item: $miembroAEditar) { m in
+                NuevoMiembroSheet(proximoId: m.id, miembroExistente: m) { editado in
+                    vm.editarMiembro(editado)
+                }
+            }
+            .sheet(item: $miembroParaSeguimiento) { m in
+                SeguimientoSheet(miembro: m) { nota in
+                    vm.agregarSeguimiento(miembroId: m.id, nota: nota)
+                }
+            }
+    }
+
+    /// Teléfono: buscador nativo y el título en línea, con los controles en la
+    /// barra. iPad: título y subtítulo como las demás pantallas, y los
+    /// controles abajo, pegados a la lista que filtran.
+    ///
+    /// **El buscador no acompaña a Asistencia**: esa vista no es una lista de
+    /// personas, así que la lupa no tendría nada que filtrar, y un campo de
+    /// búsqueda que no busca es de las cosas que esta pantalla ya tenía.
+    @ViewBuilder
+    private var pantalla: some View {
+        if compacto {
+            if subtab == 1 {
+                columnas
+                    .navigationTitle(L.t("Membresía", "Membership"))
+                    .navigationBarTitleDisplayMode(.inline)
+            } else {
+                columnas
+                    // La lupa se queda arriba por el límite del sistema que
+                    // documenta `MovimientosView.pantalla`: con `.searchable`
+                    // no hay forma de tenerla solo en la barra inferior.
+                    .searchable(text: $vm.busqueda,
+                                prompt: Text(L.t("Buscar por nombre o correo",
+                                                 "Search by name or email")))
+                    .searchToolbarBehavior(.minimize)
+                    .navigationTitle(L.t("Membresía", "Membership"))
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+        } else {
+            columnas
+                .encabezadoNav(L.t("Membresía", "Membership"),
+                               L.t("Padrón, altas, bajas y traslados",
+                                   "Roster, additions, removals & transfers"))
+                .navigationBarTitleDisplayMode(.large)
+        }
+    }
+
+    private var columnas: some View {
         GeometryReader { geo in
             if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
                     listaColumna
                         .frame(width: Esp.columnaMaestra)
-                        .background(.regularMaterial)
                     Divider()
                     panelDerecho
                 }
             } else {
-                listaColumna
-                    .background(.regularMaterial)
+                contenidoCompacto
                     .navigationDestination(item: $abierto) { m in
                         MiembroDetalle(miembro: m, resumen: vm.resumen,
                                        onEditar: { miembroAEditar = m },
@@ -41,43 +106,131 @@ struct MembresiaView: View {
                                        onQuitarPariente: { id in
                                            vm.quitarPariente(miembroId: m.id, parienteId: id)
                                        })
-                            .background(Color(.systemGroupedBackground))
                             .navigationBarTitleDisplayMode(.inline)
                     }
             }
         }
-        .encabezadoNav(L.t("Membresía", "Membership"),
-                       L.t("Padrón, altas, bajas y traslados", "Roster, additions, removals & transfers"))
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { mostrarNuevo = true } label: {
-                    Label(L.t("Nuevo", "New"), systemImage: "plus")
+    }
+
+    /// **Asistencia no existía en el teléfono.** El panel congregacional solo
+    /// se dibujaba en la columna derecha del iPad, así que en el teléfono
+    /// tocar "Asistencia" volvía a enseñar la lista de miembros: la pestaña
+    /// cambiaba de nombre y no de contenido.
+    @ViewBuilder
+    private var contenidoCompacto: some View {
+        if subtab == 1 { panelAsistencia } else { listaColumna }
+    }
+
+    // MARK: - Barra
+
+    @ToolbarContentBuilder
+    private var barra: some ToolbarContent {
+        // **En el teléfono, menú; en iPad, segmentado.** Es la medida que ya
+        // se tomó en Aportantes: un segmentado de tres opciones conviviendo
+        // con los filtros, el `+` y la lupa se parte en "Mie… Asi… Seg…", y en
+        // inglés "Attendance" y "Follow-up" son más largas todavía. La
+        // etiqueta del menú dice dónde estás y el menú las enseña enteras.
+        if compacto {
+            ToolbarItem(placement: .title) { menuVista }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                // En Asistencia no hay lista que filtrar, así que el botón no
+                // se dibuja en vez de quedarse sin efecto.
+                if subtab != 1 { botonFiltros }
+                botonNuevo
+            }
+        } else {
+            ToolbarItem(placement: .topBarTrailing) { botonNuevo }
+        }
+    }
+
+    /// Las tres vistas del padrón. **El conteo va en la etiqueta**, como en
+    /// las bandejas de Mail y como en Aportantes: al irse el pie de la lista
+    /// del teléfono, este es el único sitio que dice cuántas personas se están
+    /// viendo, y ese número es lo que revela que la lista está filtrada.
+    private var menuVista: some View {
+        Menu {
+            ForEach(Self.vistas, id: \.0) { valor, nombre in
+                Button { subtab = valor } label: {
+                    if subtab == valor { Label(nombre, systemImage: "checkmark") }
+                    else { Text(nombre) }
                 }
-                .buttonStyle(.glass)
-                .tint(Paleta.brand)
+            }
+        } label: {
+            HStack(spacing: 4) {
+                // Asistencia no cuenta personas: es la congregación entera.
+                Text(subtab == 1
+                     ? Self.nombreVista(1)
+                     : "\(Self.nombreVista(subtab)) (\(conteoVista))")
+                    .lineLimit(1)
+                Image(systemName: "chevron.down").font(.caption2)
+            }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+            .background(Color(.tertiarySystemFill), in: Capsule())
+        }
+    }
+
+    /// Un solo sitio con los tres nombres: el menú del teléfono y el segmentado
+    /// del iPad los leían por separado y podían separarse sin que nadie lo
+    /// decidiera.
+    private static var vistas: [(Int, String)] {
+        [(0, L.t("Miembros", "Members")),
+         (1, L.t("Asistencia", "Attendance")),
+         (2, L.t("Seguimiento", "Follow-up"))]
+    }
+
+    private static func nombreVista(_ v: Int) -> String {
+        vistas.first { $0.0 == v }?.1 ?? ""
+    }
+
+    private var conteoVista: Int {
+        subtab == 2 ? vm.itemsSeguimiento.count : vm.itemsFiltrados.count
+    }
+
+    private var pickerVista: some View {
+        Picker(L.t("Vista", "View"), selection: $subtab) {
+            ForEach(Self.vistas, id: \.0) { valor, nombre in
+                Text(nombre).tag(valor)
             }
         }
-        .task { await vm.cargar() }
-        .onChange(of: subtab) { _, nuevo in
-            vm.sincronizarSeleccion(enSeguimiento: nuevo == 2)
+        .pickerStyle(.segmented)
+        .labelsHidden()
+    }
+
+    private var botonNuevo: some View {
+        Button { mostrarNuevo = true } label: {
+            Label(L.t("Nuevo", "New"), systemImage: "plus")
         }
-        .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
-        .sheet(isPresented: $mostrarNuevo) {
-            NuevoMiembroSheet(proximoId: vm.proximoId) { nuevo in
-                vm.agregarMiembro(nuevo)
+        .buttonStyle(.glass)
+        .tint(Paleta.brand)
+    }
+
+    /// Botón de filtros. La cápsula, el borde y la sombra las pone `.glass`;
+    /// el verde tiñe el material cuando hay algo aplicado y el contador dice
+    /// cuánto. Esa señal no se puede perder: un filtro puesto explica una
+    /// lista vacía.
+    ///
+    /// **En el teléfono, solo el icono**, como en Ingresos: las dos palabras
+    /// gastan el ancho que necesitan la etiqueta de vista y el `+`.
+    private var botonFiltros: some View {
+        Button { mostrarFiltros = true } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "line.3.horizontal.decrease")
+                if !compacto { Text(L.t("Más filtros", "More filters")) }
+                if filtrosActivos > 0 {
+                    Text("\(filtrosActivos)")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(minWidth: 16, minHeight: 16)
+                        .background(Paleta.brand, in: Circle())
+                }
             }
+            .font(.subheadline.weight(.medium))
         }
-        .sheet(item: $miembroAEditar) { m in
-            NuevoMiembroSheet(proximoId: m.id, miembroExistente: m) { editado in
-                vm.editarMiembro(editado)
-            }
-        }
-        .sheet(item: $miembroParaSeguimiento) { m in
-            SeguimientoSheet(miembro: m) { nota in
-                vm.agregarSeguimiento(miembroId: m.id, nota: nota)
-            }
-        }
+        .buttonStyle(.glass)
+        .tint(filtrosActivos > 0 ? Paleta.brand : nil)
+        .accessibilityLabel(L.t("Más filtros", "More filters"))
     }
 
     // MARK: - Panel derecho según pestaña
@@ -86,13 +239,7 @@ struct MembresiaView: View {
     private var panelDerecho: some View {
         switch subtab {
         case 1:
-            if let a = vm.asistencia {
-                PanelAsistencia(asistencia: a, masConstantes: vm.masConstantes, ausentes: vm.itemsAusentes)
-            } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemGroupedBackground))
-            }
+            panelAsistencia
         default:
             let listActiva = subtab == 2 ? vm.itemsSeguimiento : vm.itemsFiltrados
             if let m = listActiva.first(where: { $0.id == vm.seleccionId }) ?? listActiva.first {
@@ -117,141 +264,213 @@ struct MembresiaView: View {
         }
     }
 
+    /// El panel congregacional de asistencia, compartido por las dos ramas: en
+    /// iPad ocupa la columna derecha y en el teléfono la pantalla entera.
+    @ViewBuilder
+    private var panelAsistencia: some View {
+        if let a = vm.asistencia {
+            PanelAsistencia(asistencia: a, masConstantes: vm.masConstantes,
+                            ausentes: vm.itemsAusentes,
+                            onVerSeguimiento: { subtab = 2 })
+        } else {
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(.systemGroupedBackground))
+        }
+    }
+
     // MARK: - Columna izquierda
 
+    /// **Capas, no hermanos.** Mismo arreglo que en Ingresos y en Aportantes:
+    /// la cabecera y el pie eran hermanos de la lista dentro de un `VStack`,
+    /// así que una fila que subía al desplazarse se recortaba contra el borde
+    /// del `VStack` y desaparecía de golpe en la línea del `Divider` —no había
+    /// nada que difuminar porque nada llegaba a pasar por detrás— y el pie
+    /// cortaba la última fila a media altura. Con `safeAreaInset` la lista
+    /// ocupa todo y el contenido corre por debajo de las dos barras, que es lo
+    /// único que le da al material algo que refractar.
     private var listaColumna: some View {
-        VStack(spacing: 0) {
-            // Picker + buscador + chips
+        lista
+            .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
+            // **El pie, solo en iPad.** En el teléfono apilaba una segunda
+            // barra sobre la de pestañas y cortaba la última fila; el conteo
+            // que decía vive ahora en la etiqueta del menú de vista. En iPad
+            // no hay barra de pestañas contra la que apilarse, y este pie es
+            // el único sitio de la columna que dice cuántos hay.
+            .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
+            .colchonInferior()
+    }
+
+    /// La tira de controles. **En el teléfono queda reducida al aviso de
+    /// filtro**: la vista, el buscador y los filtros viven en la barra. En
+    /// iPad se queda entera —la barra es de la pantalla completa y estos
+    /// controles filtran solo la columna— pero con los controles en glass en
+    /// vez de dibujados a mano con `secondarySystemFill`.
+    @ViewBuilder
+    private var cabeceraLista: some View {
+        if !compacto || vm.filtroAccion != nil {
             VStack(spacing: 10) {
-                Picker(L.t("Vista", "View"), selection: $subtab) {
-                    Text(L.t("Miembros", "Members")).tag(0)
-                    Text(L.t("Asistencia", "Attendance")).tag(1)
-                    Text(L.t("Seguimiento", "Follow-up")).tag(2)
+                if !compacto {
+                    pickerVista
+                    if subtab != 1 {
+                        buscadorColumna
+                        // Se agrupan para que las dos cápsulas se fundan entre
+                        // sí al acercarse, que es lo que hace un contenedor de
+                        // glass.
+                        GlassEffectContainer(spacing: Esp.hueco) {
+                            HStack(spacing: Esp.hueco) {
+                                menuAño
+                                Spacer()
+                                botonFiltros
+                            }
+                        }
+                    }
                 }
-                .pickerStyle(.segmented)
+                avisoFiltroAccion
+            }
+            .padding(.horizontal, Esp.pantalla)
+            .padding(.vertical, compacto ? Esp.hueco : Esp.chip)
+            // El material vive AQUÍ, no detrás de la columna entera: detrás de
+            // la lista se resolvía como un gris plano porque no tenía nada que
+            // difuminar.
+            .background(.regularMaterial)
+        }
+    }
 
-                if subtab != 1 {
-                    HStack(spacing: 8) {
-                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                        TextField(L.t("Buscar por nombre o correo", "Search by name or email"),
-                                  text: $vm.busqueda).textFieldStyle(.plain)
-                        if !vm.busqueda.isEmpty {
-                            Button { vm.busqueda = "" } label: {
-                                Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .font(.subheadline)
-                    .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                    .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 9))
+    /// El filtro que llega desde los indicadores de la ficha del miembro. Se
+    /// queda también en el teléfono: es lo único que explica por qué la lista
+    /// se ha quedado corta, y el globito del botón dice cuántos filtros hay
+    /// pero no cuál.
+    @ViewBuilder
+    private var avisoFiltroAccion: some View {
+        if let etiqueta = vm.etiquetaFiltroAccion {
+            HStack(spacing: 6) {
+                Text(etiqueta).font(.subheadline.weight(.medium))
+                Button { vm.filtroAccion = nil } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.plain)
+            }
+            .foregroundStyle(Paleta.aviso)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+            .background(Capsule().fill(Paleta.avisoFill))
+            .overlay(Capsule().stroke(Paleta.avisoStroke, lineWidth: 1))
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
 
-                    if let etiqueta = vm.etiquetaFiltroAccion {
-                        HStack(spacing: 6) {
-                            Text(etiqueta).font(.subheadline.weight(.medium))
-                            Button { vm.filtroAccion = nil } label: {
-                                Image(systemName: "xmark.circle.fill")
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .foregroundStyle(Paleta.aviso)
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                        .background(Capsule().fill(Paleta.avisoFill))
-                        .overlay(Capsule().stroke(Paleta.avisoStroke, lineWidth: 1))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+    /// El buscador de la columna del iPad. No usa `.searchable` a propósito:
+    /// ese lo coloca el sistema en la barra de la pantalla, que en iPad está
+    /// encima de las dos columnas y del detalle. Filtra esta lista, así que
+    /// vive pegado a ella. Lo que se va es el `RoundedRectangle` con
+    /// `tertiarySystemFill` que hacía de fondo.
+    private var buscadorColumna: some View {
+        HStack(spacing: Esp.hueco) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField(L.t("Buscar por nombre o correo", "Search by name or email"),
+                      text: $vm.busqueda)
+                .textFieldStyle(.plain)
+            if !vm.busqueda.isEmpty {
+                Button { vm.busqueda = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .font(.subheadline)
+        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+        .glassEffect(.regular, in: .capsule)
+    }
 
-                    HStack(spacing: 8) {
-                        Menu {
-                            Button { vm.filtroAño = nil } label: {
-                                if vm.filtroAño == nil { Label(L.t("Todos los años", "All years"), systemImage: "checkmark") }
-                                else { Text(L.t("Todos los años", "All years")) }
-                            }
-                            Divider()
-                            ForEach(vm.añosDisponibles, id: \.self) { año in
-                                Button { vm.filtroAño = año } label: {
-                                    if vm.filtroAño == año { Label(String(año), systemImage: "checkmark") }
-                                    else { Text(String(año)) }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text(vm.filtroAño.map { L.t("Año \(String($0))", "Year \(String($0))") } ?? L.t("Todos los años", "All years"))
-                                Image(systemName: "chevron.down").font(.caption.weight(.semibold))
-                            }
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(vm.filtroAño != nil ? Paleta.brand : .primary)
-                            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                            .background(Capsule().fill(vm.filtroAño != nil ? Paleta.brandFill : Color(.secondarySystemFill)))
-                            .overlay(Capsule().stroke(vm.filtroAño != nil ? Paleta.brandStroke : Color.clear, lineWidth: 1))
-                        }
-
-                        Spacer()
-
-                        Button { mostrarFiltros = true } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: "line.3.horizontal.decrease")
-                                Text(L.t("Más filtros", "More filters"))
-                                if filtrosActivos > 0 {
-                                    Text("\(filtrosActivos)")
-                                        .font(.caption2.weight(.bold)).foregroundStyle(.white)
-                                        .frame(minWidth: 16, minHeight: 16)
-                                        .background(Paleta.brand, in: Circle())
-                                }
-                            }
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(filtrosActivos > 0 ? Paleta.brand : .primary)
-                            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                            .background(Capsule().fill(filtrosActivos > 0 ? Paleta.brandFill : Color(.secondarySystemFill)))
-                            .overlay(Capsule().stroke(filtrosActivos > 0 ? Paleta.brandStroke : Color.clear, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                    }
+    /// El año de ingreso, solo en iPad. En el teléfono no hay cápsula libre en
+    /// la barra, así que baja a la hoja de filtros y allí sí cuenta en el
+    /// globito — ver `filtrosActivos`.
+    private var menuAño: some View {
+        Menu {
+            Button { vm.filtroAño = nil } label: {
+                if vm.filtroAño == nil { Label(Self.todosLosAños, systemImage: "checkmark") }
+                else { Text(Self.todosLosAños) }
+            }
+            Divider()
+            ForEach(vm.añosDisponibles, id: \.self) { año in
+                Button { vm.filtroAño = año } label: {
+                    if vm.filtroAño == año { Label(String(año), systemImage: "checkmark") }
+                    else { Text(String(año)) }
                 }
             }
-            .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
-            Divider()
+        } label: {
+            HStack(spacing: 4) {
+                Text(etiquetaAño)
+                Image(systemName: "chevron.down").font(.caption.weight(.semibold))
+            }
+            .font(.subheadline.weight(.medium))
+        }
+        .buttonStyle(.glass)
+        .tint(vm.filtroAño != nil ? Paleta.brand : nil)
+    }
 
-            // Mismo respiro que en Ingresos: sin él la primera fila asoma a
-            // medias bajo la barra de filtros.
-            listaActiva
-                .contentMargins(.vertical, Esp.hueco, for: .scrollContent)
+    private static let todosLosAños = L.t("Todos los años", "All years")
 
-            Divider()
+    private var etiquetaAño: String {
+        vm.filtroAño.map { L.t("Año \(String($0))", "Year \(String($0))") } ?? Self.todosLosAños
+    }
+
+    /// El pie de la columna del iPad. En el teléfono devuelve vacío: no queda
+    /// un `safeAreaInset` reservando altura en su lugar.
+    @ViewBuilder
+    private var pieLista: some View {
+        if !compacto {
             HStack {
-                let total = subtab == 2 ? vm.itemsSeguimiento.count : vm.itemsFiltrados.count
-                let roster = vm.items.count
-                let hayFiltros = subtab != 2 && (vm.filtroAño != nil || filtrosActivos > 0 || !vm.busqueda.isEmpty)
-                let totalStr = subtab == 2
-                    ? L.t("\(total) de \(roster) miembros", "\(total) of \(roster) members")
-                    : hayFiltros
-                        ? L.t("\(total) de \(roster) en el padrón", "\(total) of \(roster) on the roster")
-                        : L.t("\(roster) miembros en el padrón", "\(roster) members on the roster")
-                Text(totalStr)
+                Text(textoPie)
                 Spacer()
             }
             .font(.caption).foregroundStyle(.secondary)
             .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(.regularMaterial)
         }
-        .colchonInferior()
+    }
+
+    private var textoPie: String {
+        let total = conteoVista
+        let roster = vm.items.count
+        if subtab == 2 {
+            return L.t("\(total) de \(roster) miembros", "\(total) of \(roster) members")
+        }
+        let hayFiltros = vm.filtroAño != nil || filtrosActivos > 0 || !vm.busqueda.isEmpty
+        return hayFiltros
+            ? L.t("\(total) de \(roster) en el padrón", "\(total) of \(roster) on the roster")
+            : L.t("\(roster) miembros en el padrón", "\(roster) members on the roster")
     }
 
     @ViewBuilder
-    private var listaActiva: some View {
+    private var lista: some View {
         if subtab == 2 && vm.itemsSeguimiento.isEmpty {
             ContentUnavailableView(L.t("Sin alertas", "No alerts"),
                                    systemImage: "checkmark.circle",
                                    description: Text(L.t("Todos los miembros están al corriente.", "All members are up to date.")))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(.systemGroupedBackground))
         } else {
             // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`, no
             // `insetGrouped`, que metía la lista un escalón más que la cabecera.
-            listaActivaCuerpo
+            listaCuerpo
                 .listStyle(.plain)
+                // El suelo va en la LISTA, no en la columna: detrás de la
+                // columna entera el material no tenía nada que difuminar y se
+                // resolvía como un gris plano.
                 .scrollContentBackground(.hidden)
+                .background(Color(.systemGroupedBackground))
+                // El desvanecido de borde: la fila deja de aparecer y
+                // desaparecer de golpe al cruzar por detrás de la cabecera.
+                // Sustituye al margen de scroll que había como parche, de
+                // cuando la cabecera todavía era hermana de la lista.
+                .scrollEdgeEffectStyle(.soft, for: .all)
         }
     }
 
     @ViewBuilder
-    private var listaActivaCuerpo: some View {
+    private var listaCuerpo: some View {
         List {
             if subtab == 2 {
                 ForEach(vm.itemsSeguimiento) { m in
@@ -323,14 +542,39 @@ struct MembresiaView: View {
 
     // MARK: - Helpers
 
+    /// **El año cuenta como filtro solo en el teléfono.** En iPad tiene chip
+    /// propio, que ya se tiñe de verde cuando hay uno puesto, y contarlo aquí
+    /// dejaría el globito encendido por partida doble. En el teléfono el año
+    /// vive dentro de la hoja, así que si no se cuenta aquí no se cuenta en
+    /// ningún sitio: una lista corta no se explica sola. Es la misma lección
+    /// que dejó Ingresos, donde el periodo no se contaba y la lista de un mes
+    /// que no era el actual no decía por qué era corta.
     private var filtrosActivos: Int {
         (vm.filtroEstado != nil ? 1 : 0) + (vm.filtroMinisterio != nil ? 1 : 0)
             + (vm.filtroAccion != nil ? 1 : 0)
+            + (compacto && vm.filtroAño != nil ? 1 : 0)
     }
 
     private var filtrosSheet: some View {
         NavigationStack {
             List {
+                // **El año solo aquí en el teléfono.** Arriba no queda cápsula
+                // libre —la etiqueta de vista, los filtros, el `+` y la lupa
+                // ya son cuatro, y la quinta el sistema la tira sin avisar—,
+                // así que el chip de año baja a la hoja. En iPad se queda en la
+                // cabecera de la columna y esta sección no se dibuja.
+                if compacto && !vm.añosDisponibles.isEmpty {
+                    Section(L.t("AÑO DE INGRESO", "YEAR JOINED")) {
+                        filaFiltro(Self.todosLosAños, activo: vm.filtroAño == nil) {
+                            vm.filtroAño = nil
+                        }
+                        ForEach(vm.añosDisponibles, id: \.self) { año in
+                            filaFiltro(String(año), activo: vm.filtroAño == año) {
+                                vm.filtroAño = año
+                            }
+                        }
+                    }
+                }
                 Section(L.t("ESTADO", "STATUS")) {
                     filaFiltro(L.t("Todos", "All"), activo: vm.filtroEstado == nil) {
                         vm.filtroEstado = nil
@@ -364,6 +608,10 @@ struct MembresiaView: View {
                         vm.filtroEstado = nil
                         vm.filtroMinisterio = nil
                         vm.filtroAccion = nil
+                        // El año se limpia solo donde se pone: en iPad su chip
+                        // vive fuera de esta hoja y borrarlo desde aquí sería
+                        // deshacer algo que no se ve.
+                        if compacto { vm.filtroAño = nil }
                     }
                     .disabled(filtrosActivos == 0)
                 }
@@ -416,6 +664,12 @@ private struct PanelAsistencia: View {
     let asistencia: AsistenciaResumen
     let masConstantes: [Miembro]
     let ausentes: [Miembro]
+    /// Lleva a la vista de Seguimiento, que es donde se resuelven las
+    /// ausencias que esta tarjeta enumera. El botón existía desde el principio
+    /// con la acción vacía: prometía un sitio al que ir y no iba a ninguno.
+    let onVerSeguimiento: () -> Void
+
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         ScrollView {
@@ -480,8 +734,15 @@ private struct PanelAsistencia: View {
     }
 
     // KPIs del periodo
+    /// **Cuatro en fila solo caben en la columna del iPad.** Este panel ahora
+    /// también es la pantalla de Asistencia del teléfono, y a 390 pt las
+    /// cuatro tarjetas salían de unos 85 pt: "Presentes en promedio" ocupaba
+    /// tres renglones encima de su número. En compacto van de dos en dos.
     private var kpisAsistencia: some View {
-        HStack(spacing: 12) {
+        let columnas: [GridItem] = sizeClass == .compact
+            ? [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+            : Array(repeating: GridItem(.flexible(), spacing: 12), count: 4)
+        return LazyVGrid(columns: columnas, spacing: 12) {
             kpiCard(L.t("Promedio del periodo", "Period average"),
                     "\(asistencia.promedioPct)%",
                     L.t("del roster", "of roster"))
@@ -559,10 +820,11 @@ private struct PanelAsistencia: View {
                 HStack {
                     TituloSeccion(texto: L.t("SIN ASISTIR ÚLTIMAMENTE", "RECENTLY ABSENT"))
                     Spacer()
-                    Button { } label: {
+                    Button { onVerSeguimiento() } label: {
                         Text(L.t("Ver seguimiento", "View follow-up"))
                             .font(.caption).foregroundStyle(Paleta.enlace)
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.bottom, 12)
 
