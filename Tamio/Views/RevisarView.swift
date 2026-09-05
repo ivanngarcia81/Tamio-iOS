@@ -39,20 +39,7 @@ struct RevisarView: View {
         // no scrollea y el título grande dejaba una franja vacía.
         .navigationBarTitleDisplayMode(sizeClass == .compact ? .inline : .large)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                // El conteo dice cuántos de los pendientes va a tocar: antes
-                // decía "Aprobar todo" y aprobaba también el duplicado y el
-                // gasto sin comprobante que había en la lista.
-                Button { Task { await vm.aprobarTodo() } } label: {
-                    Text(vm.aprobablesCount == vm.porRevisarCount
-                         ? L.t("Aprobar todo", "Approve all")
-                         : L.t("Aprobar \(vm.aprobablesCount) de \(vm.porRevisarCount)",
-                               "Approve \(vm.aprobablesCount) of \(vm.porRevisarCount)"))
-                }
-                .buttonStyle(.glass)
-                .tint(Paleta.brand)
-                .disabled(vm.aprobablesCount == 0)
-            }
+            ToolbarItem(placement: .topBarTrailing) { aprobarTodo }
         }
         .overlay(alignment: .bottom) { toastView }
         .animation(.snappy, value: vm.toast?.id)
@@ -88,6 +75,50 @@ struct RevisarView: View {
     /// Ahora es material, como el resto de las superficies flotantes de la app,
     /// con el texto en `.primary`: los dos se invierten juntos y no hay tema en
     /// el que coincidan.
+    /// **Con cero aprobables no hay botón, hay una frase.**
+    ///
+    /// Iba siempre en cápsula de glass y se apagaba con `.disabled`. Medido en
+    /// pantalla, ese estado da **1.70:1** de contraste —el mínimo para texto
+    /// normal es 4.5:1—: la etiqueta se borraba y quedaba una cápsula vacía. No
+    /// era el verde de marca: sin `tint` daba exactamente lo mismo. Es
+    /// `.disabled` sobre `.glass`, que atenúa la etiqueta contra un material
+    /// que ya es casi blanco.
+    ///
+    /// Y el problema no era solo de contraste. Con cero aprobables ese control
+    /// no puede hacer nada: los asuntos de la lista piden vincular aportante o
+    /// adjuntar comprobante, uno por uno. Una cápsula que parece botón y no
+    /// responde promete algo que no cumple, que es justo lo que esta pantalla
+    /// dejó de hacer cuando sus botones dejaron de apagar el aviso sin arreglar
+    /// nada.
+    ///
+    /// Así que con cero se lee como lo que es, información: cuántos de los
+    /// pendientes están listos para aprobarse en bloque —ninguno— dicho en
+    /// texto legible. En cuanto hay uno, vuelve la cápsula verde y vuelve a ser
+    /// una acción. El color va con `.primary` rebajado y no con `.secondary`,
+    /// que se queda en 3.29:1: rebajado da 6.3:1 en claro y sube en oscuro,
+    /// porque `.primary` ya cambia de lado con la apariencia.
+    @ViewBuilder
+    private var aprobarTodo: some View {
+        if vm.aprobablesCount == 0 {
+            Text(L.t("0 de \(vm.porRevisarCount) listos",
+                     "0 of \(vm.porRevisarCount) ready"))
+                .font(.subheadline)
+                .foregroundStyle(.primary.opacity(0.7))
+        } else {
+            // El conteo dice cuántos de los pendientes va a tocar: antes decía
+            // "Aprobar todo" y aprobaba también el duplicado y el gasto sin
+            // comprobante que había en la lista.
+            Button { Task { await vm.aprobarTodo() } } label: {
+                Text(vm.aprobablesCount == vm.porRevisarCount
+                     ? L.t("Aprobar todo", "Approve all")
+                     : L.t("Aprobar \(vm.aprobablesCount) de \(vm.porRevisarCount)",
+                           "Approve \(vm.aprobablesCount) of \(vm.porRevisarCount)"))
+            }
+            .buttonStyle(.glass)
+            .tint(Paleta.brand)
+        }
+    }
+
     @ViewBuilder
     private var toastView: some View {
         if let t = vm.toast {
