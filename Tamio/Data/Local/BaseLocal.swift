@@ -410,6 +410,116 @@ final class BaseLocal {
                           columns: ["recurrenteId"])
         }
 
+        // **El padrón no estrena tabla, y no hay nada que diseñar: se copia.**
+        //
+        // Dos cosas que había que mirar antes de escribir una sola columna, y
+        // que cambian el trabajo entero:
+        //
+        // 1. `aportante` ES la fila de la persona. Su migración v3 ya se
+        //    presenta como "Espejo de `members`", y `Aportante.estado` es del
+        //    tipo `EstadoMiembro`, el enum del padrón. Una tabla `miembro`
+        //    aparte serían dos verdades sobre la misma persona: cambiar un
+        //    teléfono en Tesorería no lo cambiaría en Secretaría, y al primer
+        //    traslado nadie sabría cuál de las dos filas manda.
+        //
+        // 2. **`public.members` ya tiene todas estas columnas.** El padrón
+        //    completo —bautismos con su fecha, ministerios, cargos,
+        //    instrumentos, habilidades, disponibilidad, iglesia anterior,
+        //    baja con motivo, historial de estados y notas de seguimiento—
+        //    existe en el servidor desde antes que esta app. Lo que faltaba
+        //    era el lado local.
+        //
+        // Por eso los nombres y las formas son las del servidor y no las que
+        // uno elegiría de cero. **Las listas van como texto con un array JSON
+        // dentro** (`'[]'` por defecto, igual que allí) y no como tabla de
+        // etiquetas: una tabla se consultaría mejor, pero obligaría a traducir
+        // en cada subida y cada bajada, y un espejo que traduce deja de ser un
+        // espejo — es el sitio donde los dos lados empiezan a discrepar. El
+        // padrón son cientos de filas, no cientos de miles: filtrar por
+        // ministerio se hace en memoria y se nota cero.
+        //
+        // Lo que NO se copia: `activo` (redundante con `estado_membresia`, y
+        // dos banderas para el mismo hecho es lo que ya hubo que arreglar en
+        // el resumen del padrón) y `created_at`, que nadie lee.
+        //
+        // Aquí solo se abre el sitio. Membresía sigue sirviéndose de
+        // `MockMembresiaRepository` hasta que exista el repositorio que lea
+        // esto: una migración no cambia lo que se ve.
+        m.registerMigration("v15_padron") { db in
+            try db.alter(table: "aportante") { t in
+                // Vida espiritual. Los booleanos viajan a Postgres como 0/1,
+                // que es como están declarados allí.
+                t.add(column: "bautizadoAgua", .boolean).notNull().defaults(to: false)
+                t.add(column: "fechaBautismoAgua", .text).notNull().defaults(to: "")
+                t.add(column: "bautizadoEspiritu", .boolean).notNull().defaults(to: false)
+                t.add(column: "fechaBautismoEspiritu", .text).notNull().defaults(to: "")
+                t.add(column: "cursoMembresia", .boolean).notNull().defaults(to: false)
+
+                // Servicio y habilidades. Arrays JSON en texto, como el
+                // servidor. La hoja de alta ya los junta y los parte por su
+                // cuenta con comas: eso se va, porque un ministerio propio
+                // puede llamarse "Niños, preescolar" y una coma de dato no se
+                // distingue de una de separador.
+                t.add(column: "ministerios", .text).notNull().defaults(to: "[]")
+                t.add(column: "ministeriosInteres", .text).notNull().defaults(to: "[]")
+                t.add(column: "cargos", .text).notNull().defaults(to: "[]")
+                t.add(column: "instrumentos", .text).notNull().defaults(to: "[]")
+                t.add(column: "habilidades", .text).notNull().defaults(to: "[]")
+                t.add(column: "etiquetas", .text).notNull().defaults(to: "[]")
+                t.add(column: "disponibilidad", .text).notNull().defaults(to: "")
+                t.add(column: "interesServir", .boolean).notNull().defaults(to: false)
+
+                // Procedencia y salida. **La baja necesita fecha y motivo**:
+                // sin ellos, dentro de dos años una etiqueta gris no dice qué
+                // pasó con esa persona. La hoja ya los pedía y no tenían dónde
+                // caer.
+                t.add(column: "iglesiaAnterior", .text).notNull().defaults(to: "")
+                t.add(column: "fechaBaja", .text).notNull().defaults(to: "")
+                t.add(column: "motivoBaja", .text).notNull().defaults(to: "")
+
+                // **El historial de estados es lo que hoy la ficha se inventa**
+                // en "Movimientos de membresía" ("Alta como miembro", "Recibido
+                // por traslado"), construido al vuelo en cada guardado y
+                // perdido al siguiente. Array JSON, como en el servidor.
+                t.add(column: "historialEstados", .text).notNull().defaults(to: "[]")
+
+                // Seguimiento pastoral: cada llamada, visita u oración con su
+                // fecha. Va en la fila y no en tabla propia por lo mismo que
+                // las listas — así está en `members`.
+                t.add(column: "seguimientoNotas", .text).notNull().defaults(to: "[]")
+                t.add(column: "seguimientoRevisadoEn", .text).notNull().defaults(to: "")
+
+                // Lo que la secretaria anota y no cabe en ningún campo. Existe
+                // en `members` desde el principio; en el aparato, no.
+                t.add(column: "notas", .text).notNull().defaults(to: "")
+            }
+
+            // **Los parentescos ya se editaban y no se guardaban en ninguna
+            // parte**: `AportanteFila.aportante(...)` devuelve `familia: []`
+            // fijo, así que el "Añadir pariente" de la ficha duraba lo que la
+            // sesión. Espejo de `parentescos`, que también existe ya.
+            //
+            // Tabla y no columna porque un parentesco es de DOS personas: la
+            // misma fila la lee el marido y la mujer, y guardarlo en la ficha
+            // de cada uno sería la misma relación escrita dos veces, libre de
+            // contradecirse.
+            //
+            // `parienteId` es opcional a propósito, como en el servidor: el
+            // hijo de alguien puede no estar en el padrón, y exigirlo
+            // obligaría a dar de alta a un bebé para poder decir que lo es.
+            try db.create(table: "parentesco") { t in
+                t.primaryKey("id", .text)
+                t.column("miembroId", .text).notNull().indexed()
+                t.column("parienteId", .text)
+                t.column("tipo", .text).notNull().defaults(to: "")
+                t.column("nombre", .text).notNull().defaults(to: "")
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+            try db.create(index: "idx_parentesco_borrado", on: "parentesco",
+                          columns: ["borrado"])
+        }
+
         return m
     }
 
