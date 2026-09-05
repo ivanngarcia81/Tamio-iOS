@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 extension View {
     /// Título + subtítulo en la barra de navegación, de forma nativa, con
@@ -10,6 +11,27 @@ extension View {
     /// la barra y otra vez en el chip, justo debajo).
     func encabezadoNav(_ titulo: String, _ subtitulo: String?) -> some View {
         modifier(EncabezadoNav(titulo: titulo, subtitulo: subtitulo))
+    }
+
+    /// Quita el botón de volver de la barra **sin perder el gesto de borde**.
+    ///
+    /// Las pantallas que cuelgan de un hub —Ingresos, Aportantes, Depósitos,
+    /// Membresía…— tenían dos salidas al mismo sitio: el chevron y la pestaña
+    /// de la barra, que lleva a ese mismo hub y está visible siempre. El
+    /// chevron gastaba una cápsula de la barra en cada una de ellas, y en
+    /// Ingresos esa cápsula era la que faltaba para que cupieran los filtros.
+    ///
+    /// **`navigationBarBackButtonHidden` apaga el gesto de volver.** Medido en
+    /// iOS 26 con una prueba de interfaz: con el botón visible el
+    /// deslizamiento desde el borde vuelve, y ocultándolo deja de volver. Por
+    /// eso no basta con ocultarlo: hay que devolver el reconocedor a mano, y de
+    /// eso se encarga `RescateGestoVolver`.
+    ///
+    /// Solo actúa en ancho compacto. En iPad estas pantallas viven en la
+    /// columna de detalle de un `NavigationSplitView`, donde no hay botón de
+    /// volver que quitar ni gesto que rescatar.
+    func sinBotonVolver() -> some View {
+        modifier(SinBotonVolver())
     }
 
     /// Colchón bajo el contenido scrolleable para que la última fila no quede
@@ -119,5 +141,60 @@ private struct EncabezadoNav: ViewModifier {
         content
             .navigationTitle(titulo)
             .navigationSubtitle(subtitulo ?? "")
+    }
+}
+
+
+/// Ver `sinBotonVolver()`.
+private struct SinBotonVolver: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var ancho
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if ancho == .compact {
+            content
+                .navigationBarBackButtonHidden(true)
+                // Sin tamaño, el representable reclama espacio y empuja el
+                // contenido: va de fondo y a cero.
+                .background(RescateGestoVolver().frame(width: 0, height: 0))
+        } else {
+            content
+        }
+    }
+}
+
+/// Devuelve el gesto de volver que `navigationBarBackButtonHidden` apaga.
+///
+/// **El delegado no se pone a `nil`, que es el remedio que se encuentra por
+/// ahí.** Sin delegado el gesto queda armado también en la RAÍZ de la pila,
+/// donde no hay nada que desapilar, y deslizar allí puede dejar la navegación
+/// colgada. Este delegado contesta que sí solo cuando hay algo debajo, y al
+/// salir devuelve el que había: la pila la comparten todas las pantallas del
+/// `NavigationStack` y dejarla tocada sería cambiarle el gesto a las demás.
+private struct RescateGestoVolver: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UIViewController { Rescatador() }
+    func updateUIViewController(_ vc: UIViewController, context: Context) {}
+
+    final class Rescatador: UIViewController, UIGestureRecognizerDelegate {
+        private weak var pila: UINavigationController?
+        private weak var anterior: UIGestureRecognizerDelegate?
+
+        override func didMove(toParent parent: UIViewController?) {
+            super.didMove(toParent: parent)
+            guard let nav = navigationController else { return }
+            pila = nav
+            if anterior == nil { anterior = nav.interactivePopGestureRecognizer?.delegate }
+            nav.interactivePopGestureRecognizer?.isEnabled = true
+            nav.interactivePopGestureRecognizer?.delegate = self
+        }
+
+        override func willMove(toParent parent: UIViewController?) {
+            super.willMove(toParent: parent)
+            if parent == nil { pila?.interactivePopGestureRecognizer?.delegate = anterior }
+        }
+
+        func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
+            (pila?.viewControllers.count ?? 0) > 1
+        }
     }
 }

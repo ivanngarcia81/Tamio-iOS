@@ -23,14 +23,14 @@ struct IPhoneSecretariaView: View {
             Section(L.t("PADRÓN", "ROSTER")) {
                 // Membresía solo si esta persona ve el padrón. Ver `Permisos`.
                 if permisos.vePadron {
-                    NavigationLink { MembresiaView() } label: {
+                    NavigationLink { MembresiaView().sinBotonVolver() } label: {
                         HubRow(icono: "person.text.rectangle.fill", color: Paleta.brand,
                                titulo: L.t("Membresía", "Membership"),
                                subtitulo: L.t("\(padron.total) personas · \(padron.activos) activos",
                                               "\(padron.total) people · \(padron.activos) active"))
                     }
                 }
-                NavigationLink { InformesMembresiaView() } label: {
+                NavigationLink { InformesMembresiaView().sinBotonVolver() } label: {
                     HubRow(icono: "chart.pie.fill", color: Paleta.enlace,
                            titulo: L.t("Informes de membresía", "Membership reports"),
                            subtitulo: L.t("Panorama, padrón y seguimiento",
@@ -39,25 +39,25 @@ struct IPhoneSecretariaView: View {
             }
 
             Section(L.t("REGISTRO", "RECORDS")) {
-                NavigationLink { AgendaView() } label: {
+                NavigationLink { AgendaView().sinBotonVolver() } label: {
                     HubRow(icono: "calendar", color: Color(hex: 0x0D9488),
                            titulo: L.t("Agenda", "Calendar"),
                            subtitulo: L.t("\(L.mesEnCurso) · \(agendaPendientes) compromisos",
                                           "\(L.mesEnCurso) · \(agendaPendientes) events"))
                 }
-                NavigationLink { ServiciosView() } label: {
+                NavigationLink { ServiciosView().sinBotonVolver() } label: {
                     HubRow(icono: "checklist", color: Paleta.aviso,
                            titulo: L.t("Registro de servicios", "Service log"),
                            subtitulo: L.t("Roster y asistencia por culto",
                                           "Roster & attendance per service"))
                 }
-                NavigationLink { ActasView() } label: {
+                NavigationLink { ActasView().sinBotonVolver() } label: {
                     HubRow(icono: "doc.text.fill", color: Color(hex: 0x7C3AED),
                            titulo: L.t("Actas", "Minutes"),
                            subtitulo: L.t("Acta 2026-08 en borrador", "Draft minutes 2026-08"),
                            badge: 1)
                 }
-                NavigationLink { CartasView() } label: {
+                NavigationLink { CartasView().sinBotonVolver() } label: {
                     HubRow(icono: "envelope.fill", color: Color(hex: 0x06B6D4),
                            titulo: L.t("Cartas y traslados", "Letters & transfers"),
                            subtitulo: L.t("3 documentos abiertos", "3 open documents"))

@@ -152,50 +152,6 @@ struct MiembrosView: View {
         .tint(Paleta.brand)
     }
 
-    /// **La barra inferior del teléfono**, igual que en Ingresos/Gastos: el `+`
-    /// a la izquierda y el resumen a la derecha, los dos en cápsula de glass.
-    ///
-    /// Se dibuja con `safeAreaInset` y no con `ToolbarItem(placement:
-    /// .bottomBar)` porque dentro del `TabView` de iPhone la barra inferior del
-    /// sistema queda por DEBAJO de la barra de pestañas flotante de iOS 26.
-    ///
-    /// El `+` va DENTRO de la barra y no flotando encima: con el total en la
-    /// esquina derecha, un botón suelto ahí lo taparía.
-    @ViewBuilder
-    private var barraInferior: some View {
-        if compacto {
-            BarraInferior { botonNuevo } resumen: { resumenPie }
-        }
-    }
-
-    /// Cuántos aportantes, de qué año y cuánto suman.
-    ///
-    /// El conteo pierde la palabra pero NO el número: al borrarse el título se
-    /// va también su subtítulo "9 activos · 0 bajas", así que este es el único
-    /// sitio de la pantalla que dice cuántos hay, que es lo que revela si la
-    /// lista está filtrada.
-    ///
-    /// El año tampoco se va. El total es el del año en curso, no el de
-    /// siempre, y sin decirlo la cifra queda sin marco: es la misma cifra que
-    /// encabeza la ficha de cada aportante y que certifica su constancia, y las
-    /// tres tienen que hablar del mismo periodo. En Ingresos no hace falta
-    /// porque el periodo ya lo dice el botón de mes, arriba.
-    ///
-    /// El total pesa más que lo demás: es el dato de cuadre, el que el tesorero
-    /// compara contra el estado financiero. Iba en el mismo gris que su
-    /// etiqueta.
-    private var resumenPie: some View {
-        HStack(spacing: 6) {
-            Text("\(vm.itemsFiltrados.count)").foregroundStyle(.secondary)
-            Text("·").foregroundStyle(.tertiary)
-            Text(String(vm.anio)).foregroundStyle(.secondary)
-            Text("·").foregroundStyle(.tertiary)
-            Text("\(Money.fmt(vm.total)) \(Money.codigo)").fontWeight(.semibold)
-        }
-        .font(.footnote)
-        .monospacedDigit()
-    }
-
     /// **En el teléfono, menú; en iPad, segmentado.** Medido en pantalla: con
     /// el botón de volver, Archivo, el `+` y la lupa, un segmentado de tres
     /// opciones se parte en "Act… Re… All", que no dice ninguna de las tres.
@@ -203,15 +159,28 @@ struct MiembrosView: View {
     /// ancho no da: la etiqueta dice dónde estás y el menú las enseña enteras.
     private var menuFiltro: some View {
         Menu {
-            ForEach(Self.filtros, id: \.0) { valor, nombre in
-                Button { vm.filtro = valor } label: {
-                    if vm.filtro == valor { Label(nombre, systemImage: "checkmark") }
-                    else { Text(nombre) }
+            // **El año y el total encabezan el menú.** Eran el pie, y el pie se
+            // fue del teléfono. Aquí no estorban y siguen juntos: el total es
+            // del año que está escrito a su lado, y leerlos separados sería
+            // peor que no leerlos.
+            Section(L.t("\(String(vm.anio)) · \(Money.fmt(vm.total)) \(Money.codigo)",
+                        "\(String(vm.anio)) · \(Money.fmt(vm.total)) \(Money.codigo)")) {
+                ForEach(Self.filtros, id: \.0) { valor, nombre in
+                    Button { vm.filtro = valor } label: {
+                        if vm.filtro == valor { Label(nombre, systemImage: "checkmark") }
+                        else { Text(nombre) }
+                    }
                 }
             }
         } label: {
             HStack(spacing: 4) {
-                Text(Self.nombreFiltro(vm.filtro)).lineLimit(1)
+                // **El conteo va en la etiqueta, como las bandejas de Mail.**
+                // Al borrarse el título de la pantalla se fue también su
+                // subtítulo, y el pie era el único sitio que decía cuántos
+                // aportantes se están viendo: ese número es lo que revela que
+                // la lista está filtrada. Aquí lo dice quien filtra.
+                Text("\(Self.nombreFiltro(vm.filtro)) (\(vm.itemsFiltrados.count))")
+                    .lineLimit(1)
                 Image(systemName: "chevron.down").font(.caption2)
             }
             .font(.subheadline.weight(.medium))
@@ -321,7 +290,15 @@ struct MiembrosView: View {
     private var listaColumna: some View {
         listaMiembros
             .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
+            // **El pie, solo en iPad.** En el teléfono apilaba una segunda
+            // barra sobre la de pestañas y cortaba la última fila; lo que
+            // decía se reparte ahora entre el menú de filtro —que lleva el
+            // conteo en la etiqueta y el año y el total en su cabecera— y la
+            // lista misma. En iPad no hay barra de pestañas contra la que
+            // apilarse, y este pie es el único sitio de la columna donde se
+            // leen el año y el total: allí se queda.
             .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
+            .colchonInferior()
     }
 
     /// En el teléfono aquí solo queda el aviso: el buscador y el segmentado se
@@ -401,7 +378,9 @@ struct MiembrosView: View {
     /// El pie, en las dos plataformas: anclado y del ancho de la columna. En el
     /// teléfono era una barra flotante con el `+` y el resumen, y flotar aquí
     /// significa tapar la última fila.
+    @ViewBuilder
     private var pieLista: some View {
+        if !compacto {
             HStack {
                 Text(L.t("\(vm.itemsFiltrados.count) aportantes · \(String(vm.anio))",
                          "\(vm.itemsFiltrados.count) givers · \(String(vm.anio))"))
@@ -412,6 +391,7 @@ struct MiembrosView: View {
             .font(.caption)
             .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
             .background(.regularMaterial)
+        }
     }
 
     @ViewBuilder

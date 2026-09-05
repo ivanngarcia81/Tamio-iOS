@@ -133,29 +133,6 @@ struct DepositosView: View {
     /// va al banco, no que falte un buscador—.
     /// El pie: anclado y del ancho de la columna, no una cápsula flotando
     /// sobre la última fila.
-    @ViewBuilder
-    private var pieLista: some View {
-        if compacto {
-            HStack { resumenPie }
-                .font(.caption)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
-                .background(.regularMaterial)
-        }
-    }
-
-    private var resumenPie: some View {
-        HStack(spacing: 6) {
-            Text("\(vm.pendientesCount)").foregroundStyle(.secondary)
-            Text("·").foregroundStyle(.tertiary)
-            Text(Money.fmt(vm.pendientesMonto))
-                .fontWeight(.semibold)
-                .foregroundStyle(Paleta.aviso)
-        }
-        .font(.footnote)
-        .monospacedDigit()
-    }
-
     /// Un `CorteDetalle` con todas sus acciones cableadas al ViewModel.
     private func detalle(_ c: Corte) -> some View {
         CorteDetalle(
@@ -214,7 +191,10 @@ struct DepositosView: View {
     private func listaColumna(wide: Bool) -> some View {
         lista(wide: wide)
             .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
-            .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
+            // **Sin pie.** Apilaba una segunda barra sobre la de pestañas y
+            // cortaba la última fila. Lo que decía —cuántos cortes esperan y
+            // cuánto dinero es— sube a la cabecera: ese dato no se puede
+            // perder, es dinero de la iglesia que todavía no está en el banco.
             .colchonInferior()
     }
 
@@ -232,6 +212,29 @@ struct DepositosView: View {
             pickerEstado
                 .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
                 .background(.regularMaterial)
+        } else if vm.pendientesCount > 0 {
+            // **En el teléfono, lo que espera.** El segmentado se fue al lugar
+            // del título y aquí no quedaba nada, pero el pie sí decía algo que
+            // no está en ninguna otra parte de esta pantalla: cuánto dinero
+            // hay contado y sin depositar. Sube aquí, donde no se apila sobre
+            // la barra de pestañas ni corta la última fila.
+            //
+            // Con cero pendientes no se dibuja: una franja que dice "0" ocupa
+            // el mismo alto que una que avisa, y esta pantalla existe para
+            // avisar.
+            HStack {
+                Text(L.t("\(vm.pendientesCount) corte\(vm.pendientesCount == 1 ? "" : "s") pendiente\(vm.pendientesCount == 1 ? "" : "s")",
+                         "\(vm.pendientesCount) pending cut\(vm.pendientesCount == 1 ? "" : "s")"))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(Money.fmt(vm.pendientesMonto))
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Paleta.aviso)
+            }
+            .font(.footnote)
+            .monospacedDigit()
+            .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.hueco)
+            .background(.regularMaterial)
         }
     }
 

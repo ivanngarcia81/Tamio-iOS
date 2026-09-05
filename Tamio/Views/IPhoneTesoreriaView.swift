@@ -16,18 +16,18 @@ struct IPhoneTesoreriaView: View {
             }
 
             Section(L.t("REGISTRO", "RECORDS")) {
-                NavigationLink { MovimientosView(tipo: .ingreso) } label: {
+                NavigationLink { MovimientosView(tipo: .ingreso).sinBotonVolver() } label: {
                     HubRow(icono: "arrow.left.arrow.right", color: Color(hex: 0x10B981),
                            titulo: L.t("Movimientos", "Transactions"),
                            subtitulo: subtituloMovimientos)
                 }
-                NavigationLink { MiembrosView() } label: {
+                NavigationLink { MiembrosView().sinBotonVolver() } label: {
                     HubRow(icono: "person.2.fill", color: Color(hex: 0x0D9488),
                            titulo: L.t("Aportantes", "Contributors"),
                            subtitulo: L.t("Diezmos y ofrendas por persona",
                                           "Tithes & offerings per person"))
                 }
-                NavigationLink { DepositosView() } label: {
+                NavigationLink { DepositosView().sinBotonVolver() } label: {
                     HubRow(icono: "building.columns.fill", color: Paleta.aviso,
                            titulo: L.t("Depósitos", "Deposits"),
                            subtitulo: subtituloDepositos,
@@ -36,7 +36,7 @@ struct IPhoneTesoreriaView: View {
             }
 
             Section(L.t("ANÁLISIS", "ANALYSIS")) {
-                NavigationLink { ReportesView() } label: {
+                NavigationLink { ReportesView().sinBotonVolver() } label: {
                     HubRow(icono: "chart.bar.fill", color: Color(hex: 0x0EA5E9),
                            titulo: L.t("Reportes", "Reports"),
                            subtitulo: L.t("Documentos del mes · PDF y hoja",

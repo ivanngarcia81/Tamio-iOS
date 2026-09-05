@@ -322,7 +322,7 @@ struct DashboardView: View {
 
     /// Fila naranja de advertencia que navega a la bandeja "Por revisar".
     private func porRevisarBanner(_ d: DashboardData) -> some View {
-        NavigationLink { RevisarView() } label: {
+        NavigationLink { RevisarView().sinBotonVolver() } label: {
             HStack(spacing: 14) {
                 Image(systemName: "exclamationmark.circle.fill")
                     .font(.title2)
@@ -403,7 +403,7 @@ struct DashboardView: View {
 
     private func listaMovimientosIPhone(_ d: DashboardData) -> some View {
         tarjetaListaIPhone(titulo: L.t("Últimos movimientos", "Recent activity")) {
-            NavigationLink { MovimientosView(tipo: .ingreso) } label: {
+            NavigationLink { MovimientosView(tipo: .ingreso).sinBotonVolver() } label: {
                 textoEnlace(L.t("Ver todos", "See all"))
             }
             .buttonStyle(.plain)
@@ -417,7 +417,7 @@ struct DashboardView: View {
 
     private func listaSemanaIPhone(_ d: DashboardData) -> some View {
         tarjetaListaIPhone(titulo: L.t("Esta semana", "This week")) {
-            NavigationLink { AgendaView() } label: {
+            NavigationLink { AgendaView().sinBotonVolver() } label: {
                 textoEnlace(L.t("Agenda", "Calendar"))
             }
             .buttonStyle(.plain)
