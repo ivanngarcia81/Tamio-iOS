@@ -183,16 +183,14 @@ struct MovimientosView: View {
             ToolbarItem(placement: .title) {
                 pickerTipo.frame(maxWidth: 190)
             }
-            // Arriba, lo que dice QUÉ SE ESTÁ VIENDO y la acción de crear.
-            //
-            // **El `+` vuelve a la barra.** Bajó a flotar sobre la lista cuando
-            // arriba convivían el segmentado, el mes, los filtros y la lupa;
-            // desde que el mes y los filtros comparten cápsula hay sitio, y
-            // abajo tapaba la fila de detrás.
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                botonFiltros
-                botonNuevo
-            }
+            // **Cuatro cápsulas y no cinco.** Volver, el segmentado, el `+` y
+            // la lupa del sistema. Los filtros iban aquí también, y medido en
+            // pantalla el quinto no cabe: el sistema tiraba el `+` sin avisar
+            // —la pantalla de Ingresos se quedó sin forma de crear— y aun así
+            // el segmentado salía "Expen…". No es cosa del ancho del
+            // segmentado: a 160 pt fijos pasaba igual. Los filtros bajan al
+            // pie, junto al mes y al conteo, que es lo que describen.
+            ToolbarItem(placement: .topBarTrailing) { botonNuevo }
         }
         if !compacto {
             ToolbarItem(placement: .topBarTrailing) { botonNuevo }
@@ -528,28 +526,22 @@ struct MovimientosView: View {
     /// cuánto. Esa señal no se puede perder: un filtro puesto explica una lista
     /// vacía, y sin ella el usuario no tiene forma de saber por qué.
     ///
-    /// **Solo el icono; el mes vive dentro.** Llevó un tiempo el mes escrito en
-    /// la cápsula, para que se leyera arriba qué se está viendo, pero eso
-    /// gastaba el ancho que necesitaba el `+`. El mes se lee ahora en el pie de
-    /// la lista, junto al conteo y al total, y se cambia dentro de esta misma
-    /// hoja, que abre con el periodo arriba.
-    ///
-    /// En iPad son dos controles distintos: allí hay ancho y la cabecera de la
-    /// columna tiene sitio para el selector de mes y para este.
+    /// **Solo en iPad.** En la cabecera de la columna hay ancho para el
+    /// selector de mes y para este, cada uno el suyo. En el teléfono el botón
+    /// de filtros es el lado izquierdo del pie (`pieLista`): arriba no cabía
+    /// junto al `+`.
     private var botonFiltros: some View {
         Button { mostrarFiltros = true } label: {
             HStack(spacing: 5) {
                 Image(systemName: "line.3.horizontal.decrease")
-                if !compacto { Text(L.t("Filtros", "Filters")) }
+                Text(L.t("Filtros", "Filters"))
                 if filtrosActivos > 0 { contador(filtrosActivos) }
             }
             .font(.subheadline.weight(.medium))
         }
         .buttonStyle(.glass)
         .tint(filtrosActivos > 0 ? Paleta.brand : nil)
-        .accessibilityLabel(compacto
-                            ? L.t("Periodo y filtros: \(etiquetaMes)", "Period and filters: \(etiquetaMes)")
-                            : L.t("Filtros", "Filters"))
+        .accessibilityLabel(L.t("Filtros", "Filters"))
     }
 
     /// Una opción de la hoja de filtros. `.buttonStyle(.plain)` por lo mismo
@@ -786,16 +778,33 @@ struct MovimientosView: View {
     /// botón se comía la fila de debajo y la cápsula del total cortaba otra.
     /// Ahora el `+` está arriba y esto es un pie anclado, del ancho de la
     /// columna, como el del iPad.
+    ///
+    /// **En el teléfono, el lado izquierdo ES el botón de filtros.** El pie
+    /// dice qué recorte se está viendo —cuántos, de qué mes— y tocarlo abre
+    /// la hoja que lo cambia: la descripción y el control en el mismo sitio.
+    /// Arriba no cabía (ver `barra`), y aquí no tapa nada.
     private var pieLista: some View {
             HStack {
                 // **El pie dice el mes.** Al quitarlo de la cápsula de arriba
                 // se quedaba sin sitio donde leerse: las cabeceras de grupo dan
                 // el día ("jueves 3") pero no el mes. Aquí va junto al conteo y
                 // al total, que es el resto del cuadre.
-                Text(L.t("\(vm.itemsFiltrados.count) movimientos · \(etiquetaMes)",
-                         "\(vm.itemsFiltrados.count) entries · \(etiquetaMes)"))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if compacto {
+                    Button { mostrarFiltros = true } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "line.3.horizontal.decrease")
+                                .font(.caption.weight(.semibold))
+                            resumenMes
+                            if filtrosActivos > 0 { contador(filtrosActivos) }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(filtrosActivos > 0 ? Paleta.brand : .secondary)
+                    .accessibilityLabel(L.t("Periodo y filtros: \(etiquetaMes)",
+                                            "Period and filters: \(etiquetaMes)"))
+                } else {
+                    resumenMes.foregroundStyle(.secondary)
+                }
                 Spacer()
                 Text(Money.firmado(vm.total, ingreso: vm.tipo == .ingreso))
                     .monospacedDigit().fontWeight(.semibold)
@@ -806,5 +815,11 @@ struct MovimientosView: View {
             // Igual que la cabecera: el material va donde hay algo que
             // difuminar.
             .background(.regularMaterial)
+    }
+
+    private var resumenMes: some View {
+        Text(L.t("\(vm.itemsFiltrados.count) movimientos · \(etiquetaMes)",
+                 "\(vm.itemsFiltrados.count) entries · \(etiquetaMes)"))
+            .lineLimit(1)
     }
 }
