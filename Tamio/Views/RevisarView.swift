@@ -169,27 +169,28 @@ struct RevisarView: View {
     @ViewBuilder
     private func botonesTargeta(_ a: Revision) -> some View {
         if !a.acciones.isEmpty {
+            // **Sin relleno verde.** El botón se pintaba a mano: fondo
+            // `Paleta.brand` con el texto en blanco, que es lo que da ~2.4:1 en
+            // oscuro y por lo que se quitó del resto de la app. Era además el
+            // último sitio donde quedaba. Ahora es glass con el verde de marca,
+            // y sigue siendo la acción principal por el peso de la tipografía.
             let prim = a.acciones[0]
             Button { activar(prim, a) } label: {
                 Text(prim.label)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(prim.prominente ? .white : Paleta.brand)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(prim.prominente ? Paleta.brand : Color.clear,
-                                in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.glass)
+            .tint(Paleta.brand)
             if a.acciones.count > 1 {
                 let sec = a.acciones[1]
                 Button { activar(sec, a) } label: {
                     Text(sec.label)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glass)
+                .tint(Color.secondary)
             }
         }
     }
@@ -314,21 +315,25 @@ struct RevisarView: View {
             ForEach(a.acciones) { ac in
                 if ac.navegacion {
                     // Solo lleva a otro lado: chevron y tint neutro. El verde
-                    // prominente queda para lo que resuelve el pendiente.
+                    // queda para lo que resuelve el pendiente.
                     Button { activar(ac, a) } label: {
                         HStack(spacing: 4) {
                             Text(ac.label)
                             Image(systemName: "chevron.right").font(.caption2)
                         }
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.glass)
                     .tint(Color.secondary)
                 } else if ac.prominente {
+                    // `.glass` con el verde de marca, no relleno: el texto
+                    // blanco sobre `Paleta.brand` da ~2.4:1 en oscuro, que es
+                    // por lo que se quitó del resto de la app. Sigue siendo la
+                    // acción principal por el peso de la tipografía.
                     Button { activar(ac, a) } label: { Text(ac.label).fontWeight(.semibold) }
-                        .buttonStyle(.borderedProminent).tint(Paleta.brand)
+                        .buttonStyle(.glass).tint(Paleta.brand)
                 } else {
                     Button { activar(ac, a) } label: { Text(ac.label) }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.glass)
                         .tint(Color.secondary)
                 }
             }
