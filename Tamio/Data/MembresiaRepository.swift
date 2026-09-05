@@ -284,3 +284,102 @@ struct OfflineMembresiaRepository: MembresiaRepository {
 func repositorioMembresia() -> MembresiaRepository {
     ModoRevision.sinLogin ? MockMembresiaRepository() : OfflineMembresiaRepository()
 }
+
+// MARK: - Las familias, para tomar lista sin ir una por una
+
+/// **Una familia es un grupo derivado, no una tabla.**
+///
+/// Sale de `parentescos`, que ya existe: los enlaces de cónyuge y de
+/// padre/hijo dicen quién vive con quién. Guardarla aparte sería un tercer
+/// sitio donde la misma verdad puede discrepar — y el web tampoco la tiene.
+///
+/// **El grupo es la componente conectada sobre `conyuge` y `padre`/`hijo`, y
+/// nada más.** Hermanos, abuelos, tíos y primos NO forman grupo por su cuenta:
+/// dos hermanos adultos con casas distintas llegan al culto por separado. Los
+/// hermanos que sí viven juntos quedan unidos igual, por sus padres, que es el
+/// camino correcto.
+///
+/// **Lo que esto no resuelve, y conviene saberlo:** si el padrón enlaza tres
+/// generaciones —la abuela como madre del padre—, las tres salen como una sola
+/// familia. Puede ser verdad (viven juntos) o no. Por eso la lista deja
+/// desmarcar a cualquiera después: el grupo es un atajo, no una afirmación.
+enum Familias {
+
+    /// Los tipos de parentesco que hacen hogar.
+    static let deHogar: Set<String> = ["conyuge", "padre", "hijo"]
+
+    /// Reparte a la gente en familias. Quien no tiene parentescos de hogar
+    /// sale en un grupo de uno: la lista los trata igual y no hay que
+    /// distinguir dos casos al pintarla.
+    ///
+    /// El apellido del grupo es el más repetido entre sus miembros —el último
+    /// del nombre completo—, que es como se llama a una familia en voz alta.
+    /// Con empate manda el de la persona de nombre más antiguo en la lista, no
+    /// se inventa nada.
+    static func agrupar(_ miembros: [Miembro]) -> [Familia] {
+        let porId = Dictionary(miembros.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+
+        // Conjuntos disjuntos: unir es barato y el orden de las aristas da
+        // igual, que es lo que se quiere de un grafo que llega desordenado.
+        var padre: [String: String] = [:]
+        func raiz(_ x: String) -> String {
+            var r = x
+            while let p = padre[r], p != r { r = p }
+            var c = x
+            while let p = padre[c], p != r { padre[c] = r; c = p }
+            return r
+        }
+        func unir(_ a: String, _ b: String) {
+            let (ra, rb) = (raiz(a), raiz(b))
+            if ra != rb { padre[ra] = rb }
+        }
+        for m in miembros { padre[m.id] = m.id }
+        for m in miembros {
+            for p in m.familia where deHogar.contains(p.tipo) {
+                if porId[p.parienteId] != nil { unir(m.id, p.parienteId) }
+            }
+        }
+
+        var grupos: [String: [Miembro]] = [:]
+        for m in miembros { grupos[raiz(m.id), default: []].append(m) }
+
+        return grupos.values
+            .map { integrantes in
+                Familia(id: integrantes.map(\.id).sorted().joined(separator: "+"),
+                        apellido: apellidoComun(integrantes),
+                        integrantes: integrantes.sorted { $0.nombre < $1.nombre })
+            }
+            .sorted { $0.apellido.localizedCompare($1.apellido) == .orderedAscending }
+    }
+
+    private static func apellidoComun(_ integrantes: [Miembro]) -> String {
+        var cuenta: [String: Int] = [:]
+        for m in integrantes {
+            guard let ap = m.nombre.split(separator: " ").last.map(String.init) else { continue }
+            cuenta[ap, default: 0] += 1
+        }
+        guard let mayor = cuenta.values.max() else { return "" }
+        // Empate: el del primero de la lista, para que no baile entre pasadas.
+        for m in integrantes {
+            if let ap = m.nombre.split(separator: " ").last.map(String.init), cuenta[ap] == mayor {
+                return ap
+            }
+        }
+        return ""
+    }
+}
+
+/// Un grupo de personas que llega junto al culto. `integrantes` nunca está
+/// vacío: quien no tiene parentescos es una familia de uno.
+struct Familia: Identifiable, Hashable {
+    let id: String
+    let apellido: String
+    let integrantes: [Miembro]
+
+    var esIndividual: Bool { integrantes.count == 1 }
+
+    /// "Rodríguez · 5", o el nombre a secas cuando va solo.
+    var titulo: String {
+        esIndividual ? integrantes[0].nombre : "\(apellido) · \(integrantes.count)"
+    }
+}

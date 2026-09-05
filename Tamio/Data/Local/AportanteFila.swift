@@ -261,3 +261,64 @@ struct ParentescoFila: Codable, FetchableRecord, PersistableRecord {
     var actualizadoEn: String?
     var borrado: Bool
 }
+
+// MARK: - La asistencia
+
+/// Un culto tal y como vive en SQLite. Espejo de `servicios`.
+struct ServicioFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "servicio"
+
+    var id: String
+    var fecha: String
+    var tipo: String
+    var dirige: String
+    var predica: String
+    var tituloMensaje: String
+    var textoBiblico: String
+    var resumenMensaje: String
+    var participaciones: String
+    var temaEscuela: String
+    var maestroEscuela: String
+    var visitantes: String
+    var ninos: Int
+    var jovenes: Int
+    var adultos: Int
+    var eventos: String
+    var actualizadoEn: String?
+    var borrado: Bool
+}
+
+/// Quién vino a un culto. Una fila por persona, aunque la lista se tome por
+/// familia. Espejo de `servicio_asistencia`.
+struct AsistenciaFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "servicioAsistencia"
+
+    var id: String
+    var servicioId: String
+    var miembroId: String
+    var presente: Bool
+    var razon: String
+    var razonOtra: String
+    var seguimiento: Bool
+    var nombreSnapshot: String
+    var actualizadoEn: String?
+    var borrado: Bool
+
+    /// Las razones del web, en su orden. Solo significan algo con `presente`
+    /// en falso: al marcar presente se limpian, como allí.
+    static let razones = ["justificada", "enfermedad", "trabajo", "viaje",
+                          "emergencia", "desconocida", "otra"]
+
+    static func etiquetaRazon(_ r: String) -> String {
+        switch r {
+        case "justificada": return L.t("Justificada", "Excused")
+        case "enfermedad":  return L.t("Enfermedad", "Illness")
+        case "trabajo":     return L.t("Trabajo", "Work")
+        case "viaje":       return L.t("Viaje", "Travel")
+        case "emergencia":  return L.t("Emergencia", "Emergency")
+        case "desconocida": return L.t("No se sabe", "Unknown")
+        case "otra":        return L.t("Otra", "Other")
+        default:            return r
+        }
+    }
+}

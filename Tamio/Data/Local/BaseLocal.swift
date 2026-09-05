@@ -551,6 +551,77 @@ final class BaseLocal {
                           columns: ["borrado"])
         }
 
+        // **La asistencia, que es de donde salen los números que la ficha
+        // finge.** `rachaSinAsistir`, `ultimaVisita`, `enRoster` y el % de la
+        // gráfica son hoy cadenas escritas a mano; aquí está su fuente.
+        //
+        // Espejo de `servicios` y `servicio_asistencia`, que ya existen en el
+        // servidor. Dos tablas y no una porque son dos cosas: el culto —con su
+        // fecha, quién dirige, quién predica— y quién vino a él.
+        //
+        // Lo que NO se copia: `asistentes` y `ausentes` de `servicios`. El
+        // propio web las marca como legado —"versiones previas guardaban
+        // nombres; el roster nuevo vive en servicio_asistencia por ID"— y las
+        // escribe como "[]". Copiar una columna muerta es invitar a que
+        // alguien la crea viva.
+        //
+        // `visitantes` sí, porque no es legado: son las personas SIN ficha que
+        // vinieron, con nombre y teléfono. Quien tiene ficha va en la otra
+        // tabla, aunque sea visitante recurrente.
+        m.registerMigration("v16_asistencia") { db in
+            try db.create(table: "servicio") { t in
+                t.primaryKey("id", .text)
+                t.column("fecha", .text).notNull().indexed()   // "YYYY-MM-DD"
+                t.column("tipo", .text).notNull().defaults(to: "dominical")
+                t.column("dirige", .text).notNull().defaults(to: "")
+                t.column("predica", .text).notNull().defaults(to: "")
+                t.column("tituloMensaje", .text).notNull().defaults(to: "")
+                t.column("textoBiblico", .text).notNull().defaults(to: "")
+                t.column("resumenMensaje", .text).notNull().defaults(to: "")
+                t.column("participaciones", .text).notNull().defaults(to: "[]")
+                t.column("temaEscuela", .text).notNull().defaults(to: "")
+                t.column("maestroEscuela", .text).notNull().defaults(to: "")
+                t.column("visitantes", .text).notNull().defaults(to: "[]")
+                // Conteos de cabeza: los que se cuentan sin lista.
+                t.column("ninos", .integer).notNull().defaults(to: 0)
+                t.column("jovenes", .integer).notNull().defaults(to: 0)
+                t.column("adultos", .integer).notNull().defaults(to: 0)
+                t.column("eventos", .text).notNull().defaults(to: "")
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+
+            // Una fila por persona y culto. **La asistencia se guarda por
+            // PERSONA aunque se tome por familia**: la racha, la última visita
+            // y el "cuatro servicios sin asistir" son de cada uno, y guardarlo
+            // por familia taparía al hijo que lleva dos meses sin venir, que
+            // es justo lo que el seguimiento existe para no perder.
+            //
+            // `razon` y `seguimiento` solo significan algo cuando `presente`
+            // es falso; el web los limpia al marcar presente y aquí igual.
+            //
+            // `nombreSnapshot` no es un duplicado por descuido: la lista de un
+            // culto de hace dos años tiene que seguir diciendo el nombre que
+            // la persona tenía entonces.
+            try db.create(table: "servicioAsistencia") { t in
+                t.primaryKey("id", .text)
+                t.column("servicioId", .text).notNull().indexed()
+                t.column("miembroId", .text).notNull().indexed()
+                t.column("presente", .boolean).notNull().defaults(to: false)
+                t.column("razon", .text).notNull().defaults(to: "")
+                t.column("razonOtra", .text).notNull().defaults(to: "")
+                t.column("seguimiento", .boolean).notNull().defaults(to: false)
+                t.column("nombreSnapshot", .text).notNull().defaults(to: "")
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+            // La misma persona una vez por culto. El web guarda por
+            // diferencias sobre esta pareja para conservar el uid entre
+            // guardados; sin el índice, dos guardados seguidos la duplicarían.
+            try db.create(index: "idx_asistencia_unica", on: "servicioAsistencia",
+                          columns: ["servicioId", "miembroId"], unique: true)
+        }
+
         return m
     }
 
