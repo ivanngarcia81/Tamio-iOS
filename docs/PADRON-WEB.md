@@ -120,22 +120,26 @@ cadenas, devuelve lista vacía en vez de reventar. Conviene copiar ese criterio.
 
 **Decidido el 5 de septiembre: es de Secretaría.** El administrador también;
 el tesorero no, ni con `tesorero_ve_padron`, que abre la pantalla y no el acta.
-En iOS es `Permisos.administraPadron`, y esconde el "Nuevo" de Aportantes, el de
-Membresía, el interruptor de baja de la ficha y el "Restaurar" de la bandeja.
+**Salvo en el plan "solo Tesorería"**, donde no hay Secretaría y el tesorero
+mantiene su propio padrón — el matiz venía del web (`puedeCrearMiembros`) y
+las dos apps lo comparten.
+
+- iOS: `Permisos.administraPadron`. Esconde el "Nuevo" de Aportantes y el de
+  Membresía, el interruptor de baja de la ficha y el "Restaurar" de la bandeja.
+- Web: `administraPadron(role, plan)` en `plan.ts` (rama
+  `claude/padron-secretaria`, 5 sep). El web ya reservaba el ALTA; faltaban
+  archivar y eliminar en Miembros, y en Membresía —adonde el tesorero llega
+  con `tesorero_ve_padron`— el "+ Nuevo miembro", Dar de baja, Reactivar y
+  Fusionar. Verificado con Playwright en `pruebas/arnes-padron.mjs`.
 
 El tesorero no lo necesita: un diezmo de alguien sin ficha se registra con
 `transactions.aportante_nombre`, sin dar de alta a nadie.
 
-**El web hace lo contrario.** `/miembros` está en `RUTAS_TESORERIA` y llama a
-`insertMember`, `deleteMember` y `archiveMember` — y `archiveMember` también
-pone `activo = 0`, así que es una baja sin fecha ni motivo. La baja formal, con
-las dos y con historial, ya era solo de `/membresia`.
-
-**Y la barrera de verdad no existe en ningún lado.** Las políticas de `members`
-solo miran `church_id`, y el único disparador de la base es
-`frenar_borrado_tesorero`, sobre `transactions`. Ponerle uno a `members` rompe
-`/miembros` en el web para el tesorero: hay que cambiarlo en las dos apps a la
-vez, y está pendiente.
+**La barrera de verdad está escrita y SIN APLICAR**: `frenar_baja_tesorero`, en
+`supabase/sync-p2-padron.sql` del repo del web, calcado de
+`frenar_borrado_tesorero`. Con las dos apps escondiendo los botones ya no rompe
+a nadie; es la base de producción y la aplica Iván. Hasta entonces, las
+políticas de `members` solo miran `church_id`.
 
 ## 5. De dónde sale la asistencia
 

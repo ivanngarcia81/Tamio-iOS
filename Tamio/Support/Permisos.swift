@@ -41,18 +41,26 @@ struct Permisos {
     /// **Da de alta y de baja a personas del padrón.** Es trabajo de
     /// Secretaría; el administrador también, el tesorero no — ni con
     /// `tesoreroVePadron`, que abre la pantalla y no el acta. Decidido el
-    /// 2026-09-05.
+    /// 2026-09-05, para las dos apps.
+    ///
+    /// **Salvo en el plan "solo Tesorería"**: ahí no HAY Secretaría, y el
+    /// tesorero mantiene su propio padrón. Es el matiz que el app web ya tenía
+    /// en `puedeCrearMiembros` y que aquí faltaba: con la regla absoluta, una
+    /// iglesia en ese plan no podría dar de alta a nadie desde el teléfono.
+    /// Un plan vacío —todavía no bajó— se trata como completo: mejor esconder
+    /// un botón de más que enseñar uno que el servidor va a rechazar.
     ///
     /// El tesorero no lo necesita: un diezmo de alguien sin ficha se registra
     /// con `aportante_nombre`, sin dar de alta a nadie. Y la baja de membresía
     /// —con fecha, motivo e historial— nunca fue suya: es la que deja
     /// constancia de qué pasó con esa persona.
     ///
-    /// Como todo lo de aquí, esto esconde botones; no es la barrera. `members`
-    /// no tiene hoy un disparador como `frenar_borrado_tesorero`, y ponerlo
-    /// rompería la pantalla de Miembros del app web, donde el tesorero sí da
-    /// de alta. Es una decisión que toca a las dos apps, y está pendiente.
-    var administraPadron: Bool { rol != .tesorero }
+    /// Como todo lo de aquí, esto esconde botones; no es la barrera. La
+    /// barrera es `frenar_baja_tesorero`, en `supabase/sync-p2-padron.sql`
+    /// del repo del web, escrito y sin aplicar.
+    var administraPadron: Bool {
+        rol != .tesorero || iglesia.plan.trimmingCharacters(in: .whitespaces) == "tesoreria"
+    }
 
     // MARK: - Qué áreas ve cada rol
 

@@ -270,11 +270,11 @@ Data Protection) y qué protección le queda al respaldo en iCloud Drive.
 4. **Las dos medidas del cifrado** (§5).
 5. **Membresía sobre datos reales** (§5). El sitio ya está abierto (v15); falta
    el repositorio, la sincronización y rehacer el modelo.
-6. **La barrera de alta y baja en el servidor.** `Permisos.administraPadron`
-   esconde los botones al tesorero, pero `members` no tiene disparador y sus
-   políticas solo miran `church_id`. Ponerlo rompe `/miembros` del app web,
-   donde el tesorero sí da de alta: se decide con las dos apps a la vez. Ver
-   `docs/PADRON-WEB.md` §4.
+6. **Aplicar `frenar_baja_tesorero`.** Está escrito en
+   `supabase/sync-p2-padron.sql` del repo del web (rama
+   `claude/padron-secretaria`) y sin aplicar. Las dos apps ya esconden los
+   botones, así que ya no rompe a nadie; es la base de producción y la aplica
+   Iván. Ver `docs/PADRON-WEB.md` §4.
 7. **Reflejar `traslados_salida`.** Hasta entonces la pastilla "traslado en
    curso" no se ve: dejó de ser un estado de la persona y el expediente vive
    en esa tabla.
