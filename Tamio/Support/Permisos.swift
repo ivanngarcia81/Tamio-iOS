@@ -38,6 +38,22 @@ struct Permisos {
     /// moverlos es prometerle algo que el servidor le va a negar.
     var administraPermisos: Bool { rol == .administrador }
 
+    /// **Da de alta y de baja a personas del padrón.** Es trabajo de
+    /// Secretaría; el administrador también, el tesorero no — ni con
+    /// `tesoreroVePadron`, que abre la pantalla y no el acta. Decidido el
+    /// 2026-09-05.
+    ///
+    /// El tesorero no lo necesita: un diezmo de alguien sin ficha se registra
+    /// con `aportante_nombre`, sin dar de alta a nadie. Y la baja de membresía
+    /// —con fecha, motivo e historial— nunca fue suya: es la que deja
+    /// constancia de qué pasó con esa persona.
+    ///
+    /// Como todo lo de aquí, esto esconde botones; no es la barrera. `members`
+    /// no tiene hoy un disparador como `frenar_borrado_tesorero`, y ponerlo
+    /// rompería la pantalla de Miembros del app web, donde el tesorero sí da
+    /// de alta. Es una decisión que toca a las dos apps, y está pendiente.
+    var administraPadron: Bool { rol != .tesorero }
+
     // MARK: - Qué áreas ve cada rol
 
     /// **El reparto de la app por rol** (decidido el 2026-09-04):

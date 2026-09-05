@@ -6,6 +6,7 @@ import SwiftUI
 /// con Deshacer y "Aprobar todo". Fiel al handoff.
 struct RevisarView: View {
     @Environment(Navegacion.self) private var nav: Navegacion?
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     @State private var vm = RevisarViewModel()
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var abierto: Revision?
@@ -212,15 +213,26 @@ struct RevisarView: View {
         .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
     }
 
+    /// **"Restaurar" reactiva a una persona del padrón**, y eso es de
+    /// Secretaría: el asunto del aportante archivado que sigue aportando se
+    /// queda en la bandeja del tesorero para que se entere, pero sin el
+    /// botón. El resto de acciones son de Tesorería y no cambian.
+    private func accionesDe(_ a: Revision) -> [AccionRevision] {
+        Permisos.vigentes(sesion).administraPadron
+            ? a.acciones
+            : a.acciones.filter { $0.kind != .restaurar }
+    }
+
     @ViewBuilder
     private func botonesTargeta(_ a: Revision) -> some View {
-        if !a.acciones.isEmpty {
+        let acciones = accionesDe(a)
+        if !acciones.isEmpty {
             // **Sin relleno verde.** El botón se pintaba a mano: fondo
             // `Paleta.brand` con el texto en blanco, que es lo que da ~2.4:1 en
             // oscuro y por lo que se quitó del resto de la app. Era además el
             // último sitio donde quedaba. Ahora es glass con el verde de marca,
             // y sigue siendo la acción principal por el peso de la tipografía.
-            let prim = a.acciones[0]
+            let prim = acciones[0]
             Button { activar(prim, a) } label: {
                 Text(prim.label)
                     .font(.subheadline.weight(.semibold))
@@ -228,8 +240,8 @@ struct RevisarView: View {
             }
             .buttonStyle(.glass)
             .tint(Paleta.brand)
-            if a.acciones.count > 1 {
-                let sec = a.acciones[1]
+            if acciones.count > 1 {
+                let sec = acciones[1]
                 Button { activar(sec, a) } label: {
                     Text(sec.label)
                         .font(.subheadline)
@@ -304,7 +316,7 @@ struct RevisarView: View {
             .buttonStyle(.plain)
 
             HStack(spacing: 10) {
-                ForEach(a.acciones.prefix(2)) { ac in
+                ForEach(accionesDe(a).prefix(2)) { ac in
                     Button { activar(ac, a) } label: {
                         Text(ac.label)
                             .font(.caption.weight(.semibold))
@@ -361,7 +373,7 @@ struct RevisarView: View {
 
     private func acciones(_ a: Revision) -> some View {
         HStack(spacing: 10) {
-            ForEach(a.acciones) { ac in
+            ForEach(accionesDe(a)) { ac in
                 if ac.navegacion {
                     // Solo lleva a otro lado: chevron y tint neutro. El verde
                     // queda para lo que resuelve el pendiente.
