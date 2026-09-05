@@ -2,9 +2,18 @@ import Foundation
 import SwiftUI
 
 /// Tipo de asunto por revisar. Gobierna el glifo, el color y la etiqueta.
+///
+/// **Aquí solo hay tipos que la bandeja SABE producir.** Había un octavo,
+/// `recurrenteVencido`, con su etiqueta, su forma corta y su inicial "R", que
+/// `CalculadoraRevisiones` no generaba nunca: la pantalla prometía un aviso que
+/// no podía dar, y el filtro por tipo lo listaba como una opción que siempre
+/// devolvía cero. No se puede construir desde aquí — hace falta antes que un
+/// movimiento recurrente sepa desde cuándo se repite y cuándo se generó por
+/// última vez, y eso vive en `Movimiento.repiteMensual`, donde queda anotado
+/// qué falta. Cuando el modelo lo soporte, este caso vuelve.
 enum RevisionTipo: String, CaseIterable, Identifiable {
     case vistoBueno, sinComprobante, duplicado, categoriaVacia
-    case sinVincular, recurrenteVencido, faltaFirma, archivado
+    case sinVincular, faltaFirma, archivado
     var id: String { rawValue }
 
     var etiqueta: String {
@@ -14,7 +23,6 @@ enum RevisionTipo: String, CaseIterable, Identifiable {
         case .duplicado: return L.t("Duplicado probable", "Likely duplicate")
         case .categoriaVacia: return L.t("Categoría vacía", "Empty category")
         case .sinVincular: return L.t("Aportante sin vincular", "Unlinked giver")
-        case .recurrenteVencido: return L.t("Recurrente vencido", "Overdue recurring")
         case .faltaFirma: return L.t("Falta la segunda firma", "Second signature missing")
         case .archivado: return L.t("Miembro archivado", "Archived member")
         }
@@ -27,7 +35,6 @@ enum RevisionTipo: String, CaseIterable, Identifiable {
         case .duplicado:         return L.t("Duplicado", "Duplicate")
         case .categoriaVacia:    return L.t("Sin categoría", "No category")
         case .sinVincular:       return L.t("Sin aportante", "No giver")
-        case .recurrenteVencido: return L.t("Recurrente", "Overdue")
         case .faltaFirma:        return L.t("Falta firma", "Missing signature")
         case .archivado:         return L.t("Archivado", "Archived")
         }
@@ -39,7 +46,6 @@ enum RevisionTipo: String, CaseIterable, Identifiable {
         case .duplicado: return "D"
         case .categoriaVacia: return "C"
         case .sinVincular: return "M"
-        case .recurrenteVencido: return "R"
         case .faltaFirma: return "F"
         case .archivado: return "A"
         }

@@ -75,6 +75,20 @@ struct Movimiento: Identifiable {
     /// constancia y no tiene miembro, ese default hacía saltar la regla en
     /// TODOS los ingresos de golpe.
     var darConstanciaAnual: Bool = false
+    /// **Se repite cada mes, y nada más: no sabe desde cuándo ni hasta cuándo.**
+    ///
+    /// Con un booleano suelto no se puede saber si un recurrente VENCIÓ, que es
+    /// lo que la bandeja tendría que avisar: "el pago de la luz se repite cada
+    /// mes y este mes no está". Hacen falta dos datos que hoy no existen —desde
+    /// qué mes se repite y cuál fue el último generado— y probablemente una
+    /// tabla propia, porque un recurrente no es un movimiento: es la regla que
+    /// los crea.
+    ///
+    /// Por eso "Por revisar" NO tiene la regla de recurrente vencido. Estuvo
+    /// declarada en `RevisionTipo` con etiqueta e inicial, sin que nada la
+    /// generara nunca; se quitó de allí y la deuda queda escrita aquí, que es
+    /// donde se va a resolver. Mientras tanto el interruptor de la hoja de
+    /// captura guarda la intención, y el detalle la enseña.
     var repiteMensual: Bool = false
     /// Claves que la pantalla no edita pero que viven en la fila remota. Se
     /// arrastran en el round-trip porque, si no, una edición cualquiera las
