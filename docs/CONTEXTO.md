@@ -253,6 +253,12 @@ comprobadas por compilación y por la forma de las estructuras contra el
 esquema real. La primera sincronización con la cuenta de verdad es la prueba
 que falta, y conviene hacerla mirando `members` en el SQL Editor.
 
+**Las capas se eligen juntas.** `OfflineMembresiaRepository` pedía la
+asistencia a la fábrica `repositorioAsistencia()`, así que con el modo
+revisión encendido un repositorio de disco contaba la asistencia de la
+maqueta. Un repositorio offline usa el offline; la fábrica es para las
+pantallas.
+
 **Con el modo revisión encendido, Membresía sigue enseñando la maqueta**
 (`repositorioMembresia()` elige por `ModoRevision.sinLogin`, igual que los
 demás). La asistencia de la ficha y el panel de Asistencia siguen siendo
@@ -282,11 +288,10 @@ Data Protection) y qué protección le queda al respaldo en iCloud Drive.
 5. **Membresía: probar la sincronización con la cuenta real** (§5). El
    repositorio y el motor están escritos —padrón, parentescos, cultos y
    asistencia—; la red no se ha ejercitado nunca.
-6. **`ServiciosView` sigue de maqueta.** Toma lista de verdad, pero la pantalla
-   en sí (los servicios, el roster, el orden del culto) corre sobre datos
-   inventados y su `Servicio` tiene forma de pantalla. Mientras tanto, "Tomar
-   lista" coge el culto más reciente de la tabla: es un puente, y está dicho
-   en el código.
+6. **Los servicios ya tienen forma de fila** (v17: `servicioPuesto` y
+   `servicioOrden`), con su repositorio y su sincronización. Lo que falta de
+   esa pantalla es el resto de la ficha del culto —cantos, escuela dominical,
+   conteos— que sigue guardándose pero sin verse.
 7. **"Familia Ruvalcaba" es una familia registrada como UNA persona**, con la
    nota "cuatro miembros · diezman juntos". Para Tesorería funciona —una
    constancia— pero en la lista de asistencia cuenta uno donde hay cuatro y no
