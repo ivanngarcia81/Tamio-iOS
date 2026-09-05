@@ -257,11 +257,14 @@ struct RevisarView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    Text(a.tipo.etiquetaCorta)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, Esp.hueco).padding(.vertical, 3)
-                        .background(Paleta.brand, in: Capsule())
+                    // **Dentro de la ley de badges.** Iba pintado a mano: verde
+                    // sólido con el texto en blanco, los mismos ~2.4:1 en oscuro
+                    // que se quitaron del resto de la app, y además fuera de los
+                    // cuatro roles de `Paleta.Estado`. Es `informativo`: dice de
+                    // qué clase es el asunto, no reclama nada — lo que reclama
+                    // ya lo dicen los badges naranjas de al lado. Y usa `Pill`,
+                    // que es el componente con el que se dibujan los demás.
+                    Pill(texto: a.tipo.etiquetaCorta, color: Paleta.Estado.informativo.color)
                 }
                 .padding(.horizontal, Esp.tarjeta).padding(.top, 14).padding(.bottom, 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
