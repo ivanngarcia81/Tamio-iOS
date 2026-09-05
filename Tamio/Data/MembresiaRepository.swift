@@ -1,9 +1,15 @@
 import Foundation
+import GRDB
 
 protocol MembresiaRepository {
     func lista() async throws -> [Miembro]
     func resumen() async -> MembresiaResumen
     func asistenciaResumen() async -> AsistenciaResumen
+    /// Alta o edición: la misma función, como en el web. Lo que llega es la
+    /// ficha entera; el repositorio decide si inserta o actualiza.
+    func guardar(_ m: Miembro) async throws
+    func agregarPariente(miembroId: String, _ p: Pariente) async throws
+    func quitarPariente(id: String) async throws
 }
 
 /// Datos falsos que reproducen la pantalla de Membresía del handoff.
@@ -44,9 +50,27 @@ struct MockMembresiaRepository: MembresiaRepository {
         )
     }
 
+    /// Almacén ESTÁTICO para que el CRUD persista durante la sesión, como
+    /// hace `MockMiembrosRepository`.
+    private static var almacen: [Miembro] = MockMembresiaRepository.miembros
+
     func lista() async throws -> [Miembro] {
         try? await Task.sleep(nanoseconds: 120_000_000)
-        return Self.miembros
+        return Self.almacen
+    }
+
+    func guardar(_ m: Miembro) async throws {
+        if let i = Self.almacen.firstIndex(where: { $0.id == m.id }) { Self.almacen[i] = m }
+        else { Self.almacen.insert(m, at: 0) }
+    }
+
+    func agregarPariente(miembroId: String, _ p: Pariente) async throws {
+        guard let i = Self.almacen.firstIndex(where: { $0.id == miembroId }) else { return }
+        Self.almacen[i].familia.append(p)
+    }
+
+    func quitarPariente(id: String) async throws {
+        for i in Self.almacen.indices { Self.almacen[i].familia.removeAll { $0.id == id } }
     }
 
     private static func serie(_ base: Double) -> [MesAsistencia] {
@@ -55,179 +79,208 @@ struct MockMembresiaRepository: MembresiaRepository {
         return zip(et, vals).map { MesAsistencia(mes: $0.0, valor: $0.1) }
     }
 
-    private static func expediente(completo: Bool = true) -> [ItemExpediente] {
-        [
-            ItemExpediente(campo: L.t("Nombre y apellidos","Full name"),    completo: completo),
-            ItemExpediente(campo: L.t("Teléfono","Phone"),                  completo: completo),
-            ItemExpediente(campo: L.t("Correo","Email"),                    completo: completo),
-            ItemExpediente(campo: L.t("Dirección","Address"),               completo: completo),
-            ItemExpediente(campo: L.t("Fecha de bautismo","Baptism date"),  completo: completo),
-        ]
-    }
-
+    /// Los mismos ocho de siempre, ya con forma de fila: las claves del web,
+    /// las fechas "YYYY-MM-DD" y sin un solo texto de pantalla guardado —eso
+    /// lo calcula `Miembro`—. La asistencia sigue siendo inventada hasta la
+    /// v16.
     private static var miembros: [Miembro] {
-        [
-            Miembro(id: "1", nombre: "María Hernández Ríos",
-                    subtitulo: L.t("Ingresó 2014 · enseñanza · niños","Joined 2014 · teaching · children"),
-                    estado: .activo, asistenciaPct: 96,
-                    area: L.t("Enseñanza · niños","Teaching · children"),
-                    miembroDesde: L.t("Ingresó 2014","Joined 2014"),
-                    asistencia: serie(0.96),
-                    enRoster: L.t("26 de 27", "26 of 27"), rachaSinAsistir: L.t("0 servicios","0 services"),
-                    ultimaVisita: L.fecha("23 ago"),
-                    seguimientoRazon: nil, ausenciaNota: nil,
-                    datos: [
-                        Dato(etiqueta: L.t("Fecha de ingreso","Join date"),      valor: L.fecha("14 mar 2014")),
-                        Dato(etiqueta: L.t("Se congrega desde","Attends since"),  valor: L.fecha("Junio 2012")),
-                        Dato(etiqueta: L.t("Bautismo","Baptism"),                 valor: L.fecha("12 abr 2014")),
-                        Dato(etiqueta: L.t("Cargos","Roles"),                     valor: L.t("Maestra","Teacher")),
-                        Dato(etiqueta: L.t("Instrumentos","Instruments"),         valor: L.t("Voz","Voice")),
-                    ],
-                    expediente: expediente(),
-                    movimientos: [
-                        MovMembresia(titulo: L.t("Alta como miembro","Added as member"), fecha: L.fecha("14 mar 2014")),
-                        MovMembresia(titulo: L.t("Bautismo en agua","Water baptism"),    fecha: L.fecha("12 abr 2014")),
-                        MovMembresia(titulo: L.t("Se congrega desde","Attends since"),   fecha: L.fecha("Junio 2012")),
-                    ]),
+        var m1 = Miembro(id: "1", nombre: "María Hernández Ríos")
+        m1.telefono = "81 1234 5678"; m1.correo = "maria.hernandez@correo.mx"
+        m1.direccion = "Av. Constitución 123"; m1.estadoCivil = "casado"; m1.nacimiento = "1978-03-14"
+        m1.fechaIngreso = "2014-03-14"; m1.fechaCongregacion = "2012-06-01"
+        m1.bautizadoAgua = true; m1.fechaBautismoAgua = "2014-04-12"
+        m1.ministerios = ["ensenanza", "ninos"]; m1.cargos = ["maestro"]; m1.instrumentos = ["voz"]
+        m1.asistenciaPct = 96; m1.asistencia = serie(0.96)
+        m1.enRoster = L.t("26 de 27", "26 of 27"); m1.rachaSinAsistir = L.t("0 servicios", "0 services")
+        m1.ultimaVisita = L.fecha("23 ago")
 
-            Miembro(id: "2", nombre: "Lucía Márquez Peña",
-                    subtitulo: L.t("Ingresó 2019 · alabanza","Joined 2019 · worship"),
-                    estado: .activo, asistenciaPct: 92,
-                    area: L.t("Alabanza","Worship"),
-                    miembroDesde: L.t("Ingresó 2019","Joined 2019"),
-                    asistencia: serie(0.92),
-                    enRoster: L.t("25 de 27", "25 of 27"), rachaSinAsistir: L.t("0 servicios","0 services"),
-                    ultimaVisita: L.fecha("23 ago"),
-                    seguimientoRazon: nil, ausenciaNota: nil,
-                    datos: [
-                        Dato(etiqueta: L.t("Fecha de ingreso","Join date"),     valor: L.fecha("8 feb 2019")),
-                        Dato(etiqueta: L.t("Se congrega desde","Attends since"), valor: L.fecha("Octubre 2018")),
-                        Dato(etiqueta: L.t("Bautismo","Baptism"),                valor: L.fecha("15 mar 2019")),
-                        Dato(etiqueta: L.t("Cargos","Roles"),                    valor: L.t("Coordinadora escuela bíblica","Bible school coordinator")),
-                    ],
-                    expediente: expediente(),
-                    movimientos: [
-                        MovMembresia(titulo: L.t("Alta como miembro","Added as member"), fecha: L.fecha("8 feb 2019")),
-                        MovMembresia(titulo: L.t("Bautismo en agua","Water baptism"),    fecha: L.fecha("15 mar 2019")),
-                    ]),
+        var m2 = Miembro(id: "2", nombre: "Lucía Márquez Peña")
+        m2.telefono = "81 5555 6666"; m2.correo = "lucia.marquez@correo.mx"
+        m2.fechaIngreso = "2019-02-08"; m2.fechaCongregacion = "2018-10-01"
+        m2.bautizadoAgua = true; m2.fechaBautismoAgua = "2019-03-15"
+        m2.ministerios = ["musica"]; m2.cargos = ["Coordinadora escuela bíblica"]
+        m2.asistenciaPct = 92; m2.asistencia = serie(0.92)
+        m2.enRoster = L.t("25 de 27", "25 of 27"); m2.rachaSinAsistir = L.t("0 servicios", "0 services")
+        m2.ultimaVisita = L.fecha("23 ago")
 
-            Miembro(id: "3", nombre: "Pedro Salas Aguirre",
-                    subtitulo: L.t("Ingresó 2021 · ujier","Joined 2021 · usher"),
-                    estado: .activo, asistenciaPct: 88,
-                    area: L.t("Ujier","Usher"),
-                    miembroDesde: L.t("Ingresó 2021","Joined 2021"),
-                    asistencia: serie(0.88),
-                    enRoster: L.t("24 de 27", "24 of 27"), rachaSinAsistir: L.t("0 servicios","0 services"),
-                    ultimaVisita: L.fecha("23 ago"),
-                    seguimientoRazon: nil, ausenciaNota: nil,
-                    datos: [
-                        Dato(etiqueta: L.t("Fecha de ingreso","Join date"),     valor: L.fecha("12 jun 2021")),
-                        Dato(etiqueta: L.t("Bautismo","Baptism"),                valor: L.fecha("4 jul 2021")),
-                        Dato(etiqueta: L.t("Cargos","Roles"),                    valor: L.t("Diácono","Deacon")),
-                    ],
-                    expediente: expediente(),
-                    movimientos: [
-                        MovMembresia(titulo: L.t("Alta como miembro","Added as member"), fecha: L.fecha("12 jun 2021")),
-                    ]),
+        var m3 = Miembro(id: "3", nombre: "Pedro Salas Aguirre")
+        m3.telefono = "81 7777 8888"; m3.correo = "pedro.salas@correo.mx"; m3.direccion = "Calle Hidalgo 45"
+        m3.estadoCivil = "casado"; m3.nacimiento = "1985-09-02"
+        m3.fechaIngreso = "2021-06-12"; m3.fechaCongregacion = "2021-01-10"
+        m3.bautizadoAgua = true; m3.fechaBautismoAgua = "2021-08-01"
+        m3.ministerios = ["ujieres"]; m3.habilidades = ["electricidad"]
+        m3.asistenciaPct = 88; m3.asistencia = serie(0.88)
+        m3.enRoster = L.t("24 de 27", "24 of 27"); m3.rachaSinAsistir = L.t("0 servicios", "0 services")
+        m3.ultimaVisita = L.fecha("23 ago")
 
-            Miembro(id: "4", nombre: "Javier Medina Cruz",
-                    subtitulo: L.t("Traslado en proceso","Transfer in progress"),
-                    // Traslado EN CURSO: sigue activo hasta que se cierre.
-                    estado: .activo, asistenciaPct: 41,
-                    area: L.t("Sin área","No area"),
-                    miembroDesde: L.t("Ingresó 2021","Joined 2021"),
-                    asistencia: serie(0.41),
-                    enRoster: L.t("11 de 27", "11 of 27"), rachaSinAsistir: L.t("6 servicios","6 services"),
-                    ultimaVisita: L.fecha("12 jul"),
-                    seguimientoRazon: L.t("Seis servicios seguidos sin asistir · Traslado sin carta entregada",
-                                          "Six consecutive services without attendance · Transfer letter not delivered"),
-                    ausenciaNota: L.t("· traslado","· transfer"),
-                    datos: [
-                        Dato(etiqueta: L.t("Fecha de ingreso","Join date"),     valor: L.fecha("3 mar 2021")),
-                        Dato(etiqueta: L.t("Bautismo","Baptism"),                valor: L.fecha("20 mar 2021")),
-                    ],
-                    expediente: expediente(completo: false),
-                    movimientos: [
-                        MovMembresia(titulo: L.t("Alta como miembro","Added as member"),     fecha: L.fecha("3 mar 2021")),
-                        MovMembresia(titulo: L.t("Solicitud de traslado iniciada","Transfer request started"), fecha: L.fecha("12 ago 2026")),
-                    ]),
+        // Traslado EN CURSO: sigue activo hasta que se cierre. El expediente
+        // vivirá en `traslados_salida`; mientras, aquí no se ve.
+        var m4 = Miembro(id: "4", nombre: "Javier Medina Cruz")
+        m4.telefono = "81 8899 1020"; m4.correo = "jmedina@outlook.com"
+        m4.fechaIngreso = "2016-05-20"; m4.bautizadoAgua = true
+        m4.asistenciaPct = 41; m4.asistencia = serie(0.41)
+        m4.enRoster = L.t("11 de 27", "11 of 27"); m4.rachaSinAsistir = L.t("4 servicios", "4 services")
+        m4.ultimaVisita = L.fecha("26 jul")
+        m4.seguimientoRazon = L.t("Cuatro servicios sin asistir · traslado en curso", "Four services missed · transfer in progress")
+        m4.ausenciaNota = L.t(" · traslado", " · transfer")
 
-            Miembro(id: "5", nombre: "Ana Lucía Torres",
-                    subtitulo: L.t("Ingresó 2016 · intercesión","Joined 2016 · intercession"),
-                    estado: .activo, asistenciaPct: 62,
-                    area: L.t("Intercesión","Intercession"),
-                    miembroDesde: L.t("Ingresó 2016","Joined 2016"),
-                    asistencia: serie(0.62),
-                    enRoster: L.t("17 de 27", "17 of 27"), rachaSinAsistir: L.t("3 servicios","3 services"),
-                    ultimaVisita: L.fecha("2 ago"),
-                    seguimientoRazon: L.t("Tres servicios seguidos sin asistir","Three consecutive services without attendance"),
-                    ausenciaNota: L.t("· enfermedad","· illness"),
-                    datos: [
-                        Dato(etiqueta: L.t("Fecha de ingreso","Join date"),      valor: L.fecha("19 sep 2016")),
-                        Dato(etiqueta: L.t("Bautismo","Baptism"),                 valor: L.fecha("2 oct 2016")),
-                        Dato(etiqueta: L.t("Cargos","Roles"),                     valor: L.t("Intercesor","Intercessor")),
-                    ],
-                    expediente: expediente(),
-                    movimientos: [
-                        MovMembresia(titulo: L.t("Alta como miembro","Added as member"), fecha: L.fecha("19 sep 2016")),
-                    ]),
+        var m5 = Miembro(id: "5", nombre: "Ana Lucía Torres")
+        m5.telefono = "81 1010 2020"; m5.correo = "ana.torres@correo.mx"; m5.estadoCivil = "casado"
+        m5.fechaIngreso = "2016-08-14"; m5.bautizadoAgua = true; m5.fechaBautismoAgua = "2016-09-04"
+        m5.ministerios = ["intercesion"]
+        m5.asistenciaPct = 62; m5.asistencia = serie(0.62)
+        m5.enRoster = L.t("17 de 27", "17 of 27"); m5.rachaSinAsistir = L.t("2 servicios", "2 services")
+        m5.ultimaVisita = L.fecha("9 ago")
+        m5.seguimientoRazon = L.t("Dos servicios sin asistir", "Two services missed")
+        m5.ausenciaNota = L.t(" · enfermedad", " · illness")
 
-            Miembro(id: "6", nombre: "Familia Ruvalcaba",
-                    subtitulo: L.t("4 integrantes · diezman","4 members · tithe givers"),
-                    estado: .activo, asistenciaPct: 84,
-                    area: L.t("Varios","Various"),
-                    miembroDesde: L.t("Ingresó 2016","Joined 2016"),
-                    asistencia: serie(0.84),
-                    enRoster: L.t("23 de 27", "23 of 27"), rachaSinAsistir: L.t("1 servicio","1 service"),
-                    ultimaVisita: L.fecha("23 ago"),
-                    seguimientoRazon: nil, ausenciaNota: nil,
-                    datos: [
-                        Dato(etiqueta: L.t("Fecha de ingreso","Join date"),      valor: L.fecha("7 ene 2016")),
-                        Dato(etiqueta: L.t("Bautismo","Baptism"),                 valor: L.fecha("14 feb 2016")),
-                        Dato(etiqueta: L.t("Integrantes","Members"),              valor: "4"),
-                    ],
-                    expediente: expediente(),
-                    movimientos: [
-                        MovMembresia(titulo: L.t("Alta como miembro","Added as member"), fecha: L.fecha("7 ene 2016")),
-                    ]),
+        var m6 = Miembro(id: "6", nombre: "Familia Ruvalcaba")
+        m6.telefono = "81 3030 4040"; m6.fechaIngreso = "2015-11-01"
+        m6.ministerios = ["cocina"]; m6.notas = L.t("Cuatro miembros · diezman juntos", "Four members · tithe together")
+        m6.asistenciaPct = 84; m6.asistencia = serie(0.84)
+        m6.enRoster = L.t("23 de 27", "23 of 27"); m6.rachaSinAsistir = L.t("0 servicios", "0 services")
+        m6.ultimaVisita = L.fecha("23 ago")
 
-            Miembro(id: "7", nombre: "Daniel Guerra Salinas",
-                    subtitulo: L.t("Recibido por traslado","Received by transfer"),
-                    estado: .activo, asistenciaPct: 78,
-                    area: L.t("Sin área","No area"),
-                    miembroDesde: L.t("Ingresó 2026","Joined 2026"),
-                    asistencia: serie(0.78),
-                    enRoster: L.t("6 de 27", "6 of 27"), rachaSinAsistir: L.t("0 servicios","0 services"),
-                    ultimaVisita: L.fecha("23 ago"),
-                    seguimientoRazon: L.t("Nuevo en el periodo","New in the period"),
-                    ausenciaNota: nil,
-                    datos: [
-                        Dato(etiqueta: L.t("Fecha de ingreso","Join date"),      valor: L.fecha("6 jul 2026")),
-                        Dato(etiqueta: L.t("Iglesia anterior","Previous church"), valor: L.t("Iglesia Emanuel · Torreón","Iglesia Emanuel · Torreón")),
-                    ],
-                    expediente: expediente(completo: false),
-                    movimientos: [
-                        MovMembresia(titulo: L.t("Recibido por traslado","Received by transfer"), fecha: L.fecha("6 jul 2026")),
-                    ]),
+        // Recibido por traslado ESTE año: nuevo y recibido a la vez, que es
+        // lo que el enum viejo no dejaba ser.
+        var m7 = Miembro(id: "7", nombre: "Daniel Guerra Salinas")
+        m7.telefono = "81 6060 7070"; m7.correo = "daniel.guerra@correo.mx"
+        m7.fechaIngreso = Fechas.claveDia(); m7.iglesiaAnterior = "Iglesia Bautista Getsemaní, Saltillo"
+        m7.bautizadoAgua = true; m7.fechaBautismoAgua = "2011-05-22"; m7.ministerios = ["medios"]
+        m7.asistenciaPct = 78; m7.asistencia = serie(0.78)
+        m7.enRoster = L.t("7 de 9", "7 of 9"); m7.rachaSinAsistir = L.t("0 servicios", "0 services")
+        m7.ultimaVisita = L.fecha("23 ago")
+        m7.seguimientoRazon = L.t("Nuevo en el periodo", "New in the period")
 
-            Miembro(id: "8", nombre: "Rosa Elena Vega",
-                    subtitulo: L.t("Traslado aceptado","Transfer accepted"),
-                    estado: .baja("2026-03-14", "traslado"), asistenciaPct: 0,
-                    area: L.t("Sin área","No area"),
-                    miembroDesde: L.t("Ingresó 2013","Joined 2013"),
-                    asistencia: serie(0),
-                    enRoster: L.t("0 de 27", "0 of 27"), rachaSinAsistir: L.t("27 servicios","27 services"),
-                    ultimaVisita: L.fecha("14 mar"),
-                    seguimientoRazon: nil, ausenciaNota: nil,
-                    datos: [
-                        Dato(etiqueta: L.t("Fecha de ingreso","Join date"),      valor: L.fecha("11 ago 2013")),
-                        Dato(etiqueta: L.t("Fecha de baja","Removal date"),       valor: L.fecha("14 mar 2026")),
-                    ],
-                    expediente: expediente(),
-                    movimientos: [
-                        MovMembresia(titulo: L.t("Alta como miembro","Added as member"), fecha: L.fecha("11 ago 2013")),
-                        MovMembresia(titulo: L.t("Traslado enviado","Transfer sent"),    fecha: L.fecha("14 mar 2026")),
-                    ]),
-        ]
+        var m8 = Miembro(id: "8", nombre: "Rosa Elena Vega")
+        m8.telefono = "81 9090 0101"; m8.fechaIngreso = "2013-08-11"
+        m8.estado = .baja("2026-03-14", "traslado")
+        m8.historialEstados = [CambioEstado(de: "activo", a: "trasladado", fecha: "2026-03-14")]
+        m8.bautizadoAgua = true; m8.fechaBautismoAgua = "2013-09-01"
+        m8.asistencia = serie(0)
+        m8.enRoster = L.t("0 de 27", "0 of 27"); m8.rachaSinAsistir = L.t("27 servicios", "27 services")
+        m8.ultimaVisita = L.fecha("14 mar")
+
+        return [m1, m2, m3, m4, m5, m6, m7, m8]
     }
+}
+
+
+// MARK: - El repositorio de verdad
+
+/// El padrón desde la base del teléfono: la fila de `aportante` leída por su
+/// otra cara, `MiembroFila`, y los parentescos de `parentesco` resueltos por
+/// los dos extremos.
+///
+/// **Los ocho indicadores se cuentan, no se escriben.** La maqueta tenía
+/// `resumenPadron` como constante y el hub de Secretaría la copiaba; aquí
+/// salen de las filas, con el mismo criterio que `membresiaStats` en el web:
+/// activos son `activo = 1` con registro "activo", las altas son las de
+/// `fecha_ingreso` en el año, las bajas las de `fecha_baja` en el año.
+///
+/// La asistencia todavía no tiene de dónde salir —`servicios` llega con la
+/// v16—, así que aquí es un resumen vacío y en la ficha las cadenas quedan en
+/// blanco. Mejor un hueco que un número inventado.
+struct OfflineMembresiaRepository: MembresiaRepository {
+
+    private var cola: DatabaseQueue { BaseLocal.compartida.cola }
+
+    func lista() async throws -> [Miembro] {
+        try await cola.read { db in try Self.leer(db) }
+    }
+
+    private static func leer(_ db: Database) throws -> [Miembro] {
+        let filas = try MiembroFila
+            .filter(Column("borrado") == false)
+            .order(Column("nombre"))
+            .fetchAll(db)
+        let nombres = Dictionary(filas.map { ($0.id, $0.nombre) }, uniquingKeysWith: { a, _ in a })
+        let parentescos = try ParentescoFila.filter(Column("borrado") == false).fetchAll(db)
+
+        // Una fila por relación, leída desde los dos lados: la de "Ana es
+        // hermana de María" se le enseña a María tal cual y a Ana con el
+        // inverso. Si el otro extremo no ha bajado todavía, la relación se
+        // salta entera —media relación no es una relación—.
+        var familia: [String: [Pariente]] = [:]
+        for p in parentescos {
+            guard let n1 = nombres[p.parienteId], let n2 = nombres[p.miembroId] else { continue }
+            familia[p.miembroId, default: []].append(
+                Pariente(id: p.id, tipo: p.tipo, parienteId: p.parienteId, nombre: n1))
+            familia[p.parienteId, default: []].append(
+                Pariente(id: p.id, tipo: Parentescos.inverso[p.tipo] ?? p.tipo,
+                         parienteId: p.miembroId, nombre: n2))
+        }
+        return filas.map { $0.miembro(familia: familia[$0.id] ?? []) }
+    }
+
+    func resumen() async -> MembresiaResumen {
+        let miembros = (try? await lista()) ?? []
+        let año = Calendar.current.component(.year, from: Date())
+        let vivos = miembros.filter { !$0.estado.esBaja }
+        return MembresiaResumen(
+            activos: vivos.filter { $0.estado.registro == .activo }.count,
+            inactivos: vivos.filter { $0.estado.registro != .activo }.count,
+            bajas: miembros.filter { $0.estado.esBaja }.count,
+            nuevos: miembros.filter { $0.esNuevo(en: año) }.count,
+            recibidos: miembros.filter { $0.esNuevo(en: año) && $0.esRecibido }.count,
+            trasladados: miembros.filter { $0.estado.baja?.motivo == "traslado"
+                                            && Int($0.estado.baja?.fecha.prefix(4) ?? "") == año }.count,
+            ausencias: 0,
+            incompletos: vivos.filter { !$0.expedienteCompleto }.count)
+    }
+
+    func asistenciaResumen() async -> AsistenciaResumen {
+        AsistenciaResumen(promedioPct: 0, serviciosPeriodo: 0, presentesPromedio: 0,
+                          mejorServicio: "—", meses: [], porTipo: [])
+    }
+
+    func guardar(_ m: Miembro) async throws {
+        try await cola.write { db in
+            let previa = try MiembroFila.fetchOne(db, key: m.id)
+            try MiembroFila(m, actualizadoEn: previa?.actualizadoEn).save(db)
+            try Self.encolar(db, entidad: "miembro", id: m.id,
+                             operacion: previa == nil ? .crear : .actualizar)
+        }
+    }
+
+    func agregarPariente(miembroId: String, _ p: Pariente) async throws {
+        try await cola.write { db in
+            try ParentescoFila(id: p.id, miembroId: miembroId, parienteId: p.parienteId,
+                               tipo: p.tipo, actualizadoEn: nil, borrado: false).insert(db)
+            try Self.encolar(db, entidad: "parentesco", id: p.id, operacion: .crear)
+        }
+    }
+
+    func quitarPariente(id: String) async throws {
+        try await cola.write { db in
+            guard var fila = try ParentescoFila.fetchOne(db, key: id) else { return }
+            fila.borrado = true
+            try fila.update(db)
+            try Self.encolar(db, entidad: "parentesco", id: id, operacion: .eliminar)
+        }
+    }
+
+    /// Igual que en los demás repositorios: una sola operación pendiente por
+    /// registro, y crear + actualizar sigue siendo crear.
+    private static func encolar(_ db: Database, entidad: String, id: String,
+                                operacion: OperacionPendiente.Operacion) throws {
+        let previa = try OperacionPendiente
+            .filter(Column("entidad") == entidad && Column("registroId") == id)
+            .fetchOne(db)
+        let efectiva: OperacionPendiente.Operacion =
+            (previa?.operacion == OperacionPendiente.Operacion.crear.rawValue
+             && operacion == .actualizar) ? .crear : operacion
+        try OperacionPendiente
+            .filter(Column("entidad") == entidad && Column("registroId") == id)
+            .deleteAll(db)
+        var nueva = OperacionPendiente(id: nil, entidad: entidad, registroId: id,
+                                       operacion: efectiva.rawValue,
+                                       creadoEn: Date().timeIntervalSince1970,
+                                       intentos: 0, ultimoError: nil)
+        try nueva.insert(db)
+    }
+}
+
+func repositorioMembresia() -> MembresiaRepository {
+    ModoRevision.sinLogin ? MockMembresiaRepository() : OfflineMembresiaRepository()
 }

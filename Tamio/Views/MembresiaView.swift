@@ -608,7 +608,7 @@ struct MembresiaView: View {
                             vm.filtroMinisterio = nil
                         }
                         ForEach(vm.ministeriosDisponibles, id: \.self) { min in
-                            filaFiltro(min, activo: vm.filtroMinisterio == min) { vm.filtroMinisterio = min }
+                            filaFiltro(Padron.etiqueta(min), activo: vm.filtroMinisterio == min) { vm.filtroMinisterio = min }
                         }
                     }
                 }
@@ -876,6 +876,11 @@ private struct PanelAsistencia: View {
 
 // MARK: - Sheet de alta de nuevo miembro
 
+/// Alta y edición. **Se lee y se escribe sobre los campos de `Miembro`**, no
+/// sobre una lista de pares etiqueta-valor: antes cada campo se guardaba como
+/// `Dato("Correo", …)` y al editar se buscaba por la etiqueta traducida, y
+/// por ahí se perdían tres campos de Servicio y la fecha de la baja. Ahora no
+/// hay traducción de ida y vuelta: la hoja edita una copia y la devuelve.
 private struct NuevoMiembroSheet: View {
     let proximoId: String
     let miembroExistente: Miembro?
@@ -884,54 +889,22 @@ private struct NuevoMiembroSheet: View {
     let puedeDarDeBaja: Bool
     let onGuardar: (Miembro) -> Void
 
-    // QUIÉN ES
-    @State private var nombre: String
-    @State private var telefono: String
-    @State private var correo: String
+    /// La ficha que se está editando. Empieza como copia de la existente o
+    /// vacía, y `Guardar` la devuelve tal cual.
+    @State private var m: Miembro
 
-    // MEMBRESÍA
-    /// El estado dentro del registro, y aparte la baja: son cosas distintas
-    /// y en el servidor son columnas distintas. Ver `EstadoMiembro`.
-    @State private var registro: EstadoRegistro
+    // Lo que la hoja pide con controles que no son el campo: fechas como
+    // `Date` y la baja con su interruptor.
     @State private var fechaIngreso: Date
-    /// Una baja no es solo un cambio de etiqueta: hay que poder decir cuándo y
-    /// por qué, o dentro de dos años nadie sabrá qué pasó con esa persona.
-    @State private var deBaja = false
-    @State private var fechaBaja = Date()
-    /// Clave del catálogo; con "otro", lo que se escriba en `motivoOtro`.
-    @State private var motivoBaja = "traslado"
-    @State private var motivoOtro = ""
-
-    // Vida espiritual
-    @State private var bautizadoAgua: Bool
-    @State private var bautizadoEspiritu: Bool
-    @State private var cursoCompletado: Bool
-
-    // Servicio y habilidades
-    @State private var ministerios: Set<String>
-    @State private var ministeriosCustom: [String]
-    @State private var cargos: Set<String>
-    @State private var cargosCustom: [String]
-    @State private var ministeriosInteres: Set<String>
-    @State private var instrumentos: Set<String>
-    @State private var instrumentosCustom: [String]
-    @State private var habilidades: Set<String>
-    @State private var habilidadesCustom: [String]
-    @State private var disponibilidad: String
-    @State private var interesServir: Bool
-
-    // Datos de la persona
     @State private var tieneFechaNac: Bool
     @State private var fechaNacimiento: Date
-    @State private var estadoCivil: String
-    @State private var direccion: String
-
-    // Más datos personales
-    @State private var idFiscal: String
-    @State private var notas: String
-    @State private var iglesiaAnterior: String
-    @State private var tieneRecibido: Bool
-    @State private var fechaRecibido: Date
+    @State private var tieneCongrega: Bool
+    @State private var fechaCongrega: Date
+    @State private var deBaja: Bool
+    @State private var fechaBaja: Date
+    /// Clave del catálogo; con "otro", lo que se escriba en `motivoOtro`.
+    @State private var motivoBaja: String
+    @State private var motivoOtro: String
 
     @Environment(\.dismiss) private var dismiss
 
@@ -942,169 +915,60 @@ private struct NuevoMiembroSheet: View {
         self.puedeDarDeBaja = puedeDarDeBaja
         self.onGuardar = onGuardar
 
-        guard let m = miembroExistente else {
-            _nombre = State(initialValue: "")
-            _telefono = State(initialValue: "")
-            _correo = State(initialValue: "")
-            _registro = State(initialValue: .activo)
-            _fechaIngreso = State(initialValue: Date())
-            _bautizadoAgua = State(initialValue: false)
-            _bautizadoEspiritu = State(initialValue: false)
-            _cursoCompletado = State(initialValue: false)
-            _ministerios = State(initialValue: [])
-            _ministeriosCustom = State(initialValue: [])
-            _cargos = State(initialValue: [])
-            _cargosCustom = State(initialValue: [])
-            _ministeriosInteres = State(initialValue: [])
-            _instrumentos = State(initialValue: [])
-            _instrumentosCustom = State(initialValue: [])
-            _habilidades = State(initialValue: [])
-            _habilidadesCustom = State(initialValue: [])
-            _disponibilidad = State(initialValue: "")
-            _interesServir = State(initialValue: false)
-            _tieneFechaNac = State(initialValue: false)
-            _fechaNacimiento = State(initialValue: Date())
-            _estadoCivil = State(initialValue: "Sin especificar")
-            _direccion = State(initialValue: "")
-            _idFiscal = State(initialValue: "")
-            _notas = State(initialValue: "")
-            _iglesiaAnterior = State(initialValue: "")
-            _tieneRecibido = State(initialValue: false)
-            _fechaRecibido = State(initialValue: Date())
-            return
-        }
-
-        // Pre-populate from existing member
-        func d(_ es: String, _ en: String) -> String {
-            m.datos.first { $0.etiqueta == L.t(es, en) }?.valor ?? ""
-        }
-        func flag(_ es: String, _ en: String) -> Bool {
-            m.datos.contains { $0.etiqueta == L.t(es, en) && $0.valor == "✓" }
-        }
-        let fmt = NuevoMiembroSheet.fmtCorto
-
-        _nombre = State(initialValue: m.nombre)
-        _telefono = State(initialValue: d("Teléfono", "Phone"))
-        _correo = State(initialValue: d("Correo", "Email"))
-        _registro = State(initialValue: m.estado.registro)
-        let fechaIngStr = d("Fecha de ingreso", "Join date")
-        _fechaIngreso = State(initialValue: fmt.date(from: fechaIngStr) ?? Date())
-
-        _bautizadoAgua = State(initialValue: flag("Bautismo en agua", "Water baptism"))
-        _bautizadoEspiritu = State(initialValue: flag("Bautismo Espíritu", "Spirit baptism"))
-        _cursoCompletado = State(initialValue: flag("Curso de membresía", "Membership course"))
-
-        let knownMin: [String] = ["Música", "Ujieres", "Enseñanza", "Evangelismo",
-                                   "Niños", "Jóvenes", "Medios", "Cocina", "Mantenimiento", "Intercesión"]
-        let minStr = d("Ministerios", "Ministries")
-        let allMin: [String] = minStr.isEmpty ? [] : minStr.components(separatedBy: ", ")
-        _ministerios = State(initialValue: Set(allMin.filter { knownMin.contains($0) }))
-        _ministeriosCustom = State(initialValue: allMin.filter { !knownMin.contains($0) })
-
-        let knownCargos: [String] = ["Diácono", "Anciano", "Maestro(a)", "Líder de jóvenes",
-                                      "Líder de damas", "Líder de caballeros", "Jefe de ujieres", "Misionero(a)"]
-        let cargosStr = d("Cargos", "Roles")
-        let allCargos: [String] = cargosStr.isEmpty ? [] : cargosStr.components(separatedBy: ", ")
-        _cargos = State(initialValue: Set(allCargos.filter { knownCargos.contains($0) }))
-        _cargosCustom = State(initialValue: allCargos.filter { !knownCargos.contains($0) })
-
-        let interesStr = d("Ministerios de interés", "Ministries of interest")
-        _ministeriosInteres = State(initialValue: interesStr.isEmpty
-                                    ? [] : Set(interesStr.components(separatedBy: ", ")))
-
-        let knownInstr: [String] = ["Piano", "Guitarra", "Bajo", "Batería", "Percusión", "Metales", "Voz"]
-        let instrStr = d("Instrumentos", "Instruments")
-        let allInstr: [String] = instrStr.isEmpty ? [] : instrStr.components(separatedBy: ", ")
-        _instrumentos = State(initialValue: Set(allInstr.filter { knownInstr.contains($0) }))
-        _instrumentosCustom = State(initialValue: allInstr.filter { !knownInstr.contains($0) })
-
-        let knownHab: [String] = ["Electricidad", "Plomería", "Carpintería", "Construcción",
-                                   "Contabilidad", "Informática", "Diseño", "Fotografía",
-                                   "Conducción", "Cocina", "Enfermería"]
-        let habStr = d("Habilidades", "Skills")
-        let allHab: [String] = habStr.isEmpty ? [] : habStr.components(separatedBy: ", ")
-        _habilidades = State(initialValue: Set(allHab.filter { knownHab.contains($0) }))
-        _habilidadesCustom = State(initialValue: allHab.filter { !knownHab.contains($0) })
-
-        _disponibilidad = State(initialValue: d("Disponibilidad", "Availability"))
-        _interesServir = State(initialValue: flag("Interés en servir", "Interested in serving"))
+        let base = miembroExistente ?? Miembro(id: proximoId, nombre: "")
+        _m = State(initialValue: base)
+        _fechaIngreso = State(initialValue: Fechas.desdeTextoFlexible(base.fechaIngreso) ?? Date())
+        _tieneFechaNac = State(initialValue: !base.nacimiento.isEmpty)
+        _fechaNacimiento = State(initialValue: Fechas.desdeTextoFlexible(base.nacimiento) ?? Date())
+        _tieneCongrega = State(initialValue: !base.fechaCongregacion.isEmpty)
+        _fechaCongrega = State(initialValue: Fechas.desdeTextoFlexible(base.fechaCongregacion) ?? Date())
 
         // La baja se lee del estado, no de `datos`: antes se guardaba como un
         // par etiqueta-valor y no se volvía a leer, así que al editar a
         // alguien dado de baja la fecha volvía a hoy y el motivo en blanco.
-        if let baja = m.estado.baja {
-            _deBaja = State(initialValue: true)
-            _fechaBaja = State(initialValue: Fechas.desdeTextoFlexible(baja.fecha) ?? Date())
-            let esDelCatalogo = Baja.motivos.contains(baja.motivo) && baja.motivo != "otro"
-            _motivoBaja = State(initialValue: esDelCatalogo ? baja.motivo : "otro")
-            _motivoOtro = State(initialValue: esDelCatalogo ? "" : baja.motivo)
-        }
-
-        let nacStr = d("Nacimiento", "Birth date")
-        _tieneFechaNac = State(initialValue: !nacStr.isEmpty)
-        _fechaNacimiento = State(initialValue: nacStr.isEmpty ? Date() : (fmt.date(from: nacStr) ?? Date()))
-
-        let ecStr = d("Estado civil", "Marital status")
-        _estadoCivil = State(initialValue: ecStr.isEmpty ? "Sin especificar" : ecStr)
-        _direccion = State(initialValue: d("Dirección", "Address"))
-
-        _idFiscal = State(initialValue: d("ID fiscal", "Tax ID"))
-        _notas = State(initialValue: d("Notas", "Notes"))
-        _iglesiaAnterior = State(initialValue: d("Iglesia anterior", "Previous church"))
-
-        let recStr = d("Recibido como miembro", "Received as member")
-        _tieneRecibido = State(initialValue: !recStr.isEmpty)
-        _fechaRecibido = State(initialValue: recStr.isEmpty ? Date() : (fmt.date(from: recStr) ?? Date()))
+        let baja = base.estado.baja
+        _deBaja = State(initialValue: baja != nil)
+        _fechaBaja = State(initialValue: Fechas.desdeTextoFlexible(baja?.fecha ?? "") ?? Date())
+        let delCatalogo = baja.map { Baja.motivos.contains($0.motivo) && $0.motivo != "otro" } ?? false
+        _motivoBaja = State(initialValue: delCatalogo ? baja!.motivo : (baja == nil ? "traslado" : "otro"))
+        _motivoOtro = State(initialValue: delCatalogo || baja == nil ? "" : baja!.motivo)
     }
 
-    private var puedeGuardar: Bool { !nombre.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var puedeGuardar: Bool { !m.nombre.trimmingCharacters(in: .whitespaces).isEmpty }
 
     private var cntVida: Int {
-        (bautizadoAgua ? 1 : 0) + (bautizadoEspiritu ? 1 : 0) + (cursoCompletado ? 1 : 0)
+        (m.bautizadoAgua ? 1 : 0) + (m.bautizadoEspiritu ? 1 : 0) + (m.cursoMembresia ? 1 : 0)
     }
     private var cntServicio: Int {
-        ministerios.count + ministeriosCustom.count + cargos.count + cargosCustom.count +
-        instrumentos.count + instrumentosCustom.count + habilidades.count + habilidadesCustom.count +
-        // Los tres que la página pedía y el guardado tiraba: si no cuentan
-        // aquí, rellenarlos deja la fila con el mismo número que antes.
-        ministeriosInteres.count + (disponibilidad.isEmpty ? 0 : 1) + (interesServir ? 1 : 0)
+        m.ministerios.count + m.cargos.count + m.instrumentos.count + m.habilidades.count
+        + m.ministeriosInteres.count + (m.disponibilidad.isEmpty ? 0 : 1) + (m.interesServir ? 1 : 0)
     }
     private var cntDatos: Int {
-        (tieneFechaNac ? 1 : 0) + (estadoCivil != "Sin especificar" ? 1 : 0) + (!direccion.isEmpty ? 1 : 0)
+        (tieneFechaNac ? 1 : 0) + (m.estadoCivil.isEmpty ? 0 : 1) + (m.direccion.isEmpty ? 0 : 1)
     }
     private var cntMas: Int {
-        (!idFiscal.isEmpty ? 1 : 0) + (!notas.isEmpty ? 1 : 0) +
-        (!iglesiaAnterior.isEmpty ? 1 : 0) + (tieneRecibido ? 1 : 0)
+        (m.idFiscal.isEmpty ? 0 : 1) + (m.notas.isEmpty ? 0 : 1)
+        + (m.iglesiaAnterior.isEmpty ? 0 : 1) + (tieneCongrega ? 1 : 0)
     }
-
-    private static let fmtCorto: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = L.t("d MMM yyyy", "MMM d, yyyy"); f.locale = L.locale; return f
-    }()
 
     var body: some View {
         NavigationStack {
             Form {
                 Section(L.t("QUIÉN ES", "WHO THEY ARE")) {
-                    TextField(L.t("Nombre completo o de familia", "Full name or family name"), text: $nombre)
+                    TextField(L.t("Nombre completo o de familia", "Full name or family name"), text: $m.nombre)
                     HStack {
-                        Text(L.t("Teléfono", "Phone"))
-                            .foregroundStyle(.primary)
-                        Text(L.t("(opcional)", "(optional)"))
-                            .foregroundStyle(.secondary)
-                            .font(.subheadline)
+                        Text(L.t("Teléfono", "Phone")).foregroundStyle(.primary)
+                        Text(L.t("(opcional)", "(optional)")).foregroundStyle(.secondary).font(.subheadline)
                         Spacer()
-                        TextField(L.t("Número de teléfono", "Phone number"), text: $telefono)
+                        TextField("81 1234 5678", text: $m.telefono)
                             .keyboardType(.phonePad)
                             .multilineTextAlignment(.trailing)
                     }
                     HStack {
-                        Text(L.t("Correo electrónico", "Email"))
-                            .foregroundStyle(.primary)
-                        Text(L.t("(opcional)", "(optional)"))
-                            .foregroundStyle(.secondary)
-                            .font(.subheadline)
+                        Text(L.t("Correo", "Email")).foregroundStyle(.primary)
+                        Text(L.t("(opcional)", "(optional)")).foregroundStyle(.secondary).font(.subheadline)
                         Spacer()
-                        TextField("correo@ejemplo.com", text: $correo)
+                        TextField("correo@ejemplo.com", text: $m.correo)
                             .keyboardType(.emailAddress)
                             .multilineTextAlignment(.trailing)
                             .autocorrectionDisabled()
@@ -1117,16 +981,19 @@ private struct NuevoMiembroSheet: View {
                     // "Nuevo" y "Recibido" ya no se eligen: se deducen de la
                     // fecha de ingreso y de la iglesia anterior. Y "Traslado"
                     // era un expediente, no un estado.
-                    Picker(L.t("Estado", "Status"), selection: $registro) {
+                    Picker(L.t("Estado", "Status"), selection: $m.estado.registro) {
                         ForEach(EstadoRegistro.allCases, id: \.self) {
                             Text($0.etiqueta).tag($0)
                         }
                     }
-                    DatePicker(L.t("Comenzó a congregarse", "Started attending"),
+                    DatePicker(L.t("Recibido como miembro", "Received as member"),
                                selection: $fechaIngreso, displayedComponents: .date)
                         .tint(Paleta.brand)
                 } header: {
                     Text(L.t("MEMBRESÍA", "MEMBERSHIP"))
+                } footer: {
+                    Text(L.t("La fecha de ingreso es la que cuenta como alta en los informes.",
+                             "The join date is what counts as an addition in reports."))
                 }
 
                 // **La baja va aparte del estado**, como en el servidor: la
@@ -1162,39 +1029,22 @@ private struct NuevoMiembroSheet: View {
 
                 Section {
                     NavigationLink {
-                        VidaEspiritualPage(bautizadoAgua: $bautizadoAgua,
-                                           bautizadoEspiritu: $bautizadoEspiritu,
-                                           cursoCompletado: $cursoCompletado)
+                        VidaEspiritualPage(m: $m)
                     } label: { badgeRow(L.t("Vida espiritual", "Spiritual life"), count: cntVida) }
-
                     NavigationLink {
-                        ServicioHabilidadesPage(
-                            ministerios: $ministerios, ministeriosCustom: $ministeriosCustom,
-                            cargos: $cargos, cargosCustom: $cargosCustom,
-                            ministeriosInteres: $ministeriosInteres,
-                            instrumentos: $instrumentos, instrumentosCustom: $instrumentosCustom,
-                            habilidades: $habilidades, habilidadesCustom: $habilidadesCustom,
-                            disponibilidad: $disponibilidad, interesServir: $interesServir)
+                        ServicioHabilidadesPage(m: $m)
                     } label: { badgeRow(L.t("Servicio y habilidades", "Service & skills"), count: cntServicio) }
-
                     NavigationLink {
-                        DatosPersonaPage(tieneFecha: $tieneFechaNac,
-                                         fechaNacimiento: $fechaNacimiento,
-                                         estadoCivil: $estadoCivil,
-                                         direccion: $direccion)
+                        DatosPersonaPage(m: $m, tieneFecha: $tieneFechaNac, fechaNacimiento: $fechaNacimiento)
                     } label: { badgeRow(L.t("Datos de la persona", "Personal data"), count: cntDatos) }
-
                     NavigationLink {
-                        MasDatosPage(idFiscal: $idFiscal, notas: $notas,
-                                     iglesiaAnterior: $iglesiaAnterior,
-                                     tieneRecibido: $tieneRecibido, fechaRecibido: $fechaRecibido)
+                        MasDatosPage(m: $m, tieneCongrega: $tieneCongrega, fechaCongrega: $fechaCongrega)
                     } label: { badgeRow(L.t("Más datos personales", "More personal data"), count: cntMas) }
-
                 } header: {
                     Text(L.t("COMPLETAR AHORA (OPCIONAL)", "COMPLETE NOW (OPTIONAL)"))
                 } footer: {
-                    Text(L.t("El ID fiscal, las notas, la iglesia anterior y la fecha de recepción están aquí dentro.",
-                              "Tax ID, notes, previous church, and reception date are inside."))
+                    Text(L.t("El ID fiscal, las notas, la iglesia anterior y desde cuándo se congrega están aquí dentro.",
+                              "Tax ID, notes, previous church, and attendance start date are inside."))
                 }
             }
             .navigationTitle(miembroExistente != nil ? L.t("Editar miembro", "Edit member") : L.t("Nuevo miembro", "New member"))
@@ -1231,146 +1081,47 @@ private struct NuevoMiembroSheet: View {
         }
     }
 
-    // MARK: - construirMiembro
-
+    /// La copia editada, con las fechas y la baja puestas en su sitio. Nada
+    /// más: lo que la ficha enseña lo calcula `Miembro`.
     private func construirMiembro() -> Miembro {
-        let fmt = Self.fmtCorto
-        let fechaStr = fmt.string(from: fechaIngreso)
-        let año = Calendar.current.component(.year, from: fechaIngreso)
-
-        let todasMin = Array(ministerios) + ministeriosCustom
-        let todosCargos = Array(cargos) + cargosCustom
-        let todosInstr = Array(instrumentos) + instrumentosCustom
-        let todosHab = Array(habilidades) + habilidadesCustom
-        let areaFinal = todasMin.isEmpty ? L.t("Sin área", "No area") : todasMin.joined(separator: ", ")
-
-        var datos: [Dato] = [
-            Dato(etiqueta: L.t("Fecha de ingreso", "Join date"), valor: fechaStr),
-        ]
-        // La baja vive en el estado. Aquí solo se enseña, para que en la
-        // ficha no quede como una etiqueta gris sin explicación.
-        let estadoFinal: EstadoMiembro
+        var r = m
+        r.nombre = m.nombre.trimmingCharacters(in: .whitespaces)
+        r.fechaIngreso = Fechas.claveDia(fechaIngreso)
+        r.nacimiento = tieneFechaNac ? Fechas.claveDia(fechaNacimiento) : ""
+        r.fechaCongregacion = tieneCongrega ? Fechas.claveDia(fechaCongrega) : ""
         if deBaja {
             let motivo = motivoBaja == "otro" ? motivoOtro.trimmingCharacters(in: .whitespaces) : motivoBaja
-            estadoFinal = .baja(Fechas.claveDia(fechaBaja), motivo, registro: registro)
-            datos.append(Dato(etiqueta: L.t("Fecha de baja", "Removal date"), valor: fmt.string(from: fechaBaja)))
-            datos.append(Dato(etiqueta: L.t("Motivo", "Reason"),
-                              valor: motivoBaja == "otro" ? motivo : Baja.etiquetaMotivo(motivo)))
+            r.estado.baja = Baja(fecha: Fechas.claveDia(fechaBaja), motivo: motivo)
         } else {
-            estadoFinal = EstadoMiembro(registro: registro, baja: nil)
+            r.estado.baja = nil
         }
-        // Lo que antes eran dos estados y ahora son dos hechos de la ficha.
-        let esRecibido = !iglesiaAnterior.trimmingCharacters(in: .whitespaces).isEmpty
-        let esNuevo = año == Calendar.current.component(.year, from: Date())
-        if !correo.isEmpty     { datos.append(Dato(etiqueta: L.t("Correo", "Email"),          valor: correo)) }
-        if !telefono.isEmpty   { datos.append(Dato(etiqueta: L.t("Teléfono", "Phone"),         valor: telefono)) }
-        if !direccion.isEmpty  { datos.append(Dato(etiqueta: L.t("Dirección", "Address"),      valor: direccion)) }
-        if bautizadoAgua       { datos.append(Dato(etiqueta: L.t("Bautismo en agua", "Water baptism"), valor: "✓")) }
-        if bautizadoEspiritu   { datos.append(Dato(etiqueta: L.t("Bautismo Espíritu", "Spirit baptism"), valor: "✓")) }
-        if cursoCompletado     { datos.append(Dato(etiqueta: L.t("Curso de membresía", "Membership course"), valor: "✓")) }
-        if !todasMin.isEmpty   { datos.append(Dato(etiqueta: L.t("Ministerios", "Ministries"),  valor: todasMin.joined(separator: ", "))) }
-        if !todosCargos.isEmpty{ datos.append(Dato(etiqueta: L.t("Cargos", "Roles"),            valor: todosCargos.joined(separator: ", "))) }
-        if !todosInstr.isEmpty { datos.append(Dato(etiqueta: L.t("Instrumentos", "Instruments"),valor: todosInstr.joined(separator: ", "))) }
-        if !todosHab.isEmpty   { datos.append(Dato(etiqueta: L.t("Habilidades", "Skills"),      valor: todosHab.joined(separator: ", "))) }
-        // **Los tres campos que se escribían en el vacío.** "Ministerios de
-        // interés", la disponibilidad y el interés en servir se pedían en
-        // Servicio y habilidades y no llegaban a `datos`: al guardar
-        // desaparecían, y al reabrir la ficha volvían vacíos. Son justo los
-        // datos con los que se arma un equipo, así que no podían ser los
-        // únicos que no sobrevivían a Guardar.
-        if !ministeriosInteres.isEmpty {
-            datos.append(Dato(etiqueta: L.t("Ministerios de interés", "Ministries of interest"),
-                              valor: ministeriosInteres.sorted().joined(separator: ", ")))
-        }
-        if !disponibilidad.trimmingCharacters(in: .whitespaces).isEmpty {
-            datos.append(Dato(etiqueta: L.t("Disponibilidad", "Availability"), valor: disponibilidad))
-        }
-        if interesServir {
-            datos.append(Dato(etiqueta: L.t("Interés en servir", "Interested in serving"), valor: "✓"))
-        }
-        if !estadoCivil.isEmpty && estadoCivil != "Sin especificar" {
-            datos.append(Dato(etiqueta: L.t("Estado civil", "Marital status"), valor: estadoCivil))
-        }
-        if !idFiscal.isEmpty   { datos.append(Dato(etiqueta: L.t("ID fiscal", "Tax ID"),        valor: idFiscal)) }
-        if !notas.isEmpty      { datos.append(Dato(etiqueta: L.t("Notas", "Notes"),             valor: notas)) }
-        if !iglesiaAnterior.isEmpty { datos.append(Dato(etiqueta: L.t("Iglesia anterior", "Previous church"), valor: iglesiaAnterior)) }
-        if tieneFechaNac       { datos.append(Dato(etiqueta: L.t("Nacimiento", "Birth date"),   valor: fmt.string(from: fechaNacimiento))) }
-        if tieneRecibido       { datos.append(Dato(etiqueta: L.t("Recibido como miembro", "Received as member"), valor: fmt.string(from: fechaRecibido))) }
-
-        let expediente: [ItemExpediente] = [
-            ItemExpediente(campo: L.t("Nombre y apellidos", "Full name"),    completo: true),
-            ItemExpediente(campo: L.t("Teléfono", "Phone"),                  completo: !telefono.isEmpty),
-            ItemExpediente(campo: L.t("Correo", "Email"),                    completo: !correo.isEmpty),
-            ItemExpediente(campo: L.t("Dirección", "Address"),               completo: !direccion.isEmpty),
-            ItemExpediente(campo: L.t("Bautismo", "Baptism"),                completo: bautizadoAgua),
-            ItemExpediente(campo: L.t("Fecha de nacimiento", "Birth date"),  completo: tieneFechaNac),
-            ItemExpediente(campo: L.t("Estado civil", "Marital status"),     completo: estadoCivil != "Sin especificar"),
-        ]
-
-        let subtitulo: String
-        if esRecibido {
-            subtitulo = L.t("Recibido por traslado · 0%", "Received by transfer · 0%")
-        } else if esNuevo {
-            subtitulo = L.t("Nuevo · 0%", "New · 0%")
-        } else {
-            subtitulo = L.t("Ingresó \(String(año)) · \(areaFinal.lowercased()) · 0%",
-                            "Joined \(String(año)) · \(areaFinal.lowercased()) · 0%")
-        }
-
-        let movimientos: [MovMembresia]
-        if let m = miembroExistente {
-            movimientos = [MovMembresia(titulo: L.t("Información actualizada", "Information updated"), fecha: fechaStr)] + m.movimientos
-        } else {
-            let tituloAlta = esRecibido
-                ? L.t("Recibido por traslado", "Received by transfer")
-                : L.t("Alta como miembro", "Added as member")
-            movimientos = [MovMembresia(titulo: tituloAlta, fecha: fechaStr)]
-        }
-
-        return Miembro(
-            id: miembroExistente?.id ?? proximoId,
-            nombre: nombre.trimmingCharacters(in: .whitespaces),
-            subtitulo: subtitulo,
-            estado: estadoFinal,
-            asistenciaPct: miembroExistente?.asistenciaPct ?? 0,
-            area: areaFinal,
-            miembroDesde: L.t("Ingresó \(String(año))", "Joined \(String(año))"),
-            asistencia: miembroExistente?.asistencia ?? [],
-            enRoster: miembroExistente?.enRoster ?? "0 de 27",
-            rachaSinAsistir: miembroExistente?.rachaSinAsistir ?? L.t("0 servicios", "0 services"),
-            ultimaVisita: miembroExistente?.ultimaVisita ?? "—",
-            seguimientoRazon: miembroExistente?.seguimientoRazon ?? (esNuevo ? L.t("Nuevo en el periodo", "New in the period") : nil),
-            ausenciaNota: miembroExistente?.ausenciaNota,
-            datos: datos,
-            expediente: expediente,
-            movimientos: movimientos,
-            seguimientoNotas: miembroExistente?.seguimientoNotas ?? [],
-            // **Sin esta línea, "Guardar cambios" borraba los parentescos.**
-            // `familia` tiene `= []` por defecto, así que omitirla no era
-            // dejarla igual: era vaciarla. Los parentescos se dan de alta en
-            // la ficha del miembro, de modo que bastaba con editar cualquier
-            // otro dato para perderlos sin aviso.
-            familia: miembroExistente?.familia ?? []
-        )
+        return r
     }
 }
 
 // MARK: - Sub-página: Vida espiritual
 
 private struct VidaEspiritualPage: View {
-    @Binding var bautizadoAgua: Bool
-    @Binding var bautizadoEspiritu: Bool
-    @Binding var cursoCompletado: Bool
+    @Binding var m: Miembro
 
     var body: some View {
         Form {
             Section {
-                Toggle(L.t("Bautizado en agua", "Baptized in water"),
-                       isOn: $bautizadoAgua).tint(Paleta.brand)
-                Toggle(L.t("Bautizado con el Espíritu Santo", "Baptized with the Holy Spirit"),
-                       isOn: $bautizadoEspiritu).tint(Paleta.brand)
-                Toggle(L.t("Curso de membresía completado", "Membership course completed"),
-                       isOn: $cursoCompletado).tint(Paleta.brand)
+                Toggle(L.t("Bautizado en agua", "Baptized in water"), isOn: $m.bautizadoAgua)
+                    .tint(Paleta.brand)
+                if m.bautizadoAgua {
+                    FechaOpcional(titulo: L.t("Fecha del bautismo", "Baptism date"), texto: $m.fechaBautismoAgua)
+                }
+                Toggle(L.t("Bautizado con el Espíritu Santo", "Baptized with the Holy Spirit"), isOn: $m.bautizadoEspiritu)
+                    .tint(Paleta.brand)
+                if m.bautizadoEspiritu {
+                    FechaOpcional(titulo: L.t("Fecha", "Date"), texto: $m.fechaBautismoEspiritu)
+                }
+                Toggle(L.t("Curso de membresía completado", "Membership course completed"), isOn: $m.cursoMembresia)
+                    .tint(Paleta.brand)
+            } footer: {
+                Text(L.t("La fecha es opcional: lo que la secretaria suele saber es si pasó, no cuándo.",
+                         "The date is optional: what's usually known is whether it happened, not when."))
             }
         }
         .navigationTitle(L.t("Vida espiritual", "Spiritual life"))
@@ -1378,77 +1129,59 @@ private struct VidaEspiritualPage: View {
     }
 }
 
+/// Una fecha "YYYY-MM-DD" que puede no saberse. El interruptor dice si se
+/// sabe; el `DatePicker` solo aparece cuando sí.
+private struct FechaOpcional: View {
+    let titulo: String
+    @Binding var texto: String
+    @State private var conocida: Bool
+    @State private var fecha: Date
+
+    init(titulo: String, texto: Binding<String>) {
+        self.titulo = titulo
+        _texto = texto
+        _conocida = State(initialValue: !texto.wrappedValue.isEmpty)
+        _fecha = State(initialValue: Fechas.desdeTextoFlexible(texto.wrappedValue) ?? Date())
+    }
+
+    var body: some View {
+        Toggle(L.t("\(titulo) conocida", "\(titulo) known"), isOn: $conocida)
+            .tint(Paleta.brand)
+            .onChange(of: conocida) { _, on in texto = on ? Fechas.claveDia(fecha) : "" }
+        if conocida {
+            DatePicker(titulo, selection: $fecha, displayedComponents: .date)
+                .tint(Paleta.brand)
+                .onChange(of: fecha) { _, d in texto = Fechas.claveDia(d) }
+        }
+    }
+}
+
 // MARK: - Sub-página: Servicio y habilidades
 
 private struct ServicioHabilidadesPage: View {
-    @Binding var ministerios: Set<String>
-    @Binding var ministeriosCustom: [String]
-    @Binding var cargos: Set<String>
-    @Binding var cargosCustom: [String]
-    @Binding var ministeriosInteres: Set<String>
-    @Binding var instrumentos: Set<String>
-    @Binding var instrumentosCustom: [String]
-    @Binding var habilidades: Set<String>
-    @Binding var habilidadesCustom: [String]
-    @Binding var disponibilidad: String
-    @Binding var interesServir: Bool
-
-    private let opMinisterios = ["Música", "Ujieres", "Enseñanza", "Evangelismo",
-                                  "Niños", "Jóvenes", "Medios", "Cocina", "Mantenimiento", "Intercesión"]
-    private let opCargos = ["Diácono", "Anciano", "Maestro(a)", "Líder de jóvenes",
-                             "Líder de damas", "Líder de caballeros", "Jefe de ujieres", "Misionero(a)"]
-    private let opInstrumentos = ["Piano", "Guitarra", "Bajo", "Batería", "Percusión", "Metales", "Voz"]
-    private let opHabilidades  = ["Electricidad", "Plomería", "Carpintería", "Construcción",
-                                   "Contabilidad", "Informática", "Diseño", "Fotografía",
-                                   "Conducción", "Cocina", "Enfermería"]
+    @Binding var m: Miembro
 
     var body: some View {
         Form {
-            ChipSection(
-                titulo: L.t("MINISTERIOS EN LOS QUE SIRVE", "MINISTRIES THEY SERVE IN"),
-                opciones: opMinisterios,
-                seleccionados: $ministerios,
-                custom: $ministeriosCustom,
-                placeholder: L.t("Otro ministerio...", "Other ministry...")
-            )
-
-            ChipSection(
-                titulo: L.t("CARGOS Y FUNCIONES", "ROLES & FUNCTIONS"),
-                opciones: opCargos,
-                seleccionados: $cargos,
-                custom: $cargosCustom,
-                placeholder: L.t("Otro cargo o función...", "Other role or function...")
-            )
-
-            ChipSection(
-                titulo: L.t("MINISTERIOS DE INTERÉS", "MINISTRIES OF INTEREST"),
-                opciones: opMinisterios,
-                seleccionados: $ministeriosInteres,
-                custom: .constant([]),
-                placeholder: ""
-            )
-
-            ChipSection(
-                titulo: L.t("INSTRUMENTOS QUE TOCA", "INSTRUMENTS PLAYED"),
-                opciones: opInstrumentos,
-                seleccionados: $instrumentos,
-                custom: $instrumentosCustom,
-                placeholder: L.t("Otro instrumento...", "Other instrument...")
-            )
-
-            ChipSection(
-                titulo: L.t("OFICIOS Y HABILIDADES", "TRADES & SKILLS"),
-                opciones: opHabilidades,
-                seleccionados: $habilidades,
-                custom: $habilidadesCustom,
-                placeholder: L.t("Otro oficio o habilidad...", "Other trade or skill...")
-            )
-
+            ChipSection(titulo: L.t("MINISTERIOS EN LOS QUE SIRVE", "MINISTRIES THEY SERVE IN"),
+                        catalogo: Padron.ministerios, seleccionados: $m.ministerios,
+                        placeholder: L.t("Otro ministerio…", "Other ministry…"))
+            ChipSection(titulo: L.t("CARGOS Y FUNCIONES", "ROLES & FUNCTIONS"),
+                        catalogo: Padron.cargos, seleccionados: $m.cargos,
+                        placeholder: L.t("Otro cargo o función…", "Other role or function…"))
+            ChipSection(titulo: L.t("MINISTERIOS DE INTERÉS", "MINISTRIES OF INTEREST"),
+                        catalogo: Padron.ministerios, seleccionados: $m.ministeriosInteres,
+                        placeholder: "")
+            ChipSection(titulo: L.t("INSTRUMENTOS QUE TOCA", "INSTRUMENTS PLAYED"),
+                        catalogo: Padron.instrumentos, seleccionados: $m.instrumentos,
+                        placeholder: L.t("Otro instrumento…", "Other instrument…"))
+            ChipSection(titulo: L.t("OFICIOS Y HABILIDADES", "TRADES & SKILLS"),
+                        catalogo: Padron.habilidades, seleccionados: $m.habilidades,
+                        placeholder: L.t("Otro oficio o habilidad…", "Other trade or skill…"))
             Section {
-                TextField(L.t("Disponibilidad para servir", "Availability to serve"),
-                          text: $disponibilidad)
-                Toggle(L.t("Interés en servir en algún ministerio", "Interested in serving"),
-                       isOn: $interesServir).tint(Paleta.brand)
+                TextField(L.t("Disponibilidad para servir", "Availability to serve"), text: $m.disponibilidad)
+                Toggle(L.t("Interés en servir en algún ministerio", "Interested in serving"), isOn: $m.interesServir)
+                    .tint(Paleta.brand)
             }
         }
         .navigationTitle(L.t("Servicio y habilidades", "Service & skills"))
@@ -1459,28 +1192,26 @@ private struct ServicioHabilidadesPage: View {
 // MARK: - Sub-página: Datos de la persona
 
 private struct DatosPersonaPage: View {
+    @Binding var m: Miembro
     @Binding var tieneFecha: Bool
     @Binding var fechaNacimiento: Date
-    @Binding var estadoCivil: String
-    @Binding var direccion: String
-
-    private let estadosCiviles = ["Sin especificar", "Soltero(a)", "Casado(a)",
-                                   "Unión libre", "Divorciado(a)", "Viudo(a)", "Separado(a)"]
 
     var body: some View {
         Form {
             Section {
-                Toggle(L.t("Fecha de nacimiento conocida", "Birth date known"),
-                       isOn: $tieneFecha).tint(Paleta.brand)
+                Toggle(L.t("Fecha de nacimiento conocida", "Birth date known"), isOn: $tieneFecha)
+                    .tint(Paleta.brand)
                 if tieneFecha {
-                    DatePicker(L.t("Nacimiento", "Birth"),
-                               selection: $fechaNacimiento, displayedComponents: .date)
+                    DatePicker(L.t("Nacimiento", "Birth"), selection: $fechaNacimiento, displayedComponents: .date)
                         .tint(Paleta.brand)
                 }
-                Picker(L.t("Estado civil", "Marital status"), selection: $estadoCivil) {
-                    ForEach(estadosCiviles, id: \.self) { Text($0).tag($0) }
+                // Claves del web. Sin valor no es "soltero": es que no se ha
+                // preguntado, y así se guarda.
+                Picker(L.t("Estado civil", "Marital status"), selection: $m.estadoCivil) {
+                    Text(L.t("Sin especificar", "Not specified")).tag("")
+                    ForEach(Padron.estadosCiviles, id: \.self) { Text(Padron.etiqueta($0)).tag($0) }
                 }
-                TextField(L.t("Dirección (opcional)", "Address (optional)"), text: $direccion)
+                TextField(L.t("Dirección (opcional)", "Address (optional)"), text: $m.direccion)
             } footer: {
                 Text(L.t("Se pueden cambiar cuando quieras: una dirección se muda y un estado civil cambia.",
                           "These can be changed anytime."))
@@ -1494,30 +1225,28 @@ private struct DatosPersonaPage: View {
 // MARK: - Sub-página: Más datos personales
 
 private struct MasDatosPage: View {
-    @Binding var idFiscal: String
-    @Binding var notas: String
-    @Binding var iglesiaAnterior: String
-    @Binding var tieneRecibido: Bool
-    @Binding var fechaRecibido: Date
+    @Binding var m: Miembro
+    @Binding var tieneCongrega: Bool
+    @Binding var fechaCongrega: Date
 
     var body: some View {
         Form {
             Section {
-                TextField(L.t("ID fiscal (opcional)", "Tax ID (optional)"), text: $idFiscal)
+                TextField(L.t("ID fiscal (opcional)", "Tax ID (optional)"), text: $m.idFiscal)
                     .autocorrectionDisabled()
-                TextField(L.t("Notas (opcional)", "Notes (optional)"), text: $notas)
+                TextField(L.t("Notas (opcional)", "Notes (optional)"), text: $m.notas, axis: .vertical)
+                    .lineLimit(2...5)
                 TextField(L.t("Iglesia anterior (si aplica)", "Previous church (if applicable)"),
-                          text: $iglesiaAnterior)
-                Toggle(L.t("Recibido como miembro", "Received as member"),
-                       isOn: $tieneRecibido).tint(Paleta.brand)
-                if tieneRecibido {
-                    DatePicker(L.t("Fecha de recepción", "Reception date"),
-                               selection: $fechaRecibido, displayedComponents: .date)
+                          text: $m.iglesiaAnterior)
+                Toggle(L.t("Se congrega desde", "Attends since"), isOn: $tieneCongrega)
+                    .tint(Paleta.brand)
+                if tieneCongrega {
+                    DatePicker(L.t("Desde", "Since"), selection: $fechaCongrega, displayedComponents: .date)
                         .tint(Paleta.brand)
                 }
             } footer: {
-                Text(L.t("(opcional — necesario para constancias deducibles)",
-                          "(optional — required for deductible receipts)"))
+                Text(L.t("Con iglesia anterior, la ficha se lee como recibida por traslado. El ID fiscal hace falta para constancias deducibles.",
+                          "With a previous church, the profile reads as received by transfer. The tax ID is needed for deductible receipts."))
             }
         }
         .navigationTitle(L.t("Más datos personales", "More personal data"))
@@ -1527,25 +1256,32 @@ private struct MasDatosPage: View {
 
 // MARK: - Componente: Sección de chips con agregar custom
 
+/// Chips sobre un catálogo de CLAVES. Lo elegido —del catálogo o escrito a
+/// mano— va a la misma lista, que es la que se guarda: una clave que no está
+/// en el catálogo es texto libre y se pinta tal cual.
 private struct ChipSection: View {
     let titulo: String
-    let opciones: [String]
-    @Binding var seleccionados: Set<String>
-    @Binding var custom: [String]
+    let catalogo: [String]
+    @Binding var seleccionados: [String]
     let placeholder: String
 
     @State private var nuevoTexto = ""
 
+    /// El catálogo más lo escrito a mano que ya esté elegido, sin repetir.
+    private var opciones: [String] {
+        catalogo + seleccionados.filter { !catalogo.contains($0) }
+    }
+
     var body: some View {
         Section(titulo) {
             FlowLayout(spacing: 8) {
-                ForEach(opciones + custom, id: \.self) { op in
+                ForEach(opciones, id: \.self) { op in
                     let sel = seleccionados.contains(op)
                     Button {
-                        if sel { seleccionados.remove(op) }
-                        else   { seleccionados.insert(op) }
+                        if sel { seleccionados.removeAll { $0 == op } }
+                        else   { seleccionados.append(op) }
                     } label: {
-                        Text(op)
+                        Text(Padron.etiqueta(op))
                             .font(.subheadline)
                             .padding(.horizontal, Esp.chip).padding(.vertical, 7)
                             .background(sel ? Paleta.brand : Color(.tertiarySystemFill),
@@ -1562,11 +1298,8 @@ private struct ChipSection: View {
                     TextField(placeholder, text: $nuevoTexto)
                     Button(L.t("Agregar", "Add")) {
                         let txt = nuevoTexto.trimmingCharacters(in: .whitespaces)
-                        guard !txt.isEmpty,
-                              !opciones.contains(txt),
-                              !custom.contains(txt) else { return }
-                        custom.append(txt)
-                        seleccionados.insert(txt)
+                        guard !txt.isEmpty, !seleccionados.contains(txt) else { return }
+                        seleccionados.append(txt)
                         nuevoTexto = ""
                     }
                     .foregroundStyle(nuevoTexto.trimmingCharacters(in: .whitespaces).isEmpty

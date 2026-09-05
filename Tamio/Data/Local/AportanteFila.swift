@@ -103,3 +103,161 @@ struct AportanteFila: Codable, FetchableRecord, PersistableRecord {
                              baja: activo ? nil : Baja(fecha: fechaBaja, motivo: motivoBaja))
     }
 }
+
+// MARK: - La otra vista de la misma fila: el padrón
+
+/// **El padrón, sobre la misma fila de `aportante`.**
+///
+/// `AportanteFila` y `MiembroFila` son dos records de GRDB sobre UNA tabla:
+/// cada uno codifica sus columnas y nada más, y como `update` escribe solo
+/// las columnas que el record codifica, Tesorería y Secretaría pueden guardar
+/// la misma persona sin pisarse. Aquí no está `frecuencia` (es de Tesorería)
+/// y en `AportanteFila` no están los bautismos ni los ministerios. Lo que
+/// comparten —nombre, contacto, estado, fechas— lo escriben los dos, y es lo
+/// que se quiere: un teléfono corregido en Aportantes tiene que verse en
+/// Membresía.
+///
+/// Las listas y el historial van como texto con JSON dentro, igual que en
+/// `members`. La traducción a `[String]` y `[CambioEstado]` es de aquí para
+/// dentro; la columna es el espejo.
+struct MiembroFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "aportante"
+
+    var id: String
+    var nombre: String
+    var estado: String
+    var activo: Bool
+    var fechaBaja: String
+    var motivoBaja: String
+    var telefono: String
+    var correo: String
+    var nacimiento: String
+    var direccion: String
+    var estadoCivil: String
+    var idFiscal: String
+    var miembroDesde: String      // fecha_ingreso
+    var congregaDesde: String     // fecha_congregacion
+    var iglesiaAnterior: String
+    var bautizadoAgua: Bool
+    var fechaBautismoAgua: String
+    var bautizadoEspiritu: Bool
+    var fechaBautismoEspiritu: String
+    var cursoMembresia: Bool
+    var ministerios: String
+    var ministeriosInteres: String
+    var cargos: String
+    var instrumentos: String
+    var habilidades: String
+    var etiquetas: String
+    var disponibilidad: String
+    var interesServir: Bool
+    var notas: String
+    var historialEstados: String
+    var seguimientoNotas: String
+    var seguimientoRevisadoEn: String
+    var actualizadoEn: String?
+    var borrado: Bool
+
+    init(_ m: Miembro, actualizadoEn: String? = nil, borrado: Bool = false) {
+        id = m.id
+        nombre = m.nombre
+        estado = m.estado.registro.rawValue
+        activo = !m.estado.esBaja
+        fechaBaja = m.estado.baja?.fecha ?? ""
+        motivoBaja = m.estado.baja?.motivo ?? ""
+        telefono = m.telefono
+        correo = m.correo
+        nacimiento = m.nacimiento
+        direccion = m.direccion
+        estadoCivil = m.estadoCivil
+        idFiscal = m.idFiscal
+        miembroDesde = m.fechaIngreso
+        congregaDesde = m.fechaCongregacion
+        iglesiaAnterior = m.iglesiaAnterior
+        bautizadoAgua = m.bautizadoAgua
+        fechaBautismoAgua = m.fechaBautismoAgua
+        bautizadoEspiritu = m.bautizadoEspiritu
+        fechaBautismoEspiritu = m.fechaBautismoEspiritu
+        cursoMembresia = m.cursoMembresia
+        ministerios = Padron.json(m.ministerios)
+        ministeriosInteres = Padron.json(m.ministeriosInteres)
+        cargos = Padron.json(m.cargos)
+        instrumentos = Padron.json(m.instrumentos)
+        habilidades = Padron.json(m.habilidades)
+        etiquetas = Padron.json(m.etiquetas)
+        disponibilidad = m.disponibilidad
+        interesServir = m.interesServir
+        notas = m.notas
+        historialEstados = Self.json(m.historialEstados)
+        seguimientoNotas = Self.json(m.seguimientoNotas)
+        seguimientoRevisadoEn = m.seguimientoRevisadoEn
+        self.actualizadoEn = actualizadoEn
+        self.borrado = borrado
+    }
+
+    /// Se le pasan los parentescos ya resueltos —vienen de otra tabla y con
+    /// el nombre del otro— en vez de que la fila los invente.
+    func miembro(familia: [Pariente]) -> Miembro {
+        var m = Miembro(id: id, nombre: nombre)
+        m.estado = AportanteFila.estado(registro: estado, activo: activo,
+                                        fechaBaja: fechaBaja, motivoBaja: motivoBaja)
+        m.telefono = telefono
+        m.correo = correo
+        m.nacimiento = nacimiento
+        m.direccion = direccion
+        m.estadoCivil = estadoCivil
+        m.idFiscal = idFiscal
+        m.fechaIngreso = miembroDesde
+        m.fechaCongregacion = congregaDesde
+        m.iglesiaAnterior = iglesiaAnterior
+        m.bautizadoAgua = bautizadoAgua
+        m.fechaBautismoAgua = fechaBautismoAgua
+        m.bautizadoEspiritu = bautizadoEspiritu
+        m.fechaBautismoEspiritu = fechaBautismoEspiritu
+        m.cursoMembresia = cursoMembresia
+        m.ministerios = Padron.lista(ministerios)
+        m.ministeriosInteres = Padron.lista(ministeriosInteres)
+        m.cargos = Padron.lista(cargos)
+        m.instrumentos = Padron.lista(instrumentos)
+        m.habilidades = Padron.lista(habilidades)
+        m.etiquetas = Padron.lista(etiquetas)
+        m.disponibilidad = disponibilidad
+        m.interesServir = interesServir
+        m.notas = notas
+        m.historialEstados = Self.lista(historialEstados)
+        m.seguimientoNotas = Self.lista(seguimientoNotas)
+        m.seguimientoRevisadoEn = seguimientoRevisadoEn
+        m.familia = familia
+        return m
+    }
+
+    // MARK: JSON
+
+    /// Con la misma tolerancia que `Padron.lista`: un JSON que no se entienda
+    /// es una lista vacía, no una ficha que no abre.
+    static func lista<T: Decodable>(_ json: String) -> [T] {
+        guard let datos = json.data(using: .utf8),
+              let v = try? JSONDecoder().decode([T].self, from: datos) else { return [] }
+        return v
+    }
+
+    static func json<T: Encodable>(_ lista: [T]) -> String {
+        guard let datos = try? JSONEncoder().encode(lista),
+              let s = String(data: datos, encoding: .utf8) else { return "[]" }
+        return s
+    }
+}
+
+/// Un parentesco tal y como vive en SQLite. Espejo de `parentescos`: dos
+/// personas del padrón y qué es la segunda de la primera. Se guarda UNA fila
+/// por relación; la ficha del otro la lee con el inverso.
+struct ParentescoFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "parentesco"
+
+    var id: String
+    var miembroId: String
+    var parienteId: String
+    var tipo: String
+    var actualizadoEn: String?
+    var borrado: Bool
+}

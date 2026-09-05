@@ -307,3 +307,104 @@ enum Catalogos {
         return [vigente] + opciones
     }
 }
+
+// MARK: - Los catálogos del padrón
+
+/// **Los catálogos del padrón, con las claves del app web.**
+///
+/// Ministerios, cargos, instrumentos, habilidades y estado civil se guardan
+/// como CLAVES sin acentos —`musica`, `ensenanza`, `liderJovenes`, `soltero`—
+/// porque así están en `members`, que escribió el web (ver
+/// `docs/PADRON-WEB.md`). La etiqueta se traduce al pintar. `MembresiaView`
+/// tenía las mismas listas, en el mismo orden, pero con la etiqueta en
+/// español: guardarlas así dejaba a la misma persona sirviendo en "Música"
+/// para el teléfono y en "musica" para el web —dos ministerios—, y la app en
+/// inglés enseñando español.
+///
+/// Los catálogos son ABIERTOS, como allí: una clave que no esté aquí es texto
+/// libre que alguien escribió, y se enseña tal cual antes que desaparecer.
+enum Padron {
+    static let ministerios = ["musica", "ujieres", "ensenanza", "evangelismo", "ninos",
+                              "jovenes", "medios", "cocina", "mantenimiento", "intercesion"]
+    static let cargos = ["diacono", "anciano", "maestro", "liderJovenes", "liderDamas",
+                         "liderCaballeros", "ujierJefe", "misionero"]
+    static let instrumentos = ["piano", "guitarra", "bajo", "bateria", "percusion", "metales", "voz"]
+    static let habilidades = ["electricidad", "plomeria", "carpinteria", "construccion",
+                              "contabilidad", "informatica", "diseno", "fotografia",
+                              "conduccion", "cocina", "enfermeria"]
+    /// Sin valor no es "soltero": es que no se ha preguntado.
+    static let estadosCiviles = ["soltero", "casado", "unionLibre", "divorciado", "viudo", "separado"]
+
+    static func etiqueta(_ clave: String) -> String {
+        switch clave {
+        // Ministerios
+        case "musica":        return L.t("Música", "Music")
+        case "ujieres":       return L.t("Ujieres", "Ushers")
+        case "ensenanza":     return L.t("Enseñanza", "Teaching")
+        case "evangelismo":   return L.t("Evangelismo", "Evangelism")
+        case "ninos":         return L.t("Niños", "Children")
+        case "jovenes":       return L.t("Jóvenes", "Youth")
+        case "medios":        return L.t("Medios", "Media")
+        case "cocina":        return L.t("Cocina", "Kitchen")
+        case "mantenimiento": return L.t("Mantenimiento", "Maintenance")
+        case "intercesion":   return L.t("Intercesión", "Intercession")
+        // Cargos
+        case "diacono":         return L.t("Diácono", "Deacon")
+        case "anciano":         return L.t("Anciano", "Elder")
+        case "maestro":         return L.t("Maestro(a)", "Teacher")
+        case "liderJovenes":    return L.t("Líder de jóvenes", "Youth leader")
+        case "liderDamas":      return L.t("Líder de damas", "Women's leader")
+        case "liderCaballeros": return L.t("Líder de caballeros", "Men's leader")
+        case "ujierJefe":       return L.t("Jefe de ujieres", "Head usher")
+        case "misionero":       return L.t("Misionero(a)", "Missionary")
+        // Instrumentos
+        case "piano":     return L.t("Piano", "Piano")
+        case "guitarra":  return L.t("Guitarra", "Guitar")
+        case "bajo":      return L.t("Bajo", "Bass")
+        case "bateria":   return L.t("Batería", "Drums")
+        case "percusion": return L.t("Percusión", "Percussion")
+        case "metales":   return L.t("Metales", "Brass")
+        case "voz":       return L.t("Voz", "Voice")
+        // Habilidades
+        case "electricidad": return L.t("Electricidad", "Electrical")
+        case "plomeria":     return L.t("Plomería", "Plumbing")
+        case "carpinteria":  return L.t("Carpintería", "Carpentry")
+        case "construccion": return L.t("Construcción", "Construction")
+        case "contabilidad": return L.t("Contabilidad", "Accounting")
+        case "informatica":  return L.t("Informática", "IT")
+        case "diseno":       return L.t("Diseño", "Design")
+        case "fotografia":   return L.t("Fotografía", "Photography")
+        case "conduccion":   return L.t("Conducción", "Driving")
+        case "enfermeria":   return L.t("Enfermería", "Nursing")
+        // Estado civil
+        case "soltero":    return L.t("Soltero(a)", "Single")
+        case "casado":     return L.t("Casado(a)", "Married")
+        case "unionLibre": return L.t("Unión libre", "Domestic partnership")
+        case "divorciado": return L.t("Divorciado(a)", "Divorced")
+        case "viudo":      return L.t("Viudo(a)", "Widowed")
+        case "separado":   return L.t("Separado(a)", "Separated")
+        default:           return clave
+        }
+    }
+
+    /// Las etiquetas de una lista, unidas para leer: "Enseñanza, Niños".
+    static func etiquetas(_ claves: [String]) -> String {
+        claves.map(etiqueta).joined(separator: ", ")
+    }
+
+    // MARK: JSON en texto, como en `members`
+
+    /// De la columna a la lista. Con la tolerancia de `parseLista` del web: si
+    /// el JSON no es un array de cadenas, lista vacía en vez de reventar.
+    static func lista(_ json: String) -> [String] {
+        guard let datos = json.data(using: .utf8),
+              let v = try? JSONSerialization.jsonObject(with: datos) as? [Any] else { return [] }
+        return v.compactMap { $0 as? String }
+    }
+
+    static func json(_ lista: [String]) -> String {
+        guard let datos = try? JSONSerialization.data(withJSONObject: lista),
+              let s = String(data: datos, encoding: .utf8) else { return "[]" }
+        return s
+    }
+}

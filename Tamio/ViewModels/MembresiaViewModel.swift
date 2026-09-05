@@ -27,42 +27,61 @@ final class MembresiaViewModel {
     /// Filtro que llega desde los indicadores de la ficha del miembro.
     var filtroAccion: FiltroAccion? = nil
 
-    init(repo: MembresiaRepository = MockMembresiaRepository()) {
+    init(repo: MembresiaRepository = repositorioMembresia()) {
         self.repo = repo
     }
 
     /// ID disponible para el siguiente miembro que se cree en memoria.
     var proximoId: String { UUID().uuidString }
 
+    // Cada cambio se aplica en memoria al momento —la pantalla no espera al
+    // disco— y se persiste detrás. Antes se quedaba solo en memoria, que es
+    // por lo que la maqueta olvidaba todo al cerrar.
+
     @MainActor
     func agregarMiembro(_ nuevo: Miembro) {
         items.insert(nuevo, at: 0)
         seleccionId = nuevo.id
+        Task { try? await repo.guardar(nuevo) }
     }
 
     @MainActor
     func editarMiembro(_ nuevo: Miembro) {
         guard let idx = items.firstIndex(where: { $0.id == nuevo.id }) else { return }
-        items[idx] = nuevo
+        // Los parentescos viven en su tabla y la hoja no los edita: se
+        // conservan los que la ficha ya tenía.
+        var editado = nuevo
+        editado.familia = items[idx].familia
+        items[idx] = editado
         seleccionId = nuevo.id
+        Task { try? await repo.guardar(editado) }
     }
 
     @MainActor
     func agregarSeguimiento(miembroId: String, nota: SeguimientoNota) {
         guard let idx = items.firstIndex(where: { $0.id == miembroId }) else { return }
         items[idx].seguimientoNotas.append(nota)
+        let m = items[idx]
+        Task { try? await repo.guardar(m) }
     }
 
     @MainActor
     func agregarPariente(miembroId: String, pariente: Pariente) {
         guard let idx = items.firstIndex(where: { $0.id == miembroId }) else { return }
         items[idx].familia.append(pariente)
+        // La misma fila, vista desde la otra ficha si está en la lista.
+        if let otro = items.firstIndex(where: { $0.id == pariente.parienteId }) {
+            items[otro].familia.append(Pariente(id: pariente.id,
+                                                tipo: Parentescos.inverso[pariente.tipo] ?? pariente.tipo,
+                                                parienteId: miembroId, nombre: items[idx].nombre))
+        }
+        Task { try? await repo.agregarPariente(miembroId: miembroId, pariente) }
     }
 
     @MainActor
     func quitarPariente(miembroId: String, parienteId: String) {
-        guard let idx = items.firstIndex(where: { $0.id == miembroId }) else { return }
-        items[idx].familia.removeAll { $0.id == parienteId }
+        for i in items.indices { items[i].familia.removeAll { $0.id == parienteId } }
+        Task { try? await repo.quitarPariente(id: parienteId) }
     }
 
     @MainActor
@@ -92,9 +111,11 @@ final class MembresiaViewModel {
     var itemsFiltrados: [Miembro] {
         items.filter { m in
             (busqueda.isEmpty || coincideBusqueda(m))
-            && (filtroAño == nil || m.miembroDesde.contains(String(filtroAño!)))
+            && (filtroAño == nil || m.añoIngreso == filtroAño)
             && (filtroEstado == nil || m.estado.clave == filtroEstado)
-            && (filtroMinisterio == nil || m.area.localizedCaseInsensitiveContains(filtroMinisterio!))
+            // Por clave, no por etiqueta: "ninos" es el mismo ministerio en
+            // español y en inglés.
+            && (filtroMinisterio == nil || m.ministerios.contains(filtroMinisterio!))
             && cumpleAccion(m)
         }
     }
@@ -104,9 +125,8 @@ final class MembresiaViewModel {
     /// tiene columna propia, así que buscarlo cuesta una línea; dejar el
     /// buscador prometiendo algo que no hacía costaba más.
     private func coincideBusqueda(_ m: Miembro) -> Bool {
-        if m.nombre.localizedCaseInsensitiveContains(busqueda) { return true }
-        let correo = m.datos.first { $0.etiqueta == L.t("Correo", "Email") }?.valor ?? ""
-        return correo.localizedCaseInsensitiveContains(busqueda)
+        m.nombre.localizedCaseInsensitiveContains(busqueda)
+            || m.correo.localizedCaseInsensitiveContains(busqueda)
     }
 
     /// La misma regla que ya usaba `itemsAusentes` para las ausencias, y el
@@ -132,21 +152,14 @@ final class MembresiaViewModel {
     }
 
     var añosDisponibles: [Int] {
-        let años = items.compactMap { m -> Int? in
-            guard let r = m.miembroDesde.range(of: "\\d{4}", options: .regularExpression),
-                  let año = Int(m.miembroDesde[r]) else { return nil }
-            return año
-        }
-        return Array(Set(años)).sorted().reversed()
+        Array(Set(items.compactMap(\.añoIngreso))).sorted().reversed()
     }
 
+    /// Las CLAVES de los ministerios que alguien tiene, ordenadas por su
+    /// etiqueta. El filtro guarda la clave; la hoja enseña la etiqueta.
     var ministeriosDisponibles: [String] {
-        let sin = L.t("Sin área", "No area")
-        let todos = items.flatMap { m -> [String] in
-            guard m.area != sin else { return [] }
-            return m.area.components(separatedBy: ", ")
-        }
-        return Array(Set(todos)).sorted()
+        Array(Set(items.flatMap(\.ministerios)))
+            .sorted { Padron.etiqueta($0).localizedCompare(Padron.etiqueta($1)) == .orderedAscending }
     }
 
     /// Solo miembros que necesitan seguimiento pastoral.
