@@ -1077,6 +1077,7 @@ private extension MovimientoFila {
          nota: String?, sinDepositar: Bool, comprobante: String?, pagadoA: String?,
          rfc: String?, notasAuditoria: String?, estadoRevision: String,
          incluidoEnCorte: Bool, darConstanciaAnual: Bool, repiteMensual: Bool,
+         recurrenteId: String? = nil,
          actualizadoEn: String?, folioProvisional: Bool, borrado: Bool) {
         self.id = id; self.tipo = tipo; self.categoria = categoria
         self.subcategoria = subcategoria; self.persona = persona; self.folio = folio
@@ -1088,6 +1089,7 @@ private extension MovimientoFila {
         self.pagadoA = pagadoA; self.rfc = rfc; self.notasAuditoria = notasAuditoria
         self.estadoRevision = estadoRevision; self.incluidoEnCorte = incluidoEnCorte
         self.darConstanciaAnual = darConstanciaAnual; self.repiteMensual = repiteMensual
+        self.recurrenteId = recurrenteId
         self.actualizadoEn = actualizadoEn; self.folioProvisional = folioProvisional
         self.borrado = borrado
     }

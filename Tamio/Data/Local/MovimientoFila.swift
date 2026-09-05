@@ -37,6 +37,9 @@ struct MovimientoFila: Codable, FetchableRecord, PersistableRecord {
     var incluidoEnCorte: Bool
     var darConstanciaAnual: Bool
     var repiteMensual: Bool
+    /// Qué serie recurrente generó este movimiento, si lo generó alguna. Es lo
+    /// que permite cambiarle el importe a toda una renta o retirarla entera.
+    var recurrenteId: String?
     var actualizadoEn: String?
     var folioProvisional: Bool
     var borrado: Bool
@@ -71,6 +74,7 @@ struct MovimientoFila: Codable, FetchableRecord, PersistableRecord {
         incluidoEnCorte = m.incluidoEnCorte
         darConstanciaAnual = m.darConstanciaAnual
         repiteMensual = m.repiteMensual
+        recurrenteId = m.recurrenteId
         self.actualizadoEn = actualizadoEn
         self.folioProvisional = folioProvisional
         self.borrado = borrado
@@ -103,6 +107,7 @@ struct MovimientoFila: Codable, FetchableRecord, PersistableRecord {
             incluidoEnCorte: incluidoEnCorte,
             darConstanciaAnual: darConstanciaAnual,
             repiteMensual: repiteMensual,
+            recurrenteId: recurrenteId,
             memberUid: memberUid,
             subcategoria: subcategoria,
             aportanteNombre: aportanteNombre
@@ -267,5 +272,69 @@ struct DepositoFila: Codable, FetchableRecord, PersistableRecord {
         DepositoBancario(id: id, fecha: fecha, periodo: periodo, monto: monto,
                          cuenta: cuenta, referencia: referencia,
                          archivoLocal: archivoLocal, comprobantePath: comprobantePath)
+    }
+}
+
+// MARK: - Movimientos recurrentes
+
+/// Una definición recurrente en SQLite. Espejo de `movimientos_recurrentes`.
+///
+/// Guarda los campos del movimiento que va a generar —importe, categoría,
+/// método, beneficiario— más los dos que hacen que sea una regla y no un
+/// movimiento: desde qué mes se repite y hasta cuál se ha registrado ya.
+struct MovimientoRecurrenteFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "movimientoRecurrente"
+
+    var id: String
+    var tipo: String
+    var categoria: String
+    var subcategoria: String?
+    var nota: String?
+    var monto: Int
+    var metodo: String
+    var pagadoA: String?
+    var rfc: String?
+    var dia: Int
+    /// "YYYY-MM" las dos. Se comparan como texto, que es lo que ordena bien.
+    var mesInicio: String
+    var ultimoMesGenerado: String?
+    var activo: Bool
+    var actualizadoEn: String?
+    var borrado: Bool
+
+    init(_ r: MovimientoRecurrente, actualizadoEn: String? = nil, borrado: Bool = false) {
+        id = r.id
+        tipo = r.tipo == .ingreso ? "ingreso" : "gasto"
+        categoria = r.categoria
+        subcategoria = r.subcategoria
+        nota = r.nota
+        monto = r.monto
+        metodo = r.metodo
+        pagadoA = r.pagadoA
+        rfc = r.rfc
+        dia = r.dia
+        mesInicio = r.mesInicio
+        ultimoMesGenerado = r.ultimoMesGenerado
+        activo = r.activo
+        self.actualizadoEn = actualizadoEn
+        self.borrado = borrado
+    }
+
+    var recurrente: MovimientoRecurrente {
+        MovimientoRecurrente(
+            id: id,
+            tipo: tipo == "ingreso" ? .ingreso : .gasto,
+            categoria: categoria,
+            subcategoria: subcategoria,
+            nota: nota,
+            monto: monto,
+            metodo: metodo,
+            pagadoA: pagadoA,
+            rfc: rfc,
+            dia: dia,
+            mesInicio: mesInicio,
+            ultimoMesGenerado: ultimoMesGenerado,
+            activo: activo
+        )
     }
 }

@@ -90,6 +90,14 @@ struct Movimiento: Identifiable {
     /// donde se va a resolver. Mientras tanto el interruptor de la hoja de
     /// captura guarda la intención, y el detalle la enseña.
     var repiteMensual: Bool = false
+    /// **Qué serie recurrente lo generó**, si lo generó alguna. Apunta a
+    /// `MovimientoRecurrente.id` y viaja a `transactions.recurrente_uid`.
+    ///
+    /// Sirve para lo que un movimiento suelto no puede: cambiarle el importe a
+    /// una renta entera cuando sube, o retirar la serie completa cuando el
+    /// contrato acaba. Sin este vínculo, los movimientos que genera un
+    /// recurrente son indistinguibles de los capturados a mano.
+    var recurrenteId: String? = nil
     /// Claves que la pantalla no edita pero que viven en la fila remota. Se
     /// arrastran en el round-trip porque, si no, una edición cualquiera las
     /// sobrescribe con nulo y se pierde el vínculo con el miembro y el

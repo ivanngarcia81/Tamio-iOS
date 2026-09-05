@@ -367,6 +367,49 @@ final class BaseLocal {
             }
         }
 
+        // **Un recurrente no es un movimiento: es la regla que los crea.**
+        //
+        // Por eso tabla propia y no una columna más en `movimiento`. Lo que
+        // había —`repiteMensual`, un booleano— no sabía desde qué mes se
+        // repite ni cuál fue el último generado, así que no podía generar
+        // nada; y como la columna no viajaba a Supabase, se borraba sola al
+        // bajar el movimiento.
+        //
+        // Espejo de `movimientos_recurrentes`. `recurrenteId` en `movimiento`
+        // es el vínculo de vuelta: por él se sabe qué movimientos salieron de
+        // una serie, para poder cambiarles el importe o retirarlos todos.
+        m.registerMigration("v14_recurrentes") { db in
+            try db.create(table: "movimientoRecurrente") { t in
+                t.primaryKey("id", .text)
+                t.column("tipo", .text).notNull()
+                t.column("categoria", .text).notNull()
+                t.column("subcategoria", .text)
+                t.column("nota", .text)
+                t.column("monto", .integer).notNull()
+                t.column("metodo", .text).notNull()
+                t.column("pagadoA", .text)
+                t.column("rfc", .text)
+                // Día del mes; se ajusta en meses cortos al materializar.
+                t.column("dia", .integer).notNull().defaults(to: 1)
+                // "YYYY-MM", las dos. Claves estables: se comparan como texto
+                // y viajan así a Supabase.
+                t.column("mesInicio", .text).notNull()
+                t.column("ultimoMesGenerado", .text)
+                // Parar no es borrar: el historial ya generado se queda.
+                t.column("activo", .boolean).notNull().defaults(to: true)
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+            try db.create(index: "idx_recurrente_activo", on: "movimientoRecurrente",
+                          columns: ["activo", "borrado"])
+
+            try db.alter(table: "movimiento") { t in
+                t.add(column: "recurrenteId", .text)
+            }
+            try db.create(index: "idx_movimiento_recurrente", on: "movimiento",
+                          columns: ["recurrenteId"])
+        }
+
         return m
     }
 
@@ -380,6 +423,7 @@ final class BaseLocal {
             try db.execute(sql: "delete from iglesia")
             try db.execute(sql: "delete from aportante")
             try db.execute(sql: "delete from categoriaCustom")
+            try db.execute(sql: "delete from movimientoRecurrente")
         }
     }
 }
