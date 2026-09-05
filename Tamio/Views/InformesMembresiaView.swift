@@ -16,69 +16,98 @@ struct InformesMembresiaView: View {
     ]
     private let alertasSeguimiento = 3
 
+    private var compacto: Bool { sizeClass == .compact }
+
     var body: some View {
+        encabezado(cuerpo)
+            .toolbar { barra }
+            .sheet(isPresented: $mostrarRango) {
+                RangoSheet(desde: $vm.rangoDesde, hasta: $vm.rangoHasta)
+            }
+            .sheet(isPresented: $mostrarShareCSV) {
+                if let url = urlCSV { ShareSheet(items: [url]) }
+            }
+    }
+
+    private var cuerpo: some View {
         contenidoInforme
-        .encabezadoNav(L.t("Informes de membresía", "Membership reports"),
-                       L.t("Panorama, seguimiento e informes del padrón", "Overview, follow-up & roster reports"))
-        .navigationBarTitleDisplayMode(.large)
-        .sheet(isPresented: $mostrarRango) {
-            RangoSheet(desde: $vm.rangoDesde, hasta: $vm.rangoHasta)
-        }
-        .sheet(isPresented: $mostrarShareCSV) {
-            if let url = urlCSV { ShareSheet(items: [url]) }
+            // **Capas, no hermanos**, como en Ingresos y en Aportantes: los
+            // selectores iban dentro del `ScrollView`, así que se iban con él
+            // y las tarjetas no pasaban por detrás de nada. Aquí el contenido
+            // corre bajo la cabecera, que es lo único que le da al material
+            // algo que difuminar — y sin eso el glass de los chips se resuelve
+            // como una cápsula gris sobre un fondo plano.
+            .safeAreaInset(edge: .top, spacing: 0) { cabeceraInformes }
+            .colchonInferior()
+    }
+
+    /// Teléfono: título en línea, como Ingresos, Aportantes y Depósitos. Con
+    /// `.large` el sistema reservaba la banda del título grande encima de la
+    /// tira de selectores y la dejaba en blanco —dos alturas de cabecera para
+    /// una pantalla que ya dice en el chip lo que se está viendo—. En iPad se
+    /// queda el titular con su subtítulo, que es donde hay sitio.
+    @ViewBuilder
+    private func encabezado<C: View>(_ contenido: C) -> some View {
+        if compacto {
+            contenido
+                .navigationTitle(L.t("Informes de membresía", "Membership reports"))
+                .navigationBarTitleDisplayMode(.inline)
+        } else {
+            contenido
+                .encabezadoNav(L.t("Informes de membresía", "Membership reports"),
+                               L.t("Panorama, seguimiento e informes del padrón",
+                                   "Overview, follow-up & roster reports"))
+                .navigationBarTitleDisplayMode(.large)
         }
     }
 
-    // MARK: - Lista de informes (iPad)
+    // MARK: - Barra
 
-    private var listaColumna: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            TituloSeccion(texto: L.t("INFORMES", "REPORTS"))
-                .padding(.horizontal, Esp.pantalla).padding(.top, 14).padding(.bottom, 8)
+    /// **Imprimir y exportar suben a la barra.** Eran dos cápsulas dibujadas a
+    /// mano con `brandFill` en medio del contenido, justo debajo del titular
+    /// del informe: se leían como parte del dato y no como acciones, y se iban
+    /// con el scroll. Van juntas en un menú porque son la misma pregunta
+    /// —sacar esto de la pantalla—, como el "Archivo" de Aportantes.
+    @ToolbarContentBuilder
+    private var barra: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) { menuArchivo }
+    }
 
-            ForEach(Array(informes.enumerated()), id: \.offset) { idx, informe in
-                let sel = idx == vm.informeSeleccionado
-                Button { vm.informeSeleccionado = idx } label: {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(informe.0)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(sel ? Paleta.brand : .primary)
-                            Text(informe.1)
-                                .font(.caption).foregroundStyle(.secondary).lineLimit(2)
-                        }
-                        Spacer()
-                        if idx == 3 && alertasSeguimiento > 0 {
-                            Text("\(alertasSeguimiento)")
-                                .font(.caption2.weight(.semibold)).foregroundStyle(.white)
-                                .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
-                                .background(Paleta.badge, in: Capsule())
-                        }
-                    }
-                    .padding(.horizontal, Esp.fila).padding(.vertical, 10)
-                    .background(sel ? Paleta.brandFill : Color.clear)
-                    .overlay(alignment: .leading) {
-                        if sel { Rectangle().fill(Paleta.brand).frame(width: 3) }
-                    }
-                }
-                .buttonStyle(.plain)
+    private var menuArchivo: some View {
+        Menu {
+            Button { imprimirInforme() } label: {
+                Label(L.t("Imprimir / PDF", "Print / PDF"), systemImage: "printer")
+            }
+            Button { prepararCSV() } label: {
+                Label(L.t("Exportar (CSV)", "Export (CSV)"), systemImage: "square.and.arrow.up")
+            }
+        } label: {
+            Label(L.t("Archivo", "File"), systemImage: "square.and.arrow.up")
+        }
+        .buttonStyle(.glass)
+        .labelStyle(.iconOnly)
+        .tint(Paleta.brand)
+        // El menú solo saca el informe que se está viendo, y de los cuatro
+        // solo uno existe todavía.
+        .disabled(vm.informeSeleccionado != 0)
+    }
+
+    /// La tira de controles: qué informe y de qué periodo. El periodo solo se
+    /// dibuja con el informe que existe — un selector de fechas encima de un
+    /// "Próximamente" no cambia nada de lo que se ve.
+    private var cabeceraInformes: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // El margen lateral va DENTRO del scroll horizontal, no fuera: por
+            // fuera recortaba el chip que se sale por el borde justo donde el
+            // dedo tiene que empezar a arrastrar para alcanzarlo.
+            selectorInforme
+            if vm.informeSeleccionado == 0 {
+                selectorPeriodo.padding(.horizontal, Esp.pantalla)
             }
         }
-    }
-
-    // MARK: - Panel derecho (iPad)
-
-    @ViewBuilder
-    private var panelDerecho: some View {
-        switch vm.informeSeleccionado {
-        case 0:
-            contenidoInforme
-        default:
-            ContentUnavailableView(L.t("Próximamente", "Coming soon"),
-                                   systemImage: "doc.text.magnifyingglass",
-                                   description: Text(L.t("Este informe llegará pronto.", "This report is coming soon.")))
-                .background(Color(.systemGroupedBackground))
-        }
+        .padding(.vertical, Esp.chip)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial)
     }
 
     // MARK: - Helpers de exportación
@@ -108,30 +137,58 @@ struct InformesMembresiaView: View {
 
     // MARK: - Selector de tipo de informe (solo iPad)
 
+    /// **Los cuatro informes, también en el teléfono.** Esta tira estaba
+    /// detrás de `sizeClass == .regular`, así que en el iPhone no existía: la
+    /// pantalla se llamaba "Informes de membresía", prometía "panorama,
+    /// seguimiento e informes del padrón" y solo enseñaba el primero, sin
+    /// forma de llegar a los otros tres ni de saber que estaban.
+    ///
+    /// Los tres que faltan por construir dicen "Próximamente" al abrirse. Es
+    /// menos de lo que promete el hub, pero es lo que hay, y decirlo es mejor
+    /// que esconderlos.
     private var selectorInforme: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(Array(informes.enumerated()), id: \.offset) { idx, informe in
-                    let sel = idx == vm.informeSeleccionado
-                    Button { vm.informeSeleccionado = idx } label: {
-                        HStack(spacing: 5) {
-                            Text(informe.0)
-                                .font(.subheadline.weight(sel ? .semibold : .medium))
-                                .foregroundStyle(sel ? .white : .secondary)
-                            if idx == 3 && alertasSeguimiento > 0 {
-                                Text("\(alertasSeguimiento)")
-                                    .font(.caption2.weight(.bold)).foregroundStyle(.white)
-                                    .padding(.horizontal, Esp.hueco).padding(.vertical, 1)
-                                    .background(Paleta.badge, in: Capsule())
-                            }
-                        }
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                        .background(sel ? Paleta.brand : Color(.tertiarySystemFill), in: Capsule())
+            GlassEffectContainer(spacing: Esp.hueco) {
+                HStack(spacing: Esp.hueco) {
+                    ForEach(Array(informes.enumerated()), id: \.offset) { idx, informe in
+                        chipInforme(idx, informe.0)
                     }
-                    .buttonStyle(.plain)
                 }
+                .padding(.horizontal, Esp.pantalla)
+                .padding(.vertical, 2)
             }
-            .padding(.horizontal, Esp.pantalla).padding(.top, 4)
+        }
+        // El recorte del scroll horizontal se come el halo de la cápsula si no
+        // se le deja aire.
+        .scrollClipDisabled()
+    }
+
+    /// El elegido va en `.glassProminent` y los demás en `.glass`. Las dos
+    /// ramas se escriben enteras porque `buttonStyle` no admite un ternario:
+    /// son tipos distintos, no dos valores del mismo.
+    @ViewBuilder
+    private func chipInforme(_ idx: Int, _ titulo: String) -> some View {
+        if idx == vm.informeSeleccionado {
+            Button { vm.informeSeleccionado = idx } label: { etiquetaChip(idx, titulo, sel: true) }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+        } else {
+            Button { vm.informeSeleccionado = idx } label: { etiquetaChip(idx, titulo, sel: false) }
+                .buttonStyle(.glass)
+        }
+    }
+
+    private func etiquetaChip(_ idx: Int, _ titulo: String, sel: Bool) -> some View {
+        HStack(spacing: 5) {
+            Text(titulo).font(.subheadline.weight(sel ? .semibold : .medium))
+            // El badge de alertas se queda incluso en el chip elegido: dice
+            // cuántas hay sin revisar, no si está seleccionado.
+            if idx == 3 && alertasSeguimiento > 0 {
+                Text("\(alertasSeguimiento)")
+                    .font(.caption2.weight(.bold)).foregroundStyle(.white)
+                    .padding(.horizontal, Esp.hueco).padding(.vertical, 1)
+                    .background(Paleta.badge, in: Capsule())
+            }
         }
     }
 
@@ -154,10 +211,9 @@ struct InformesMembresiaView: View {
                         Image(systemName: "chevron.down").font(.caption2)
                     }
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Paleta.brand)
-                    .padding(.horizontal, Esp.chip).padding(.vertical, 6)
-                    .background(Paleta.brandFill, in: Capsule())
                 }
+                .buttonStyle(.glass)
+                .tint(Paleta.brand)
 
                 if vm.periodoTipo == .mes || vm.periodoTipo == .trimestre || vm.periodoTipo == .anio {
                     añoChips
@@ -167,11 +223,9 @@ struct InformesMembresiaView: View {
                             Text(vm.etiquetaPeriodo)
                             Image(systemName: "calendar").font(.caption2)
                         }
-                        .font(.caption.weight(.medium)).foregroundStyle(.secondary)
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 5)
-                        .background(Capsule().fill(Color(.tertiarySystemFill)))
+                        .font(.subheadline.weight(.medium))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.glass)
                 }
                 Spacer()
             }
@@ -194,55 +248,64 @@ struct InformesMembresiaView: View {
 
     // MARK: - Sub-selectores
 
+    /// Los tres sub-selectores comparten constructor: eran tres cápsulas
+    /// dibujadas a mano con tres combinaciones distintas de relleno y color de
+    /// texto —`brandFill` con texto verde en el año, verde macizo con texto
+    /// blanco en el mes—, así que un año elegido y un mes elegido no se
+    /// parecían aunque significaran lo mismo.
+    @ViewBuilder
+    private func chipPeriodo(_ texto: String, sel: Bool, _ accion: @escaping () -> Void) -> some View {
+        if sel {
+            Button { withAnimation(.spring(duration: 0.2)) { accion() } } label: {
+                Text(texto).font(.subheadline.weight(.semibold))
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Paleta.brand)
+        } else {
+            Button { withAnimation(.spring(duration: 0.2)) { accion() } } label: {
+                Text(texto).font(.subheadline.weight(.medium))
+            }
+            .buttonStyle(.glass)
+        }
+    }
+
     private var añoChips: some View {
-        HStack(spacing: 6) {
-            ForEach([2024, 2025, 2026], id: \.self) { año in
-                let sel = año == vm.añoSeleccionado
-                Button { withAnimation(.spring(duration: 0.2)) { vm.añoSeleccionado = año } } label: {
-                    Text(String(año))
-                        .font(.caption.weight(sel ? .semibold : .medium))
-                        .foregroundStyle(sel ? Paleta.brand : .secondary)
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 4)
-                        .background(
-                            sel ? Paleta.brandFill : Color(.tertiarySystemFill),
-                            in: Capsule()
-                        )
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                ForEach([2024, 2025, 2026], id: \.self) { año in
+                    chipPeriodo(String(año), sel: año == vm.añoSeleccionado) {
+                        vm.añoSeleccionado = año
+                    }
                 }
-                .buttonStyle(.plain)
             }
         }
     }
 
     private var mesChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(1...12, id: \.self) { m in
-                    let sel = m == vm.mesSeleccionado
-                    Button { withAnimation(.spring(duration: 0.2)) { vm.mesSeleccionado = m } } label: {
-                        Text(InformesMembresiaViewModel.nombreMes(m))
-                            .font(.caption.weight(sel ? .semibold : .medium))
-                            .foregroundStyle(sel ? .white : .secondary)
-                            .padding(.horizontal, Esp.chip).padding(.vertical, 4)
-                            .background(sel ? Paleta.brand : Color(.tertiarySystemFill), in: Capsule())
+            GlassEffectContainer(spacing: Esp.hueco) {
+                HStack(spacing: Esp.hueco) {
+                    ForEach(1...12, id: \.self) { m in
+                        chipPeriodo(InformesMembresiaViewModel.nombreMes(m),
+                                    sel: m == vm.mesSeleccionado) {
+                            vm.mesSeleccionado = m
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
+                .padding(.vertical, 2)
             }
         }
+        .scrollClipDisabled()
     }
 
     private var trimestreChips: some View {
-        HStack(spacing: 6) {
-            ForEach(1...4, id: \.self) { q in
-                let sel = q == vm.trimestreSeleccionado
-                Button { withAnimation(.spring(duration: 0.2)) { vm.trimestreSeleccionado = q } } label: {
-                    Text("Q\(q)")
-                        .font(.caption.weight(sel ? .semibold : .medium))
-                        .foregroundStyle(sel ? .white : .secondary)
-                        .padding(.horizontal, Esp.chip).padding(.vertical, 4)
-                        .background(sel ? Paleta.brand : Color(.tertiarySystemFill), in: Capsule())
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                ForEach(1...4, id: \.self) { q in
+                    chipPeriodo("Q\(q)", sel: q == vm.trimestreSeleccionado) {
+                        vm.trimestreSeleccionado = q
+                    }
                 }
-                .buttonStyle(.plain)
             }
         }
     }
@@ -258,37 +321,19 @@ struct InformesMembresiaView: View {
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if sizeClass == .regular { selectorInforme }
-                if sizeClass == .regular && vm.informeSeleccionado != 0 {
+                if vm.informeSeleccionado != 0 {
                     ContentUnavailableView(L.t("Próximamente", "Coming soon"),
                                            systemImage: "doc.text.magnifyingglass",
                                            description: Text(L.t("Este informe llegará pronto.", "This report is coming soon.")))
+                        .frame(maxWidth: .infinity, minHeight: 320)
                 } else {
-                selectorPeriodo
                 // Encabezado
-                VStack(alignment: .leading, spacing: 8) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(L.t("Panorama general", "General overview"))
-                            .font(.title3.weight(.semibold))
-                        Text("\(r.totalMiembros) \(L.t("miembros · \(r.periodo)", "members · \(r.periodo)"))")
-                            .font(.subheadline).foregroundStyle(.secondary)
-                            .contentTransition(.numericText())
-                    }
-                    HStack(spacing: 8) {
-                        Button { imprimirInforme() } label: {
-                            Label(L.t("Imprimir / PDF", "Print / PDF"), systemImage: "printer")
-                                .font(.subheadline.weight(.medium)).foregroundStyle(Paleta.brand)
-                                .padding(.horizontal, Esp.chip).padding(.vertical, 6)
-                                .background(Paleta.brandFill, in: Capsule())
-                        }
-                        Button { prepararCSV() } label: {
-                            Label(L.t("Exportar (CSV)", "Export (CSV)"), systemImage: "square.and.arrow.up")
-                                .font(.subheadline.weight(.medium)).foregroundStyle(Paleta.brand)
-                                .padding(.horizontal, Esp.chip).padding(.vertical, 6)
-                                .background(Paleta.brandFill, in: Capsule())
-                        }
-                        Spacer()
-                    }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L.t("Panorama general", "General overview"))
+                        .font(.title3.weight(.semibold))
+                    Text("\(r.totalMiembros) \(L.t("miembros · \(r.periodo)", "members · \(r.periodo)"))")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                        .contentTransition(.numericText())
                 }
 
                 // Dos columnas de KPIs — siempre 2 en iPad, 1 en iPhone
@@ -418,11 +463,20 @@ struct InformesMembresiaView: View {
                         HStack {
                             TituloSeccion(texto: L.t("MOVIMIENTOS DE MEMBRESÍA", "MEMBERSHIP MOVEMENTS"))
                             Spacer()
-                            Button {
+                            // Estaba escrito con la acción vacía: la tabla de
+                            // abajo enumera traslados y el enlace prometía
+                            // llevar a donde se resuelven, sin llevar a
+                            // ninguna parte. Es un `NavigationLink` y no un
+                            // botón para que traiga su chevron de vuelta: se
+                            // llega desde aquí, no desde el hub, así que a
+                            // esta sí le toca el botón de volver.
+                            NavigationLink {
+                                CartasView()
                             } label: {
                                 Text(L.t("Ir a Cartas y traslados", "Go to Letters & transfers"))
                                     .font(.caption).foregroundStyle(Paleta.enlace)
                             }
+                            .buttonStyle(.plain)
                         }
 
                         // Tabla con scroll horizontal — las columnas fijas suman más que un iPhone angosto
