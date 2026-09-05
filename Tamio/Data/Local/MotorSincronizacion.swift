@@ -88,6 +88,10 @@ final class MotorSincronizacion {
             try await subirPendientes()
             try await bajarCambios()
             try await bajarAportantes()
+            // Los parentescos DESPUÉS de las personas: cada fila apunta a dos
+            // fichas por uid, y una relación cuyo otro extremo no ha bajado
+            // se salta entera hasta la vuelta siguiente.
+            try await bajarParentescos()
             try await bajarIglesia()
             // Los cortes DESPUÉS de los movimientos: el corte apunta a
             // movimientos por id, y resolver un puntero a algo que todavía no
@@ -152,6 +156,14 @@ final class MotorSincronizacion {
         }
         if op.entidad == "aportante" {
             try await subirAportante(op)
+            return
+        }
+        if op.entidad == "miembro" {
+            try await subirMiembro(op)
+            return
+        }
+        if op.entidad == "parentesco" {
+            try await subirParentesco(op)
             return
         }
         if op.entidad == "corte" {
@@ -278,6 +290,193 @@ final class MotorSincronizacion {
         }
     }
 
+    // MARK: - El padrón: la otra cara de la misma fila
+
+    /// Lo que el padrón escribe en `members`: todo lo que `MiembroFila` lleva,
+    /// y nada de `frecuencia_aporte`, que es de Tesorería y va en
+    /// `AportanteEscritura`. Si las dos entidades tienen algo pendiente sobre
+    /// la misma persona, cada una manda sus columnas y las compartidas salen
+    /// iguales, porque las dos las leen de la misma fila local.
+    ///
+    /// Los booleanos van como 0/1: así están declarados allí.
+    private struct MiembroEscritura: Encodable {
+        let uid: String
+        let churchId: String
+        let nombre: String
+        let telefono, email, rfc, direccion, estadoCivil, fechaNacimiento: String?
+        let fechaIngreso, fechaCongregacion: String?
+        let estadoMembresia: String
+        let activo: Int
+        let fechaBaja, motivoBaja: String?
+        let iglesiaAnterior: String?
+        let bautizadoAgua: Int
+        let fechaBautismoAgua: String?
+        let bautizadoEspiritu: Int
+        let fechaBautismoEspiritu: String?
+        let cursoMembresia: Int
+        let ministerios, ministeriosInteres, cargos, instrumentos, habilidades, etiquetas: String
+        let disponibilidad: String?
+        let interesServir: Int
+        let notas: String?
+        let historialEstados, seguimientoNotas: String
+        let seguimientoRevisadoEn: String?
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, nombre, telefono, email, rfc, direccion, deleted, activo
+            case ministerios, cargos, instrumentos, habilidades, etiquetas, disponibilidad, notas
+            case churchId              = "church_id"
+            case estadoCivil           = "estado_civil"
+            case fechaNacimiento       = "fecha_nacimiento"
+            case fechaIngreso          = "fecha_ingreso"
+            case fechaCongregacion     = "fecha_congregacion"
+            case estadoMembresia       = "estado_membresia"
+            case fechaBaja             = "fecha_baja"
+            case motivoBaja            = "motivo_baja"
+            case iglesiaAnterior       = "iglesia_anterior"
+            case bautizadoAgua         = "bautizado_agua"
+            case fechaBautismoAgua     = "fecha_bautismo_agua"
+            case bautizadoEspiritu     = "bautizado_espiritu"
+            case fechaBautismoEspiritu = "fecha_bautismo_espiritu"
+            case cursoMembresia        = "curso_membresia"
+            case ministeriosInteres    = "ministerios_interes"
+            case interesServir         = "interes_servir"
+            case historialEstados      = "historial_estados"
+            case seguimientoNotas      = "seguimiento_notas"
+            case seguimientoRevisadoEn = "seguimiento_revisado_en"
+        }
+
+        init(_ f: MiembroFila, churchId: String, deleted: Bool) {
+            func o(_ s: String) -> String? { s.isEmpty ? nil : s }
+            uid = f.id; self.churchId = churchId; nombre = f.nombre
+            telefono = o(f.telefono); email = o(f.correo); rfc = o(f.idFiscal)
+            direccion = o(f.direccion); estadoCivil = o(f.estadoCivil); fechaNacimiento = o(f.nacimiento)
+            fechaIngreso = o(f.miembroDesde); fechaCongregacion = o(f.congregaDesde)
+            estadoMembresia = f.estado
+            activo = f.activo ? 1 : 0
+            // Nulos y no vacíos, que es lo que el web deja al restaurar.
+            fechaBaja = f.activo ? nil : o(f.fechaBaja)
+            motivoBaja = f.activo ? nil : o(f.motivoBaja)
+            iglesiaAnterior = o(f.iglesiaAnterior)
+            bautizadoAgua = f.bautizadoAgua ? 1 : 0
+            fechaBautismoAgua = o(f.fechaBautismoAgua)
+            bautizadoEspiritu = f.bautizadoEspiritu ? 1 : 0
+            fechaBautismoEspiritu = o(f.fechaBautismoEspiritu)
+            cursoMembresia = f.cursoMembresia ? 1 : 0
+            ministerios = f.ministerios; ministeriosInteres = f.ministeriosInteres
+            cargos = f.cargos; instrumentos = f.instrumentos; habilidades = f.habilidades
+            etiquetas = f.etiquetas
+            disponibilidad = o(f.disponibilidad)
+            interesServir = f.interesServir ? 1 : 0
+            notas = o(f.notas)
+            historialEstados = f.historialEstados; seguimientoNotas = f.seguimientoNotas
+            seguimientoRevisadoEn = o(f.seguimientoRevisadoEn)
+            self.deleted = deleted
+        }
+    }
+
+    private func subirMiembro(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try MiembroFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+        let cuerpo = MiembroEscritura(fila, churchId: churchIdActivo,
+                                      deleted: op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("members").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("members").update(cuerpo)
+                .eq("uid", value: fila.id)
+                .eq("church_id", value: churchIdActivo)
+                .execute()
+        case .none:
+            return
+        }
+    }
+
+    private struct ParentescoEscritura: Encodable {
+        let uid: String
+        let churchId: String
+        let memberUid: String
+        let parienteUid: String
+        let tipo: String
+        let deleted: Bool
+        enum CodingKeys: String, CodingKey {
+            case uid, tipo, deleted
+            case churchId    = "church_id"
+            case memberUid   = "member_uid"
+            case parienteUid = "pariente_uid"
+        }
+    }
+
+    private func subirParentesco(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try ParentescoFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+        let cuerpo = ParentescoEscritura(
+            uid: fila.id, churchId: churchIdActivo, memberUid: fila.miembroId,
+            parienteUid: fila.parienteId, tipo: fila.tipo,
+            deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("parentescos").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("parentescos").update(cuerpo)
+                .eq("uid", value: fila.id)
+                .eq("church_id", value: churchIdActivo)
+                .execute()
+        case .none:
+            return
+        }
+    }
+
+    private func bajarParentescos() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let memberUid, parienteUid, tipo: String?
+            let updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, tipo, deleted
+                case memberUid   = "member_uid"
+                case parienteUid = "pariente_uid"
+                case updatedAt   = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'parentesco'")
+        }
+        var consulta = supabase.from("parentescos").select()
+            .eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true)
+            .limit(500)
+            .execute()
+            .value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                // Media relación no es una relación: sin los dos extremos no
+                // hay fila que guardar.
+                guard let m = r.memberUid, let p = r.parienteUid, !m.isEmpty, !p.isEmpty else { continue }
+                let pendiente = try OperacionPendiente
+                    .filter(Column("entidad") == "parentesco" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if pendiente { continue }
+                try ParentescoFila(id: r.uid, miembroId: m, parienteId: p, tipo: r.tipo ?? "otro",
+                                   actualizadoEn: r.updatedAt, borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('parentesco', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
     private func bajarAportantes() async throws {
         struct FilaRemota: Decodable {
             let uid: String
@@ -287,12 +486,29 @@ final class MotorSincronizacion {
             let estadoMembresia, frecuenciaAporte: String?
             let activo: Int?
             let fechaBaja, motivoBaja: String?
+            // El padrón (v15). Todo lo que el web guarda en la misma fila.
+            let iglesiaAnterior, fechaBautismoAgua, fechaBautismoEspiritu: String?
+            let bautizadoAgua, bautizadoEspiritu, cursoMembresia, interesServir: Int?
+            let ministerios, ministeriosInteres, cargos, instrumentos, habilidades, etiquetas: String?
+            let disponibilidad, notas, historialEstados, seguimientoNotas, seguimientoRevisadoEn: String?
             let updatedAt: String?
             let deleted: Bool?
             enum CodingKeys: String, CodingKey {
                 case uid, nombre, telefono, email, rfc, direccion, deleted, activo
+                case ministerios, cargos, instrumentos, habilidades, etiquetas, disponibilidad, notas
                 case fechaBaja         = "fecha_baja"
                 case motivoBaja        = "motivo_baja"
+                case iglesiaAnterior       = "iglesia_anterior"
+                case bautizadoAgua         = "bautizado_agua"
+                case fechaBautismoAgua     = "fecha_bautismo_agua"
+                case bautizadoEspiritu     = "bautizado_espiritu"
+                case fechaBautismoEspiritu = "fecha_bautismo_espiritu"
+                case cursoMembresia        = "curso_membresia"
+                case ministeriosInteres    = "ministerios_interes"
+                case interesServir         = "interes_servir"
+                case historialEstados      = "historial_estados"
+                case seguimientoNotas      = "seguimiento_notas"
+                case seguimientoRevisadoEn = "seguimiento_revisado_en"
                 case estadoCivil       = "estado_civil"
                 case fechaNacimiento   = "fecha_nacimiento"
                 case fechaIngreso      = "fecha_ingreso"
@@ -318,8 +534,12 @@ final class MotorSincronizacion {
 
         try await cola.write { db in
             for r in filas {
+                // Dos entidades escriben esta fila —Tesorería y el padrón—,
+                // y lo que cualquiera de las dos tenga pendiente de subir no
+                // se pisa con lo que baja.
                 let pendiente = try OperacionPendiente
-                    .filter(Column("entidad") == "aportante" && Column("registroId") == r.uid)
+                    .filter((Column("entidad") == "aportante" || Column("entidad") == "miembro")
+                            && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
                 if pendiente { continue }
 
@@ -339,6 +559,35 @@ final class MotorSincronizacion {
                 a.id = r.uid
                 try AportanteFila(a, actualizadoEn: r.updatedAt,
                                   borrado: r.deleted ?? false).save(db)
+
+                // Y la otra cara de la misma fila: las columnas del padrón.
+                // `MiembroFila` no lleva `frecuencia`, así que no toca lo que
+                // acaba de escribir la línea de arriba.
+                var m = Miembro(id: r.uid, nombre: r.nombre ?? "")
+                m.estado = a.estado
+                m.telefono = a.telefono; m.correo = a.correo; m.nacimiento = a.nacimiento
+                m.direccion = a.direccion; m.estadoCivil = a.estadoCivil; m.idFiscal = a.idFiscal
+                m.fechaIngreso = a.miembroDesde; m.fechaCongregacion = a.congregaDesde
+                m.iglesiaAnterior = r.iglesiaAnterior ?? ""
+                m.bautizadoAgua = (r.bautizadoAgua ?? 0) != 0
+                m.fechaBautismoAgua = r.fechaBautismoAgua ?? ""
+                m.bautizadoEspiritu = (r.bautizadoEspiritu ?? 0) != 0
+                m.fechaBautismoEspiritu = r.fechaBautismoEspiritu ?? ""
+                m.cursoMembresia = (r.cursoMembresia ?? 0) != 0
+                m.ministerios = Padron.lista(r.ministerios ?? "[]")
+                m.ministeriosInteres = Padron.lista(r.ministeriosInteres ?? "[]")
+                m.cargos = Padron.lista(r.cargos ?? "[]")
+                m.instrumentos = Padron.lista(r.instrumentos ?? "[]")
+                m.habilidades = Padron.lista(r.habilidades ?? "[]")
+                m.etiquetas = Padron.lista(r.etiquetas ?? "[]")
+                m.disponibilidad = r.disponibilidad ?? ""
+                m.interesServir = (r.interesServir ?? 0) != 0
+                m.notas = r.notas ?? ""
+                m.historialEstados = MiembroFila.lista(r.historialEstados ?? "[]")
+                m.seguimientoNotas = MiembroFila.lista(r.seguimientoNotas ?? "[]")
+                m.seguimientoRevisadoEn = r.seguimientoRevisadoEn ?? ""
+                try MiembroFila(m, actualizadoEn: r.updatedAt,
+                                borrado: r.deleted ?? false).update(db)
             }
             if let ultimo = filas.last?.updatedAt {
                 try db.execute(sql: """
