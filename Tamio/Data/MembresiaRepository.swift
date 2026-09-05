@@ -137,7 +137,7 @@ struct MockMembresiaRepository: MembresiaRepository {
 
         // Recibido por traslado ESTE año: nuevo y recibido a la vez, que es
         // lo que el enum viejo no dejaba ser.
-        var m7 = Miembro(id: "7", nombre: "Daniel Guerra Salinas")
+        var m7 = Miembro(id: "7", nombre: "Daniel Salas Hernández")
         m7.telefono = "81 6060 7070"; m7.correo = "daniel.guerra@correo.mx"
         m7.fechaIngreso = Fechas.claveDia(); m7.iglesiaAnterior = "Iglesia Bautista Getsemaní, Saltillo"
         m7.bautizadoAgua = true; m7.fechaBautismoAgua = "2011-05-22"; m7.ministerios = ["medios"]
@@ -153,6 +153,15 @@ struct MockMembresiaRepository: MembresiaRepository {
         m8.asistencia = serie(0)
         m8.asistenciaResumen = AsistenciaMiembro(presentes: 0, servicios: 27, rachaSinAsistir: 27,
                                                  ultimaVisita: "2026-03-14")
+
+        // **Una familia, para que el agrupado se vea.** María y Pedro son
+        // matrimonio y Daniel es hijo de los dos: en la lista salen como
+        // "Hernández Ríos · 3" y se marcan de un toque. Las relaciones van en
+        // los dos lados, como las devuelve el repositorio de verdad.
+        m1.familia = [Pariente(id: "f1", tipo: "conyuge", parienteId: "3", nombre: m3.nombre),
+                      Pariente(id: "f2", tipo: "hijo", parienteId: "7", nombre: m7.nombre)]
+        m3.familia = [Pariente(id: "f1", tipo: "conyuge", parienteId: "1", nombre: m1.nombre)]
+        m7.familia = [Pariente(id: "f2", tipo: "padre", parienteId: "1", nombre: m1.nombre)]
 
         return [m1, m2, m3, m4, m5, m6, m7, m8]
     }
@@ -366,20 +375,43 @@ enum Familias {
             .sorted { $0.apellido.localizedCompare($1.apellido) == .orderedAscending }
     }
 
+    /// Cómo se llama la familia. **El apellido que se repite, y con empate el
+    /// que va más a la izquierda.**
+    ///
+    /// Primero probé con la última palabra del nombre y salía mal: en español
+    /// el apellido de familia es el PRIMERO —"María Hernández Ríos" es de los
+    /// Hernández, no de los Ríos— y además una mujer conserva los suyos, así
+    /// que el matrimonio no comparte ninguno. Lo que sí comparte el hijo con
+    /// su padre es el primer apellido, y por eso la posición desempata: un
+    /// apellido que aparece de primero pesa más que el mismo de segundo.
+    ///
+    /// Con nombres compuestos —"Ana Lucía Torres"— la primera palabra se
+    /// descarta y "Lucía" entra como si fuera apellido. No pasa nada: solo
+    /// compite si se repite en la familia, y si nadie comparte nada se cae al
+    /// primer apellido del primero, que es lo mismo que se haría a mano.
     private static func apellidoComun(_ integrantes: [Miembro]) -> String {
-        var cuenta: [String: Int] = [:]
+        var veces: [String: Int] = [:]
+        var posicion: [String: Int] = [:]
         for m in integrantes {
-            guard let ap = m.nombre.split(separator: " ").last.map(String.init) else { continue }
-            cuenta[ap, default: 0] += 1
-        }
-        guard let mayor = cuenta.values.max() else { return "" }
-        // Empate: el del primero de la lista, para que no baile entre pasadas.
-        for m in integrantes {
-            if let ap = m.nombre.split(separator: " ").last.map(String.init), cuenta[ap] == mayor {
-                return ap
+            // La primera palabra es el nombre de pila; lo demás, candidatos.
+            for (i, palabra) in m.nombre.split(separator: " ").dropFirst().enumerated() {
+                let ap = String(palabra)
+                veces[ap, default: 0] += 1
+                // La SUMA de posiciones, no la menor: "Hernández" y "Salas"
+                // salían empatados a dos apariciones, pero Salas es el primer
+                // apellido de los dos que lo llevan y Hernández el segundo de
+                // uno. Sumando, gana el que va de primero más veces.
+                posicion[ap, default: 0] += i
             }
         }
-        return ""
+        let mejor = veces.keys.sorted { a, b in
+            if veces[a] != veces[b] { return veces[a]! > veces[b]! }
+            if posicion[a] != posicion[b] { return posicion[a]! < posicion[b]! }
+            return a < b   // alfabético, para que no baile entre pasadas
+        }.first
+        return mejor
+            ?? integrantes.first?.nombre.split(separator: " ").dropFirst().first.map(String.init)
+            ?? ""
     }
 }
 

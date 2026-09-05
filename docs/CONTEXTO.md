@@ -280,18 +280,27 @@ Data Protection) y qué protección le queda al respaldo en iCloud Drive.
 3. **Verificar los recurrentes en aparato** (§5). Es el riesgo real que queda.
 4. **Las dos medidas del cifrado** (§5).
 5. **Membresía: probar la sincronización con la cuenta real** (§5). El
-   repositorio y el motor están escritos; la red no se ha ejercitado. Después,
-   la v16 de asistencia (`servicios` + `servicio_asistencia`), el seguimiento
-   con `tipo` y `completado` en el JSON, y reflejar `traslados_salida`.
-6. **Aplicar `frenar_baja_tesorero`.** Está escrito en
+   repositorio y el motor están escritos —padrón, parentescos, cultos y
+   asistencia—; la red no se ha ejercitado nunca.
+6. **`ServiciosView` sigue de maqueta.** Toma lista de verdad, pero la pantalla
+   en sí (los servicios, el roster, el orden del culto) corre sobre datos
+   inventados y su `Servicio` tiene forma de pantalla. Mientras tanto, "Tomar
+   lista" coge el culto más reciente de la tabla: es un puente, y está dicho
+   en el código.
+7. **"Familia Ruvalcaba" es una familia registrada como UNA persona**, con la
+   nota "cuatro miembros · diezman juntos". Para Tesorería funciona —una
+   constancia— pero en la lista de asistencia cuenta uno donde hay cuatro y no
+   se puede seguir a ninguno. Hay que partirla en cuatro fichas unidas por
+   parentescos, o aceptar que esa familia no tiene asistencia real.
+8. **Aplicar `frenar_baja_tesorero`.** Está escrito en
    `supabase/sync-p2-padron.sql` del repo del web (rama
    `claude/padron-secretaria`) y sin aplicar. Las dos apps ya esconden los
    botones, así que ya no rompe a nadie; es la base de producción y la aplica
    Iván. Ver `docs/PADRON-WEB.md` §4.
-7. **Reflejar `traslados_salida`.** Hasta entonces la pastilla "traslado en
+9. **Reflejar `traslados_salida`.** Hasta entonces la pastilla "traslado en
    curso" no se ve: dejó de ser un estado de la persona y el expediente vive
    en esa tabla.
-8. Observación sin acción: el hub dice "Transacciones · 29 registros" y la
+10. Observación sin acción: el hub dice "Transacciones · 29 registros" y la
    lista dice "16 movimientos". No es un error —una suma ingresos y gastos, la
    otra solo el tipo activo— pero se leen como el mismo número.
 

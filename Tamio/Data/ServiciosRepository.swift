@@ -329,4 +329,55 @@ enum Cultos {
     }
 }
 
-func repositorioAsistencia() -> AsistenciaRepository { OfflineAsistenciaRepository() }
+/// La asistencia de la maqueta. Almacén ESTÁTICO para que lo que se marca en
+/// el modo revisión siga ahí al volver a abrir la hoja, como en los demás
+/// mocks del proyecto.
+///
+/// Los cultos vienen sembrados —cuatro domingos y dos reuniones de oración—
+/// porque una pantalla de asistencia sin cultos no se puede enseñar, y las
+/// listas nacen vacías: lo que se está probando es tomarlas.
+struct MockAsistenciaRepository: AsistenciaRepository {
+    private static var cultosSembrados: [CultoConLista] = {
+        let hoy = Date()
+        let cal = Calendar.current
+        return (0..<6).map { i in
+            let d = cal.date(byAdding: .day, value: -7 * i, to: hoy) ?? hoy
+            return CultoConLista(id: "culto-\(i)", fecha: Fechas.claveDia(d),
+                                 tipo: i % 3 == 1 ? "oracion" : "dominical",
+                                 presentes: 0, enLista: 0)
+        }
+    }()
+    private static var listas: [String: [MarcaAsistencia]] = [:]
+
+    func cultos(desde: String, hasta: String) async throws -> [CultoConLista] {
+        Self.cultosSembrados
+            .filter { $0.fecha >= desde && $0.fecha <= hasta }
+            .map { c in
+                let l = Self.listas[c.id] ?? []
+                return CultoConLista(id: c.id, fecha: c.fecha, tipo: c.tipo,
+                                     presentes: l.filter(\.presente).count, enLista: l.count)
+            }
+    }
+
+    func lista(culto: String) async throws -> [MarcaAsistencia] { Self.listas[culto] ?? [] }
+
+    func guardarLista(culto: String, _ marcas: [MarcaAsistencia]) async throws {
+        Self.listas[culto] = marcas.map { m in
+            var x = m
+            if x.presente { x.razon = ""; x.razonOtra = ""; x.seguimiento = false }
+            return x
+        }
+    }
+
+    func porMiembro(desde: String, hasta: String) async throws -> [String: AsistenciaMiembro] {
+        [:]   // La ficha de la maqueta trae sus propios números.
+    }
+
+    func resumen(desde: String, hasta: String) async throws -> AsistenciaResumen {
+        await MockMembresiaRepository().asistenciaResumen()
+    }
+}
+
+func repositorioAsistencia() -> AsistenciaRepository {
+    ModoRevision.sinLogin ? MockAsistenciaRepository() : OfflineAsistenciaRepository()
+}

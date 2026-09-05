@@ -3,10 +3,32 @@ import SwiftUI
 struct ServiciosView: View {
     @State private var vm = ServiciosViewModel()
     @State private var abierto: Servicio?
-    @State private var mostrarNuevo = false
-    @State private var mostrarAsignar = false
-    @State private var mostrarAsistencia = false
+    /// **Una sola hoja y no cuatro apiladas.** Varios `.sheet` sobre la misma
+    /// vista no conviven: se abre la que SwiftUI decida, y la que se añadió
+    /// aquí no llegaba a presentarse. Es el patrón que Ingresos ya usa.
+    @State private var hoja: HojaServicio?
     @Environment(\.horizontalSizeClass) private var sizeClass
+
+    private enum HojaServicio: Identifiable {
+        case nuevo
+        case asignar
+        case contar
+        /// El culto cuya lista se toma. **Puente hasta que Servicios lea la
+        /// v16**: hoy esta pantalla corre sobre servicios de maqueta, que no
+        /// tienen fila en `servicio`, así que se coge el culto real más
+        /// reciente. Cuando Servicios se siente sobre la tabla, el culto será
+        /// el de la fila y esto se cae solo.
+        case lista(CultoConLista)
+
+        var id: String {
+            switch self {
+            case .nuevo:   return "nuevo"
+            case .asignar: return "asignar"
+            case .contar:  return "contar"
+            case .lista(let c): return "lista-\(c.id)"
+            }
+        }
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -37,7 +59,7 @@ struct ServiciosView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { mostrarNuevo = true } label: {
+                Button { hoja = .nuevo } label: {
                     Label(L.t("Nuevo", "New"), systemImage: "plus")
                 }
                 .buttonStyle(.glass)
@@ -45,21 +67,29 @@ struct ServiciosView: View {
             }
         }
         .task { await vm.cargar() }
-        .sheet(isPresented: $mostrarNuevo) {
-            NuevoServicioSheet(proximoId: vm.proximoId) { vm.agregarServicio($0) }
-        }
-        .sheet(isPresented: $mostrarAsignar) {
-            if let s = vm.seleccion {
-                AsignarRosterSheet(servicio: s) { personas in
-                    vm.actualizarRoster(servicioId: s.id, personas: personas)
+        .sheet(item: $hoja) { cual in
+            switch cual {
+            case .nuevo:
+                NuevoServicioSheet(proximoId: vm.proximoId) { vm.agregarServicio($0) }
+            case .asignar:
+                if let s = vm.seleccion {
+                    AsignarRosterSheet(servicio: s) { personas in
+                        vm.actualizarRoster(servicioId: s.id, personas: personas)
+                    }
                 }
-            }
-        }
-        .sheet(isPresented: $mostrarAsistencia) {
-            if let s = vm.seleccion {
-                TomarAsistenciaSheet(servicio: s) { presentes, total, fecha in
-                    vm.registrarAsistencia(servicioId: s.id, presentes: presentes,
-                                           total: total, fecha: fecha)
+            case .contar:
+                if let s = vm.seleccion {
+                    TomarAsistenciaSheet(servicio: s) { presentes, total, fecha in
+                        vm.registrarAsistencia(servicioId: s.id, presentes: presentes,
+                                               total: total, fecha: fecha)
+                    }
+                }
+            case .lista(let culto):
+                if let s = vm.seleccion {
+                    ListaAsistenciaSheet(culto: culto) { presentes, total, fecha in
+                        vm.registrarAsistencia(servicioId: s.id, presentes: presentes,
+                                               total: total, fecha: fecha)
+                    }
                 }
             }
         }
@@ -139,12 +169,23 @@ struct ServiciosView: View {
                     // que se quitaron del resto de la app. Ahora son botones de
                     // verdad, con el estilo que ya llevan los demás: glass con
                     // el verde de marca el que actúa, glass en gris el otro.
-                    Button { mostrarAsistencia = true } label: {
-                        Text(L.t("Tomar asistencia", "Take attendance"))
+                    // **Dos cosas distintas.** "Tomar lista" abre el padrón
+                    // agrupado en familias y guarda una fila por persona, que
+                    // es de donde salen la racha y las ausencias. "Contar" es
+                    // el conteo de cabezas de siempre, para el culto donde no
+                    // se pasa lista.
+                    Button { if let c = vm.culto { hoja = .lista(c) } } label: {
+                        Text(L.t("Tomar lista", "Take attendance"))
                             .font(.subheadline.weight(.medium))
                     }
                     .buttonStyle(.glass).tint(Color.secondary)
-                    Button { mostrarAsignar = true } label: {
+                    .disabled(vm.culto == nil)
+                    Button { hoja = .contar } label: {
+                        Text(L.t("Contar", "Count"))
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .buttonStyle(.glass).tint(Color.secondary)
+                    Button { hoja = .asignar } label: {
                         Text(L.t("Asignar", "Assign"))
                             .font(.subheadline.weight(.semibold))
                     }
@@ -816,5 +857,223 @@ private struct TomarAsistenciaSheet: View {
                 .shadow(color: Paleta.brand.opacity(0.35), radius: 8, y: 4)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Sheet: Tomar lista
+
+/// **La lista del culto, con las familias plegadas.**
+///
+/// Una fila por familia —"Hernández Ríos · 3"— con su casilla: la familia
+/// llega junta y se marca de un toque. Desplegando, cada uno con la suya, para
+/// el domingo en que el mayor se quedó en casa. Quien no tiene parentescos
+/// sale como familia de uno y se ve igual que los demás: la lista no tiene que
+/// distinguir dos casos.
+///
+/// Lo que se guarda es una fila por PERSONA, aunque se marque por familia. La
+/// racha, la última visita y el aviso de ausencias son de cada uno.
+struct ListaAsistenciaSheet: View {
+    @State private var vm: ListaAsistenciaViewModel
+    let onGuardado: (Int, Int, String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    init(culto: CultoConLista, onGuardado: @escaping (Int, Int, String) -> Void) {
+        _vm = State(initialValue: ListaAsistenciaViewModel(culto: culto))
+        self.onGuardado = onGuardado
+    }
+
+    private var pctColor: Color {
+        vm.pct >= 0.85 ? Paleta.brand : (vm.pct >= 0.65 ? Paleta.aviso : Paleta.negativo)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if vm.cargando {
+                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if vm.familias.isEmpty {
+                    ContentUnavailableView(L.t("El padrón está vacío", "The roster is empty"),
+                                           systemImage: "person.2.slash",
+                                           description: Text(L.t("Da de alta a alguien en Membresía para poder tomar lista.",
+                                                                 "Add someone in Membership to take attendance.")))
+                } else {
+                    lista
+                }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) { contador }
+            .navigationTitle(Cultos.etiqueta(vm.culto.tipo))
+            .navigationSubtitle(Fechas.diaLegible(vm.culto.fecha))
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $vm.busqueda,
+                        prompt: Text(L.t("Buscar por nombre", "Search by name")))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L.t("Cancelar", "Cancel")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L.t("Guardar", "Save")) {
+                        let (p, t) = (vm.presentes, vm.total)
+                        Task { await vm.guardar() }
+                        onGuardado(p, t, Fechas.diaLegible(vm.culto.fecha))
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                    .buttonStyle(.glassProminent)
+                    .tint(Paleta.brand)
+                }
+            }
+            .task { await vm.cargar() }
+        }
+    }
+
+    /// Cuántos van, sin tener que contar filas. Va en una capa con material y
+    /// la lista corre por debajo, como en el resto de la app.
+    private var contador: some View {
+        VStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("\(vm.presentes)")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(pctColor)
+                    .contentTransition(.numericText())
+                Text(L.t("de \(vm.total) en el padrón", "of \(vm.total) on the roster"))
+                    .font(.subheadline).foregroundStyle(.secondary)
+                Spacer()
+                Text("\(Int(vm.pct * 100))%")
+                    .font(.title3.weight(.semibold)).monospacedDigit()
+                    .foregroundStyle(pctColor)
+            }
+            GeometryReader { g in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(.tertiarySystemFill)).frame(height: 6)
+                    Capsule().fill(pctColor)
+                        .frame(width: g.size.width * CGFloat(vm.pct), height: 6)
+                }
+            }
+            .frame(height: 6)
+            .animation(.spring(duration: 0.3), value: vm.pct)
+        }
+        .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
+        .background(.regularMaterial)
+    }
+
+    private var lista: some View {
+        List {
+            ForEach(vm.familiasVisibles) { f in
+                Section {
+                    filaFamilia(f)
+                    // Una familia de uno no despliega nada: su fila ES la
+                    // persona, y su casilla la marca.
+                    if vm.desplegadas.contains(f.id) {
+                        ForEach(f.integrantes) { m in filaPersona(m) }
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
+    }
+
+    @ViewBuilder
+    private func filaFamilia(_ f: Familia) -> some View {
+        let marcados = vm.presentesDe(f)
+        let todos = marcados == f.integrantes.count
+        HStack(spacing: 12) {
+            Button { withAnimation(.snappy(duration: 0.2)) { vm.alternarFamilia(f) } } label: {
+                Image(systemName: todos ? "checkmark.circle.fill"
+                                        : (marcados > 0 ? "circle.badge.minus" : "circle"))
+                    .font(.title2)
+                    .foregroundStyle(todos ? Paleta.brand : (marcados > 0 ? Paleta.aviso : .secondary))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(f.titulo)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(f.titulo).font(.subheadline.weight(.medium)).lineLimit(1)
+                if !f.esIndividual {
+                    Text(marcados == 0
+                         ? L.t("Nadie marcado", "None marked")
+                         : L.t("\(marcados) de \(f.integrantes.count)", "\(marcados) of \(f.integrantes.count)"))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 6)
+
+            if !f.esIndividual {
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) {
+                        if vm.desplegadas.contains(f.id) { vm.desplegadas.remove(f.id) }
+                        else { vm.desplegadas.insert(f.id) }
+                    }
+                } label: {
+                    Image(systemName: vm.desplegadas.contains(f.id) ? "chevron.up" : "chevron.down")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L.t("Ver a cada uno", "Show each person"))
+            }
+        }
+        .padding(.vertical, 8)
+        .filaDeLista(seleccionada: false, tarjeta: true)
+    }
+
+    private func filaPersona(_ m: Miembro) -> some View {
+        let presente = vm.estaPresente(m.id)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Button { withAnimation(.snappy(duration: 0.2)) { vm.alternar(m.id) } } label: {
+                    Image(systemName: presente ? "checkmark.circle.fill" : "circle")
+                        .font(.title3)
+                        .foregroundStyle(presente ? Paleta.brand : .secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(m.nombre)
+                Text(m.nombre).font(.subheadline).lineLimit(1)
+                Spacer(minLength: 6)
+            }
+            // La razón solo tiene sentido para quien no vino, y por eso no se
+            // dibuja para quien sí.
+            if !presente {
+                HStack(spacing: 8) {
+                    Menu {
+                        Button { vm.ponerRazon(m.id, "") } label: {
+                            Text(L.t("Sin razón", "No reason"))
+                        }
+                        Divider()
+                        ForEach(AsistenciaFila.razones, id: \.self) { r in
+                            Button { vm.ponerRazon(m.id, r) } label: {
+                                Text(AsistenciaFila.etiquetaRazon(r))
+                            }
+                        }
+                    } label: {
+                        let r = vm.marcas[m.id]?.razon ?? ""
+                        HStack(spacing: 4) {
+                            Text(r.isEmpty ? L.t("¿Por qué faltó?", "Why absent?")
+                                           : AsistenciaFila.etiquetaRazon(r))
+                            Image(systemName: "chevron.down").font(.caption2)
+                        }
+                        .font(.caption.weight(.medium))
+                    }
+                    .buttonStyle(.glass)
+                    .tint((vm.marcas[m.id]?.razon.isEmpty ?? true) ? nil : Paleta.brand)
+
+                    Button { vm.alternarSeguimiento(m.id) } label: {
+                        Label(L.t("Seguimiento", "Follow-up"), systemImage: "flag")
+                            .font(.caption.weight(.medium))
+                    }
+                    .buttonStyle(.glass)
+                    .tint(vm.marcas[m.id]?.seguimiento == true ? Paleta.aviso : nil)
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, 34)
+            }
+        }
+        .padding(.vertical, 6)
+        .filaDeLista(seleccionada: false, tarjeta: true)
     }
 }
