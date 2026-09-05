@@ -81,6 +81,14 @@ struct TamioApp: App {
                     // porque la bajada puede traer alguna nueva y los conteos
                     // dependen de los movimientos que acaban de llegar.
                     await CategoriasViewModel.compartido.cargar()
+                    // **Los recurrentes al día, ANTES de subir.** Si el mes
+                    // cambió mientras la app estaba cerrada, aquí es donde se
+                    // registran las rentas de los meses que ya concluyeron; y
+                    // poniéndolo antes de sincronizar viajan en la misma
+                    // pasada en vez de esperar a la siguiente. No hay tarea
+                    // programada de por medio: si la app no se abre en tres
+                    // meses, al abrirla se ponen los tres al día de una vez.
+                    await MaterializadorRecurrentes.alDia()
                     await MotorSincronizacion.compartido.sincronizar()
                     await CategoriasViewModel.compartido.cargar()
                 }

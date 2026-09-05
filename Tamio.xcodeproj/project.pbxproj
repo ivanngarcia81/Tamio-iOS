@@ -38,6 +38,7 @@
 		109DD5C530497B0000E781B1 /* RecibosLocales.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781B1 /* RecibosLocales.swift */; };
 		AB00CAT0000000000000000 /* CategoriaCustom.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00CAT0000000000000000 /* CategoriaCustom.swift */; };
 		AB01CAT0000000000000001 /* CategoriasRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01CAT0000000000000001 /* CategoriasRepository.swift */; };
+		A1B2C3D40003RECREPO0003 /* RecurrentesRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40004RECREPO0004 /* RecurrentesRepository.swift */; };
 		AB02CAT0000000000000002 /* CategoriasViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02CAT0000000000000002 /* CategoriasViewModel.swift */; };
 		AB09PER0000000000000009 /* Permisos.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA09PER0000000000000009 /* Permisos.swift */; };
 		AB10VER0000000000000010 /* VersionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10VER0000000000000010 /* VersionApp.swift */; };
@@ -227,6 +228,7 @@
 		9C5228803AB5A63490100EDE /* SegundaFirmaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegundaFirmaView.swift; sourceTree = "<group>"; };
 		AA00CAT0000000000000000 /* CategoriaCustom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriaCustom.swift; sourceTree = "<group>"; };
 		AA01CAT0000000000000001 /* CategoriasRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasRepository.swift; sourceTree = "<group>"; };
+		A1B2C3D40004RECREPO0004 /* RecurrentesRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurrentesRepository.swift; sourceTree = "<group>"; };
 		AA02CAT0000000000000002 /* CategoriasViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasViewModel.swift; sourceTree = "<group>"; };
 		AA09PER0000000000000009 /* Permisos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permisos.swift; sourceTree = "<group>"; };
 		AA10VER0000000000000010 /* VersionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VersionApp.swift; sourceTree = "<group>"; };
@@ -410,6 +412,7 @@
 				AA16FIR0000000000000016 /* FirmasLocales.swift */,
 				AA12RSP0000000000000012 /* Respaldo.swift */,
 				AA01CAT0000000000000001 /* CategoriasRepository.swift */,
+				A1B2C3D40004RECREPO0004 /* RecurrentesRepository.swift */,
 				804F0337A286564156D330E9 /* MembresiaRepository.swift */,
 				5B5ECF3C352C8A25CF9A50EA /* MiembrosRepository.swift */,
 				6C8C96D1BB6EF88E7492B545 /* MovimientosRepository.swift */,
@@ -606,6 +609,7 @@
 				109DD5C530497B0000E781B1 /* RecibosLocales.swift in Sources */,
 				AB00CAT0000000000000000 /* CategoriaCustom.swift in Sources */,
 				AB01CAT0000000000000001 /* CategoriasRepository.swift in Sources */,
+				A1B2C3D40003RECREPO0003 /* RecurrentesRepository.swift in Sources */,
 				AB02CAT0000000000000002 /* CategoriasViewModel.swift in Sources */,
 				AB09PER0000000000000009 /* Permisos.swift in Sources */,
 				AB10VER0000000000000010 /* VersionApp.swift in Sources */,
