@@ -59,40 +59,30 @@ struct Acta: Identifiable, Hashable {
 
 // MARK: - Servicios
 
+/// Cuánto del roster está cubierto. **Se deduce de los puestos**, no se
+/// guarda: un estado escrito a mano y una lista de puestos son dos verdades
+/// sobre lo mismo.
 enum EstadoRoster {
-    case completo, parcial, faltaUjier, sinAsignar
+    case completo, parcial, sinAsignar
 
     var etiqueta: String {
         switch self {
-        case .completo:    return L.t("roster completo", "full roster")
-        case .parcial:     return L.t("roster parcial", "partial roster")
-        case .faltaUjier:  return L.t("falta ujier", "missing usher")
-        case .sinAsignar:  return L.t("sin asignar", "unassigned")
+        case .completo:   return L.t("roster completo", "full roster")
+        case .parcial:    return L.t("roster parcial", "partial roster")
+        case .sinAsignar: return L.t("sin asignar", "unassigned")
         }
     }
     var estadoVisual: Paleta.Estado {
         switch self {
-        case .completo:              return .correcto
-        case .parcial, .faltaUjier:  return .pendiente
-        case .sinAsignar:            return .terminal
+        case .completo:   return .correcto
+        case .parcial:    return .pendiente
+        case .sinAsignar: return .terminal
         }
     }
     var color: Color { estadoVisual.color }
 }
 
-struct AsignacionRoster: Identifiable {
-    let id: Int
-    let rol: String
-    let persona: String?
-    let extras: Int
-
-    var display: String {
-        guard let p = persona else { return L.t("Asignar encargado", "Assign person") }
-        return extras > 0 ? "\(p) +\(extras)" : p
-    }
-    var asignado: Bool { persona != nil }
-}
-
+/// Un culto pasado con lo que se contó, para la gráfica del detalle.
 struct AsistenciaServicio: Identifiable {
     let id: String
     let fecha: String
@@ -101,39 +91,120 @@ struct AsistenciaServicio: Identifiable {
     var pct: Double { total > 0 ? Double(presentes) / Double(total) : 0 }
 }
 
-struct PuntoOrden: Identifiable {
-    let id: Int
-    let hora: String
-    let descripcion: String
+/// Quién hace qué en un culto. Espejo de `servicio_puestos`.
+///
+/// `miembroId` es opcional a propósito, como allí: quien toca el bajo un
+/// domingo puede no tener ficha. `nombre` se guarda igual, y es el que la
+/// persona tenía ese día.
+struct PuestoServicio: Identifiable, Hashable {
+    let id: String
+    var puesto: String          // clave de `Puestos`
+    var nombre: String
+    var miembroId: String?
+
+    var asignado: Bool { !nombre.trimmingCharacters(in: .whitespaces).isEmpty }
+    var etiqueta: String { Puestos.etiqueta(puesto) }
+    var display: String { asignado ? nombre : L.t("Asignar encargado", "Assign person") }
 }
 
+/// Los puestos habituales de un culto. Catálogo ABIERTO como los del padrón:
+/// una iglesia con "Proyección" la escribe y se guarda tal cual.
+enum Puestos {
+    static let habituales = ["predicacion", "alabanza", "ujieres", "ofrenda",
+                             "sonido", "ninos", "oracion"]
+
+    static func etiqueta(_ clave: String) -> String {
+        switch clave {
+        case "predicacion": return L.t("Predicación", "Preaching")
+        case "alabanza":    return L.t("Alabanza", "Worship")
+        case "ujieres":     return L.t("Ujieres", "Ushers")
+        case "ofrenda":     return L.t("Ofrenda", "Offering")
+        case "sonido":      return L.t("Sonido", "Sound")
+        case "ninos":       return L.t("Niños", "Children")
+        case "oracion":     return L.t("Oración", "Prayer")
+        default:            return clave
+        }
+    }
+}
+
+struct PuntoOrden: Identifiable, Hashable {
+    let id: String
+    var posicion: Int
+    var hora: String
+    var titulo: String
+    var encargado: String
+}
+
+/// Una persona que vino sin tener ficha. Viaja dentro de
+/// `servicios.visitantes` como JSON, que es donde el web la guarda.
+struct VisitanteServicio: Codable, Hashable, Identifiable {
+    var id: String { nombre }
+    var nombre: String
+    var telefono: String?
+    var correo: String?
+    var invitadoPor: String?
+    var primeraVisita: Bool = false
+    var notas: String?
+
+    enum CodingKeys: String, CodingKey {
+        case nombre, telefono, correo, notas
+        case invitadoPor   = "invitado_por"
+        case primeraVisita = "primera_visita"
+    }
+}
+
+/// Un culto: **la fila, con forma de fila.**
+///
+/// Antes tenía forma de pantalla —`diaSemana`, `numDia`, `hora`, `lugar`,
+/// `titulo`— y ninguno de esos cinco existe en `servicios`. Lo que hay allí es
+/// la fecha y el tipo; el titular y el día se calculan. `hora` y `lugar` se
+/// van: el servidor no los tiene, y la hora de verdad está en el orden del
+/// culto, punto por punto.
 struct Servicio: Identifiable, Hashable {
     let id: String
-    let diaSemana: String
-    let numDia: String
-    let titulo: String
-    let hora: String
-    let lugar: String
-    var estadoRoster: EstadoRoster
-    var roster: [AsignacionRoster]
-    var historial: [AsistenciaServicio]
-    let orden: [PuntoOrden]
-    // Campos del formulario (opcionales, con valores por defecto para no romper mock existente)
-    var lideroServicio: String? = nil
-    var predico: String? = nil
-    var canciones: [String] = []
-    var tituloMensaje: String? = nil
-    var textoBiblico: String? = nil
-    var resumenMensaje: String? = nil
-    var temaEscuelaDominica: String? = nil
-    var maestroEscuela: String? = nil
-    var eventosEspeciales: String? = nil
-    var visitantes: [String] = []
-    var ninos: Int = 0
-    var jovenes: Int = 0
-    var adultos: Int = 0
+    var fecha: String = ""        // "YYYY-MM-DD"
+    var tipo: String = "dominical"
+    var dirige = ""
+    var predica = ""
+    var tituloMensaje = ""
+    var textoBiblico = ""
+    var resumenMensaje = ""
+    var participaciones: [String] = []
+    var temaEscuela = ""
+    var maestroEscuela = ""
+    var visitantes: [VisitanteServicio] = []
+    var ninos = 0
+    var jovenes = 0
+    var adultos = 0
+    var eventos = ""
+    /// De `servicioPuesto` y `servicioOrden`.
+    var puestos: [PuestoServicio] = []
+    var orden: [PuntoOrden] = []
+    /// Lo que se contó, para la gráfica del detalle. Se cuenta, no se guarda.
+    var historial: [AsistenciaServicio] = []
 
-    var subtitulo: String { "\(hora) · \(estadoRoster.etiqueta)" }
+    // MARK: Derivados
+
+    var titulo: String { Cultos.etiqueta(tipo) }
+
+    private var fechaDate: Date? { Fechas.desdeTextoFlexible(fecha) }
+
+    /// "DOM" · "SUN". Del formateador y no de una tabla: el día de la semana
+    /// de una fecha no se traduce a mano.
+    var diaSemana: String {
+        guard let d = fechaDate else { return "" }
+        return L.formateador("EEE").string(from: d).uppercased()
+    }
+    var numDia: String { fechaDate.map { String(Calendar.current.component(.day, from: $0)) } ?? "" }
+    var fechaLegible: String { fecha.isEmpty ? "" : Fechas.diaLegible(fecha) }
+
+    var estadoRoster: EstadoRoster {
+        let asignados = puestos.filter(\.asignado).count
+        if puestos.isEmpty || asignados == 0 { return .sinAsignar }
+        return asignados == puestos.count ? .completo : .parcial
+    }
+
+    var subtitulo: String { "\(fechaLegible) · \(estadoRoster.etiqueta)" }
 
     static func == (l: Servicio, r: Servicio) -> Bool { l.id == r.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }

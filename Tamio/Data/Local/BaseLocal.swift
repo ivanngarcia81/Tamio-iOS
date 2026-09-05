@@ -622,6 +622,44 @@ final class BaseLocal {
                           columns: ["servicioId", "miembroId"], unique: true)
         }
 
+        // Las dos hijas del culto: **quién hace qué** y **en qué orden**.
+        // Espejo de `servicio_puestos` y `servicio_orden`, que ya existen.
+        //
+        // Tablas y no columnas JSON dentro de `servicio` —al contrario que
+        // `participaciones` o `visitantes`— porque así están allí, y porque un
+        // puesto apunta a una PERSONA del padrón: con `member_uid` se puede
+        // preguntar en qué sirvió alguien el año pasado, y con una lista de
+        // nombres dentro de una columna, no.
+        //
+        // `nombre` convive con `miembroId` a propósito, como en el servidor:
+        // quien toca el bajo un domingo puede ser el primo del baterista, que
+        // no tiene ficha. Y si la tiene, el nombre guardado es el que tenía
+        // entonces.
+        m.registerMigration("v17_puestosYOrden") { db in
+            try db.create(table: "servicioPuesto") { t in
+                t.primaryKey("id", .text)
+                t.column("servicioId", .text).notNull().indexed()
+                t.column("puesto", .text).notNull().defaults(to: "")
+                t.column("nombre", .text).notNull().defaults(to: "")
+                t.column("miembroId", .text)
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+            try db.create(table: "servicioOrden") { t in
+                t.primaryKey("id", .text)
+                t.column("servicioId", .text).notNull().indexed()
+                // El orden lo da esta columna, no el orden de inserción: dos
+                // aparatos que añaden un punto a la vez tienen que poder
+                // ponerse de acuerdo en dónde va.
+                t.column("posicion", .integer).notNull().defaults(to: 0)
+                t.column("hora", .text).notNull().defaults(to: "")
+                t.column("titulo", .text).notNull().defaults(to: "")
+                t.column("encargado", .text).notNull().defaults(to: "")
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return m
     }
 

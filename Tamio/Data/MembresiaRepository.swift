@@ -186,7 +186,10 @@ struct MockMembresiaRepository: MembresiaRepository {
 struct OfflineMembresiaRepository: MembresiaRepository {
 
     private var cola: DatabaseQueue { BaseLocal.compartida.cola }
-    private var asistencia: AsistenciaRepository { repositorioAsistencia() }
+    /// **El de disco, no el que elija el modo revisión.** Con la fábrica, un
+    /// repositorio offline acababa contando la asistencia de la maqueta: dos
+    /// capas que tienen que ir juntas y se estaban eligiendo por separado.
+    private var asistencia: AsistenciaRepository { OfflineAsistenciaRepository() }
 
     /// El periodo del que se cuenta la asistencia de la ficha: el año en
     /// curso. Es el mismo que usa el web para sus altas y bajas, y el que la

@@ -5,30 +5,25 @@ final class ServiciosViewModel {
     var lista: [Servicio] = []
     var seleccionId: String? = nil
     var cargando = false
-    /// El culto cuya lista se puede tomar. **Vive aquí y no en un `@State` de
-    /// la vista** porque la ficha empujada conserva una copia vieja de la
-    /// vista —el mismo fallo que la ficha del miembro— y leía este valor
-    /// siempre nulo, dejando el botón apagado. En una clase observable se lee
-    /// fresco. Ver `MembresiaView.columnas`.
-    var culto: CultoConLista? = nil
+
 
     private let repo: ServiciosRepository
 
-    init(repo: ServiciosRepository = MockServiciosRepository()) {
+    init(repo: ServiciosRepository = repositorioServicios()) {
         self.repo = repo
     }
 
     var seleccion: Servicio? { lista.first { $0.id == seleccionId } }
 
-    /// El culto real cuya lista se va a tomar. **Puente hasta que esta
-    /// pantalla lea la v16**: los servicios de aquí son de maqueta y no tienen
-    /// fila en `servicio`, así que se coge el culto más reciente de la tabla.
-    /// Cuando Servicios se siente sobre ella, el culto será el de la fila.
-    func cultoParaLista() async -> CultoConLista? {
-        let año = Calendar.current.component(.year, from: Date())
-        let cultos = (try? await repositorioAsistencia()
-            .cultos(desde: "\(año)-01-01", hasta: "\(año)-12-31")) ?? []
-        return cultos.first
+    /// El culto cuya lista se va a tomar: **el que está seleccionado**. Antes
+    /// esto era un puente que cogía el más reciente de la tabla, porque los
+    /// servicios de esta pantalla eran de maqueta y no tenían fila propia. Ya
+    /// la tienen.
+    var cultoDeLaSeleccion: CultoConLista? {
+        guard let s = seleccion else { return nil }
+        return CultoConLista(id: s.id, fecha: s.fecha, tipo: s.tipo,
+                             presentes: s.historial.last?.presentes ?? 0,
+                             enLista: s.historial.last?.total ?? 0)
     }
     var proximoId: String { UUID().uuidString }
 
@@ -36,22 +31,21 @@ final class ServiciosViewModel {
     func agregarServicio(_ nuevo: Servicio) {
         lista.insert(nuevo, at: 0)
         seleccionId = nuevo.id
+        Task { try? await repo.guardar(nuevo) }
     }
 
-    /// Reemplaza el roster con las asignaciones editadas y recalcula estadoRoster.
+    /// Reemplaza los nombres del roster. `estadoRoster` NO se toca: se deduce
+    /// de los puestos, así que no hay dos verdades que mantener a la par.
     @MainActor
-    func actualizarRoster(servicioId: String, personas: [Int: String]) {
+    func actualizarRoster(servicioId: String, personas: [String: String]) {
         guard let idx = lista.firstIndex(where: { $0.id == servicioId }) else { return }
-        lista[idx].roster = lista[idx].roster.map { item in
-            let txt = personas[item.id]?.trimmingCharacters(in: .whitespaces)
-            let p = (txt?.isEmpty ?? true) ? nil : txt
-            return AsignacionRoster(id: item.id, rol: item.rol, persona: p, extras: item.extras)
+        lista[idx].puestos = lista[idx].puestos.map { p in
+            var x = p
+            x.nombre = personas[p.id]?.trimmingCharacters(in: .whitespaces) ?? p.nombre
+            return x
         }
-        let asignados = lista[idx].roster.filter(\.asignado).count
-        let total     = lista[idx].roster.count
-        lista[idx].estadoRoster = asignados == total ? .completo
-                                : asignados == 0    ? .sinAsignar
-                                : .parcial
+        let s = lista[idx]
+        Task { try? await repo.guardar(s) }
     }
 
     /// Añade una entrada de asistencia al historial del servicio.
@@ -67,7 +61,6 @@ final class ServiciosViewModel {
         cargando = true
         lista = (try? await repo.proximos()) ?? []
         if seleccionId == nil { seleccionId = lista.first?.id }
-        culto = await cultoParaLista()
         cargando = false
     }
 }

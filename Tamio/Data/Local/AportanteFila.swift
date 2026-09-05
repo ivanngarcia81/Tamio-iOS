@@ -322,3 +322,28 @@ struct AsistenciaFila: Codable, FetchableRecord, PersistableRecord {
         }
     }
 }
+
+/// Quién hace qué en un culto. Espejo de `servicio_puestos`.
+struct ServicioPuestoFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "servicioPuesto"
+    var id: String
+    var servicioId: String
+    var puesto: String
+    var nombre: String
+    var miembroId: String?
+    var actualizadoEn: String?
+    var borrado: Bool
+}
+
+/// Un punto del orden del culto. Espejo de `servicio_orden`.
+struct ServicioOrdenFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "servicioOrden"
+    var id: String
+    var servicioId: String
+    var posicion: Int
+    var hora: String
+    var titulo: String
+    var encargado: String
+    var actualizadoEn: String?
+    var borrado: Bool
+}

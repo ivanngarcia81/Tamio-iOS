@@ -2,12 +2,22 @@ import Foundation
 
 protocol ServiciosRepository {
     func proximos() async throws -> [Servicio]
+    /// Alta o edición: la misma función, como en el padrón. Guarda el culto y
+    /// sus dos hijas —puestos y orden— de una vez.
+    func guardar(_ s: Servicio) async throws
 }
 
 struct MockServiciosRepository: ServiciosRepository {
+    private static var almacen: [Servicio] = MockServiciosRepository.servicios
+
     func proximos() async throws -> [Servicio] {
         try? await Task.sleep(nanoseconds: 100_000_000)
-        return Self.servicios
+        return Self.almacen
+    }
+
+    func guardar(_ s: Servicio) async throws {
+        if let i = Self.almacen.firstIndex(where: { $0.id == s.id }) { Self.almacen[i] = s }
+        else { Self.almacen.insert(s, at: 0) }
     }
 
     private static func historial() -> [AsistenciaServicio] {
@@ -19,80 +29,180 @@ struct MockServiciosRepository: ServiciosRepository {
         ]
     }
 
-    private static var servicios: [Servicio] {
-        [
-            Servicio(id: "1",
-                     diaSemana: L.diaSemana("DOM"), numDia: "23",
-                     titulo: L.t("Culto matutino", "Morning service"),
-                     hora: "10:00",
-                     lugar: L.t("templo principal", "main sanctuary"),
-                     estadoRoster: .completo,
-                     roster: [
-                        AsignacionRoster(id: 1, rol: L.t("Predicación", "Preaching"),  persona: L.t("Pastor Abel Ramos", "Pastor Abel Ramos"),  extras: 0),
-                        AsignacionRoster(id: 2, rol: L.t("Alabanza", "Worship"),       persona: L.t("Lucía Márquez", "Lucía Márquez"),          extras: 4),
-                        AsignacionRoster(id: 3, rol: L.t("Ujieres", "Ushers"),         persona: L.t("Jorge Hernández", "Jorge Hernández"),      extras: 2),
-                        AsignacionRoster(id: 4, rol: L.t("Ofrenda", "Offering"),       persona: L.t("Pedro Salas", "Pedro Salas"),              extras: 0),
-                        AsignacionRoster(id: 5, rol: L.t("Sonido", "Sound"),           persona: nil,                                           extras: 0),
-                     ],
-                     historial: historial(),
-                     orden: [
-                        PuntoOrden(id: 1, hora: "10:00", descripcion: L.t("Bienvenida y oración", "Welcome and prayer")),
-                        PuntoOrden(id: 2, hora: "10:10", descripcion: L.t("Alabanza congregacional", "Congregational worship")),
-                        PuntoOrden(id: 3, hora: "10:35", descripcion: L.t("Ofrenda y avisos", "Offering and announcements")),
-                        PuntoOrden(id: 4, hora: "10:45", descripcion: L.t("Predicación · Hechos 2", "Preaching · Acts 2")),
-                     ]),
-            Servicio(id: "2",
-                     diaSemana: L.diaSemana("DOM"), numDia: "23",
-                     titulo: L.t("Culto vespertino", "Evening service"),
-                     hora: "18:00",
-                     lugar: L.t("templo principal", "main sanctuary"),
-                     estadoRoster: .faltaUjier,
-                     roster: [
-                        AsignacionRoster(id: 6, rol: L.t("Predicación", "Preaching"), persona: L.t("Hno. Ramón Flores", "Bro. Ramón Flores"), extras: 0),
-                        AsignacionRoster(id: 7, rol: L.t("Alabanza", "Worship"),      persona: L.t("Equipo alabanza", "Worship team"),        extras: 3),
-                        AsignacionRoster(id: 8, rol: L.t("Ujieres", "Ushers"),        persona: nil,                                          extras: 0),
-                        AsignacionRoster(id: 9, rol: L.t("Sonido", "Sound"),          persona: L.t("Carlos Rivas", "Carlos Rivas"),           extras: 0),
-                     ],
-                     historial: historial(),
-                     orden: [
-                        PuntoOrden(id: 5, hora: "18:00", descripcion: L.t("Oración de apertura", "Opening prayer")),
-                        PuntoOrden(id: 6, hora: "18:10", descripcion: L.t("Alabanza y adoración", "Praise and worship")),
-                        PuntoOrden(id: 7, hora: "18:40", descripcion: L.t("Predicación", "Preaching")),
-                     ]),
-            Servicio(id: "3",
-                     diaSemana: L.diaSemana("MIÉ"), numDia: "26",
-                     titulo: L.t("Reunión de oración", "Prayer meeting"),
-                     hora: "19:30",
-                     lugar: L.t("salón anexo", "annex hall"),
-                     estadoRoster: .sinAsignar,
-                     roster: [
-                        AsignacionRoster(id: 10, rol: L.t("Dirigente", "Leader"), persona: nil, extras: 0),
-                     ],
-                     historial: historial(),
-                     orden: [
-                        PuntoOrden(id: 8, hora: "19:30", descripcion: L.t("Apertura y lectura bíblica", "Opening and Bible reading")),
-                        PuntoOrden(id: 9, hora: "19:45", descripcion: L.t("Peticiones y oración en grupos", "Prayer requests and group prayer")),
-                     ]),
-            Servicio(id: "4",
-                     diaSemana: L.diaSemana("DOM"), numDia: "30",
-                     titulo: L.t("Santa cena", "Lord's Supper"),
-                     hora: "10:00",
-                     lugar: L.t("templo principal", "main sanctuary"),
-                     estadoRoster: .parcial,
-                     roster: [
-                        AsignacionRoster(id: 11, rol: L.t("Predicación", "Preaching"),   persona: L.t("Pastor Abel Ramos", "Pastor Abel Ramos"), extras: 0),
-                        AsignacionRoster(id: 12, rol: L.t("Alabanza", "Worship"),        persona: L.t("Lucía Márquez", "Lucía Márquez"),         extras: 2),
-                        AsignacionRoster(id: 13, rol: L.t("Ujieres", "Ushers"),          persona: nil,                                          extras: 0),
-                        AsignacionRoster(id: 14, rol: L.t("Ministración cena", "Supper ministers"), persona: nil,                               extras: 0),
-                     ],
-                     historial: historial(),
-                     orden: [
-                        PuntoOrden(id: 10, hora: "10:00", descripcion: L.t("Bienvenida y alabanza", "Welcome and worship")),
-                        PuntoOrden(id: 11, hora: "10:30", descripcion: L.t("Predicación", "Preaching")),
-                        PuntoOrden(id: 12, hora: "11:00", descripcion: L.t("Celebración de la Santa Cena", "Lord's Supper celebration")),
-                     ]),
-        ]
+    private static func puesto(_ clave: String, _ nombre: String = "") -> PuestoServicio {
+        PuestoServicio(id: "\(clave)-\(UUID().uuidString.prefix(4))", puesto: clave,
+                       nombre: nombre, miembroId: nil)
     }
+
+    private static func punto(_ pos: Int, _ hora: String, _ titulo: String) -> PuntoOrden {
+        PuntoOrden(id: "o\(pos)-\(UUID().uuidString.prefix(4))", posicion: pos,
+                   hora: hora, titulo: titulo, encargado: "")
+    }
+
+    /// Dos cultos del domingo pasado, ya con forma de fila: fecha y tipo, y el
+    /// titular se calcula.
+    private static var servicios: [Servicio] {
+        let cal = Calendar.current
+        let domingo = cal.date(byAdding: .day, value: -(cal.component(.weekday, from: Date()) - 1),
+                               to: Date()) ?? Date()
+
+        var matutino = Servicio(id: "1")
+        matutino.fecha = Fechas.claveDia(domingo)
+        matutino.tipo = "dominical"
+        matutino.dirige = "Lucía Márquez"
+        matutino.predica = L.t("Pastor Abel Ramos", "Pastor Abel Ramos")
+        matutino.tituloMensaje = L.t("Un pueblo que ora", "A praying people")
+        matutino.textoBiblico = "Hechos 2:42-47"
+        matutino.puestos = [
+            puesto("predicacion", L.t("Pastor Abel Ramos", "Pastor Abel Ramos")),
+            puesto("alabanza", "Lucía Márquez"),
+            puesto("ujieres", "Jorge Hernández"),
+            puesto("ofrenda", "Pedro Salas"),
+            puesto("sonido"),
+        ]
+        matutino.orden = [
+            punto(0, "10:00", L.t("Bienvenida y oración", "Welcome and prayer")),
+            punto(1, "10:10", L.t("Alabanza congregacional", "Congregational worship")),
+            punto(2, "10:35", L.t("Ofrenda y avisos", "Offering and announcements")),
+            punto(3, "10:45", L.t("Predicación · Hechos 2", "Preaching · Acts 2")),
+        ]
+        matutino.historial = historial()
+
+        var oracion = Servicio(id: "2")
+        oracion.fecha = Fechas.claveDia(cal.date(byAdding: .day, value: -3, to: Date()) ?? Date())
+        oracion.tipo = "oracion"
+        oracion.dirige = L.t("Hno. Ramón Flores", "Bro. Ramón Flores")
+        oracion.puestos = [puesto("oracion", L.t("Hno. Ramón Flores", "Bro. Ramón Flores"))]
+        oracion.orden = [punto(0, "19:00", L.t("Oración de apertura", "Opening prayer"))]
+        oracion.historial = historial()
+
+        return [matutino, oracion]
+    }
+}
+
+/// Los cultos desde la base del teléfono, con sus puestos y su orden.
+struct OfflineServiciosRepository: ServiciosRepository {
+
+    private var cola: DatabaseQueue { BaseLocal.compartida.cola }
+
+    func proximos() async throws -> [Servicio] {
+        try await cola.read { db in
+            let filas = try ServicioFila
+                .filter(Column("borrado") == false)
+                .order(Column("fecha").desc)
+                .fetchAll(db)
+            let puestos = try ServicioPuestoFila.filter(Column("borrado") == false).fetchAll(db)
+            let orden = try ServicioOrdenFila.filter(Column("borrado") == false).fetchAll(db)
+
+            var porCulto: [String: [PuestoServicio]] = [:]
+            for p in puestos {
+                porCulto[p.servicioId, default: []].append(
+                    PuestoServicio(id: p.id, puesto: p.puesto, nombre: p.nombre, miembroId: p.miembroId))
+            }
+            var ordenPorCulto: [String: [PuntoOrden]] = [:]
+            for o in orden {
+                ordenPorCulto[o.servicioId, default: []].append(
+                    PuntoOrden(id: o.id, posicion: o.posicion, hora: o.hora,
+                               titulo: o.titulo, encargado: o.encargado))
+            }
+            return filas.map { f in
+                var s = Servicio(id: f.id)
+                s.fecha = f.fecha; s.tipo = f.tipo
+                s.dirige = f.dirige; s.predica = f.predica
+                s.tituloMensaje = f.tituloMensaje; s.textoBiblico = f.textoBiblico
+                s.resumenMensaje = f.resumenMensaje
+                s.participaciones = Padron.lista(f.participaciones)
+                s.temaEscuela = f.temaEscuela; s.maestroEscuela = f.maestroEscuela
+                s.visitantes = MiembroFila.lista(f.visitantes)
+                s.ninos = f.ninos; s.jovenes = f.jovenes; s.adultos = f.adultos
+                s.eventos = f.eventos
+                s.puestos = porCulto[f.id] ?? []
+                s.orden = (ordenPorCulto[f.id] ?? []).sorted { $0.posicion < $1.posicion }
+                return s
+            }
+        }
+    }
+
+    func guardar(_ s: Servicio) async throws {
+        try await cola.write { db in
+            let previa = try ServicioFila.fetchOne(db, key: s.id)
+            try ServicioFila(id: s.id, fecha: s.fecha, tipo: s.tipo,
+                             dirige: s.dirige, predica: s.predica,
+                             tituloMensaje: s.tituloMensaje, textoBiblico: s.textoBiblico,
+                             resumenMensaje: s.resumenMensaje,
+                             participaciones: Padron.json(s.participaciones),
+                             temaEscuela: s.temaEscuela, maestroEscuela: s.maestroEscuela,
+                             visitantes: MiembroFila.json(s.visitantes),
+                             ninos: s.ninos, jovenes: s.jovenes, adultos: s.adultos,
+                             eventos: s.eventos, actualizadoEn: previa?.actualizadoEn,
+                             borrado: false).save(db)
+            try Self.encolar(db, entidad: "culto", id: s.id,
+                             operacion: previa == nil ? .crear : .actualizar)
+
+            // Las hijas, por diferencias: el que se quitó queda como lápida,
+            // o el otro aparato no se entera de que ya no está. Se escriben
+            // sueltas y no con un genérico: dos funciones de ocho líneas se
+            // leen mejor que una que tiene que preguntar de qué tipo es cada
+            // fila para saber su id.
+            let puestosPrevios = try ServicioPuestoFila
+                .filter(Column("servicioId") == s.id).fetchAll(db)
+            let puestosQuedan = Set(s.puestos.map(\.id))
+            for p in s.puestos {
+                let existia = puestosPrevios.contains { $0.id == p.id }
+                try ServicioPuestoFila(id: p.id, servicioId: s.id, puesto: p.puesto,
+                                       nombre: p.nombre, miembroId: p.miembroId,
+                                       actualizadoEn: puestosPrevios.first { $0.id == p.id }?.actualizadoEn,
+                                       borrado: false).save(db)
+                try Self.encolar(db, entidad: "puesto", id: p.id,
+                                 operacion: existia ? .actualizar : .crear)
+            }
+            for vieja in puestosPrevios where !puestosQuedan.contains(vieja.id) && !vieja.borrado {
+                var f = vieja; f.borrado = true
+                try f.update(db)
+                try Self.encolar(db, entidad: "puesto", id: f.id, operacion: .eliminar)
+            }
+
+            let ordenPrevio = try ServicioOrdenFila
+                .filter(Column("servicioId") == s.id).fetchAll(db)
+            let ordenQueda = Set(s.orden.map(\.id))
+            for o in s.orden {
+                let existia = ordenPrevio.contains { $0.id == o.id }
+                try ServicioOrdenFila(id: o.id, servicioId: s.id, posicion: o.posicion,
+                                      hora: o.hora, titulo: o.titulo, encargado: o.encargado,
+                                      actualizadoEn: ordenPrevio.first { $0.id == o.id }?.actualizadoEn,
+                                      borrado: false).save(db)
+                try Self.encolar(db, entidad: "orden", id: o.id,
+                                 operacion: existia ? .actualizar : .crear)
+            }
+            for vieja in ordenPrevio where !ordenQueda.contains(vieja.id) && !vieja.borrado {
+                var f = vieja; f.borrado = true
+                try f.update(db)
+                try Self.encolar(db, entidad: "orden", id: f.id, operacion: .eliminar)
+            }
+        }
+    }
+
+    private static func encolar(_ db: Database, entidad: String, id: String,
+                                operacion: OperacionPendiente.Operacion) throws {
+        let previa = try OperacionPendiente
+            .filter(Column("entidad") == entidad && Column("registroId") == id)
+            .fetchOne(db)
+        let efectiva: OperacionPendiente.Operacion =
+            (previa?.operacion == OperacionPendiente.Operacion.crear.rawValue
+             && operacion == .actualizar) ? .crear : operacion
+        try OperacionPendiente
+            .filter(Column("entidad") == entidad && Column("registroId") == id)
+            .deleteAll(db)
+        var nueva = OperacionPendiente(id: nil, entidad: entidad, registroId: id,
+                                       operacion: efectiva.rawValue,
+                                       creadoEn: Date().timeIntervalSince1970,
+                                       intentos: 0, ultimoError: nil)
+        try nueva.insert(db)
+    }
+}
+
+func repositorioServicios() -> ServiciosRepository {
+    ModoRevision.sinLogin ? MockServiciosRepository() : OfflineServiciosRepository()
 }
 
 // MARK: - La asistencia, contada
@@ -333,28 +443,20 @@ enum Cultos {
 /// el modo revisión siga ahí al volver a abrir la hoja, como en los demás
 /// mocks del proyecto.
 ///
-/// Los cultos vienen sembrados —cuatro domingos y dos reuniones de oración—
-/// porque una pantalla de asistencia sin cultos no se puede enseñar, y las
-/// listas nacen vacías: lo que se está probando es tomarlas.
+/// Las listas nacen vacías: lo que se está probando es tomarlas.
 struct MockAsistenciaRepository: AsistenciaRepository {
-    private static var cultosSembrados: [CultoConLista] = {
-        let hoy = Date()
-        let cal = Calendar.current
-        return (0..<6).map { i in
-            let d = cal.date(byAdding: .day, value: -7 * i, to: hoy) ?? hoy
-            return CultoConLista(id: "culto-\(i)", fecha: Fechas.claveDia(d),
-                                 tipo: i % 3 == 1 ? "oracion" : "dominical",
-                                 presentes: 0, enLista: 0)
-        }
-    }()
     private static var listas: [String: [MarcaAsistencia]] = [:]
 
+    /// Los cultos de la maqueta son los de `MockServiciosRepository`: uno solo
+    /// en los dos sitios, o la lista se tomaría sobre un culto que la pantalla
+    /// de Servicios no enseña.
     func cultos(desde: String, hasta: String) async throws -> [CultoConLista] {
-        Self.cultosSembrados
+        let servicios = (try? await MockServiciosRepository().proximos()) ?? []
+        return servicios
             .filter { $0.fecha >= desde && $0.fecha <= hasta }
-            .map { c in
-                let l = Self.listas[c.id] ?? []
-                return CultoConLista(id: c.id, fecha: c.fecha, tipo: c.tipo,
+            .map { s in
+                let l = Self.listas[s.id] ?? []
+                return CultoConLista(id: s.id, fecha: s.fecha, tipo: s.tipo,
                                      presentes: l.filter(\.presente).count, enLista: l.count)
             }
     }

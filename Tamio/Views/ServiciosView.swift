@@ -158,7 +158,9 @@ struct ServiciosView: View {
                 // Encabezado
                 VStack(alignment: .leading, spacing: 4) {
                     Text(s.titulo).font(.title2.weight(.semibold))
-                    Text("\(s.diaSemana) \(s.numDia) de agosto · \(s.hora) · \(s.lugar)")
+                    // La fecha completa, no "23 de agosto" con el mes escrito
+                    // a mano: el culto puede ser de cualquier mes.
+                    Text(s.fechaLegible)
                         .font(.subheadline).foregroundStyle(.secondary)
                 }
 
@@ -174,12 +176,12 @@ struct ServiciosView: View {
                     // es de donde salen la racha y las ausencias. "Contar" es
                     // el conteo de cabezas de siempre, para el culto donde no
                     // se pasa lista.
-                    Button { if let c = vm.culto { hoja = .lista(c) } } label: {
+                    Button { if let c = vm.cultoDeLaSeleccion { hoja = .lista(c) } } label: {
                         Text(L.t("Tomar lista", "Take attendance"))
                             .font(.subheadline.weight(.medium))
                     }
                     .buttonStyle(.glass).tint(Color.secondary)
-                    .disabled(vm.culto == nil)
+                    .disabled(vm.cultoDeLaSeleccion == nil)
                     Button { hoja = .contar } label: {
                         Text(L.t("Contar", "Count"))
                             .font(.subheadline.weight(.medium))
@@ -198,9 +200,9 @@ struct ServiciosView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         TituloSeccion(texto: L.t("ROSTER", "ROSTER"))
                             .padding(.bottom, 12)
-                        ForEach(s.roster) { item in
+                        ForEach(s.puestos) { item in
                             HStack(spacing: 12) {
-                                Text(item.rol)
+                                Text(item.etiqueta)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                     .frame(width: 100, alignment: .leading)
@@ -215,7 +217,7 @@ struct ServiciosView: View {
                                 Spacer()
                             }
                             .padding(.vertical, 8)
-                            if item.id != s.roster.last?.id { Divider() }
+                            if item.id != s.puestos.last?.id { Divider() }
                         }
                     }
                 }
@@ -254,8 +256,15 @@ struct ServiciosView: View {
                                     .foregroundStyle(Paleta.brand)
                                     .monospacedDigit()
                                     .frame(width: 44, alignment: .leading)
-                                Text(punto.descripcion)
-                                    .font(.subheadline)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(punto.titulo).font(.subheadline)
+                                    // Quién lo hace, si está puesto: el
+                                    // servidor lo guarda y no se enseñaba.
+                                    if !punto.encargado.isEmpty {
+                                        Text(punto.encargado)
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
                             }
                             .padding(.vertical, 7)
                             if punto.id != s.orden.last?.id { Divider() }
@@ -282,10 +291,12 @@ private struct NuevoServicioSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     // SERVICE INFORMATION
-    @State private var tipo = L.t("Culto dominical", "Sunday service")
+    /// La CLAVE del tipo de culto, no su etiqueta: es lo que se guarda y lo
+    /// que decide qué puestos lleva. Con la etiqueta traducida, en inglés no
+    /// acertaba ninguna rama.
+    @State private var tipoClave = "dominical"
     @State private var fecha = Date()
     @State private var horaStr = "10:00"
-    @State private var lugar = L.t("templo principal", "main sanctuary")
     @State private var lidero = ""
     @State private var predico = ""
     @State private var cancionItems: [(id: UUID, texto: String)] = []
@@ -328,11 +339,6 @@ private struct NuevoServicioSheet: View {
         L.t("Reunión de oración","Prayer meeting"),
         L.t("Santa cena",        "Lord's Supper"),
         L.t("Especial",          "Special"),
-    ]
-    private let lugares = [
-        L.t("templo principal", "main sanctuary"),
-        L.t("salón anexo",      "annex hall"),
-        L.t("capilla",          "chapel"),
     ]
 
     private var miembrosFiltrados: [String] {
@@ -382,11 +388,8 @@ private struct NuevoServicioSheet: View {
     private var seccionServicio: some View {
         Section(L.t("INFORMACIÓN DEL SERVICIO", "SERVICE INFORMATION")) {
             DatePicker(L.t("Fecha", "Date"), selection: $fecha, displayedComponents: .date)
-            Picker(L.t("Tipo de servicio", "Service type"), selection: $tipo) {
-                ForEach(tipos, id: \.self) { Text($0).tag($0) }
-            }
-            Picker(L.t("Lugar", "Location"), selection: $lugar) {
-                ForEach(lugares, id: \.self) { Text($0).tag($0) }
+            Picker(L.t("Tipo de servicio", "Service type"), selection: $tipoClave) {
+                ForEach(Cultos.tipos, id: \.self) { Text(Cultos.etiqueta($0)).tag($0) }
             }
             HStack {
                 Text(L.t("Hora", "Time"))
@@ -561,78 +564,53 @@ private struct NuevoServicioSheet: View {
     // MARK: - Build Servicio
 
     private func construir() -> Servicio {
-        let fmtDia   = DateFormatter(); fmtDia.dateFormat = "d"; fmtDia.locale = L.locale
-        let fmtSem   = DateFormatter(); fmtSem.dateFormat = "EEE"; fmtSem.locale = L.locale
-        let fmtFecha = DateFormatter(); fmtFecha.dateFormat = L.t("d MMM", "MMM d"); fmtFecha.locale = L.locale
-
-        let numDia     = fmtDia.string(from: fecha)
-        let diaSem     = fmtSem.string(from: fecha).uppercased()
-        let fechaCorta = fmtFecha.string(from: fecha)
-
-        let histInicial: [AsistenciaServicio] = headcountTotal > 0
-            ? [AsistenciaServicio(id: "1", fecha: fechaCorta, presentes: headcountTotal,
-                                  total: max(headcountTotal, Self.miembrosMock.count))]
-            : []
-
-        return Servicio(
-            id: proximoId,
-            diaSemana: diaSem,
-            numDia: numDia,
-            titulo: tipo,
-            hora: horaStr,
-            lugar: lugar,
-            estadoRoster: .sinAsignar,
-            roster: rosterDefault(),
-            historial: histInicial,
-            orden: ordenDefault(),
-            lideroServicio: lidero.isEmpty ? nil : lidero,
-            predico: predico.isEmpty ? nil : predico,
-            canciones: cancionItems.map(\.texto),
-            tituloMensaje: tituloMensaje.isEmpty ? nil : tituloMensaje,
-            textoBiblico: textoBiblico.isEmpty ? nil : textoBiblico,
-            resumenMensaje: resumenMensaje.isEmpty ? nil : resumenMensaje,
-            temaEscuelaDominica: temaEscuela.isEmpty ? nil : temaEscuela,
-            maestroEscuela: maestroEscuela.isEmpty ? nil : maestroEscuela,
-            eventosEspeciales: eventosEspeciales.isEmpty ? nil : eventosEspeciales,
-            visitantes: visitanteItems.map(\.nombre),
-            ninos: ninos,
-            jovenes: jovenes,
-            adultos: adultos
-        )
+        var srv = Servicio(id: proximoId)
+        srv.fecha = Fechas.claveDia(fecha)
+        srv.tipo = tipoClave
+        srv.dirige = lidero
+        srv.predica = predico
+        srv.participaciones = cancionItems.map(\.texto)
+        srv.tituloMensaje = tituloMensaje
+        srv.textoBiblico = textoBiblico
+        srv.resumenMensaje = resumenMensaje
+        srv.temaEscuela = temaEscuela
+        srv.maestroEscuela = maestroEscuela
+        srv.eventos = eventosEspeciales
+        srv.visitantes = visitanteItems.map { VisitanteServicio(nombre: $0.nombre) }
+        srv.ninos = ninos
+        srv.jovenes = jovenes
+        srv.adultos = adultos
+        srv.puestos = puestosDefault()
+        srv.orden = ordenDefault()
+        if headcountTotal > 0 {
+            srv.historial = [AsistenciaServicio(id: srv.id, fecha: Fechas.diaLegible(srv.fecha),
+                                                presentes: headcountTotal, total: headcountTotal)]
+        }
+        return srv
     }
 
-    private func rosterDefault() -> [AsignacionRoster] {
-        let roles: [String]
-        let dominical = L.t("Culto dominical",   "Sunday service")
-        let mañana    = L.t("Culto matutino",    "Morning service")
-        let tarde     = L.t("Culto vespertino",  "Evening service")
-        let cena      = L.t("Santa cena",        "Lord's Supper")
-        let oracion   = L.t("Reunión de oración","Prayer meeting")
-
-        switch tipo {
-        case dominical, mañana, tarde:
-            roles = [L.t("Predicación","Preaching"), L.t("Alabanza","Worship"),
-                     L.t("Ujieres","Ushers"), L.t("Ofrenda","Offering"), L.t("Sonido","Sound")]
-        case cena:
-            roles = [L.t("Predicación","Preaching"), L.t("Alabanza","Worship"),
-                     L.t("Ujieres","Ushers"), L.t("Ministración cena","Supper ministers")]
-        case oracion:
-            roles = [L.t("Dirigente","Leader")]
+    /// Los puestos que suele llevar cada tipo de culto. **Claves, no
+    /// etiquetas**: antes se comparaba `tipo` contra el nombre traducido del
+    /// culto, así que en inglés no acertaba ninguna rama y todos los cultos
+    /// salían con el roster de "por defecto".
+    private func puestosDefault() -> [PuestoServicio] {
+        let claves: [String]
+        switch tipoClave {
+        case "dominical", "evangelistico", "especial":
+            claves = ["predicacion", "alabanza", "ujieres", "ofrenda", "sonido"]
+        case "oracion":
+            claves = ["oracion"]
+        case "estudio":
+            claves = ["predicacion"]
         default:
-            roles = [L.t("Predicación","Preaching"), L.t("Alabanza","Worship")]
+            claves = ["predicacion", "alabanza"]
         }
-        return roles.enumerated().map {
-            AsignacionRoster(id: $0.offset + 1, rol: $0.element, persona: nil, extras: 0)
-        }
+        return claves.map { PuestoServicio(id: UUID().uuidString, puesto: $0, nombre: "", miembroId: nil) }
     }
 
     private func ordenDefault() -> [PuntoOrden] {
-        [
-            PuntoOrden(id: 1, hora: horaStr,
-                       descripcion: L.t("Bienvenida y oración", "Welcome and prayer")),
-            PuntoOrden(id: 2, hora: L.t("—", "—"),
-                       descripcion: L.t("Por definir", "To be defined")),
-        ]
+        [PuntoOrden(id: UUID().uuidString, posicion: 0, hora: horaStr,
+                    titulo: L.t("Bienvenida y oración", "Welcome and prayer"), encargado: "")]
     }
 }
 
@@ -640,18 +618,16 @@ private struct NuevoServicioSheet: View {
 
 private struct AsignarRosterSheet: View {
     let servicio: Servicio
-    let onGuardar: ([Int: String]) -> Void
+    let onGuardar: ([String: String]) -> Void
 
-    @State private var personas: [Int: String] = [:]
+    @State private var personas: [String: String] = [:]
     @Environment(\.dismiss) private var dismiss
 
-    init(servicio: Servicio, onGuardar: @escaping ([Int: String]) -> Void) {
+    init(servicio: Servicio, onGuardar: @escaping ([String: String]) -> Void) {
         self.servicio = servicio
         self.onGuardar = onGuardar
-        // Pre-poblar con asignaciones actuales
-        var dict: [Int: String] = [:]
-        for item in servicio.roster { dict[item.id] = item.persona ?? "" }
-        _personas = State(initialValue: dict)
+        _personas = State(initialValue: Dictionary(
+            servicio.puestos.map { ($0.id, $0.nombre) }, uniquingKeysWith: { a, _ in a }))
     }
 
     var body: some View {
@@ -660,14 +636,14 @@ private struct AsignarRosterSheet: View {
                 Section {
                     HStack(spacing: 10) {
                         Image(systemName: "calendar").foregroundStyle(Paleta.brand)
-                        Text("\(servicio.diaSemana) \(servicio.numDia) · \(servicio.titulo)")
+                        Text("\(servicio.fechaLegible) · \(servicio.titulo)")
                             .font(.subheadline)
                     }
                 }
                 Section(L.t("ROSTER", "ROSTER")) {
-                    ForEach(servicio.roster) { item in
+                    ForEach(servicio.puestos) { item in
                         HStack(spacing: 12) {
-                            Text(item.rol)
+                            Text(item.etiqueta)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(minWidth: 100, alignment: .leading)
@@ -699,7 +675,8 @@ private struct AsignarRosterSheet: View {
                         dismiss()
                     }
                     .fontWeight(.semibold)
-                    .foregroundStyle(Paleta.brand)
+                    .buttonStyle(.glassProminent)
+                    .tint(Paleta.brand)
                 }
             }
         }
@@ -726,7 +703,7 @@ private struct TomarAsistenciaSheet: View {
         self.onGuardar = onGuardar
         let ultimo = servicio.historial.last
         _presentes = State(initialValue: ultimo?.presentes ?? 0)
-        _total     = State(initialValue: ultimo?.total ?? max(servicio.roster.count * 10, 140))
+        _total     = State(initialValue: ultimo?.total ?? 140)
     }
 
     private var pct: Double { total > 0 ? Double(presentes) / Double(total) : 0 }
@@ -740,7 +717,7 @@ private struct TomarAsistenciaSheet: View {
                     // Encabezado del servicio
                     VStack(spacing: 4) {
                         Text(servicio.titulo).font(.headline)
-                        Text("\(servicio.diaSemana) \(servicio.numDia) · \(servicio.hora)")
+                        Text(servicio.fechaLegible)
                             .font(.subheadline).foregroundStyle(.secondary)
                     }
                     .padding(.top, 8)
