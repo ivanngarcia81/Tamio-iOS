@@ -92,6 +92,10 @@ final class MotorSincronizacion {
             // fichas por uid, y una relación cuyo otro extremo no ha bajado
             // se salta entera hasta la vuelta siguiente.
             try await bajarParentescos()
+            // La asistencia DESPUÉS de los cultos: cada marca apunta a uno por
+            // id, y una lista cuyo culto no ha bajado no se puede colocar.
+            try await bajarCultos()
+            try await bajarAsistencia()
             try await bajarIglesia()
             // Los cortes DESPUÉS de los movimientos: el corte apunta a
             // movimientos por id, y resolver un puntero a algo que todavía no
@@ -164,6 +168,14 @@ final class MotorSincronizacion {
         }
         if op.entidad == "parentesco" {
             try await subirParentesco(op)
+            return
+        }
+        if op.entidad == "culto" {
+            try await subirCulto(op)
+            return
+        }
+        if op.entidad == "asistencia" {
+            try await subirAsistencia(op)
             return
         }
         if op.entidad == "corte" {
@@ -287,6 +299,213 @@ final class MotorSincronizacion {
                 .execute()
         case .none:
             return
+        }
+    }
+
+    // MARK: - La asistencia
+
+    /// Lo que el aparato escribe en `servicios`. **`asistentes` y `ausentes`
+    /// van vacías a propósito**: el web las marca como legado y las escribe
+    /// así; el roster de verdad son las filas de `servicio_asistencia`.
+    private struct CultoEscritura: Encodable {
+        let uid, churchId, fecha, tipo: String
+        let dirige, predica, tituloMensaje, textoBiblico, resumenMensaje: String?
+        let participaciones, temaEscuela, maestroEscuela: String?
+        let asistentes, ausentes, visitantes: String
+        let ninos, jovenes, adultos: Int
+        let eventos: String?
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, fecha, tipo, dirige, predica, participaciones, visitantes
+            case ninos, jovenes, adultos, eventos, deleted, asistentes, ausentes
+            case churchId       = "church_id"
+            case tituloMensaje  = "titulo_mensaje"
+            case textoBiblico   = "texto_biblico"
+            case resumenMensaje = "resumen_mensaje"
+            case temaEscuela    = "tema_escuela"
+            case maestroEscuela = "maestro_escuela"
+        }
+
+        init(_ f: ServicioFila, churchId: String, deleted: Bool) {
+            func o(_ s: String) -> String? { s.isEmpty ? nil : s }
+            uid = f.id; self.churchId = churchId; fecha = f.fecha; tipo = f.tipo
+            dirige = o(f.dirige); predica = o(f.predica)
+            tituloMensaje = o(f.tituloMensaje); textoBiblico = o(f.textoBiblico)
+            resumenMensaje = o(f.resumenMensaje); participaciones = f.participaciones
+            temaEscuela = o(f.temaEscuela); maestroEscuela = o(f.maestroEscuela)
+            asistentes = "[]"; ausentes = "[]"; visitantes = f.visitantes
+            ninos = f.ninos; jovenes = f.jovenes; adultos = f.adultos
+            eventos = o(f.eventos)
+            self.deleted = deleted
+        }
+    }
+
+    private func subirCulto(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try ServicioFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+        let cuerpo = CultoEscritura(fila, churchId: churchIdActivo,
+                                    deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("servicios").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("servicios").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+        case .none:
+            return
+        }
+    }
+
+    private struct AsistenciaEscritura: Encodable {
+        let uid, churchId, servicioUid, memberUid: String
+        let presente: Int
+        let razon, razonOtra: String?
+        let seguimiento: Int
+        let nombreSnapshot: String
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, presente, razon, seguimiento, deleted
+            case churchId       = "church_id"
+            case servicioUid    = "servicio_uid"
+            case memberUid      = "member_uid"
+            case razonOtra      = "razon_otra"
+            case nombreSnapshot = "nombre_snapshot"
+        }
+
+        init(_ f: AsistenciaFila, churchId: String, deleted: Bool) {
+            func o(_ s: String) -> String? { s.isEmpty ? nil : s }
+            uid = f.id; self.churchId = churchId
+            servicioUid = f.servicioId; memberUid = f.miembroId
+            presente = f.presente ? 1 : 0
+            razon = o(f.razon); razonOtra = o(f.razonOtra)
+            seguimiento = f.seguimiento ? 1 : 0
+            nombreSnapshot = f.nombreSnapshot
+            self.deleted = deleted
+        }
+    }
+
+    private func subirAsistencia(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try AsistenciaFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+        let cuerpo = AsistenciaEscritura(fila, churchId: churchIdActivo,
+                                         deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("servicio_asistencia").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("servicio_asistencia").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+        case .none:
+            return
+        }
+    }
+
+    private func bajarCultos() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let fecha, tipo, dirige, predica: String?
+            let tituloMensaje, textoBiblico, resumenMensaje: String?
+            let participaciones, temaEscuela, maestroEscuela, visitantes, eventos: String?
+            let ninos, jovenes, adultos: Int?
+            let updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, fecha, tipo, dirige, predica, participaciones, visitantes
+                case ninos, jovenes, adultos, eventos, deleted
+                case tituloMensaje  = "titulo_mensaje"
+                case textoBiblico   = "texto_biblico"
+                case resumenMensaje = "resumen_mensaje"
+                case temaEscuela    = "tema_escuela"
+                case maestroEscuela = "maestro_escuela"
+                case updatedAt      = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'culto'")
+        }
+        var consulta = supabase.from("servicios").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                let pendiente = try OperacionPendiente
+                    .filter(Column("entidad") == "culto" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if pendiente { continue }
+                try ServicioFila(id: r.uid, fecha: r.fecha ?? "", tipo: r.tipo ?? "dominical",
+                                 dirige: r.dirige ?? "", predica: r.predica ?? "",
+                                 tituloMensaje: r.tituloMensaje ?? "", textoBiblico: r.textoBiblico ?? "",
+                                 resumenMensaje: r.resumenMensaje ?? "",
+                                 participaciones: r.participaciones ?? "[]",
+                                 temaEscuela: r.temaEscuela ?? "", maestroEscuela: r.maestroEscuela ?? "",
+                                 visitantes: r.visitantes ?? "[]",
+                                 ninos: r.ninos ?? 0, jovenes: r.jovenes ?? 0, adultos: r.adultos ?? 0,
+                                 eventos: r.eventos ?? "", actualizadoEn: r.updatedAt,
+                                 borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('culto', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
+    private func bajarAsistencia() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let servicioUid, memberUid, razon, razonOtra, nombreSnapshot: String?
+            let presente, seguimiento: Int?
+            let updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, presente, razon, seguimiento, deleted
+                case servicioUid    = "servicio_uid"
+                case memberUid      = "member_uid"
+                case razonOtra      = "razon_otra"
+                case nombreSnapshot = "nombre_snapshot"
+                case updatedAt      = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'asistencia'")
+        }
+        var consulta = supabase.from("servicio_asistencia").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true).limit(1000).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                // Una marca sin culto o sin persona no se puede colocar.
+                guard let s = r.servicioUid, let m = r.memberUid, !s.isEmpty, !m.isEmpty else { continue }
+                let pendiente = try OperacionPendiente
+                    .filter(Column("entidad") == "asistencia" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if pendiente { continue }
+                try AsistenciaFila(id: r.uid, servicioId: s, miembroId: m,
+                                   presente: (r.presente ?? 0) != 0,
+                                   razon: r.razon ?? "", razonOtra: r.razonOtra ?? "",
+                                   seguimiento: (r.seguimiento ?? 0) != 0,
+                                   nombreSnapshot: r.nombreSnapshot ?? "",
+                                   actualizadoEn: r.updatedAt,
+                                   borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('asistencia', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
         }
     }
 
