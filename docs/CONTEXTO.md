@@ -401,6 +401,41 @@ cosas. Y Tesorería y el Dashboard siguen con el mismo patrón, sin revisar.
 
 ---
 
+### Dentro de un `glassEffectUnion` no cabe un tinte por miembro — 5 de septiembre
+
+Medido en el simulador quitando y poniendo el union sobre el mismo código: el
+union funde a sus miembros en **UNA figura de cristal con UN efecto**, así que
+al darle `.regular.tint(Paleta.brand)` solo al chip elegido, el verde se
+derramaba por la pieza entera y los cuatro informes salían sobre una única
+cápsula verde — no se sabía cuál estaba puesto. Sin el union, el tinte se queda
+en su chip y vuelven a ser cuatro cápsulas sueltas.
+
+**Son excluyentes: o una pieza continua, o un fondo teñido para el elegido.**
+En Informes se eligió la pieza, y el elegido se marca con el color de marca y el
+peso en la ETIQUETA. Contraste medido sobre fondo negro: 8.2:1 los no elegidos
+en `.secondary` y 8.1:1 el elegido, holgado para AA, así que no hizo falta
+subirle el peso. Comprobado también con Aumentar contraste y Reducir
+transparencia encendidos: la pieza sigue leyéndose como grupo.
+
+### El idioma de prueba NO se cambia con `-AppleLanguages`
+
+La app no tiene `es.lproj`, así que `Locale.current` cae a inglés y la app sigue
+en inglés aunque el argumento diga `(es)`. Quien manda es
+`PreferenciasApp.idiomaGuardado`, en `UserDefaults` bajo **`prefs.idioma`**. En
+una prueba de interfaz se pasa como argumento de lanzamiento:
+`app.launchArguments += ["-prefs.idioma", "espanol"]`.
+
+### La tira de informes SÍ se ve en el teléfono, y es correcto
+
+Anotado porque el encargo daba por hecho lo contrario. `selectorInforme` estuvo
+detrás de `sizeClass == .regular`, pero el commit `f62b932` ("En el teléfono no
+había forma de llegar a tres de los cuatro informes") quitó ese gate. Lo que
+queda hoy con ese texto es el COMENTARIO que cuenta cómo estaba, no código. En
+HEAD la tira se dibuja en las dos plataformas, que es lo que se ve en el
+aparato.
+
+---
+
 ## 6. Pendientes concretos
 
 1. **El mes es invisible en Ingresos.** Al quitar el pie, el mes solo se lee

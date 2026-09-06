@@ -7,6 +7,9 @@ struct InformesMembresiaView: View {
     @State private var mostrarRango = false
     @State private var mostrarShareCSV = false
     @State private var urlCSV: URL? = nil
+    /// El espacio que comparten los `glassEffectUnion` de esta pantalla: sin él
+    /// cada cápsula es una isla y no hay nada que fundir.
+    @Namespace private var cristal
 
     private let informes = [
         (L.t("General", "General"), L.t("Distribuciones, altas por mes y movimientos", "Distributions, monthly additions & transfers")),
@@ -111,13 +114,20 @@ struct InformesMembresiaView: View {
     /// dibuja con el informe que existe — un selector de fechas encima de un
     /// "Próximamente" no cambia nada de lo que se ve.
     private var cabeceraInformes: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // El margen lateral va DENTRO del scroll horizontal, no fuera: por
-            // fuera recortaba el chip que se sale por el borde justo donde el
-            // dedo tiene que empezar a arrastrar para alcanzarlo.
-            selectorInforme
-            if vm.informeSeleccionado == 0 {
-                selectorPeriodo.padding(.horizontal, Esp.pantalla)
+        // **Un solo contenedor para las dos tiras.** Los contenedores de glass
+        // NO se anidan, y `selectorInforme` y `selectorPeriodo` son dos
+        // propiedades separadas: si cada una trae el suyo, sus cápsulas no
+        // pueden fundirse ni saberse unas de otras. El contenedor sube aquí,
+        // que es el primer sitio donde las dos coinciden.
+        GlassEffectContainer(spacing: Esp.hueco) {
+            VStack(alignment: .leading, spacing: 10) {
+                // El margen lateral va DENTRO del scroll horizontal, no fuera:
+                // por fuera recortaba el chip que se sale por el borde justo
+                // donde el dedo tiene que empezar a arrastrar para alcanzarlo.
+                selectorInforme
+                if vm.informeSeleccionado == 0 {
+                    selectorPeriodo.padding(.horizontal, Esp.pantalla)
+                }
             }
         }
         .padding(.vertical, Esp.chip)
@@ -162,34 +172,49 @@ struct InformesMembresiaView: View {
     /// que esconderlos.
     private var selectorInforme: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            GlassEffectContainer(spacing: Esp.hueco) {
-                HStack(spacing: Esp.hueco) {
-                    ForEach(Array(informes.enumerated()), id: \.offset) { idx, informe in
-                        chipInforme(idx, informe.0)
-                    }
+            HStack(spacing: Esp.hueco) {
+                ForEach(Array(informes.enumerated()), id: \.offset) { idx, informe in
+                    chipInforme(idx, informe.0)
                 }
-                .padding(.horizontal, Esp.pantalla)
-                .padding(.vertical, 2)
             }
+            .padding(.horizontal, Esp.pantalla)
+            .padding(.vertical, 2)
         }
         // El recorte del scroll horizontal se come el halo de la cápsula si no
         // se le deja aire.
         .scrollClipDisabled()
     }
 
-    /// El elegido va en `.glassProminent` y los demás en `.glass`. Las dos
-    /// ramas se escriben enteras porque `buttonStyle` no admite un ternario:
-    /// son tipos distintos, no dos valores del mismo.
-    @ViewBuilder
+    /// **Los cuatro son UNA pieza, no cuatro cápsulas.** El `glassEffectUnion`
+    /// con id compartido es lo que las funde en una tira continua; sin él eran
+    /// cuatro islas de cromo compitiendo entre sí encima de la lista.
+    ///
+    /// **El elegido se marca en la ETIQUETA, no con un tinte de fondo, y no es
+    /// una preferencia: dentro de un union no cabe otra cosa.** El union funde
+    /// a sus miembros en UNA figura de cristal con UN efecto, así que al darle
+    /// `.regular.tint(Paleta.brand)` solo al elegido, el verde se derramaba por
+    /// la pieza entera y los cuatro informes salían sobre una única cápsula
+    /// verde: no se sabía cuál estaba puesto. Medido en el simulador quitando y
+    /// poniendo el union sobre el mismo código.
+    ///
+    /// Así que la pieza lleva un cristal uniforme y el elegido se lee por el
+    /// color de marca y el peso; los demás en `.secondary`. Medido sobre fondo
+    /// negro: 8.2:1 los tres no elegidos y 8.1:1 el elegido, holgado para AA,
+    /// así que no hizo falta subirle el peso a la etiqueta.
+    ///
+    /// `.buttonStyle(.plain)` es obligatorio: cualquier otro estilo pone su
+    /// propio fondo encima del que ya da `glassEffect`, y el tint del TabView
+    /// pisaría el color de la etiqueta.
     private func chipInforme(_ idx: Int, _ titulo: String) -> some View {
-        if idx == vm.informeSeleccionado {
-            Button { vm.informeSeleccionado = idx } label: { etiquetaChip(idx, titulo, sel: true) }
-                .buttonStyle(.glassProminent)
-                .tint(Paleta.brand)
-        } else {
-            Button { vm.informeSeleccionado = idx } label: { etiquetaChip(idx, titulo, sel: false) }
-                .buttonStyle(.glass)
+        let sel = idx == vm.informeSeleccionado
+        return Button { vm.informeSeleccionado = idx } label: {
+            etiquetaChip(idx, titulo, sel: sel)
+                .foregroundStyle(sel ? Paleta.brand : Color.secondary)
+                .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .glassEffectUnion(id: "informe", namespace: cristal)
         }
+        .buttonStyle(.plain)
     }
 
     private func etiquetaChip(_ idx: Int, _ titulo: String, sel: Bool) -> some View {
@@ -208,47 +233,93 @@ struct InformesMembresiaView: View {
 
     private var selectorPeriodo: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Fila 1: Menu tipo + chips de año (o botón de rango)
-            HStack(spacing: 8) {
-                Menu {
-                    ForEach(PeriodoInforme.allCases, id: \.self) { p in
-                        Button {
-                            withAnimation(.spring(duration: 0.25)) { vm.periodoTipo = p }
-                        } label: {
-                            if p == vm.periodoTipo { Label(p.etiqueta, systemImage: "checkmark") }
-                            else { Text(p.etiqueta) }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(vm.periodoTipo.etiqueta)
-                        Image(systemName: "chevron.down").font(.caption2)
-                    }
-                    .font(.subheadline.weight(.medium))
-                }
-                .buttonStyle(.glass)
-                .tint(Paleta.brand)
-
-                if vm.periodoTipo == .mes || vm.periodoTipo == .trimestre || vm.periodoTipo == .anio {
-                    añoChips
-                } else if vm.periodoTipo == .rango {
-                    Button { mostrarRango = true } label: {
-                        HStack(spacing: 4) {
-                            Text(vm.etiquetaPeriodo)
-                            Image(systemName: "calendar").font(.caption2)
-                        }
-                        .font(.subheadline.weight(.medium))
-                    }
-                    .buttonStyle(.glass)
-                }
+            HStack(spacing: Esp.hueco) {
+                menuPeriodo
+                if vm.periodoTipo == .rango { botonRango }
                 Spacer()
             }
-
-            // Fila 2: chips de mes o trimestre (solo cuando aplica)
+            // Mes y trimestre siguen teniendo tira propia: son doce y cuatro
+            // valores, y una lista de doce meses dentro del menú se recorre
+            // peor que una tira que se arrastra.
             subSelectorPeriodo
                 .transition(.opacity.combined(with: .move(edge: .top)))
         }
+        // La animación se declara UNA vez aquí, no con `withAnimation` en cada
+        // botón del menú: el contenedor de glass ya funde y separa las cápsulas
+        // solo, y los `withAnimation` sueltos solo servían para animar el
+        // aparecer y desaparecer de la fila de abajo, que es lo que esto hace.
         .animation(.spring(duration: 0.25), value: vm.periodoTipo)
+        .animation(.spring(duration: 0.25), value: vm.añoSeleccionado)
+        .animation(.spring(duration: 0.25), value: vm.mesSeleccionado)
+        .animation(.spring(duration: 0.25), value: vm.trimestreSeleccionado)
+    }
+
+    /// **El año vive DENTRO del menú, y la etiqueta dice el valor.** Antes el
+    /// menú decía la dimensión —"Año"— y justo al lado había tres cápsulas con
+    /// los años: la misma dimensión declarada dos veces, en una fila entera de
+    /// pantalla de teléfono. Ahora el menú lleva las dos preguntas y en la
+    /// etiqueta se lee lo elegido, "2026", que es lo que el usuario necesita
+    /// saber de un vistazo; que eso es un año no hay que explicarlo.
+    ///
+    /// **Va dentro del contenedor pero FUERA del union.** Es otra cosa que los
+    /// cuatro informes, así que tiene que leerse como un grupo aparte: es el
+    /// equivalente en contenido de lo que `ToolbarSpacer` hace en la barra.
+    private var menuPeriodo: some View {
+        Menu {
+            Section {
+                ForEach(PeriodoInforme.allCases, id: \.self) { p in
+                    Button { vm.periodoTipo = p } label: {
+                        if p == vm.periodoTipo { Label(p.etiqueta, systemImage: "checkmark") }
+                        else { Text(p.etiqueta) }
+                    }
+                }
+            }
+            if periodoUsaAño {
+                Section(L.t("Año", "Year")) {
+                    ForEach(Self.años, id: \.self) { año in
+                        Button { vm.añoSeleccionado = año } label: {
+                            if año == vm.añoSeleccionado { Label(String(año), systemImage: "checkmark") }
+                            else { Text(String(año)) }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(etiquetaMenuPeriodo)
+                Image(systemName: "chevron.down").font(.caption2)
+            }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(Paleta.brand)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var botonRango: some View {
+        Button { mostrarRango = true } label: {
+            HStack(spacing: 4) {
+                Text(vm.etiquetaPeriodo)
+                Image(systemName: "calendar").font(.caption2)
+            }
+            .font(.subheadline.weight(.medium))
+            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private static let años = [2024, 2025, 2026]
+
+    private var periodoUsaAño: Bool {
+        vm.periodoTipo == .mes || vm.periodoTipo == .trimestre || vm.periodoTipo == .anio
+    }
+
+    /// El valor elegido, no la dimensión. Con "Todo el historial" y con un
+    /// rango no hay año que enseñar, así que ahí manda el tipo.
+    private var etiquetaMenuPeriodo: String {
+        periodoUsaAño ? String(vm.añoSeleccionado) : vm.periodoTipo.etiqueta
     }
 
     @ViewBuilder
@@ -267,58 +338,43 @@ struct InformesMembresiaView: View {
     /// texto —`brandFill` con texto verde en el año, verde macizo con texto
     /// blanco en el mes—, así que un año elegido y un mes elegido no se
     /// parecían aunque significaran lo mismo.
-    @ViewBuilder
+    /// Mismo trato que la tira de informes, con **su propio id de union**: los
+    /// meses son una pieza y los informes otra, y con el id compartido se
+    /// habrían fundido en una sola tira de dos cosas distintas.
     private func chipPeriodo(_ texto: String, sel: Bool, _ accion: @escaping () -> Void) -> some View {
-        if sel {
-            Button { withAnimation(.spring(duration: 0.2)) { accion() } } label: {
-                Text(texto).font(.subheadline.weight(.semibold))
-            }
-            .buttonStyle(.glassProminent)
-            .tint(Paleta.brand)
-        } else {
-            Button { withAnimation(.spring(duration: 0.2)) { accion() } } label: {
-                Text(texto).font(.subheadline.weight(.medium))
-            }
-            .buttonStyle(.glass)
+        Button(action: accion) {
+            Text(texto)
+                .font(.subheadline.weight(sel ? .semibold : .medium))
+                // Mismo motivo que en `chipInforme`: el tinte no puede vivir
+                // dentro de un union sin teñir la pieza entera.
+                .foregroundStyle(sel ? Paleta.brand : Color.secondary)
+                .padding(.horizontal, Esp.chip).padding(.vertical, 7)
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .glassEffectUnion(id: "periodo", namespace: cristal)
         }
-    }
-
-    private var añoChips: some View {
-        GlassEffectContainer(spacing: Esp.hueco) {
-            HStack(spacing: Esp.hueco) {
-                ForEach([2024, 2025, 2026], id: \.self) { año in
-                    chipPeriodo(String(año), sel: año == vm.añoSeleccionado) {
-                        vm.añoSeleccionado = año
-                    }
-                }
-            }
-        }
+        .buttonStyle(.plain)
     }
 
     private var mesChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            GlassEffectContainer(spacing: Esp.hueco) {
-                HStack(spacing: Esp.hueco) {
-                    ForEach(1...12, id: \.self) { m in
-                        chipPeriodo(InformesMembresiaViewModel.nombreMes(m),
-                                    sel: m == vm.mesSeleccionado) {
-                            vm.mesSeleccionado = m
-                        }
+            HStack(spacing: Esp.hueco) {
+                ForEach(1...12, id: \.self) { m in
+                    chipPeriodo(InformesMembresiaViewModel.nombreMes(m),
+                                sel: m == vm.mesSeleccionado) {
+                        vm.mesSeleccionado = m
                     }
                 }
-                .padding(.vertical, 2)
             }
+            .padding(.vertical, 2)
         }
         .scrollClipDisabled()
     }
 
     private var trimestreChips: some View {
-        GlassEffectContainer(spacing: Esp.hueco) {
-            HStack(spacing: Esp.hueco) {
-                ForEach(1...4, id: \.self) { q in
-                    chipPeriodo("Q\(q)", sel: q == vm.trimestreSeleccionado) {
-                        vm.trimestreSeleccionado = q
-                    }
+        HStack(spacing: Esp.hueco) {
+            ForEach(1...4, id: \.self) { q in
+                chipPeriodo("Q\(q)", sel: q == vm.trimestreSeleccionado) {
+                    vm.trimestreSeleccionado = q
                 }
             }
         }
