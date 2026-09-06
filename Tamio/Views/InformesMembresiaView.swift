@@ -4,12 +4,9 @@ import UIKit
 struct InformesMembresiaView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var vm = InformesMembresiaViewModel()
-    @State private var mostrarRango = false
+    @State private var mostrarFiltros = false
     @State private var mostrarShareCSV = false
     @State private var urlCSV: URL? = nil
-    /// El espacio que comparten los `glassEffectUnion` de esta pantalla: sin él
-    /// cada cápsula es una isla y no hay nada que fundir.
-    @Namespace private var cristal
 
     private let informes = [
         (L.t("General", "General"), L.t("Distribuciones, altas por mes y movimientos", "Distributions, monthly additions & transfers")),
@@ -24,114 +21,150 @@ struct InformesMembresiaView: View {
     var body: some View {
         encabezado(cuerpo)
             .toolbar { barra }
-            .sheet(isPresented: $mostrarRango) {
-                RangoSheet(desde: $vm.rangoDesde, hasta: $vm.rangoHasta)
-            }
+            .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
             .sheet(isPresented: $mostrarShareCSV) {
                 if let url = urlCSV { ShareSheet(items: [url]) }
             }
     }
 
+    /// Sin cabecera: los selectores se fueron a la barra y a la hoja del
+    /// periodo, así que el contenido empieza arriba y no hay nada bajo lo que
+    /// desvanecer. Se queda el `.soft` del propio `contenidoInforme` para el
+    /// borde de la barra de navegación.
     private var cuerpo: some View {
         contenidoInforme
-            // **Capas, no hermanos**, como en Ingresos y en Aportantes: los
-            // selectores iban dentro del `ScrollView`, así que se iban con él
-            // y las tarjetas no pasaban por detrás de nada. El contenido corre
-            // bajo la cabecera, y eso es lo que le da al glass algo que
-            // refractar.
-            //
-            // **La cabecera ya no lleva `.regularMaterial` detrás.** Se puso
-            // creyendo que era eso lo que el glass difuminaba, y era al revés:
-            // una vez que el contenido pasa por debajo, la banda se mete ENTRE
-            // los chips y lo que tendrían que estar refractando, así que las
-            // cápsulas difuminaban un gris plano. Además cortaba la pantalla
-            // en dos con una línea dura donde no hay ninguna división.
-            //
-            // **Y es `safeAreaBar`, no `safeAreaInset`.** Con el inset el
-            // contenido pasaba por debajo NÍTIDO —se leía "Kitchen · 12"
-            // cruzando por detrás de "General"— y `scrollEdgeEffectStyle` no
-            // hacía nada: un inset cualquiera no es una barra, así que no hay
-            // borde bajo el que desvanecer. `safeAreaBar` (iOS 26) sí lo
-            // declara como barra, y con eso aparece el degradado. Comprobado
-            // con la app corriendo y el contenido desplazado, que es la única
-            // postura donde se nota.
-            .safeAreaBar(edge: .top, spacing: 0) { cabeceraInformes }
             .colchonInferior()
     }
 
-    /// Teléfono: título en línea, como Ingresos, Aportantes y Depósitos. Con
-    /// `.large` el sistema reservaba la banda del título grande encima de la
-    /// tira de selectores y la dejaba en blanco —dos alturas de cabecera para
-    /// una pantalla que ya dice en el chip lo que se está viendo—. En iPad se
-    /// queda el titular con su subtítulo, que es donde hay sitio.
-    @ViewBuilder
+    /// **La barra ya no lleva el nombre de la pantalla, lleva el del informe.**
+    /// El título era texto fijo —"Informes de membresía"— repitiendo lo que la
+    /// fila del hub acababa de decir, mientras el dato que sí cambia, cuál de
+    /// los cuatro informes se está viendo, gastaba una franja entera de
+    /// contenido en cuatro cápsulas. Ahora ese estado ES el título y se elige
+    /// tocándolo. El subtítulo "Panorama, seguimiento e informes del padrón"
+    /// se pierde y está bien: el encabezado del contenido dice "Panorama
+    /// general · 262 miembros · Año 2026", que es lo mismo pero con datos.
+    ///
+    /// `.inline` en las dos clases de tamaño, no solo en el teléfono: un
+    /// `ToolbarItem(placement: .title)` es un control, y el título grande lo
+    /// reserva como banda de texto aparte.
     private func encabezado<C: View>(_ contenido: C) -> some View {
-        if compacto {
-            contenido
-                .navigationTitle(L.t("Informes de membresía", "Membership reports"))
-                .navigationBarTitleDisplayMode(.inline)
-        } else {
-            contenido
-                .encabezadoNav(L.t("Informes de membresía", "Membership reports"),
-                               L.t("Panorama, seguimiento e informes del padrón",
-                                   "Overview, follow-up & roster reports"))
-                .navigationBarTitleDisplayMode(.large)
-        }
+        contenido.navigationBarTitleDisplayMode(.inline)
     }
 
     // MARK: - Barra
 
-    /// **Imprimir y exportar suben a la barra.** Eran dos cápsulas dibujadas a
-    /// mano con `brandFill` en medio del contenido, justo debajo del titular
-    /// del informe: se leían como parte del dato y no como acciones, y se iban
-    /// con el scroll. Van juntas en un menú porque son la misma pregunta
-    /// —sacar esto de la pantalla—, como el "Archivo" de Aportantes.
+    /// **Dos grupos, no cinco cápsulas sueltas.** Los ítems vecinos de una
+    /// toolbar comparten cápsula solos —no hay que ponerles `.glassEffect` a
+    /// mano, eso daría cristal sobre cristal—, y `ToolbarSpacer` es lo que
+    /// separa un grupo del siguiente. Aquí: filtros y acciones van juntos
+    /// porque los dos operan sobre lo que se está viendo; compartir va aparte
+    /// porque saca el informe de la app.
+    ///
+    /// El título es un `ToolbarItem(placement: .title)` y no texto: ver
+    /// `encabezado`.
+    ///
+    /// Esto gasta la cápsula que `sinBotonVolver` había liberado al quitar el
+    /// chevron (ver `NavHeader.swift`). Cabe: son tres ítems más el título, y
+    /// esta pantalla no tiene buscador.
     @ToolbarContentBuilder
     private var barra: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) { menuArchivo }
+        ToolbarItem(placement: .title) { menuInforme }
+        ToolbarItem(placement: .topBarTrailing) { botonFiltros }
+        ToolbarItem(placement: .topBarTrailing) { menuAcciones }
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        ToolbarItem(placement: .topBarTrailing) { botonCompartir }
     }
 
-    private var menuArchivo: some View {
+    /// El informe activo, que es estado y por eso vive en el título y no en el
+    /// menú de acciones: se sigue leyendo con el menú abierto.
+    ///
+    /// **El badge de seguimiento se va DENTRO**, a su fila. En un botón de
+    /// barra el "3" tendría que verse siempre, incluso mirando otro informe,
+    /// donde no significa nada; en la fila dice qué hay al otro lado antes de
+    /// ir.
+    private var menuInforme: some View {
         Menu {
-            Button { imprimirInforme() } label: {
-                Label(L.t("Imprimir / PDF", "Print / PDF"), systemImage: "printer")
-            }
-            Button { prepararCSV() } label: {
-                Label(L.t("Exportar (CSV)", "Export (CSV)"), systemImage: "square.and.arrow.up")
+            ForEach(Array(informes.enumerated()), id: \.offset) { idx, informe in
+                Button { vm.informeSeleccionado = idx } label: {
+                    if idx == vm.informeSeleccionado {
+                        Label(etiquetaInforme(idx), systemImage: "checkmark")
+                    } else {
+                        Text(etiquetaInforme(idx))
+                    }
+                }
             }
         } label: {
-            Label(L.t("Archivo", "File"), systemImage: "square.and.arrow.up")
+            HStack(spacing: 4) {
+                Text(informes[vm.informeSeleccionado].0)
+                    .font(.headline)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
+            }
+            .foregroundStyle(.primary)
         }
-        .buttonStyle(.glass)
-        .labelStyle(.iconOnly)
-        .tint(Paleta.brand)
-        // El menú solo saca el informe que se está viendo, y de los cuatro
-        // solo uno existe todavía.
+    }
+
+    /// El nombre del informe, con el pendiente pegado cuando lo hay. El menú
+    /// no admite una vista cualquiera como etiqueta, así que el badge viaja en
+    /// el texto.
+    private func etiquetaInforme(_ idx: Int) -> String {
+        let nombre = informes[idx].0
+        guard idx == 3 && alertasSeguimiento > 0 else { return nombre }
+        return "\(nombre) (\(alertasSeguimiento))"
+    }
+
+    /// **El badge solo cuando el periodo NO es el año en curso.** Un contador
+    /// fijo ahí sería ruido: dice "hay filtros" cuando lo que hay es el estado
+    /// de arranque. Así el punto solo aparece cuando la cifra que se está
+    /// leyendo no es la del año corriente, que es justo cuando conviene mirar
+    /// dos veces antes de creerse el número.
+    private var botonFiltros: some View {
+        Button { mostrarFiltros = true } label: {
+            Label(L.t("Periodo", "Period"), systemImage: "line.3.horizontal.decrease")
+        }
+        .tint(periodoEsElDeSiempre ? nil : Paleta.brand)
+        .badge(periodoEsElDeSiempre ? 0 : 1)
+    }
+
+    private var periodoEsElDeSiempre: Bool {
+        vm.periodoTipo == .anio && vm.añoSeleccionado == Self.añoEnCurso
+    }
+
+    private static var añoEnCurso: Int {
+        Calendar.current.component(.year, from: Date())
+    }
+
+    /// Las dos acciones, en la fila compacta de iconos que Fotos enseña arriba
+    /// de su menú. Sin `.compactMenu` saldrían como dos filas normales, que es
+    /// lo que eran antes.
+    private var menuAcciones: some View {
+        Menu {
+            ControlGroup {
+                Button { imprimirInforme() } label: {
+                    Label(L.t("Imprimir", "Print"), systemImage: "printer")
+                }
+                Button { prepararCSV() } label: {
+                    Label(L.t("CSV", "CSV"), systemImage: "tablecells")
+                }
+            }
+            .controlGroupStyle(.compactMenu)
+        } label: {
+            Label(L.t("Más", "More"), systemImage: "ellipsis")
+        }
+        // Los cuatro informes están en el título, pero solo uno se puede sacar
+        // de la pantalla: los otros tres no existen todavía.
         .disabled(vm.informeSeleccionado != 0)
     }
 
-    /// La tira de controles: qué informe y de qué periodo. El periodo solo se
-    /// dibuja con el informe que existe — un selector de fechas encima de un
-    /// "Próximamente" no cambia nada de lo que se ve.
-    private var cabeceraInformes: some View {
-        // **Un solo contenedor para las dos tiras.** Los contenedores de glass
-        // NO se anidan, y `selectorInforme` y `selectorPeriodo` son dos
-        // propiedades separadas: si cada una trae el suyo, sus cápsulas no
-        // pueden fundirse ni saberse unas de otras. El contenedor sube aquí,
-        // que es el primer sitio donde las dos coinciden.
-        GlassEffectContainer(spacing: Esp.hueco) {
-            VStack(alignment: .leading, spacing: 10) {
-                // El margen lateral va DENTRO del scroll horizontal, no fuera:
-                // por fuera recortaba el chip que se sale por el borde justo
-                // donde el dedo tiene que empezar a arrastrar para alcanzarlo.
-                selectorInforme
-                if vm.informeSeleccionado == 0 {
-                    selectorPeriodo.padding(.horizontal, Esp.pantalla)
-                }
-            }
+    /// Compartir el informe como texto, que es lo que se pega en un mensaje.
+    /// Es otra cosa que imprimir —que va al papel— y que exportar —que da un
+    /// archivo—, y por eso va en su propio grupo.
+    private var botonCompartir: some View {
+        ShareLink(item: vm.textoInforme) {
+            Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
         }
-        .padding(.vertical, Esp.chip)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .disabled(vm.informeSeleccionado != 0)
     }
 
     // MARK: - Helpers de exportación
@@ -157,155 +190,106 @@ struct InformesMembresiaView: View {
         mostrarShareCSV = true
     }
 
-    // MARK: - Selector de periodo
+    // MARK: - Hoja del periodo
 
-    // MARK: - Selector de tipo de informe (solo iPad)
-
-    /// **Los cuatro informes, también en el teléfono.** Esta tira estaba
-    /// detrás de `sizeClass == .regular`, así que en el iPhone no existía: la
-    /// pantalla se llamaba "Informes de membresía", prometía "panorama,
-    /// seguimiento e informes del padrón" y solo enseñaba el primero, sin
-    /// forma de llegar a los otros tres ni de saber que estaban.
+    /// **El periodo entero en una hoja, y el rango DENTRO de ella.** Antes eran
+    /// dos franjas de contenido —un menú de tipo con los años al lado y una
+    /// segunda fila de meses o trimestres— más una hoja aparte solo para las
+    /// dos fechas. Tres sitios para una sola pregunta.
     ///
-    /// Los tres que faltan por construir dicen "Próximamente" al abrirse. Es
-    /// menos de lo que promete el hub, pero es lo que hay, y decirlo es mejor
-    /// que esconderlos.
-    private var selectorInforme: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Esp.hueco) {
-                ForEach(Array(informes.enumerated()), id: \.offset) { idx, informe in
-                    chipInforme(idx, informe.0)
-                }
-            }
-            .padding(.horizontal, Esp.pantalla)
-            .padding(.vertical, 2)
-        }
-        // El recorte del scroll horizontal se come el halo de la cápsula si no
-        // se le deja aire.
-        .scrollClipDisabled()
-    }
-
-    /// **Los cuatro son UNA pieza, no cuatro cápsulas.** El `glassEffectUnion`
-    /// con id compartido es lo que las funde en una tira continua; sin él eran
-    /// cuatro islas de cromo compitiendo entre sí encima de la lista.
-    ///
-    /// **El elegido se marca en la ETIQUETA, no con un tinte de fondo, y no es
-    /// una preferencia: dentro de un union no cabe otra cosa.** El union funde
-    /// a sus miembros en UNA figura de cristal con UN efecto, así que al darle
-    /// `.regular.tint(Paleta.brand)` solo al elegido, el verde se derramaba por
-    /// la pieza entera y los cuatro informes salían sobre una única cápsula
-    /// verde: no se sabía cuál estaba puesto. Medido en el simulador quitando y
-    /// poniendo el union sobre el mismo código.
-    ///
-    /// Así que la pieza lleva un cristal uniforme y el elegido se lee por el
-    /// color de marca y el peso; los demás en `.secondary`. Medido sobre fondo
-    /// negro: 8.2:1 los tres no elegidos y 8.1:1 el elegido, holgado para AA,
-    /// así que no hizo falta subirle el peso a la etiqueta.
-    ///
-    /// `.buttonStyle(.plain)` es obligatorio: cualquier otro estilo pone su
-    /// propio fondo encima del que ya da `glassEffect`, y el tint del TabView
-    /// pisaría el color de la etiqueta.
-    private func chipInforme(_ idx: Int, _ titulo: String) -> some View {
-        let sel = idx == vm.informeSeleccionado
-        return Button { vm.informeSeleccionado = idx } label: {
-            etiquetaChip(idx, titulo, sel: sel)
-                .foregroundStyle(sel ? Paleta.brand : Color.secondary)
-                .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                .glassEffect(.regular.interactive(), in: .capsule)
-                .glassEffectUnion(id: "informe", namespace: cristal)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func etiquetaChip(_ idx: Int, _ titulo: String, sel: Bool) -> some View {
-        HStack(spacing: 5) {
-            Text(titulo).font(.subheadline.weight(sel ? .semibold : .medium))
-            // El badge de alertas se queda incluso en el chip elegido: dice
-            // cuántas hay sin revisar, no si está seleccionado.
-            if idx == 3 && alertasSeguimiento > 0 {
-                Text("\(alertasSeguimiento)")
-                    .font(.caption2.weight(.bold)).foregroundStyle(.white)
-                    .padding(.horizontal, Esp.hueco).padding(.vertical, 1)
-                    .background(Paleta.badge, in: Capsule())
-            }
-        }
-    }
-
-    private var selectorPeriodo: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: Esp.hueco) {
-                menuPeriodo
-                if vm.periodoTipo == .rango { botonRango }
-                Spacer()
-            }
-            // Mes y trimestre siguen teniendo tira propia: son doce y cuatro
-            // valores, y una lista de doce meses dentro del menú se recorre
-            // peor que una tira que se arrastra.
-            subSelectorPeriodo
-                .transition(.opacity.combined(with: .move(edge: .top)))
-        }
-        // La animación se declara UNA vez aquí, no con `withAnimation` en cada
-        // botón del menú: el contenedor de glass ya funde y separa las cápsulas
-        // solo, y los `withAnimation` sueltos solo servían para animar el
-        // aparecer y desaparecer de la fila de abajo, que es lo que esto hace.
-        .animation(.spring(duration: 0.25), value: vm.periodoTipo)
-        .animation(.spring(duration: 0.25), value: vm.añoSeleccionado)
-        .animation(.spring(duration: 0.25), value: vm.mesSeleccionado)
-        .animation(.spring(duration: 0.25), value: vm.trimestreSeleccionado)
-    }
-
-    /// **El año vive DENTRO del menú, y la etiqueta dice el valor.** Antes el
-    /// menú decía la dimensión —"Año"— y justo al lado había tres cápsulas con
-    /// los años: la misma dimensión declarada dos veces, en una fila entera de
-    /// pantalla de teléfono. Ahora el menú lleva las dos preguntas y en la
-    /// etiqueta se lee lo elegido, "2026", que es lo que el usuario necesita
-    /// saber de un vistazo; que eso es un año no hay que explicarlo.
-    ///
-    /// **Va dentro del contenedor pero FUERA del union.** Es otra cosa que los
-    /// cuatro informes, así que tiene que leerse como un grupo aparte: es el
-    /// equivalente en contenido de lo que `ToolbarSpacer` hace en la barra.
-    private var menuPeriodo: some View {
-        Menu {
-            Section {
-                ForEach(PeriodoInforme.allCases, id: \.self) { p in
-                    Button { vm.periodoTipo = p } label: {
-                        if p == vm.periodoTipo { Label(p.etiqueta, systemImage: "checkmark") }
-                        else { Text(p.etiqueta) }
-                    }
-                }
-            }
-            if periodoUsaAño {
-                Section(L.t("Año", "Year")) {
-                    ForEach(Self.años, id: \.self) { año in
-                        Button { vm.añoSeleccionado = año } label: {
-                            if año == vm.añoSeleccionado { Label(String(año), systemImage: "checkmark") }
-                            else { Text(String(año)) }
+    /// Las secciones aparecen según hagan falta: el año solo si el tipo lo usa,
+    /// los doce meses solo con "Mes", los calendarios solo con "Rango". Una
+    /// hoja da sitio a los doce meses; un menú los dejaría en una lista que hay
+    /// que recorrer.
+    private var filtrosSheet: some View {
+        NavigationStack {
+            List {
+                Section(L.t("PERIODO", "PERIOD")) {
+                    ForEach(PeriodoInforme.allCases, id: \.self) { p in
+                        filaFiltro(p.etiqueta, activo: vm.periodoTipo == p) {
+                            vm.periodoTipo = p
                         }
                     }
                 }
+                if periodoUsaAño {
+                    Section(L.t("AÑO", "YEAR")) {
+                        ForEach(Self.años, id: \.self) { año in
+                            filaFiltro(String(año), activo: vm.añoSeleccionado == año) {
+                                vm.añoSeleccionado = año
+                            }
+                        }
+                    }
+                }
+                if vm.periodoTipo == .mes {
+                    Section(L.t("MES", "MONTH")) {
+                        ForEach(1...12, id: \.self) { m in
+                            filaFiltro(InformesMembresiaViewModel.nombreMes(m),
+                                       activo: vm.mesSeleccionado == m) {
+                                vm.mesSeleccionado = m
+                            }
+                        }
+                    }
+                }
+                if vm.periodoTipo == .trimestre {
+                    Section(L.t("TRIMESTRE", "QUARTER")) {
+                        ForEach(1...4, id: \.self) { q in
+                            filaFiltro("Q\(q)", activo: vm.trimestreSeleccionado == q) {
+                                vm.trimestreSeleccionado = q
+                            }
+                        }
+                    }
+                }
+                if vm.periodoTipo == .rango {
+                    // Lo que era `RangoSheet`. Elegir "Rango" y que se abriera
+                    // OTRA hoja encima era pedir dos decisiones para una.
+                    Section(L.t("FECHA INICIAL", "START DATE")) {
+                        DatePicker("", selection: $vm.rangoDesde, in: ...vm.rangoHasta,
+                                   displayedComponents: .date)
+                            .datePickerStyle(.graphical)
+                            .tint(Paleta.brand)
+                            .labelsHidden()
+                    }
+                    Section(L.t("FECHA FINAL", "END DATE")) {
+                        DatePicker("", selection: $vm.rangoHasta, in: vm.rangoDesde...,
+                                   displayedComponents: .date)
+                            .datePickerStyle(.graphical)
+                            .tint(Paleta.brand)
+                            .labelsHidden()
+                    }
+                }
             }
-        } label: {
-            HStack(spacing: 4) {
-                Text(etiquetaMenuPeriodo)
-                Image(systemName: "chevron.down").font(.caption2)
+            // `.inset` y no `.insetGrouped`: la hoja ya es una superficie, y el
+            // agrupado metería otra tarjeta con fondo dentro. Mismo criterio
+            // que la hoja de filtros de Membresía.
+            .listStyle(.inset)
+            .navigationTitle(L.t("Periodo", "Period"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(L.t("Listo", "Done")) { mostrarFiltros = false }
+                        .fontWeight(.semibold)
+                        .buttonStyle(.glassProminent)
+                        .tint(Paleta.brand)
+                }
             }
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(Paleta.brand)
-            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-            .glassEffect(.regular.interactive(), in: .capsule)
         }
-        .buttonStyle(.plain)
+        .hojaEleccion(grande: true)
     }
 
-    private var botonRango: some View {
-        Button { mostrarRango = true } label: {
-            HStack(spacing: 4) {
-                Text(vm.etiquetaPeriodo)
-                Image(systemName: "calendar").font(.caption2)
+    /// Una opción de la hoja. `.buttonStyle(.plain)` es obligatorio: sin él el
+    /// estilo automático del `Button` dentro de un `List` pinta la etiqueta con
+    /// el tint heredado del TabView y salen todas en verde —también las no
+    /// elegidas—, así que no se distingue lo elegido de lo disponible. Misma
+    /// lección que dejó la hoja de filtros de Membresía.
+    private func filaFiltro(_ texto: String, activo: Bool,
+                            _ accion: @escaping () -> Void) -> some View {
+        Button(action: accion) {
+            HStack {
+                Text(texto).foregroundStyle(.primary)
+                Spacer()
+                if activo { Image(systemName: "checkmark").foregroundStyle(Paleta.brand) }
             }
-            .font(.subheadline.weight(.medium))
-            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-            .glassEffect(.regular.interactive(), in: .capsule)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -314,70 +298,6 @@ struct InformesMembresiaView: View {
 
     private var periodoUsaAño: Bool {
         vm.periodoTipo == .mes || vm.periodoTipo == .trimestre || vm.periodoTipo == .anio
-    }
-
-    /// El valor elegido, no la dimensión. Con "Todo el historial" y con un
-    /// rango no hay año que enseñar, así que ahí manda el tipo.
-    private var etiquetaMenuPeriodo: String {
-        periodoUsaAño ? String(vm.añoSeleccionado) : vm.periodoTipo.etiqueta
-    }
-
-    @ViewBuilder
-    private var subSelectorPeriodo: some View {
-        switch vm.periodoTipo {
-        case .mes:       mesChips
-        case .trimestre: trimestreChips
-        default:         EmptyView()
-        }
-    }
-
-    // MARK: - Sub-selectores
-
-    /// Los tres sub-selectores comparten constructor: eran tres cápsulas
-    /// dibujadas a mano con tres combinaciones distintas de relleno y color de
-    /// texto —`brandFill` con texto verde en el año, verde macizo con texto
-    /// blanco en el mes—, así que un año elegido y un mes elegido no se
-    /// parecían aunque significaran lo mismo.
-    /// Mismo trato que la tira de informes, con **su propio id de union**: los
-    /// meses son una pieza y los informes otra, y con el id compartido se
-    /// habrían fundido en una sola tira de dos cosas distintas.
-    private func chipPeriodo(_ texto: String, sel: Bool, _ accion: @escaping () -> Void) -> some View {
-        Button(action: accion) {
-            Text(texto)
-                .font(.subheadline.weight(sel ? .semibold : .medium))
-                // Mismo motivo que en `chipInforme`: el tinte no puede vivir
-                // dentro de un union sin teñir la pieza entera.
-                .foregroundStyle(sel ? Paleta.brand : Color.secondary)
-                .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                .glassEffect(.regular.interactive(), in: .capsule)
-                .glassEffectUnion(id: "periodo", namespace: cristal)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var mesChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Esp.hueco) {
-                ForEach(1...12, id: \.self) { m in
-                    chipPeriodo(InformesMembresiaViewModel.nombreMes(m),
-                                sel: m == vm.mesSeleccionado) {
-                        vm.mesSeleccionado = m
-                    }
-                }
-            }
-            .padding(.vertical, 2)
-        }
-        .scrollClipDisabled()
-    }
-
-    private var trimestreChips: some View {
-        HStack(spacing: Esp.hueco) {
-            ForEach(1...4, id: \.self) { q in
-                chipPeriodo("Q\(q)", sel: q == vm.trimestreSeleccionado) {
-                    vm.trimestreSeleccionado = q
-                }
-            }
-        }
     }
 
     // MARK: - Contenido del informe
@@ -401,7 +321,16 @@ struct InformesMembresiaView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L.t("Panorama general", "General overview"))
                         .font(.title3.weight(.semibold))
-                    Text("\(r.totalMiembros) \(L.t("miembros · \(r.periodo)", "members · \(r.periodo)"))")
+                    // **El periodo sale de `vm.etiquetaPeriodo`, no de
+                    // `r.periodo`.** Al sacar los chips de periodo del
+                    // contenido, esta línea pasa a ser el ÚNICO sitio donde se
+                    // lee qué periodo se está mirando sin abrir nada, y
+                    // `r.periodo` no sirve para eso: con un rango devuelve la
+                    // cadena fija "Rango personalizado" —sin las fechas—, así
+                    // que el estado se habría escondido sin sustituto.
+                    // `etiquetaPeriodo` sí cubre los cinco casos, y es de la
+                    // vista: el modelo no se toca.
+                    Text("\(r.totalMiembros) \(L.t("miembros · \(vm.etiquetaPeriodo)", "members · \(vm.etiquetaPeriodo)"))")
                         .font(.subheadline).foregroundStyle(.secondary)
                         .contentTransition(.numericText())
                 }
@@ -614,40 +543,3 @@ private struct ShareSheet: UIViewControllerRepresentable {
 
 // MARK: - Sheet de rango de fechas
 
-private struct RangoSheet: View {
-    @Binding var desde: Date
-    @Binding var hasta: Date
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section(L.t("Fecha inicial", "Start date")) {
-                    DatePicker("", selection: $desde, in: ...hasta, displayedComponents: .date)
-                        .datePickerStyle(.graphical)
-                        .tint(Paleta.brand)
-                        .labelsHidden()
-                }
-                Section(L.t("Fecha final", "End date")) {
-                    DatePicker("", selection: $hasta, in: desde..., displayedComponents: .date)
-                        .datePickerStyle(.graphical)
-                        .tint(Paleta.brand)
-                        .labelsHidden()
-                }
-            }
-            .navigationTitle(L.t("Seleccionar rango", "Select range"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L.t("Listo", "Done")) { dismiss() }
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Paleta.brand)
-                }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L.t("Cancelar", "Cancel")) { dismiss() }
-                }
-            }
-        }
-        .hojaEleccion(grande: true)
-    }
-}

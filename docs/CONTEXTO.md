@@ -401,6 +401,26 @@ cosas. Y Tesorería y el Dashboard siguen con el mismo patrón, sin revisar.
 
 ---
 
+### Las capturas de revisión SÍ son de HEAD — 5 de septiembre
+
+Dos encargos seguidos dieron por hecho que el teléfono corría un build viejo,
+por dos cosas de Informes de membresía que "no podían estar ahí": la tira de los
+cuatro informes en iPhone y el botón de compartir en la barra. Las dos son de
+HEAD, y las dos las puso el MISMO commit, `f62b932` ("En el teléfono no había
+forma de llegar a tres de los cuatro informes"): quitó el gate
+`sizeClass == .regular` y añadió el `.toolbar` de la pantalla. Lo que queda con
+el texto del gate es un COMENTARIO que cuenta cómo estaba.
+
+**Antes de escribir que una captura es de un build viejo, mirar `git log -S`.**
+
+### El periodo de un informe no se lee de `r.periodo`
+
+`InformeResumen.periodo` es texto del mock y con un rango devuelve la cadena
+fija "Rango personalizado", sin las fechas. Quien sirve para enseñar el periodo
+elegido es **`vm.etiquetaPeriodo`**, que cubre los cinco tipos —mes, trimestre,
+año, rango con sus fechas, y todo el historial—. Es la diferencia entre poder
+sacar los selectores de la pantalla o esconder estado sin sustituto.
+
 ### Dentro de un `glassEffectUnion` no cabe un tinte por miembro — 5 de septiembre
 
 Medido en el simulador quitando y poniendo el union sobre el mismo código: el
