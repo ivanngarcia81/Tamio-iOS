@@ -18,6 +18,58 @@ enum PeriodoInforme: String, CaseIterable {
 
 // MARK: - ViewModel
 
+/// Las ocho tarjetas del informe de Miembros, que además FILTRAN la lista.
+/// Reflejadas del web (`TarjetaFiltro` de `InformesMembresia.tsx`), con sus
+/// mismas ocho identidades y en su mismo orden.
+///
+/// **Cuatro son estados y cuatro no.** Activos, inactivos y bajas se excluyen
+/// entre sí y suman el total; nuevos, recibidos y trasladados son movimientos
+/// del periodo —una persona puede ser nueva Y estar activa— y ausencias e
+/// incompletos son señales para trabajar. Por eso los porcentajes no cuadran a
+/// 100 y no deben presentarse como si lo hicieran.
+enum TarjetaPadron: String, CaseIterable, Identifiable {
+    case todos, activos, inactivos, nuevos, recibidos, trasladados, ausencias, incompletos
+    var id: String { rawValue }
+
+    var etiqueta: String {
+        switch self {
+        case .todos:       return L.t("Total", "Total")
+        case .activos:     return L.t("Activos", "Active")
+        case .inactivos:   return L.t("Inactivos", "Inactive")
+        case .nuevos:      return L.t("Nuevos", "New")
+        case .recibidos:   return L.t("Recibidos", "Received")
+        case .trasladados: return L.t("Trasladados", "Transferred")
+        case .ausencias:   return L.t("Ausencias frecuentes", "Frequent absences")
+        case .incompletos: return L.t("Expediente incompleto", "Incomplete record")
+        }
+    }
+
+    /// El mismo criterio con el que `MembresiaRepository.resumen()` cuenta cada
+    /// cifra. **Y la cifra de la tarjeta se saca CONTANDO con este predicado**,
+    /// no leyendo `MembresiaResumen`: así la tarjeta y la lista son la misma
+    /// expresión y no pueden divergir.
+    ///
+    /// No es paranoia. Al escribir este informe, las tarjetas decían 248, 236 y
+    /// 21 sobre una lista de siete personas, porque `MockMembresiaRepository`
+    /// devuelve un resumen escrito a mano que su propia `lista()` desmiente. Un
+    /// informe que encabeza un número y enseña otro no es un informe. Es la
+    /// misma lección que ya dejó escrita `MembresiaResumen.total`: **no se
+    /// escribe, se suma.**
+    func incluye(_ m: Miembro, año: Int) -> Bool {
+        switch self {
+        case .todos:       return true
+        case .activos:     return !m.estado.esBaja && m.estado.registro == .activo
+        case .inactivos:   return !m.estado.esBaja && m.estado.registro != .activo
+        case .nuevos:      return m.esNuevo(en: año)
+        case .recibidos:   return m.esNuevo(en: año) && m.esRecibido
+        case .trasladados: return m.estado.baja?.motivo == "traslado"
+                               && Int(m.estado.baja?.fecha.prefix(4) ?? "") == año
+        case .ausencias:   return !m.estado.esBaja && m.tieneAusencias
+        case .incompletos: return !m.estado.esBaja && !m.expedienteCompleto
+        }
+    }
+}
+
 @Observable
 final class InformesMembresiaViewModel {
 
@@ -33,6 +85,46 @@ final class InformesMembresiaViewModel {
 
     // Informe activo en la lista
     var informeSeleccionado = 0   // 0 General · 1 Miembros · 2 Asistencia · 3 Seguimiento
+
+    // MARK: - Informe de Miembros · el padrón de verdad
+
+    /// **Este informe NO sale de la maqueta.** El General sigue leyendo
+    /// `resumenMes`/`resumenAnio`, que son constantes escritas a mano, y para
+    /// distribuciones de ejemplo da igual. El padrón no: un informe que
+    /// encabeza 248 sobre una lista de siete no es un informe, es dos pantallas
+    /// discrepando. Así que lee del mismo repositorio que Membresía.
+    private let padronRepo: MembresiaRepository
+    private(set) var miembros: [Miembro] = []
+    private(set) var padronCargado = false
+    /// La tarjeta que está filtrando. `todos` es "sin filtrar", no una novena.
+    var tarjeta: TarjetaPadron = .todos
+
+    init(padronRepo: MembresiaRepository = repositorioMembresia()) {
+        self.padronRepo = padronRepo
+    }
+
+    @MainActor
+    func cargarPadron() async {
+        miembros = (try? await padronRepo.lista()) ?? []
+        padronCargado = true
+    }
+
+    /// **No se pide `resumen()` al repositorio, se cuenta aquí.** Es lo único
+    /// que garantiza que la tarjeta y la lista digan lo mismo: las dos salen de
+    /// `TarjetaPadron.incluye` sobre el mismo array. Pedirlo al repositorio
+    /// enseñaba 236 activos encima de una lista de seis.
+    func cuenta(_ t: TarjetaPadron) -> Int {
+        miembros.filter { t.incluye($0, año: añoDelPeriodo) }.count
+    }
+
+    /// El año contra el que se cuentan los movimientos del periodo. Sale del
+    /// selector de periodo, no de `Date()`: mirar el informe de 2025 y contar
+    /// las altas de 2026 sería mentir con la cara seria.
+    var añoDelPeriodo: Int { añoSeleccionado }
+
+    var miembrosFiltrados: [Miembro] {
+        miembros.filter { tarjeta.incluye($0, año: añoDelPeriodo) }
+    }
 
     // MARK: - Etiqueta del periodo seleccionado
 

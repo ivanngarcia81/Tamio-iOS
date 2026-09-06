@@ -398,6 +398,47 @@ del cambio anterior. Un `simctl shutdown` + `boot` lo arregla.
 
 ---
 
+### Informe de Miembros — 6 de septiembre
+
+De los cuatro informes de membresía, tres decían "Próximamente". **Miembros ya
+no.** No estaba a medias: no existía nada, ni datos ni modelo.
+
+**Reflejado del web, no diseñado.** `InformesMembresia.tsx` lo tiene entero, con
+sus ocho tarjetas que filtran (`TarjetaFiltro`), en el mismo orden y con las
+mismas identidades. Se copió también su decisión para el teléfono: allí las ocho
+pasaron de rejilla a **lista agrupada** porque *"ocho tarjetas de media pantalla
+eran ~900px de resumen antes de la primera fila del registro"* — la misma razón
+por la que estos ocho indicadores se fueron de `MiembroDetalle`. En iPad sí van
+en rejilla de cuatro.
+
+**El descuadre que encontró la prueba, y que es la razón de que el informe esté
+hecho así.** La primera versión leía las cifras de `repo.resumen()` y filtraba
+la lista aparte. Resultado medido: las tarjetas decían **248 total, 236 activos,
+21 incompletos** encima de una lista de **siete personas**, porque
+`MockMembresiaRepository.resumen()` devuelve un resumen escrito a mano que su
+propia `lista()` desmiente.
+
+Así que la cifra de la tarjeta **se cuenta con el mismo predicado que filtra la
+lista** (`TarjetaPadron.incluye`), no se pide al repositorio: las dos son la
+misma expresión sobre el mismo array y no pueden divergir. Es la lección que ya
+tenía escrita `MembresiaResumen.total` —*"no se escribe, se suma"*— aplicada a
+las ocho.
+
+**Y queda un descuadre de antes, sin tocar:** con el modo revisión encendido, el
+hub de Secretaría y la cabecera de Membresía siguen leyendo ese resumen escrito
+a mano, así que dicen 248 sobre un padrón de siete. No es de este informe y
+arreglarlo cambia lo que enseña la maqueta en las capturas.
+
+Verificado corriendo en iPhone 17e, con una prueba que compara cada tarjeta con
+el largo de su lista: 7 de 7 sin filtrar, Active 6=6, Inactive 0=0, New 1=1,
+Incomplete 4=4, y el segundo toque quita el filtro.
+
+Faltan **Asistencia** y **Seguimiento**. El web los tiene resueltos en
+`services/informes/membresia.ts`: `resumenAsistencia` + `topAsistencia` para uno,
+`alertasSeguimiento` con sus `TipoAlerta` para el otro.
+
+---
+
 ### La fecha se PARSEA en UTC, así que también hay que LEERLA en UTC — 6 de septiembre
 
 En Servicios la pastilla decía "SAT 5" al lado de un subtítulo que decía

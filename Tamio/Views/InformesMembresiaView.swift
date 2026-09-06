@@ -21,6 +21,9 @@ struct InformesMembresiaView: View {
     var body: some View {
         encabezado(cuerpo)
             .toolbar { barra }
+            // El padrón del informe de Miembros. Esta pantalla no tenía
+            // `.task` porque todo lo suyo era calculado de constantes.
+            .task { await vm.cargarPadron() }
             .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
             .sheet(isPresented: $mostrarShareCSV) {
                 if let url = urlCSV { ShareSheet(items: [url]) }
@@ -302,6 +305,160 @@ struct InformesMembresiaView: View {
 
     // MARK: - Contenido del informe
 
+    // MARK: - Informe de Miembros
+
+    /// **Las ocho cifras del padrón, y cada una filtra la lista de abajo.**
+    /// Reflejado del web, incluida su decisión para el teléfono: allí las ocho
+    /// pasaron de rejilla de tarjetas a lista agrupada porque *"ocho tarjetas
+    /// de media pantalla eran ~900px de resumen antes de la primera fila del
+    /// registro"*. La misma razón vale aquí, y es además la lección que ya
+    /// dejó escrita `MiembroDetalle` al perder estos mismos ocho.
+    ///
+    /// En iPad sí van en rejilla: hay ancho, y el informe se lee de un vistazo.
+    @ViewBuilder
+    private var informeMiembros: some View {
+        if vm.padronCargado {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L.t("Padrón", "Member registry"))
+                        .font(.title3.weight(.semibold))
+                    Text("\(vm.cuenta(.todos)) \(L.t("miembros · \(vm.etiquetaPeriodo)", "members · \(vm.etiquetaPeriodo)"))")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                        .contentTransition(.numericText())
+                }
+
+                if sizeClass == .regular {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()),
+                                        GridItem(.flexible()), GridItem(.flexible())],
+                              spacing: 12) {
+                        ForEach(TarjetaPadron.allCases) { t in tarjetaPadron(t) }
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(TarjetaPadron.allCases.enumerated()), id: \.element.id) { i, t in
+                            filaPadron(t)
+                            if i < TarjetaPadron.allCases.count - 1 {
+                                Divider().padding(.leading, Esp.pantalla)
+                            }
+                        }
+                    }
+                    .background(Paleta.superficieFila,
+                                in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
+                }
+
+                // **Lo que está filtrando, dicho en palabras.** Es del web, y
+                // por la misma razón: con solo una tarjeta teñida hay que
+                // deducir por qué la lista es corta, y una lista corta sin
+                // explicación es la lección que ya dejó Ingresos.
+                if vm.tarjeta != .todos {
+                    HStack(spacing: 8) {
+                        Text(L.t("Filtrando por \(vm.tarjeta.etiqueta)",
+                                 "Filtered by \(vm.tarjeta.etiqueta)"))
+                            .font(.subheadline)
+                        Spacer()
+                        Button(L.t("Quitar", "Clear")) { vm.tarjeta = .todos }
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+                    .background(Paleta.brandFill,
+                                in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
+                }
+
+                let filas = vm.miembrosFiltrados
+                Text(L.t("\(filas.count) de \(vm.cuenta(.todos))", "\(filas.count) of \(vm.cuenta(.todos))"))
+                    .font(.caption).foregroundStyle(.secondary)
+
+                if filas.isEmpty {
+                    ContentUnavailableView(L.t("Nadie en este recorte", "No one in this slice"),
+                                           systemImage: "person.slash",
+                                           description: Text(L.t("Quita el filtro para ver el padrón entero.",
+                                                                 "Clear the filter to see the whole registry.")))
+                        .frame(maxWidth: .infinity, minHeight: 220)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(filas.enumerated()), id: \.element.id) { i, m in
+                            filaMiembroInforme(m)
+                            if i < filas.count - 1 { Divider().padding(.leading, Esp.pantalla) }
+                        }
+                    }
+                    .background(Paleta.superficieFila,
+                                in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
+                }
+            }
+        } else {
+            ProgressView().frame(maxWidth: .infinity, minHeight: 320)
+        }
+    }
+
+    /// Un segundo toque en la tarjeta activa la quita, como en el web: si
+    /// filtrar es un toque, dejar de filtrar tiene que serlo también.
+    private func alTocar(_ t: TarjetaPadron) {
+        vm.tarjeta = (vm.tarjeta == t && t != .todos) ? .todos : t
+    }
+
+    private func filaPadron(_ t: TarjetaPadron) -> some View {
+        let activa = vm.tarjeta == t
+        return Button { alTocar(t) } label: {
+            HStack(spacing: 10) {
+                Text(t.etiqueta).font(.subheadline)
+                Spacer(minLength: 8)
+                Text("\(vm.cuenta(t))")
+                    .font(.subheadline.weight(.semibold)).monospacedDigit()
+                    .foregroundStyle(activa ? Paleta.brand : .primary)
+                if activa {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.caption).foregroundStyle(Paleta.brand)
+                }
+            }
+            .padding(.horizontal, Esp.pantalla).padding(.vertical, 11)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(activa ? .isSelected : [])
+    }
+
+    private func tarjetaPadron(_ t: TarjetaPadron) -> some View {
+        let activa = vm.tarjeta == t
+        return Button { alTocar(t) } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(t.etiqueta)
+                    .font(.caption).foregroundStyle(.secondary)
+                    .lineLimit(2, reservesSpace: true)
+                Text("\(vm.cuenta(t))")
+                    .font(.title2.weight(.semibold)).monospacedDigit()
+                    .foregroundStyle(activa ? Paleta.brand : .primary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Esp.tarjeta)
+            .background(activa ? Paleta.brandFill : Paleta.superficieFila,
+                        in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(activa ? .isSelected : [])
+    }
+
+    /// La fila del informe NO es la de Membresía: aquí no se abre a nadie —un
+    /// informe se lee y se exporta—, así que enseña lo que el recorte explica,
+    /// el estado y el porcentaje, sin chevron que prometa una ficha.
+    private func filaMiembroInforme(_ m: Miembro) -> some View {
+        HStack(spacing: 12) {
+            Avatar(iniciales: m.iniciales, color: m.estado.color, lado: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(m.nombre).font(.subheadline).lineLimit(1)
+                Text(m.subtitulo).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer(minLength: 6)
+            if !m.estado.esBaja {
+                Text("\(m.asistenciaPct)%")
+                    .font(.subheadline.weight(.medium)).monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            Pill(texto: m.estado.etiqueta, color: m.estado.color)
+        }
+        .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+    }
+
     private var contenidoInforme: some View {
         let r = vm.resumen
         let maxEstado = r.porEstado.map { $0.1 }.max() ?? 1
@@ -311,7 +468,9 @@ struct InformesMembresiaView: View {
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if vm.informeSeleccionado != 0 {
+                if vm.informeSeleccionado == 1 {
+                    informeMiembros
+                } else if vm.informeSeleccionado != 0 {
                     ContentUnavailableView(L.t("Próximamente", "Coming soon"),
                                            systemImage: "doc.text.magnifyingglass",
                                            description: Text(L.t("Este informe llegará pronto.", "This report is coming soon.")))
