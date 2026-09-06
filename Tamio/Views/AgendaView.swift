@@ -16,13 +16,11 @@ struct AgendaView: View {
                 HStack(spacing: 0) {
                     calendarioColumna
                         .frame(minWidth: 300, maxWidth: 420)
-                        .background(.regularMaterial)
                     Divider()
                     detalleDiaColumna
                 }
             } else {
                 calendarioColumna
-                    .background(.regularMaterial)
                     .navigationDestination(isPresented: $diaAbierto) {
                         detalleDiaColumna
                             .navigationBarTitleDisplayMode(.inline)
@@ -58,8 +56,32 @@ struct AgendaView: View {
 
     // MARK: - Columna calendario (izquierda)
 
+    /// **Capas, no hermanos** — la misma lección de Actas y Registro, pero
+    /// aquí no era el mismo cambio mecánico: lo que se desplaza no es una
+    /// lista sino una de tres vistas, y una de ellas es una rejilla.
+    ///
+    /// El selector, la navegación de mes y el `Divider` iban apilados con el
+    /// contenido en un `VStack`, así que el calendario no corría por debajo de
+    /// nada y al desplazar chocaba contra el divisor y se cortaba. Ahora esos
+    /// controles son la barra y las tres vistas pasan por debajo.
     @ViewBuilder
     private var calendarioColumna: some View {
+        contenidoCalendario
+            .scrollEdgeEffectStyle(.soft, for: .all)
+            .safeAreaBar(edge: .top, spacing: 0) { cabeceraCalendario }
+            .colchonInferior()
+    }
+
+    @ViewBuilder
+    private var contenidoCalendario: some View {
+        switch vm.vistaActual {
+        case 1:  vistaSemana
+        case 2:  vistaLista
+        default: vistaMes
+        }
+    }
+
+    private var cabeceraCalendario: some View {
         VStack(spacing: 0) {
             Picker(L.t("Vista", "View"), selection: $vm.vistaActual) {
                 Text(L.t("Mes", "Month")).tag(0)
@@ -70,14 +92,26 @@ struct AgendaView: View {
             .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
 
             navMes
-            Divider()
 
-            switch vm.vistaActual {
-            case 1:  vistaSemana
-            case 2:  vistaLista
-            default: vistaMes
+            // **Los nombres de las columnas suben con la barra, y solo en
+            // Mes.** Son la cabecera de la rejilla, no contenido suyo: si
+            // viajan con el scroll, un mes desplazado deja de decir qué
+            // columna es cuál. Semana no los necesita —cada celda lleva el
+            // suyo, ver `celdaSemana`— y Lista no tiene columnas.
+            if vm.vistaActual == 0 { filaDiasSemana }
+        }
+    }
+
+    private var filaDiasSemana: some View {
+        HStack(spacing: 0) {
+            ForEach(diasSemana, id: \.self) { d in
+                Text(d)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
             }
         }
+        .padding(.horizontal, Esp.hueco).padding(.vertical, 4)
     }
 
     // MARK: - Barra de navegación de mes
@@ -112,33 +146,23 @@ struct AgendaView: View {
 
     // MARK: - Vista Mes
 
+    /// Sin la fila de nombres de día: esa es cabecera de la rejilla y vive en
+    /// `cabeceraCalendario`, para que no se vaya al desplazar.
     private var vistaMes: some View {
         ScrollView {
-            VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    ForEach(diasSemana, id: \.self) { d in
-                        Text(d)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7),
+                spacing: 0
+            ) {
+                ForEach(vm.celdasDelMes) { celda in
+                    if let dia = celda.dia {
+                        celdaDia(dia)
+                    } else {
+                        Color.clear.frame(height: 54)
                     }
                 }
-                .padding(.horizontal, Esp.hueco).padding(.vertical, 4)
-
-                LazyVGrid(
-                    columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7),
-                    spacing: 0
-                ) {
-                    ForEach(vm.celdasDelMes) { celda in
-                        if let dia = celda.dia {
-                            celdaDia(dia)
-                        } else {
-                            Color.clear.frame(height: 54)
-                        }
-                    }
-                }
-                .padding(.horizontal, Esp.hueco)
             }
+            .padding(.horizontal, Esp.hueco)
         }
     }
 
@@ -436,10 +460,14 @@ struct AgendaView: View {
         return partes.joined(separator: " · ")
     }
 
+    /// **El mismo array otra vez.** `diasSemana` se creó para que el
+    /// calendario no dijera "DOM LUN MAR" con la app en inglés, y aquí había
+    /// quedado una segunda copia escrita a mano que no pasaba por
+    /// `L.diaSemana`: la vista Lista seguía en español. Se lee del único sitio
+    /// que tiene los nombres.
     private func etiquetaDiaLista(_ dia: Int) -> String {
         let offset = (vm.primerDiaOffset + dia - 1) % 7
-        let abrevs = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"]
-        return "\(abrevs[offset])  \(dia)"
+        return "\(diasSemana[offset])  \(dia)"
     }
 }
 

@@ -18,13 +18,11 @@ struct RegistroView: View {
                 HStack(spacing: 0) {
                     listaColumna
                         .frame(width: Esp.columnaMaestra)
-                        .background(.regularMaterial)
                     Divider()
                     if let a = vm.seleccion { apunteDetalle(a) } else { estadoVacio }
                 }
             } else {
                 listaColumna
-                    .background(.regularMaterial)
                     .navigationDestination(item: $abierto) { a in
                         apunteDetalle(a)
                             .navigationTitle(L.t("Apunte", "Entry"))
@@ -69,24 +67,41 @@ struct RegistroView: View {
 
     // MARK: - Lista
 
+    /// **Capas, no hermanos** — el mismo arreglo que Actas, porque era la misma
+    /// estructura: las pastillas, un `Divider` y el scroll apilados en un
+    /// `VStack`. El scroll no corría por debajo de nada, así que al desplazar,
+    /// el contenido chocaba contra el divisor y se CORTABA a media fila.
+    ///
+    /// Con `safeAreaBar` el scroll ocupa la pantalla y pasa por debajo de las
+    /// pastillas, que es lo que le da al glass algo que refractar y al
+    /// desvanecido algo que borrar. El `Divider` se va: con el degradado, una
+    /// línea vuelve a leerse como pared.
+    ///
+    /// **Las cabeceras de día siguen fijándose**, que era el riesgo de mover
+    /// esto: `pinnedViews` es del `LazyVStack` y no del contenedor de fuera,
+    /// así que se pegan bajo la barra en vez de bajo el `Divider` que ya no
+    /// está.
     private var listaColumna: some View {
-        VStack(spacing: 0) {
-            barraFiltros
-            Divider()
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    ForEach(vm.grupos, id: \.titulo) { grupo in
-                        Section {
-                            ForEach(grupo.apuntes) { fila($0) }
-                        } header: {
-                            encabezadoDia(grupo.titulo, grupo.apuntes.count)
-                        }
+        scrollApuntes
+            .scrollEdgeEffectStyle(.soft, for: .all)
+            .safeAreaBar(edge: .top, spacing: 0) { barraFiltros }
+            .colchonInferior()
+    }
+
+    private var scrollApuntes: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                ForEach(vm.grupos, id: \.titulo) { grupo in
+                    Section {
+                        ForEach(grupo.apuntes) { fila($0) }
+                    } header: {
+                        encabezadoDia(grupo.titulo, grupo.apuntes.count)
                     }
-                    Text(L.t("\(vm.visibles.count) apuntes", "\(vm.visibles.count) entries"))
-                        .font(.caption).foregroundStyle(.tertiary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(Esp.tarjeta)
                 }
+                Text(L.t("\(vm.visibles.count) apuntes", "\(vm.visibles.count) entries"))
+                    .font(.caption).foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Esp.tarjeta)
             }
         }
     }

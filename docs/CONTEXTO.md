@@ -351,11 +351,45 @@ igual que las demás —`safeAreaBar` + `.soft`, sin `Divider`— y de paso el
 título grande ya colapsa como debe, porque ahora la lista ES el scroll de la
 pantalla y no un scroll dentro de otra cosa.
 
-**Con la misma estructura y sin arreglar: Agenda y Registro.** No es el mismo
-cambio mecánico que Actas porque su contenido no es una lista: Agenda dibuja
-una rejilla de calendario (y tres vistas que se alternan) y Registro un
-`ScrollView` con `pinnedViews: [.sectionHeaders]`. Cartas NO tiene este
+**Agenda y Registro, arreglados el 6 de septiembre.** Cartas NO tiene este
 problema: su columna es la lista a secas, sin cabecera.
+
+Registro resultó ser el caso de Actas exacto —pastillas, `Divider` y scroll
+apilados—, así que fue el mismo cambio. El riesgo que había que comprobar era
+si las cabeceras de día se seguían fijando: sí, porque `pinnedViews` es del
+`LazyVStack` y no del contenedor de fuera, así que se pegan bajo la barra en
+vez de bajo el `Divider` que ya no está.
+
+Agenda sí pidió una decisión. Su barra pasa a ser el selector de vista + la
+navegación de mes, y las tres vistas corren por debajo. **La fila de nombres de
+día (`SUN MON TUE…`) sube a la barra, y solo en Mes**: es cabecera de la
+rejilla, no contenido suyo, y si viaja con el scroll un mes desplazado deja de
+decir qué columna es cuál. Semana no la necesita —cada celda lleva el suyo, ver
+`celdaSemana`— y Lista no tiene columnas.
+
+**Observado y NO cambiado en Agenda:** en Semana, la tira de los siete días va
+DENTRO del scroll, así que con un día muy cargado se iría hacia arriba y el
+selector de día desaparecería. Hoy no pasa —ningún día del mes de prueba tiene
+eventos suficientes para desplazar esa tira— y subirla a la barra es otra
+decisión, no la de este arreglo. Queda escrito para que se note antes de que lo
+note un usuario.
+
+**De paso, un array de días escrito a mano por segunda vez.** `diasSemana`
+existía justo para que el calendario no dijera "DOM LUN MAR" con la app en
+inglés, y `etiquetaDiaLista` tenía su propia copia que no pasaba por
+`L.diaSemana`: la vista Lista seguía en español. Salió en la captura de
+verificación, no leyendo el código.
+
+Verificado corriendo, con el contenido desplazado, que es la única postura
+donde se nota: Agenda en iPhone 17e en sus tres vistas y Registro en iPad Pro
+13" —que es donde de verdad se usa: **Registro no está en el hub del teléfono**,
+solo en la barra lateral—. En las cuatro el contenido se difumina por debajo de
+la barra en vez de chocar.
+
+**Aviso para medir un scroll de columna en iPad:** un `swipeUp` en el centro de
+la pantalla cae en el PANEL DE DETALLE y la lista no se mueve, así que la
+prueba pasa sin haber ejercitado nada. Hay que coger el `ScrollView` de la
+mitad izquierda y afirmar que algo se movió de verdad.
 
 **Y hay que devolver el simulador a vertical.** `XCUIDevice.shared.orientation`
 persiste entre pruebas: la siguiente tanda dio "no abre" en cuatro pantallas de
