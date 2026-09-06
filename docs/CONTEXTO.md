@@ -322,8 +322,30 @@ Comprobado con la app corriendo y **el contenido desplazado**, que es la única
 postura donde se nota; sin desplazar las tres versiones se ven casi iguales.
 Verificado en iPhone 17e y en iPad Pro 13".
 
-Mismo patrón sin revisar en Actas, Agenda, Servicios, Cartas, Movimientos y
-Membresía: todas montan su cabecera con `.background(.regularMaterial)`.
+**Aplicado después a las cinco que tenían el mismo patrón**: Membresía,
+Ingresos/Gastos (`MovimientosView`), Aportantes (`MiembrosView`), Depósitos y el
+contador de asistencia de Servicios. En las cinco estaba escrito el MISMO
+comentario equivocado —"el material vive AQUÍ… detrás de la lista se resolvía
+como un gris plano porque no tenía nada que difuminar"—, así que si aparece esa
+frase en otra pantalla, es este mismo caso.
+
+**Hay dos usos distintos de `.regularMaterial` y solo uno es el error.** Actas,
+Agenda, Registro, Cartas y Reportes lo llevan detrás de la COLUMNA entera de un
+split view, que es legítimo y no se toca. El error es cuando está detrás de una
+cabecera fijada con `safeAreaInset` sobre una lista.
+
+**Cuidado con las cabeceras de texto pelado.** El contador de Servicios ("0 de 7
+en el padrón") y la franja de cortes pendientes de Depósitos no son cápsulas de
+glass: son texto sin fondo propio, y sin material se apoyan en que el
+desvanecido borre lo que pasa por detrás. Comprobado que aguanta, pero con los
+datos de muestra (7 personas, 3 cortes) **no hay nada que desplazar**: hubo que
+girar el aparato a horizontal para quitarle altura a la lista y forzar el caso.
+Es la postura a repetir si se vuelve a tocar.
+
+**Y hay que devolver el simulador a vertical.** `XCUIDevice.shared.orientation`
+persiste entre pruebas: la siguiente tanda dio "no abre" en cuatro pantallas de
+Secretaría —las filas del hub quedaban fuera de cuadro— y parecía una regresión
+del cambio anterior. Un `simctl shutdown` + `boot` lo arregla.
 
 ---
 

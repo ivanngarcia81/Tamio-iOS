@@ -297,7 +297,12 @@ struct MembresiaView: View {
     /// único que le da al material algo que refractar.
     private var listaColumna: some View {
         lista
-            .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
+            // El desvanecido, en su variante suave, como en Informes: quien
+            // lo hace aparecer es `safeAreaBar` —un `safeAreaInset` cualquiera
+            // no es una barra y no hay borde bajo el que desvanecer— y esto
+            // solo elige que sea un degradado y no un corte.
+            .scrollEdgeEffectStyle(.soft, for: .all)
+            .safeAreaBar(edge: .top, spacing: 0) { cabeceraLista }
             // **El pie, solo en iPad.** En el teléfono apilaba una segunda
             // barra sobre la de pestañas y cortaba la última fila; el conteo
             // que decía vive ahora en la etiqueta del menú de vista. En iPad
@@ -336,10 +341,7 @@ struct MembresiaView: View {
             }
             .padding(.horizontal, Esp.pantalla)
             .padding(.vertical, compacto ? Esp.hueco : Esp.chip)
-            // El material vive AQUÍ, no detrás de la columna entera: detrás de
-            // la lista se resolvía como un gris plano porque no tenía nada que
-            // difuminar.
-            .background(.regularMaterial)
+
         }
     }
 

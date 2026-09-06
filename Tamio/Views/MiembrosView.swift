@@ -296,7 +296,12 @@ struct MiembrosView: View {
     /// necesita material para difuminar algo.
     private var listaColumna: some View {
         listaMiembros
-            .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
+            // El desvanecido, en su variante suave, como en Informes: quien
+            // lo hace aparecer es `safeAreaBar` —un `safeAreaInset` cualquiera
+            // no es una barra y no hay borde bajo el que desvanecer— y esto
+            // solo elige que sea un degradado y no un corte.
+            .scrollEdgeEffectStyle(.soft, for: .all)
+            .safeAreaBar(edge: .top, spacing: 0) { cabeceraLista }
             // **El pie, solo en iPad.** En el teléfono apilaba una segunda
             // barra sobre la de pestañas y cortaba la última fila; lo que
             // decía se reparte ahora entre el menú de filtro —que lleva el
@@ -323,7 +328,6 @@ struct MiembrosView: View {
             }
             .padding(.horizontal, Esp.pantalla)
             .padding(.vertical, compacto ? Esp.hueco : Esp.chip)
-            .background(.regularMaterial)
         }
     }
 

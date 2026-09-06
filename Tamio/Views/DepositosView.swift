@@ -190,7 +190,12 @@ struct DepositosView: View {
 
     private func listaColumna(wide: Bool) -> some View {
         lista(wide: wide)
-            .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
+            // El desvanecido, en su variante suave, como en Informes: quien
+            // lo hace aparecer es `safeAreaBar` —un `safeAreaInset` cualquiera
+            // no es una barra y no hay borde bajo el que desvanecer— y esto
+            // solo elige que sea un degradado y no un corte.
+            .scrollEdgeEffectStyle(.soft, for: .all)
+            .safeAreaBar(edge: .top, spacing: 0) { cabeceraLista }
             // **Sin pie.** Apilaba una segunda barra sobre la de pestañas y
             // cortaba la última fila. Lo que decía —cuántos cortes esperan y
             // cuánto dinero es— sube a la cabecera: ese dato no se puede
@@ -211,7 +216,6 @@ struct DepositosView: View {
         if !compacto {
             pickerEstado
                 .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
-                .background(.regularMaterial)
         } else if vm.pendientesCount > 0 {
             // **En el teléfono, lo que espera.** El segmentado se fue al lugar
             // del título y aquí no quedaba nada, pero el pie sí decía algo que
@@ -234,7 +238,6 @@ struct DepositosView: View {
             .font(.footnote)
             .monospacedDigit()
             .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.hueco)
-            .background(.regularMaterial)
         }
     }
 

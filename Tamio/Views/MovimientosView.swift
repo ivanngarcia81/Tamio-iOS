@@ -315,7 +315,12 @@ struct MovimientosView: View {
     /// línea vuelve a leerse como pared.
     private var listaColumna: some View {
         lista
-            .safeAreaInset(edge: .top, spacing: 0) { cabeceraLista }
+            // El desvanecido, en su variante suave, como en Informes: quien
+            // lo hace aparecer es `safeAreaBar` —un `safeAreaInset` cualquiera
+            // no es una barra y no hay borde bajo el que desvanecer— y esto
+            // solo elige que sea un degradado y no un corte.
+            .scrollEdgeEffectStyle(.soft, for: .all)
+            .safeAreaBar(edge: .top, spacing: 0) { cabeceraLista }
             // **Sin pie.** Llevaba el conteo, el mes y el total, y los tres
             // tienen mejor sitio: el mes se elige en la hoja de filtros, el
             // total encabeza esa misma hoja y el conteo lo dice la lista. Lo
@@ -468,10 +473,7 @@ struct MovimientosView: View {
                 }
             }
             .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
-            // El material vive AQUÍ, no detrás de la columna entera: detrás de
-            // la lista se resolvía como un gris plano porque no tenía nada
-            // que difuminar.
-            .background(.regularMaterial)
+
         }
     }
 

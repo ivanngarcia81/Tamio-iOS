@@ -878,7 +878,7 @@ struct ListaAsistenciaSheet: View {
                     lista
                 }
             }
-            .safeAreaInset(edge: .top, spacing: 0) { contador }
+            .safeAreaBar(edge: .top, spacing: 0) { contador }
             .navigationTitle(Cultos.etiqueta(vm.culto.tipo))
             .navigationSubtitle(Fechas.diaLegible(vm.culto.fecha))
             .navigationBarTitleDisplayMode(.inline)
@@ -932,7 +932,6 @@ struct ListaAsistenciaSheet: View {
             .animation(.spring(duration: 0.3), value: vm.pct)
         }
         .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
-        .background(.regularMaterial)
     }
 
     private var lista: some View {
