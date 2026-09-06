@@ -187,15 +187,16 @@ struct Servicio: Identifiable, Hashable {
 
     var titulo: String { Cultos.etiqueta(tipo) }
 
-    private var fechaDate: Date? { Fechas.desdeTextoFlexible(fecha) }
-
     /// "DOM" · "SUN". Del formateador y no de una tabla: el día de la semana
     /// de una fecha no se traduce a mano.
-    var diaSemana: String {
-        guard let d = fechaDate else { return "" }
-        return L.formateador("EEE").string(from: d).uppercased()
-    }
-    var numDia: String { fechaDate.map { String(Calendar.current.component(.day, from: $0)) } ?? "" }
+    ///
+    /// **Y en UTC.** Las dos leían la fecha con el calendario del aparato
+    /// mientras el subtítulo la leía con `diaLegible`, que fija UTC: la
+    /// pastilla decía "SAT 5" al lado de "Sep 6, 2026", que es domingo. Un día
+    /// entero de diferencia dentro de la misma fila, y en la pantalla que
+    /// justamente sirve para saber qué culto es cuál.
+    var diaSemana: String { Fechas.diaSemanaCorto(fecha) }
+    var numDia: String { Fechas.numeroDeDia(fecha) }
     var fechaLegible: String { fecha.isEmpty ? "" : Fechas.diaLegible(fecha) }
 
     var estadoRoster: EstadoRoster {

@@ -224,6 +224,36 @@ enum Fechas {
         return f.string(from: d)
     }
 
+    /// `"DOM"` · `"SUN"`. **En UTC, como `diaLegible`**, y por la misma razón
+    /// que su comentario: las fechas de la app se PARSEAN en UTC, así que
+    /// leerlas con el calendario del aparato las corre un día hacia atrás en
+    /// cualquier zona al oeste de Greenwich — que es donde está la iglesia.
+    ///
+    /// Lo enseñaba `Servicio`: la pastilla decía "SÁB 5" al lado de un
+    /// subtítulo que decía "6 sep 2026", que es domingo. La pastilla usaba el
+    /// calendario local y el subtítulo `diaLegible`, que sí fija UTC.
+    static func diaSemanaCorto(_ texto: String) -> String {
+        guard let d = desdeTextoFlexible(texto) else { return "" }
+        let f = L.formateador("EEE")
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f.string(from: d).uppercased()
+    }
+
+    /// `"6"`. En UTC por lo mismo: ver `diaSemanaCorto`.
+    static func numeroDeDia(_ texto: String) -> String {
+        guard let d = desdeTextoFlexible(texto) else { return "" }
+        return String(calendarioUTC.component(.day, from: d))
+    }
+
+    /// El calendario con el que se leen las fechas GUARDADAS. `Calendar.current`
+    /// es el correcto para "hoy" —la secretaria vive en su zona— pero no para
+    /// una fecha que se guardó como texto y se parseó en UTC.
+    static let calendarioUTC: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        return c
+    }()
+
     /// `"2026"`. Se saca de la clave del periodo y no con un formateador
     /// aparte, para que un movimiento no pueda caer en un mes de un año y en
     /// otro año distinto.

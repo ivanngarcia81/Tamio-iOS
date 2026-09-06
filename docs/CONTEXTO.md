@@ -398,6 +398,43 @@ del cambio anterior. Un `simctl shutdown` + `boot` lo arregla.
 
 ---
 
+### La fecha se PARSEA en UTC, así que también hay que LEERLA en UTC — 6 de septiembre
+
+En Servicios la pastilla decía "SAT 5" al lado de un subtítulo que decía
+"Sep 6, 2026", que es domingo. **Un día entero de diferencia dentro de la misma
+fila**, y justo en la pantalla que sirve para saber qué culto es cuál.
+
+`Fechas.desdeTexto` fija `timeZone = UTC` al parsear, y `diaLegible` lo fija
+también al formatear —su comentario ya avisaba: *"un depósito del 17 salía
+impreso como 16"*—. Pero `Servicio.diaSemana` usaba `L.formateador("EEE")` sin
+zona y `numDia` usaba `Calendar.current`: los dos leían con el calendario del
+aparato, que en cualquier zona al oeste de Greenwich corre la medianoche UTC al
+día anterior.
+
+El aviso estaba escrito y aun así volvió a pasar, porque era un comentario y no
+una herramienta. Ahora `Fechas` tiene `diaSemanaCorto(_:)`, `numeroDeDia(_:)` y
+`calendarioUTC`, y `Servicio` los usa.
+
+**La regla:** `Calendar.current` es correcto para HOY —la secretaria vive en su
+zona— y equivocado para una fecha que se guardó como texto. Si el dato salió de
+`desdeTexto`/`desdeTextoFlexible`, se lee con `calendarioUTC`.
+
+**Revisado el resto y NO es un problema general.** `periodoLegible` y
+`Reporte.composicionMesCorto` parsean y formatean los dos en local, así que son
+coherentes; el resto de `Calendar.current` de la app son sobre `Date()`.
+
+**Queda uno observado y sin tocar, a propósito:** `Aportante.aportes(anio:)`
+filtra con `Calendar.current.component(.year, from: $0.fecha)`, y en la
+importación de CSV esa fecha viene de `desdeTextoFlexible`, o sea UTC. Un aporte
+del 1 de enero importado desde un archivo caería en el año anterior. **No lo
+cambio porque eso mueve los importes de una constancia anual**, que es un
+documento que se firma: es una decisión de Iván, no un arreglo de paso.
+
+Verificado corriendo en iPhone 17e: "SUN 6 · Sep 6, 2026" y "THU 3 · Sep 3,
+2026", pastilla y subtítulo de acuerdo.
+
+---
+
 ### Un segmentado NO es de cristal, aunque esté dentro de una barra que sí — 6 de septiembre
 
 `Picker(.segmented)` dibuja el fondo opaco de UIKit. Dentro de la barra de
