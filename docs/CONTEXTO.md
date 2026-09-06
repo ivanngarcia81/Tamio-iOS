@@ -301,6 +301,43 @@ Data Protection) y qué protección le queda al respaldo en iCloud Drive.
 
 ---
 
+### El botón de volver de Secretaría — 5 de septiembre
+
+Las seis pantallas del hub de Secretaría colgaban con `sinBotonVolver()`, así
+que ninguna enseñaba chevron. Lo dijo Iván: *"todas las páginas de secretaría
+no tienen botón para regresar"*.
+
+Las dos salidas que justificaban quitarlo **existen y funcionan** —comprobado
+en las seis con la app corriendo: tocar la pestaña de Secretaría vuelve al hub,
+y el gesto desde el borde también, gracias a `RescateGestoVolver`—. Pero
+ninguna se ve, y una secretaria no tiene por qué deducirlas.
+
+**Aviso para medir el gesto de borde:** `press(forDuration:thenDragTo:)` a secas
+NO dispara el pop interactivo en el simulador y da un falso "no vuelve" en las
+seis. Hay que usar `press(forDuration:thenDragTo:withVelocity:.slow,
+thenHoldForDuration:)` y arrancar en `dx = 0.0`, no en 0.01.
+
+El otro argumento —"el chevron gasta una cápsula"— solo valía para una.
+Cápsulas contadas en el teléfono con la app corriendo:
+
+| pantalla | cápsulas |
+|---|---|
+| Membresía | 5 — lupa, selector de vista, filtros, `+` |
+| Informes, Agenda, Servicios, Actas, Cartas | 1 cada una |
+
+Así que **las cinco de una cápsula recuperan el chevron** (verificado: aparece y
+vuelve al hub en las cinco). **Membresía se queda con `sinBotonVolver()`**:
+al devolverle el chevron el sistema **tiró el `+` sin avisar** —la barra pasaba
+a `Secretary, Search, Members (8), More filters` y desaparecía dar de alta—,
+que es exactamente el límite de la quinta cápsula que ya documenta §4. Acortar
+el selector no es salida: su conteo es lo único que dice cuántas personas se
+ven y que la lista está filtrada.
+
+Queda por decidir qué sale de la barra de Membresía para que quepan las dos
+cosas. Y Tesorería y el Dashboard siguen con el mismo patrón, sin revisar.
+
+---
+
 ## 6. Pendientes concretos
 
 1. **El mes es invisible en Ingresos.** Al quitar el pie, el mes solo se lee

@@ -20,6 +20,23 @@ struct IPhoneSecretariaView: View {
                 kpiPadron
             }
 
+            // **Cinco de las seis recuperan su botón de volver.** Todas
+            // colgaban del hub con `sinBotonVolver()`, cuya razón escrita era
+            // que el chevron gasta una cápsula y que la pestaña de Secretaría
+            // lleva al mismo sitio. Las dos salidas existen y funcionan
+            // —comprobado en las seis: tocar la pestaña vuelve, y el gesto de
+            // borde también— pero ninguna se VE. Una secretaria que entra a
+            // Actas no tiene por qué deducir cómo se sale.
+            //
+            // Y el argumento de la cápsula solo valía para UNA. Contadas en el
+            // teléfono con la app corriendo: Informes, Agenda, Servicios,
+            // Actas y Cartas usan **una** cápsula cada una, con el lado
+            // izquierdo vacío. Membresía usa cinco —lupa, selector de vista,
+            // filtros y `+`— y al devolverle el chevron el sistema **tiró el
+            // `+` sin avisar**: se quedaba sin dar de alta. Por eso esa sigue
+            // con `sinBotonVolver()` hasta decidir qué sale de su barra; el
+            // conteo del selector no vale, que es lo único que dice cuántas
+            // personas se ven y que la lista está filtrada.
             Section(L.t("PADRÓN", "ROSTER")) {
                 // Membresía solo si esta persona ve el padrón. Ver `Permisos`.
                 if permisos.vePadron {
@@ -30,7 +47,7 @@ struct IPhoneSecretariaView: View {
                                               "\(padron.total) people · \(padron.activos) active"))
                     }
                 }
-                NavigationLink { InformesMembresiaView().sinBotonVolver() } label: {
+                NavigationLink { InformesMembresiaView() } label: {
                     HubRow(icono: "chart.pie.fill", color: Paleta.enlace,
                            titulo: L.t("Informes de membresía", "Membership reports"),
                            subtitulo: L.t("Panorama, padrón y seguimiento",
@@ -39,25 +56,25 @@ struct IPhoneSecretariaView: View {
             }
 
             Section(L.t("REGISTRO", "RECORDS")) {
-                NavigationLink { AgendaView().sinBotonVolver() } label: {
+                NavigationLink { AgendaView() } label: {
                     HubRow(icono: "calendar", color: Color(hex: 0x0D9488),
                            titulo: L.t("Agenda", "Calendar"),
                            subtitulo: L.t("\(L.mesEnCurso) · \(agendaPendientes) compromisos",
                                           "\(L.mesEnCurso) · \(agendaPendientes) events"))
                 }
-                NavigationLink { ServiciosView().sinBotonVolver() } label: {
+                NavigationLink { ServiciosView() } label: {
                     HubRow(icono: "checklist", color: Paleta.aviso,
                            titulo: L.t("Registro de servicios", "Service log"),
                            subtitulo: L.t("Roster y asistencia por culto",
                                           "Roster & attendance per service"))
                 }
-                NavigationLink { ActasView().sinBotonVolver() } label: {
+                NavigationLink { ActasView() } label: {
                     HubRow(icono: "doc.text.fill", color: Color(hex: 0x7C3AED),
                            titulo: L.t("Actas", "Minutes"),
                            subtitulo: L.t("Acta 2026-08 en borrador", "Draft minutes 2026-08"),
                            badge: 1)
                 }
-                NavigationLink { CartasView().sinBotonVolver() } label: {
+                NavigationLink { CartasView() } label: {
                     HubRow(icono: "envelope.fill", color: Color(hex: 0x06B6D4),
                            titulo: L.t("Cartas y traslados", "Letters & transfers"),
                            subtitulo: L.t("3 documentos abiertos", "3 open documents"))
