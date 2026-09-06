@@ -389,15 +389,39 @@ Cápsulas contadas en el teléfono con la app corriendo:
 | Informes, Agenda, Servicios, Actas, Cartas | 1 cada una |
 
 Así que **las cinco de una cápsula recuperan el chevron** (verificado: aparece y
-vuelve al hub en las cinco). **Membresía se queda con `sinBotonVolver()`**:
-al devolverle el chevron el sistema **tiró el `+` sin avisar** —la barra pasaba
-a `Secretary, Search, Members (8), More filters` y desaparecía dar de alta—,
-que es exactamente el límite de la quinta cápsula que ya documenta §4. Acortar
-el selector no es salida: su conteo es lo único que dice cuántas personas se
-ven y que la lista está filtrada.
+vuelve al hub en las cinco). Membresía se quedó con `sinBotonVolver()` esa
+tarde: al devolverle el chevron el sistema **tiró el `+` sin avisar** —la barra
+pasaba a `Secretary, Search, Members (8), More filters` y desaparecía dar de
+alta—, que es exactamente el límite de la quinta cápsula que ya documenta §4.
 
-Queda por decidir qué sale de la barra de Membresía para que quepan las dos
-cosas. Y Tesorería y el Dashboard siguen con el mismo patrón, sin revisar.
+**Resuelto: el alta bajó a la lista.** `MembresiaView.listaCuerpo` abre con una
+fila "Nuevo miembro" —`plus.circle.fill` y el texto en la marca, con el icono al
+ancho del `Avatar` para que el nombre arranque en la misma vertical que los
+demás—, y `botonNuevo` desapareció de la barra del teléfono. Así **las seis
+pantallas de Secretaría tienen chevron**.
+
+Se eligió frente a la otra salida —bajar el selector a un segmentado como el de
+iPad— por dos costos medidos: el conteo de la etiqueta es lo único que dice
+cuántas personas se ven y que la lista está filtrada, así que moverlo obligaba a
+inventarle sitio; y ese sitio es una franja fija de cromo, justo lo que los
+siete commits de esa tarde estuvieron quitando. La fila, en cambio, no gasta
+cromo nuevo: la lista ya estaba.
+
+**El costo aceptado, y medido:** la fila solo sale en Miembros. Seguimiento es
+una lista de alertas —de ahí no nace un alta— y Asistencia no es una lista, así
+que desde esas dos vistas hay que pasar a Miembros para dar de alta. Hay una
+prueba que lo fija (`testElAltaSoloEstaEnMiembros`), para que sea una decisión y
+no una sorpresa.
+
+Verificado con la app corriendo, no compilando (iPhone 17e y iPad Pro 13", en
+inglés): la barra del teléfono queda `Secretary, Search, Members (8), More
+filters` con las cuatro cápsulas vivas, el chevron vuelve al hub, la fila abre
+la hoja de alta, y en iPad el `+` sigue arriba y la fila no se dibuja. **El
+quinto botón que sale al listar la barra no es un menú "More"**: es el
+duplicado interno del `Menu` del selector —mismo marco y `hittable=false`—, así
+que no hay nada escondido detrás.
+
+Tesorería y el Dashboard siguen con el mismo patrón, sin revisar.
 
 ---
 

@@ -20,27 +20,27 @@ struct IPhoneSecretariaView: View {
                 kpiPadron
             }
 
-            // **Cinco de las seis recuperan su botón de volver.** Todas
-            // colgaban del hub con `sinBotonVolver()`, cuya razón escrita era
-            // que el chevron gasta una cápsula y que la pestaña de Secretaría
-            // lleva al mismo sitio. Las dos salidas existen y funcionan
-            // —comprobado en las seis: tocar la pestaña vuelve, y el gesto de
-            // borde también— pero ninguna se VE. Una secretaria que entra a
-            // Actas no tiene por qué deducir cómo se sale.
+            // **Las seis tienen su botón de volver.** Todas colgaban del hub
+            // con `sinBotonVolver()`, cuya razón escrita era que el chevron
+            // gasta una cápsula y que la pestaña de Secretaría lleva al mismo
+            // sitio. Las dos salidas existen y funcionan —comprobado en las
+            // seis: tocar la pestaña vuelve, y el gesto de borde también— pero
+            // ninguna se VE. Una secretaria que entra a Actas no tiene por qué
+            // deducir cómo se sale.
             //
             // Y el argumento de la cápsula solo valía para UNA. Contadas en el
             // teléfono con la app corriendo: Informes, Agenda, Servicios,
             // Actas y Cartas usan **una** cápsula cada una, con el lado
-            // izquierdo vacío. Membresía usa cinco —lupa, selector de vista,
-            // filtros y `+`— y al devolverle el chevron el sistema **tiró el
-            // `+` sin avisar**: se quedaba sin dar de alta. Por eso esa sigue
-            // con `sinBotonVolver()` hasta decidir qué sale de su barra; el
-            // conteo del selector no vale, que es lo único que dice cuántas
-            // personas se ven y que la lista está filtrada.
+            // izquierdo vacío, y recuperaron el chevron el 5 de septiembre.
+            // Membresía usaba cinco —lupa, selector de vista, filtros y `+`— y
+            // el sistema **tiraba el `+` sin avisar**: se quedaba sin dar de
+            // alta. Se resolvió bajando el alta a la lista, no acortando el
+            // conteo del selector, que es lo único que dice cuántas personas
+            // se ven y que la lista está filtrada. Ver `MembresiaView.barra`.
             Section(L.t("PADRÓN", "ROSTER")) {
                 // Membresía solo si esta persona ve el padrón. Ver `Permisos`.
                 if permisos.vePadron {
-                    NavigationLink { MembresiaView().sinBotonVolver() } label: {
+                    NavigationLink { MembresiaView() } label: {
                         HubRow(icono: "person.text.rectangle.fill", color: Paleta.brand,
                                titulo: L.t("Membresía", "Membership"),
                                subtitulo: L.t("\(padron.total) personas · \(padron.activos) activos",

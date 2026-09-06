@@ -146,8 +146,19 @@ struct MembresiaView: View {
                 // En Asistencia no hay lista que filtrar, así que el botón no
                 // se dibuja en vez de quedarse sin efecto.
                 if subtab != 1 { botonFiltros }
-                if administraPadron { botonNuevo }
             }
+            // **Aquí NO va el `+`.** Con él, la barra del teléfono llegaba a
+            // cinco cápsulas —volver, lupa, selector de vista, filtros y `+`—
+            // y el sistema tira la quinta sin avisar: la barra pasaba a
+            // `Secretary, Search, Members (8), More filters` y la pantalla se
+            // quedaba sin dar de alta, sin que nada lo dijera. Era la única
+            // de las seis de Secretaría que por eso seguía sin chevron.
+            //
+            // El alta bajó a la lista, ver `filaNuevoMiembro`. Se eligió
+            // frente a bajar el selector a un segmentado como el de iPad
+            // porque el conteo de su etiqueta es lo único que dice cuántas
+            // personas se ven y que la lista está filtrada: moverlo obligaba
+            // a inventarle sitio, o sea una franja de cromo más.
         } else if administraPadron {
             ToolbarItem(placement: .topBarTrailing) { botonNuevo }
         }
@@ -479,6 +490,14 @@ struct MembresiaView: View {
     @ViewBuilder
     private var listaCuerpo: some View {
         List {
+            // **Solo en Miembros.** El padrón es la lista a la que se añade
+            // una persona: Seguimiento es una lista de alertas —de ahí no
+            // nace un alta— y Asistencia ni siquiera es una lista. En iPad la
+            // barra es de la pantalla entera y el `+` cabe de sobra, así que
+            // allí sigue arriba y esta fila no se dibuja.
+            if compacto && administraPadron && subtab == 0 {
+                filaNuevoMiembro
+            }
             if subtab == 2 {
                 ForEach(vm.itemsSeguimiento) { m in
                     filaSeguimiento(m)
@@ -496,6 +515,35 @@ struct MembresiaView: View {
     }
 
     // MARK: - Filas de lista
+
+    /// La misma forma que las otras dos filas de alta de la app —la categoría
+    /// nueva de Ajustes y el dinero sin depositar de un corte—: `plus.circle`
+    /// relleno y el texto, los dos en la marca.
+    ///
+    /// Va con `filaDeLista` y con el icono al ancho del `Avatar` para que sea
+    /// una tarjeta más de la lista y no un renglón suelto: el nombre "Nuevo
+    /// miembro" arranca en la misma vertical que los 248 nombres de abajo.
+    private var filaNuevoMiembro: some View {
+        Button { mostrarNuevo = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(Paleta.brand)
+                    .frame(width: 38, height: 38)
+                Text(L.t("Nuevo miembro", "New member"))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Paleta.brand)
+                Spacer(minLength: 6)
+            }
+            .padding(.vertical, 10)
+            // El `Spacer` deja el `HStack` del ancho de la fila, pero el área
+            // de toque de un `Button` es su etiqueta: sin esto, tocar el aire
+            // de la derecha no abre nada, y es donde cae el pulgar.
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .filaDeLista(seleccionada: false, tarjeta: true)
+    }
 
     private func filaMiembro(_ m: Miembro) -> some View {
         let esSel = m.id == vm.seleccionId
