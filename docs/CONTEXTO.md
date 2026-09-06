@@ -5,14 +5,88 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **5 de septiembre de 2026**.
+Última actualización: **6 de septiembre de 2026**.
+
+---
+
+## 0. La sesión del 6 de septiembre, en una página
+
+Doce commits, de `1520d98` a `98ef902`, todos subidos y con `main` adelantada a
+la par. Lo que sigue es el resumen; el detalle de cada decisión está más abajo
+en su sección y en los mensajes de commit.
+
+### Lo que se cerró
+
+**Todas las pantallas tienen botón de volver.** Eran once colgando de un hub sin
+salida visible. Las cinco de Secretaría cayeron el 5-sep; el 6 cayeron
+Membresía (el `+` bajó a la lista), cinco de Tesorería y el Dashboard, y por
+último Movimientos. `sinBotonVolver()` ya no lo llama nadie.
+
+**El corte al hacer scroll, en Agenda y Registro.** Capas y no hermanos, como
+Actas. En Agenda además la fila de nombres de día subió a la barra, y solo en
+Mes.
+
+**El disparador `frenar_baja_tesorero` está aplicado** en Supabase
+(`hkpbkpojeierxqtbmagh`) y verificado sobre datos reales. Era una de las tres
+cosas que esperaban a Iván.
+
+**Tres de los cuatro informes de membresía.** General ya estaba; se añadieron
+Miembros (ocho tarjetas que filtran + los cuatro filtros combinables) y
+Asistencia (cuatro cifras + los que más vinieron). Reflejados del web.
+
+**Arreglos que salieron de mirar la app, no el código:** el título grande
+escondido detrás del cristal (cuatro pantallas), el segmentado de Agenda que era
+un parche gris, y la fecha de Servicios que decía "SAT 5" junto a "Sep 6".
+
+### Lo que queda
+
+1. **Probar la sincronización con la cuenta real.** La grande. Padrón,
+   parentescos, cultos, asistencia, puestos y orden suben y bajan por código que
+   NUNCA ha tocado la red: el modo revisión no la ejercita. Ver §5 y §6.
+2. **El informe de Seguimiento**, el cuarto. El web lo tiene resuelto en
+   `services/informes/membresia.ts`: `alertasSeguimiento` y sus `TipoAlerta`.
+3. **El `+` de Membresía podría volver a la barra.** Bajó a la lista cuando las
+   únicas salidas eran esa o quedarse sin chevron; el cajón de la lupa abre una
+   tercera. Sin tocar, porque la fila funciona y la decisión fue de Iván.
+4. **El resumen de la maqueta miente.** `MockMembresiaRepository.resumen()`
+   devuelve 248/236/21 escritos a mano sobre una `lista()` de siete. El hub y la
+   cabecera de Membresía lo leen. Arreglarlo cambia lo que enseñan las capturas.
+5. **La tira de días de la vista Semana** va dentro del scroll (§ Agenda).
+6. **`Aportante.aportes(anio:)` filtra el año en local** sobre fechas que se
+   parsean en UTC: un aporte del 1 de enero importado de CSV cae en el año
+   anterior. No se tocó porque mueve los importes de una constancia anual.
+7. Los recurrentes sin verificar en aparato y las dos medidas del cifrado, de
+   antes (§5, §6).
+
+### Las tres lecciones que costaron una vuelta cada una
+
+**Si dos números de una pantalla tienen que cuadrar, se calculan del MISMO
+array.** Salió tres veces seguidas haciendo los informes: tarjetas que decían
+248 sobre una lista de siete, y "110 de asistencia total" junto a "186 de
+promedio por servicio" con 27 servicios. Siempre era mezclar el resumen escrito
+a mano de la maqueta con las fichas de verdad. **Las tres las cazó una prueba,
+ninguna se vio mirando la pantalla.**
+
+**Un comentario que descarta una familia de soluciones no descarta la que no se
+probó.** `MovimientosView` tenía escrito, con cuatro experimentos medidos, que
+la lupa no se podía mover. Lo que decía en realidad es que no se podía bajar a
+la barra INFERIOR. El cajón va hacia arriba, y resolvió el problema a la
+primera.
+
+**Comprobar contra la base antes de anotar un problema de producción.**
+"Familia Ruvalcaba" llevaba un día apuntada como una decisión pendiente sobre
+datos reales. No existía en `members`: era maqueta, y se había anotado mirando
+la app en modo revisión, que es justo donde los datos son inventados. Un
+`select` de un minuto lo habría evitado.
 
 ---
 
 ## 1. Dónde está el trabajo
 
-Rama viva: **`liquid-glass`**, sincronizada con `origin/liquid-glass`. Es donde
-está todo; `main` se quedó muy atrás.
+Rama viva: **`liquid-glass`**, sincronizada con `origin/liquid-glass`. **`main`
+está a la par**: el 5 y el 6 de septiembre se adelantó por avance rápido
+(`git push origin liquid-glass:main`), y conviene repetirlo de vez en cuando
+para que combinarlas no se convierta en un problema.
 
 Ramas viejas ya absorbidas aquí, no hace falta volver a ellas:
 `arreglos-interfaz`, `arreglos-revision-iphone`, `revision-y-motor-offline`.
