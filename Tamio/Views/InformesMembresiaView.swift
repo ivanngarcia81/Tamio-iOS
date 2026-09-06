@@ -305,6 +305,123 @@ struct InformesMembresiaView: View {
 
     // MARK: - Contenido del informe
 
+    // MARK: - Informe de Asistencia
+
+    /// Las cuatro cifras del periodo y quiénes vinieron más. Reflejado del web
+    /// (`resumenAsistencia` + `topAsistencia`), con sus mismos cuatro
+    /// indicadores y su mismo criterio de desempate.
+    @ViewBuilder
+    private var informeAsistencia: some View {
+        if vm.padronCargado {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L.t("Asistencia", "Attendance"))
+                        .font(.title3.weight(.semibold))
+                    Text(vm.etiquetaPeriodo)
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+
+                // **El aviso antes que las cifras**, no después: si no se tomó
+                // lista, los cuatro números de abajo son ceros que no
+                // significan "nadie vino".
+                if vm.sinListasTomadas {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(Paleta.aviso)
+                        Text(L.t("Hubo \(vm.serviciosDelPeriodo) servicios y en ninguno se tomó lista. Los porcentajes salen vacíos porque falta el dato, no porque nadie viniera.",
+                                 "There were \(vm.serviciosDelPeriodo) services and none has a roll call. The percentages are empty because the data is missing, not because nobody came."))
+                            .font(.footnote)
+                    }
+                    .padding(Esp.tarjeta)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Paleta.aviso.opacity(0.15),
+                                in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
+                }
+
+                LazyVGrid(columns: sizeClass == .regular
+                          ? [GridItem(.flexible()), GridItem(.flexible()),
+                             GridItem(.flexible()), GridItem(.flexible())]
+                          : [GridItem(.flexible()), GridItem(.flexible())],
+                          spacing: 12) {
+                    cifraAsistencia(L.t("Servicios", "Services"), "\(vm.serviciosDelPeriodo)")
+                    cifraAsistencia(L.t("Asistencia total", "Total attendance"), "\(vm.asistenciaTotal)")
+                    cifraAsistencia(L.t("Promedio por servicio", "Average per service"),
+                                    "\(vm.promedioPorServicio)")
+                    // El "—" es la verdad cuando no hay de dónde sacar el
+                    // porcentaje; un 0% diría que no vino nadie.
+                    cifraAsistencia(L.t("% general", "Overall %"),
+                                    vm.porcentajeGeneral.map { "\($0)%" } ?? "—")
+                }
+
+                // **Aquí NO va "mejor servicio".** Sale del resumen
+                // congregacional, o sea de la otra fuente, y con la maqueta
+                // decía "214 · 23 ago" debajo de una asistencia total de 110:
+                // otra contradicción en la misma pantalla. El web tampoco lo
+                // pone en este informe. Cuando la asistencia por culto tenga
+                // una fuente única, vuelve.
+
+                Text(L.t("Los que más vinieron", "Most consistent"))
+                    .font(.headline)
+
+                let top = vm.mejoresPorAsistencia
+                if top.isEmpty {
+                    ContentUnavailableView(L.t("Sin asistencia registrada", "No attendance recorded"),
+                                           systemImage: "person.badge.clock",
+                                           description: Text(L.t("Cuando se tome lista en un culto, aquí saldrá quién vino.",
+                                                                 "Once a service has a roll call, this will show who came.")))
+                        .frame(maxWidth: .infinity, minHeight: 220)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(top.enumerated()), id: \.element.id) { i, m in
+                            filaAsistencia(m)
+                            if i < top.count - 1 { Divider().padding(.leading, Esp.pantalla) }
+                        }
+                    }
+                    .background(Paleta.superficieFila,
+                                in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
+                }
+            }
+        } else {
+            ProgressView().frame(maxWidth: .infinity, minHeight: 320)
+        }
+    }
+
+    private func cifraAsistencia(_ etiqueta: String, _ valor: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(etiqueta)
+                .font(.caption).foregroundStyle(.secondary)
+                .lineLimit(2, reservesSpace: true)
+            Text(valor)
+                .font(.title2.weight(.semibold)).monospacedDigit()
+                .contentTransition(.numericText())
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Esp.tarjeta)
+        .background(Paleta.superficieFila,
+                    in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
+    }
+
+    /// La fila del top dice las tres cosas que explican el porcentaje: cuántos
+    /// de cuántos, cuándo vino la última vez, y el porcentaje. Sin las dos
+    /// primeras, un 100% de un culto y un 100% de veintisiete se leen igual.
+    private func filaAsistencia(_ m: Miembro) -> some View {
+        HStack(spacing: 12) {
+            Avatar(iniciales: m.iniciales, color: m.estado.color, lado: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(m.nombre).font(.subheadline).lineLimit(1)
+                Text(m.enRoster + (m.asistenciaResumen?.ultimaVisita.map {
+                    " · " + L.t("última: ", "last: ") + Fechas.diaLegible($0)
+                } ?? ""))
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer(minLength: 6)
+            Text("\(m.asistenciaPct)%")
+                .font(.subheadline.weight(.semibold)).monospacedDigit()
+                .foregroundStyle(Paleta.porcentajeAsistencia(m.asistenciaPct))
+        }
+        .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+    }
+
     // MARK: - Informe de Miembros
 
     /// **Las ocho cifras del padrón, y cada una filtra la lista de abajo.**
@@ -470,6 +587,8 @@ struct InformesMembresiaView: View {
             VStack(alignment: .leading, spacing: 20) {
                 if vm.informeSeleccionado == 1 {
                     informeMiembros
+                } else if vm.informeSeleccionado == 2 {
+                    informeAsistencia
                 } else if vm.informeSeleccionado != 0 {
                     ContentUnavailableView(L.t("Próximamente", "Coming soon"),
                                            systemImage: "doc.text.magnifyingglass",

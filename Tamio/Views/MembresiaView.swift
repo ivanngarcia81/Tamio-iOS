@@ -735,9 +735,9 @@ struct MembresiaView: View {
         .buttonStyle(.plain)
     }
 
-    private func colorPct(_ p: Int) -> Color {
-        p >= 85 ? Paleta.brand : (p >= 65 ? Paleta.aviso : Paleta.negativo)
-    }
+    /// Ver `Paleta.porcentajeAsistencia`: los umbrales se comparten con el
+    /// informe de Asistencia.
+    private func colorPct(_ p: Int) -> Color { Paleta.porcentajeAsistencia(p) }
 
     private func abrir(_ m: Miembro) {
         vm.seleccionId = m.id

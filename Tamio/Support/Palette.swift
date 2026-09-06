@@ -43,6 +43,15 @@ extension Color {
 /// parte del efecto (ver `ServiciosView`).
 enum Paleta {
     /// El verde propio de Tamio (logo, seleccionado, botón Nuevo, cifras en +).
+    /// **El color de un porcentaje de asistencia**, con sus dos umbrales.
+    /// Vivía privado en `MembresiaView` y el informe de Asistencia lo
+    /// necesitaba igual: duplicarlo era garantizar que un día el 85 de una
+    /// pantalla fuera el 80 de la otra y el mismo miembro saliera verde en una
+    /// y ámbar en la otra.
+    static func porcentajeAsistencia(_ p: Int) -> Color {
+        p >= 85 ? brand : (p >= 65 ? aviso : negativo)
+    }
+
     static let brand = Color("TamioBrand")
     /// Fondo de lo seleccionado: filas, píldoras de filtro, cabecera de nav.
     static let brandFill = Color("TamioBrandFill")

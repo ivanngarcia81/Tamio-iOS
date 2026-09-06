@@ -398,6 +398,43 @@ del cambio anterior. Un `simctl shutdown` + `boot` lo arregla.
 
 ---
 
+### Informe de Asistencia — 6 de septiembre
+
+Reflejado del web (`resumenAsistencia` + `topAsistencia`): cuatro cifras del
+periodo y quiénes vinieron más, con su mismo criterio de desempate —a igual
+porcentaje, primero el que vino a más cultos, o el que vino a UNO solo
+encabezaría la lista de los más constantes—.
+
+**Dos cosas las encontró la prueba, no la vista.**
+
+1. **Una persona de baja salía en "los que más vinieron", con 0%.** Rosa Elena
+   Vega se trasladó en marzo. No es un dato malo, es una pregunta mal hecha:
+   dejó la iglesia, no faltó a los cultos. Las bajas quedan fuera del top.
+2. **Las cuatro cifras salían de dos sitios y se contradecían en pantalla**:
+   "110 de asistencia total" al lado de "186 de promedio por servicio", con 27
+   servicios. El 186 venía del resumen congregacional —un número de una iglesia
+   de 248— y el 110 de sumar las siete fichas. Ahora las cuatro se derivan de
+   las fichas y del número de servicios, con la fórmula del web. Del resumen
+   congregacional ya no se lee nada más.
+
+   Por lo mismo se quitó "mejor servicio": venía de esa otra fuente y decía
+   "214 · 23 ago" bajo una asistencia total de 110. El web tampoco lo pone aquí.
+
+**Es la tercera vez en dos informes** que dos cifras de la misma pantalla salen
+de dos sitios y acaban discrepando. La regla, ya sin excusa: **si dos números de
+una pantalla tienen que cuadrar, se calculan del mismo array.**
+
+`Paleta.porcentajeAsistencia` recoge los dos umbrales del color del porcentaje
+(85 y 65), que vivían privados en `MembresiaView`: duplicarlos era garantizar
+que un día el mismo miembro saliera verde en una pantalla y ámbar en otra.
+
+Verificado corriendo en iPhone 17e, con una prueba que además comprueba que el
+promedio ES el total entre los servicios y que el top va de mayor a menor.
+
+Falta **Seguimiento**: `alertasSeguimiento` y sus `TipoAlerta` en el web.
+
+---
+
 ### Informe de Miembros — 6 de septiembre
 
 De los cuatro informes de membresía, tres decían "Próximamente". **Miembros ya
@@ -433,9 +470,8 @@ Verificado corriendo en iPhone 17e, con una prueba que compara cada tarjeta con
 el largo de su lista: 7 de 7 sin filtrar, Active 6=6, Inactive 0=0, New 1=1,
 Incomplete 4=4, y el segundo toque quita el filtro.
 
-Faltan **Asistencia** y **Seguimiento**. El web los tiene resueltos en
-`services/informes/membresia.ts`: `resumenAsistencia` + `topAsistencia` para uno,
-`alertasSeguimiento` con sus `TipoAlerta` para el otro.
+Falta **Seguimiento**. El web lo tiene resuelto en
+`services/informes/membresia.ts`: `alertasSeguimiento` con sus `TipoAlerta`.
 
 ---
 

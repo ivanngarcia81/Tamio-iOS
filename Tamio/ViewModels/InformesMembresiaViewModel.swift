@@ -103,10 +103,98 @@ final class InformesMembresiaViewModel {
         self.padronRepo = padronRepo
     }
 
+    /// El resumen congregacional del periodo: servicios, promedio y porcentaje.
+    private(set) var asistencia: AsistenciaResumen?
+
     @MainActor
     func cargarPadron() async {
         miembros = (try? await padronRepo.lista()) ?? []
+        asistencia = await padronRepo.asistenciaResumen()
         padronCargado = true
+    }
+
+    // MARK: - Informe de Asistencia
+
+    /// Cuántos entran en el top. El web lo tiene configurable
+    /// (`umbrales.topAsistencia`); aquí es fijo hasta que Ajustes tenga dónde
+    /// ponerlo, y se nombra para que se vea que es una decisión y no un 10
+    /// suelto en medio de un `prefix`.
+    static let cuantosEnElTop = 10
+
+    /// **El aviso que evita que la pantalla parezca rota.** Es del web, con su
+    /// misma razón: hubo cultos, pero si en ninguno se tomó lista, cada miembro
+    /// sale con "—" y el informe se lee como un fallo en vez de como "falta
+    /// tomar lista". Sin el aviso, la bitácora dice que hubo 27 servicios y
+    /// esta pantalla no explica por qué no sabe nada de ellos.
+    var sinListasTomadas: Bool {
+        (asistencia?.serviciosPeriodo ?? 0) > 0
+            && miembros.allSatisfy { ($0.asistenciaResumen?.servicios ?? 0) == 0 }
+    }
+
+    /// Top por porcentaje. **Los empates se rompen por asistidos**, como en el
+    /// web: entre dos al 100%, primero el que vino a más cultos, o el que vino
+    /// a uno solo encabezaría la lista de los más constantes.
+    ///
+    /// Quien no tiene ningún culto en su periodo queda fuera y no cuenta como
+    /// 0%: no es que faltara, es que no había a qué faltar.
+    ///
+    /// **Y quien está de baja tampoco compite.** Lo enseñó la prueba: Rosa
+    /// Elena Vega, trasladada en marzo, cerraba "los que más vinieron" con un
+    /// 0%. No es un dato malo, es una pregunta mal hecha —dejó la iglesia, no
+    /// faltó a los cultos— y ese cero encabezaría la lista al revés en cuanto
+    /// alguien la ordenara de menor a mayor.
+    var mejoresPorAsistencia: [Miembro] {
+        miembros
+            .filter { !$0.estado.esBaja && ($0.asistenciaResumen?.servicios ?? 0) > 0 }
+            .sorted { a, b in
+                if a.asistenciaPct != b.asistenciaPct { return a.asistenciaPct > b.asistenciaPct }
+                return (a.asistenciaResumen?.presentes ?? 0) > (b.asistenciaResumen?.presentes ?? 0)
+            }
+            .prefix(Self.cuantosEnElTop)
+            .map { $0 }
+    }
+
+    // MARK: Las cuatro cifras, de UNA sola fuente
+
+    /// **Las cuatro salen de las fichas, no del resumen congregacional.**
+    /// Mezclarlas enseñaba una contradicción en pantalla: "110 de asistencia
+    /// total" al lado de "186 de promedio por servicio", que no pueden ser las
+    /// dos con 27 servicios. El 186 venía del resumen de la maqueta —un número
+    /// de una iglesia de 248— y el 110 de sumar las siete fichas que existen.
+    ///
+    /// Es el mismo descuadre que ya obligó a contar las tarjetas del informe de
+    /// Miembros aquí en vez de pedirlas: **si dos cifras de la misma pantalla
+    /// salen de dos sitios, un día se contradicen.** Del resumen se toma solo
+    /// el número de servicios, que las fichas no saben.
+    ///
+    /// La fórmula es la del web (`resumenAsistencia`): presentes sobre plazas
+    /// de roster.
+    var serviciosDelPeriodo: Int { asistencia?.serviciosPeriodo ?? 0 }
+
+    /// Presentes sumados de todo el padrón en el periodo.
+    var asistenciaTotal: Int {
+        miembros.reduce(0) { $0 + ($1.asistenciaResumen?.presentes ?? 0) }
+    }
+
+    /// Plazas de roster: cuántas veces alguien PUDO venir. Es el denominador
+    /// del porcentaje general, y no es servicios × miembros: quien entró al
+    /// padrón a mitad de año tuvo menos cultos a los que faltar.
+    private var plazasDeRoster: Int {
+        miembros.reduce(0) { $0 + ($1.asistenciaResumen?.servicios ?? 0) }
+    }
+
+    var promedioPorServicio: Int {
+        serviciosDelPeriodo > 0
+            ? Int((Double(asistenciaTotal) / Double(serviciosDelPeriodo)).rounded())
+            : 0
+    }
+
+    /// `nil` cuando no hay de dónde: un 0% diría que no vino nadie, y lo que
+    /// pasa es que no se tomó lista.
+    var porcentajeGeneral: Int? {
+        plazasDeRoster > 0
+            ? Int((Double(asistenciaTotal) / Double(plazasDeRoster) * 100).rounded())
+            : nil
     }
 
     /// **No se pide `resumen()` al repositorio, se cuenta aquí.** Es lo único
