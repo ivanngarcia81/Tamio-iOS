@@ -126,8 +126,16 @@ struct InformesMembresiaView: View {
         Button { mostrarFiltros = true } label: {
             Label(L.t("Periodo", "Period"), systemImage: "line.3.horizontal.decrease")
         }
-        .tint(periodoEsElDeSiempre ? nil : Paleta.brand)
-        .badge(periodoEsElDeSiempre ? 0 : 1)
+        // El globito cuenta el periodo Y los filtros del padrón: si solo
+        // contara el periodo, una lista recortada a "los de música" no diría
+        // por qué es corta, que es la lección de Ingresos.
+        .tint(filtrosPuestos == 0 ? nil : Paleta.brand)
+        .badge(filtrosPuestos)
+    }
+
+    private var filtrosPuestos: Int {
+        (periodoEsElDeSiempre ? 0 : 1)
+            + (vm.informeSeleccionado == 1 ? vm.filtrosDePadron : 0)
     }
 
     private var periodoEsElDeSiempre: Bool {
@@ -204,9 +212,70 @@ struct InformesMembresiaView: View {
     /// los doce meses solo con "Mes", los calendarios solo con "Rango". Una
     /// hoja da sitio a los doce meses; un menú los dejaría en una lista que hay
     /// que recorrer.
+    /// Un filtro del padrón: `Menu` y no `Picker`, para que "Todos" pueda ser
+    /// `nil` de verdad —"sin filtrar" no es una opción más del catálogo— y para
+    /// que la fila diga a la vez qué filtra y por qué valor, sin abrir nada.
+    private func filtroDePadron(_ titulo: String, claves: [String],
+                                valor: String?,
+                                _ poner: @escaping (String?) -> Void) -> some View {
+        Menu {
+            Button {
+                poner(nil)
+            } label: {
+                if valor == nil { Label(L.t("Todos", "All"), systemImage: "checkmark") }
+                else { Text(L.t("Todos", "All")) }
+            }
+            ForEach(claves, id: \.self) { c in
+                Button {
+                    poner(c)
+                } label: {
+                    if valor == c { Label(Padron.etiqueta(c), systemImage: "checkmark") }
+                    else { Text(Padron.etiqueta(c)) }
+                }
+            }
+        } label: {
+            HStack {
+                Text(titulo).foregroundStyle(.primary)
+                Spacer()
+                Text(valor.map(Padron.etiqueta) ?? L.t("Todos", "All"))
+                    .foregroundStyle(valor == nil ? .secondary : Paleta.brand)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private var filtrosSheet: some View {
         NavigationStack {
             List {
+                // **Los del padrón van PRIMERO, y solo en su informe.** Es la
+                // misma medida que ya se tomó en la hoja de Membresía: puesta
+                // detrás de PERIODO y AÑO, esta sección quedaba a tres
+                // arrastres —cinco periodos y ocho años por delante— de donde
+                // tiene que estar a un toque. El periodo se toca una vez por
+                // sesión; estos, cada pregunta.
+                if vm.informeSeleccionado == 1 {
+                    Section(L.t("EL PADRÓN", "THE REGISTRY")) {
+                        filtroDePadron(L.t("Estado", "Status"),
+                                       claves: EstadoMiembro.claves,
+                                       valor: vm.filtroEstado) { vm.filtroEstado = $0 }
+                        filtroDePadron(L.t("Ministerio", "Ministry"),
+                                       claves: Padron.ministerios,
+                                       valor: vm.filtroMinisterio) { vm.filtroMinisterio = $0 }
+                        filtroDePadron(L.t("Cargo", "Role"),
+                                       claves: Padron.cargos,
+                                       valor: vm.filtroCargo) { vm.filtroCargo = $0 }
+                        filtroDePadron(L.t("Instrumento", "Instrument"),
+                                       claves: Padron.instrumentos,
+                                       valor: vm.filtroInstrumento) { vm.filtroInstrumento = $0 }
+                        if vm.filtrosDePadron > 0 {
+                            Button(L.t("Quitar los filtros del padrón",
+                                       "Clear registry filters")) {
+                                vm.limpiarFiltrosDePadron()
+                            }
+                        }
+                    }
+                }
                 Section(L.t("PERIODO", "PERIOD")) {
                     ForEach(PeriodoInforme.allCases, id: \.self) { p in
                         filaFiltro(p.etiqueta, activo: vm.periodoTipo == p) {

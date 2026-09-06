@@ -470,6 +470,28 @@ Verificado corriendo en iPhone 17e, con una prueba que compara cada tarjeta con
 el largo de su lista: 7 de 7 sin filtrar, Active 6=6, Inactive 0=0, New 1=1,
 Incomplete 4=4, y el segundo toque quita el filtro.
 
+**Los cuatro filtros combinables, después.** Al informe de Miembros le faltaba
+lo otro que el web tiene: estado, ministerio, cargo e instrumento. **Combinan
+con la tarjeta, no la sustituyen** —"Incompletos" y luego "música" es la
+pregunta real: a quién de la alabanza le falta expediente—, y van en la hoja de
+filtros que ya existía, así que no gastan una sexta cápsula.
+
+Dos medidas que se repiten de Membresía y de Ingresos: **la sección del padrón
+va PRIMERA en la hoja**, porque detrás de PERIODO y AÑO quedaba a tres arrastres
+—cinco periodos y ocho años por delante— de donde tiene que estar a un toque; y
+**el globito del botón los cuenta**, porque una lista recortada a "los de
+música" no se explica sola. La tarjeta no entra en ese conteo: ya se ve
+encendida en su propia fila, y contarla dos veces es el error que Membresía
+cometió con el año.
+
+Son `Menu` y no `Picker` para que "Todos" pueda ser `nil` de verdad: "sin
+filtrar" no es una opción más del catálogo.
+
+Verificado corriendo: 7 sin filtrar, 6 con la tarjeta Active, y 1 al añadir
+Ministerio = música encima. La prueba afirma que añadir un filtro nunca AMPLÍA
+la lista —que es como se notaría que la tarjeta se perdió— y que el conteo
+cuadra con las filas.
+
 Falta **Seguimiento**. El web lo tiene resuelto en
 `services/informes/membresia.ts`: `alertasSeguimiento` con sus `TipoAlerta`.
 

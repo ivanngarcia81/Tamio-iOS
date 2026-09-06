@@ -210,8 +210,43 @@ final class InformesMembresiaViewModel {
     /// las altas de 2026 sería mentir con la cara seria.
     var añoDelPeriodo: Int { añoSeleccionado }
 
+    // MARK: Los cuatro filtros combinables del informe de Miembros
+
+    /// Reflejados del web: estado, ministerio, cargo e instrumento. `nil` es
+    /// "sin filtrar" —el web usa la cadena "todos" por lo mismo—, así que el
+    /// contador del botón no lo cuenta.
+    ///
+    /// **Combinan con la tarjeta, no la sustituyen.** La tarjeta dice qué
+    /// recorte del padrón se mira; estos, qué se busca dentro de él. Elegir
+    /// "Incompletos" y luego "música" es la pregunta que hace una secretaria:
+    /// a quién de la alabanza le falta expediente.
+    var filtroEstado: String?
+    var filtroMinisterio: String?
+    var filtroCargo: String?
+    var filtroInstrumento: String?
+
+    /// Lo que cuenta el globito del botón. La tarjeta NO entra: ya se ve
+    /// encendida en su propia fila, y contarla dos veces era el error que
+    /// Membresía cometió con el año.
+    var filtrosDePadron: Int {
+        [filtroEstado, filtroMinisterio, filtroCargo, filtroInstrumento]
+            .compactMap { $0 }.count
+    }
+
+    func limpiarFiltrosDePadron() {
+        filtroEstado = nil; filtroMinisterio = nil
+        filtroCargo = nil; filtroInstrumento = nil
+    }
+
     var miembrosFiltrados: [Miembro] {
-        miembros.filter { tarjeta.incluye($0, año: añoDelPeriodo) }
+        miembros.filter { m in
+            guard tarjeta.incluye(m, año: añoDelPeriodo) else { return false }
+            if let e = filtroEstado, m.estado.clave != e { return false }
+            if let mi = filtroMinisterio, !m.ministerios.contains(mi) { return false }
+            if let c = filtroCargo, !m.cargos.contains(c) { return false }
+            if let i = filtroInstrumento, !m.instrumentos.contains(i) { return false }
+            return true
+        }
     }
 
     // MARK: - Etiqueta del periodo seleccionado
