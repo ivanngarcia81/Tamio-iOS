@@ -18,7 +18,7 @@ final class AgendaViewModel {
     ///
     /// La semilla no hace falta tocarla: sus eventos van por día del mes, no
     /// por fecha, así que valen para el mes que sea.
-    init(repo: AgendaRepository = MockAgendaRepository()) {
+    init(repo: AgendaRepository = repositorioAgenda()) {
         self.repo = repo
         self.mesActual = Date()
         self.diaSeleccionado = Calendar.current.component(.day, from: Date())
@@ -71,19 +71,26 @@ final class AgendaViewModel {
 
     // MARK: - Navigation
 
-    func irAlMesSiguiente() {
+    // **Cambiar de mes recarga.** La lista era de todos los eventos y la
+    // rejilla los repartía por día, así que en octubre seguían viéndose los de
+    // septiembre en los mismos números. Ahora cada mes pide los suyos.
+    func irAlMesSiguiente() async {
         mesActual = cal.date(byAdding: .month, value: 1, to: mesActual) ?? mesActual
         diaSeleccionado = 1
+        await cargar()
     }
 
-    func irAlMesAnterior() {
+    func irAlMesAnterior() async {
         mesActual = cal.date(byAdding: .month, value: -1, to: mesActual) ?? mesActual
         diaSeleccionado = 1
+        await cargar()
     }
 
-    func irAHoy() {
+    func irAHoy() async {
+        let cambiaDeMes = !cal.isDate(mesActual, equalTo: Date(), toGranularity: .month)
         mesActual = Date()
         diaSeleccionado = cal.component(.day, from: Date())
+        if cambiaDeMes { await cargar() }
     }
 
     // MARK: - Events
@@ -106,14 +113,38 @@ final class AgendaViewModel {
 
     var proximoId: String { UUID().uuidString }
 
-    func añadir(_ ev: EventoAgenda) {
-        eventos.append(ev)
+    /// **Guarda de verdad y luego recarga.** Antes solo hacía `append` a un
+    /// array: la actividad se veía hasta que se salía de la pantalla y
+    /// entonces desaparecía sin decir nada, porque `cargar()` volvía a pedirle
+    /// la lista al repositorio y allí nunca se había escrito.
+    ///
+    /// Se recarga en vez de insertar en memoria para no tener dos verdades: el
+    /// repositorio ordena, filtra por mes y traduce el estado, y repetir aquí
+    /// ese criterio es cómo se acaba con una pantalla que enseña una cosa
+    /// antes de recargar y otra después.
+    func añadir(_ ev: EventoAgenda) async {
+        try? await repo.guardar(ev)
+        // Dar de alta algo de otro mes lleva a ese mes: si no, se guarda bien
+        // y parece que no se guardó nada. Se comparan los "YYYY-MM" y no dos
+        // `Date`: la fecha guardada se parsea en UTC y el mes en curso es
+        // local, y en el borde del mes eso no coincide.
+        let mesDelEvento = String(ev.fecha.prefix(7))
+        if mesDelEvento != Fechas.claveMes(mesActual),
+           let f = Fechas.inicioDeMesDeClave(mesDelEvento) {
+            mesActual = f
+        }
+        await cargar()
         diaSeleccionado = ev.dia
+    }
+
+    func eliminar(id: String) async {
+        try? await repo.eliminar(id: id)
+        await cargar()
     }
 
     func cargar() async {
         cargando = true
-        eventos = (try? await repo.eventos()) ?? []
+        eventos = (try? await repo.eventos(mes: mesActual)) ?? []
         cargando = false
     }
 }

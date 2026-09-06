@@ -660,6 +660,53 @@ final class BaseLocal {
             }
         }
 
+        // **La agenda, espejo de `public.agenda`.** La pantalla existía desde
+        // el principio pero corría sobre `MockAgendaRepository`: no había
+        // tabla, no había cola de salida y crear una actividad solo la metía
+        // en un array que se perdía al recargar. La tabla del web ya estaba
+        // puesta y con datos.
+        //
+        // Las columnas son las suyas, con dos diferencias que conviene saber:
+        //
+        // `completado` no existe allá. El web lo dice con `estado`, que tiene
+        // cinco valores —borrador, programada, confirmada, completada,
+        // cancelada—; aquí se deriva de él al leer y se escribe de vuelta como
+        // `completada`. Guardar los dos habría dejado que se contradijeran.
+        //
+        // `recurrencia`, `excepciones` y `recordatorios` viajan como el JSON
+        // que son, sin interpretarlos: el iOS todavía no repite series, y
+        // parsear para volver a serializar solo añade sitios donde perder
+        // datos que el web sí sabe leer.
+        m.registerMigration("v18_agenda") { db in
+            try db.create(table: "agenda") { t in
+                t.primaryKey("id", .text)
+                t.column("fecha", .text).notNull().indexed()   // "YYYY-MM-DD"
+                t.column("nombre", .text).notNull().defaults(to: "")
+                t.column("tipo", .text).notNull().defaults(to: "otra")
+                t.column("tipoPersonalizado", .text).notNull().defaults(to: "")
+                t.column("horaInicio", .text)
+                t.column("horaFin", .text)
+                t.column("diaCompleto", .boolean).notNull().defaults(to: false)
+                t.column("lugar", .text).notNull().defaults(to: "")
+                t.column("descripcion", .text).notNull().defaults(to: "")
+                // El responsable puede ser alguien del padrón o texto libre,
+                // como en el web: una actividad la puede llevar quien no tiene
+                // ficha todavía.
+                t.column("miembroId", .text)
+                t.column("responsablePersona", .text).notNull().defaults(to: "")
+                t.column("responsableMinisterio", .text).notNull().defaults(to: "")
+                t.column("invitado", .text).notNull().defaults(to: "")
+                t.column("contacto", .text).notNull().defaults(to: "")
+                t.column("estado", .text).notNull().defaults(to: "programada")
+                t.column("recurrencia", .text).notNull().defaults(to: #"{"tipo":"ninguna"}"#)
+                t.column("excepciones", .text).notNull().defaults(to: "[]")
+                t.column("recordatorios", .text).notNull().defaults(to: "[]")
+                t.column("esFechaImportante", .boolean).notNull().defaults(to: false)
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return m
     }
 

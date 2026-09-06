@@ -288,6 +288,37 @@ struct ServicioFila: Codable, FetchableRecord, PersistableRecord {
     var borrado: Bool
 }
 
+/// Una actividad de la agenda. Espejo de `public.agenda`; los nombres de las
+/// columnas siguen la convención del resto de filas de aquí (camelCase), y la
+/// traducción a los nombres del web se hace en `MotorSincronizacion`, que es
+/// donde se hace la de todas las demás.
+struct EventoAgendaFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "agenda"
+
+    var id: String
+    var fecha: String
+    var nombre: String
+    var tipo: String
+    var tipoPersonalizado: String
+    var horaInicio: String?
+    var horaFin: String?
+    var diaCompleto: Bool
+    var lugar: String
+    var descripcion: String
+    var miembroId: String?
+    var responsablePersona: String
+    var responsableMinisterio: String
+    var invitado: String
+    var contacto: String
+    var estado: String
+    var recurrencia: String
+    var excepciones: String
+    var recordatorios: String
+    var esFechaImportante: Bool
+    var actualizadoEn: String?
+    var borrado: Bool
+}
+
 /// Quién vino a un culto. Una fila por persona, aunque la lista se tome por
 /// familia. Espejo de `servicio_asistencia`.
 struct AsistenciaFila: Codable, FetchableRecord, PersistableRecord {

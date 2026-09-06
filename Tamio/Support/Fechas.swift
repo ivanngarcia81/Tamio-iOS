@@ -202,6 +202,31 @@ enum Fechas {
     /// que la columna de fecha guardaba una frase: no se podía ordenar, ni
     /// comparar, ni volver a leer como fecha, y la app web la usa para las dos
     /// cosas (`substr(fecha, 1, 10) <= ?`).
+    /// `"2026-09"`. **El mes de un `Date` del aparato**, para acotar consultas
+    /// por prefijo sobre una columna `fecha` de tipo "YYYY-MM-DD".
+    ///
+    /// Local a propósito, y por eso existe: el mes que se está mirando lo pone
+    /// el usuario con `Date()` y `date(byAdding:)`, que son locales. Pasarle
+    /// aquí una fecha PARSEADA —`desdeTexto` devuelve medianoche UTC— la corre
+    /// al día anterior al oeste de Greenwich, y el 1 de octubre se convierte en
+    /// el 30 de septiembre: la agenda de octubre salía vacía. Para ir en la
+    /// otra dirección está `inicioDeMesDeClave`, que no pasa por UTC.
+    static func claveMes(_ d: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM"
+        return f.string(from: d)
+    }
+
+    /// La vuelta de `claveMes`: el primer día de ese mes en el calendario del
+    /// aparato. Sirve para llevar la agenda al mes de una actividad sin
+    /// convertir su fecha guardada en un `Date` de UTC.
+    static func inicioDeMesDeClave(_ clave: String) -> Date? {
+        let partes = clave.split(separator: "-")
+        guard partes.count >= 2, let a = Int(partes[0]), let m = Int(partes[1]) else { return nil }
+        return Calendar.current.date(from: DateComponents(year: a, month: m, day: 1))
+    }
+
     static func claveDia(_ d: Date = Date()) -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")

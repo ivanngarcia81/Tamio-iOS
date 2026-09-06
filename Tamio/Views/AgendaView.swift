@@ -71,7 +71,7 @@ struct AgendaView: View {
                 diaInicial: vm.diaSeleccionado,
                 proximoId: vm.proximoId
             ) { ev in
-                vm.añadir(ev)
+                Task { await vm.añadir(ev) }
             }
         }
     }
@@ -206,7 +206,7 @@ struct AgendaView: View {
 
     private var navMes: some View {
         HStack(spacing: 0) {
-            Button { vm.irAlMesAnterior() } label: {
+            Button { Task { await vm.irAlMesAnterior() } } label: {
                 Image(systemName: "chevron.left").padding(Esp.hueco)
             }
             .foregroundStyle(.secondary)
@@ -218,13 +218,13 @@ struct AgendaView: View {
 
             Spacer()
 
-            Button { vm.irAHoy() } label: {
+            Button { Task { await vm.irAHoy() } } label: {
                 Text(L.t("Hoy", "Today"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Paleta.brand)
             }
 
-            Button { vm.irAlMesSiguiente() } label: {
+            Button { Task { await vm.irAlMesSiguiente() } } label: {
                 Image(systemName: "chevron.right").padding(Esp.hueco)
             }
             .foregroundStyle(.secondary)
@@ -742,14 +742,15 @@ private struct NuevoEventoSheet: View {
     }
 
     private func guardar() {
-        let dia = Calendar.current.component(.day, from: fechaEvento)
         let horaStr: String? = todoDia ? nil : Self.fmtHora.string(from: horaInicio)
         let horaFinStr: String? = todoDia ? nil : Self.fmtHora.string(from: horaFin)
         let resp = responsable == "__ext__" ? L.t("Otra persona", "Other person") : responsable
 
         let ev = EventoAgenda(
             id: proximoId,
-            dia: dia,
+            // La fecha entera, no el día del mes. El selector la tenía desde
+            // siempre y aquí se tiraba el mes y el año.
+            fecha: Fechas.claveDia(fechaEvento),
             hora: horaStr,
             titulo: titulo.trimmingCharacters(in: .whitespaces),
             descripcion: descripcion.trimmingCharacters(in: .whitespaces),

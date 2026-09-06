@@ -95,6 +95,7 @@ final class MotorSincronizacion {
             // La asistencia DESPUÉS de los cultos: cada marca apunta a uno por
             // id, y una lista cuyo culto no ha bajado no se puede colocar.
             try await bajarCultos()
+            try await bajarAgenda()
             // Las tres hijas del culto, después de él y por la misma razón que
             // los parentescos van después de las personas.
             try await bajarAsistencia()
@@ -176,6 +177,10 @@ final class MotorSincronizacion {
         }
         if op.entidad == "culto" {
             try await subirCulto(op)
+            return
+        }
+        if op.entidad == "evento" {
+            try await subirEvento(op)
             return
         }
         if op.entidad == "asistencia" {
@@ -364,6 +369,75 @@ final class MotorSincronizacion {
             try await supabase.from("servicios").insert(cuerpo).execute()
         case .actualizar, .eliminar:
             try await supabase.from("servicios").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+        case .none:
+            return
+        }
+    }
+
+    // MARK: - La agenda
+
+    /// Lo que el aparato escribe en `agenda`. Los nombres son los del web
+    /// (`sync-ag1-agenda-mensajes.sql`), que es quien manda en el esquema.
+    ///
+    /// `dia_completo` y `es_fecha_importante` son `int` allá, no booleanos:
+    /// el web los guarda como 0/1 y mandarle `true` cambiaría el tipo de la
+    /// columna a lo que decida Postgres. Se mandan como número.
+    private struct EventoEscritura: Encodable {
+        let uid, churchId: String
+        let memberUid, nombre, tipo, tipoPersonalizado, fecha: String?
+        let horaInicio, horaFin: String?
+        let diaCompleto: Int
+        let lugar, descripcion: String?
+        let responsablePersona, responsableMinisterio, invitado, contacto: String?
+        let estado, recurrencia, excepciones, recordatorios: String
+        let esFechaImportante: Int
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, nombre, tipo, fecha, lugar, descripcion, invitado, contacto
+            case estado, recurrencia, excepciones, recordatorios, deleted
+            case churchId              = "church_id"
+            case memberUid             = "member_uid"
+            case tipoPersonalizado     = "tipo_personalizado"
+            case horaInicio            = "hora_inicio"
+            case horaFin               = "hora_fin"
+            case diaCompleto           = "dia_completo"
+            case responsablePersona    = "responsable_persona"
+            case responsableMinisterio = "responsable_ministerio"
+            case esFechaImportante     = "es_fecha_importante"
+        }
+
+        init(_ f: EventoAgendaFila, churchId: String, deleted: Bool) {
+            func o(_ s: String) -> String? { s.isEmpty ? nil : s }
+            uid = f.id; self.churchId = churchId
+            memberUid = f.miembroId; nombre = o(f.nombre); tipo = o(f.tipo)
+            tipoPersonalizado = o(f.tipoPersonalizado); fecha = o(f.fecha)
+            horaInicio = f.horaInicio; horaFin = f.horaFin
+            diaCompleto = f.diaCompleto ? 1 : 0
+            lugar = o(f.lugar); descripcion = o(f.descripcion)
+            responsablePersona = o(f.responsablePersona)
+            responsableMinisterio = o(f.responsableMinisterio)
+            invitado = o(f.invitado); contacto = o(f.contacto)
+            estado = f.estado; recurrencia = f.recurrencia
+            excepciones = f.excepciones; recordatorios = f.recordatorios
+            esFechaImportante = f.esFechaImportante ? 1 : 0
+            self.deleted = deleted
+        }
+    }
+
+    private func subirEvento(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try EventoAgendaFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+        let cuerpo = EventoEscritura(
+            fila, churchId: churchIdActivo,
+            deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("agenda").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("agenda").update(cuerpo)
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
         case .none:
             return
@@ -608,6 +682,83 @@ final class MotorSincronizacion {
             if let ultimo = filas.last?.updatedAt {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('culto', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
+    private func bajarAgenda() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let memberUid, nombre, tipo, tipoPersonalizado, fecha: String?
+            let horaInicio, horaFin: String?
+            let diaCompleto: Int?
+            let lugar, descripcion: String?
+            let responsablePersona, responsableMinisterio, invitado, contacto: String?
+            let estado, recurrencia, excepciones, recordatorios: String?
+            let esFechaImportante: Int?
+            let updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, nombre, tipo, fecha, lugar, descripcion, invitado, contacto
+                case estado, recurrencia, excepciones, recordatorios, deleted
+                case memberUid             = "member_uid"
+                case tipoPersonalizado     = "tipo_personalizado"
+                case horaInicio            = "hora_inicio"
+                case horaFin               = "hora_fin"
+                case diaCompleto           = "dia_completo"
+                case responsablePersona    = "responsable_persona"
+                case responsableMinisterio = "responsable_ministerio"
+                case esFechaImportante     = "es_fecha_importante"
+                case updatedAt             = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'evento'")
+        }
+        var consulta = supabase.from("agenda").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                // Lo que está en la cola de salida se respeta: lo de este
+                // aparato todavía no ha llegado allá, y pisarlo con lo de
+                // antes perdería la edición que aún no ha subido.
+                let pendiente = try OperacionPendiente
+                    .filter(Column("entidad") == "evento" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if pendiente { continue }
+                try EventoAgendaFila(
+                    id: r.uid,
+                    fecha: r.fecha ?? "",
+                    nombre: r.nombre ?? "",
+                    tipo: r.tipo ?? "otra",
+                    tipoPersonalizado: r.tipoPersonalizado ?? "",
+                    horaInicio: r.horaInicio,
+                    horaFin: r.horaFin,
+                    diaCompleto: (r.diaCompleto ?? 0) != 0,
+                    lugar: r.lugar ?? "",
+                    descripcion: r.descripcion ?? "",
+                    miembroId: r.memberUid,
+                    responsablePersona: r.responsablePersona ?? "",
+                    responsableMinisterio: r.responsableMinisterio ?? "",
+                    invitado: r.invitado ?? "",
+                    contacto: r.contacto ?? "",
+                    estado: r.estado ?? "programada",
+                    recurrencia: r.recurrencia ?? #"{"tipo":"ninguna"}"#,
+                    excepciones: r.excepciones ?? "[]",
+                    recordatorios: r.recordatorios ?? "[]",
+                    esFechaImportante: (r.esFechaImportante ?? 0) != 0,
+                    actualizadoEn: r.updatedAt,
+                    borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('evento', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
                     """, arguments: [ultimo])
             }

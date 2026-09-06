@@ -381,11 +381,68 @@ enum TipoEvento: CaseIterable {
             return Color(.secondaryLabel)
         }
     }
+
+    /// **La clave con la que se guarda, que es la del web** (`TIPOS_ACTIVIDAD`
+    /// en `src/db.ts`). No es el nombre del `case`: el web lleva años con
+    /// `cultoRegular`, `santaCena` o `actividadJuvenil` escritos en su tabla y
+    /// quien manda en el esquema es él. Un `enum` sin `rawValue` no puede
+    /// viajar, y ponerle uno derivado del nombre habría escrito `culto` donde
+    /// el web espera `cultoRegular`.
+    ///
+    /// Las cuatro de abajo —`reunion`, `deposito`, `carta`, `tarea`— no existen
+    /// en el catálogo del web: vienen de la semilla de la maqueta, que mezclaba
+    /// actividades de verdad con recordatorios derivados de otras tablas (un
+    /// depósito pendiente, una carta sin firmar, la bandeja por revisar). Se
+    /// guardan como `otra` para no meter en `agenda` un tipo que el web no
+    /// sabría dibujar, y por eso no sobreviven a un viaje de ida y vuelta.
+    var clave: String {
+        switch self {
+        case .culto:                 return "cultoRegular"
+        case .cultoEspecial:         return "cultoEspecial"
+        case .reunionLideres:        return "reunionLideres"
+        case .reunionAdministrativa: return "reunionAdministrativa"
+        case .asamblea:              return "asamblea"
+        case .cenaPascual:           return "santaCena"
+        case .bautismo:              return "bautismo"
+        case .dedicacionNino:        return "presentacionNinos"
+        case .boda:                  return "boda"
+        case .vigilia:               return "vigilia"
+        case .campana:               return "campana"
+        case .conferencia:           return "congreso"
+        case .retiro:                return "retiro"
+        case .ensayo:                return "ensayo"
+        case .actividadJovenes:      return "actividadJuvenil"
+        case .actividadHombres:      return "actividadCaballeros"
+        case .actividadDamas:        return "actividadDamas"
+        case .actividadNinos:        return "actividadInfantil"
+        case .actividadComunitaria:  return "actividadComunitaria"
+        case .fechaLimite:           return "fechaLimite"
+        case .reunion, .deposito, .carta, .tarea, .otro: return "otra"
+        }
+    }
+
+    /// De vuelta. Lo que no se reconoce cae en `otro` en vez de tumbar la
+    /// lectura: el web tiene `escuelaBiblica` y `funeral`, que aquí no existen
+    /// todavía, y una agenda que no abre por un tipo desconocido es peor que
+    /// una que dibuja un icono genérico.
+    init(clave: String) {
+        // `otra` primero: cinco casos comparten esa clave —las cuatro de la
+        // maqueta y `otro`— y buscar por clave devolvería `reunion`, que es la
+        // primera del `allCases`. Lo genérico tiene que volver como genérico.
+        guard clave != "otra" else { self = .otro; return }
+        self = TipoEvento.allCases.first { $0.clave == clave } ?? .otro
+    }
 }
 
 struct EventoAgenda: Identifiable {
     let id: String
-    let dia: Int
+    /// **`"YYYY-MM-DD"`, la fecha entera.** Era solo el día del mes, y con eso
+    /// la agenda no podía guardarse: un evento del 21 valía para el 21 de
+    /// cualquier mes de cualquier año. El formulario ya recogía la fecha
+    /// completa —`fechaEvento` es un `Date`— y `guardar()` la tiraba para
+    /// quedarse con el número. El web guarda `fecha` y lo dice en su tipo:
+    /// "YYYY-MM-DD (fecha local, nunca UTC)".
+    let fecha: String
     let hora: String?
     let titulo: String
     let descripcion: String
@@ -403,6 +460,57 @@ struct EventoAgenda: Identifiable {
     var estadoEvento: String = ""
     var esFechaImportante: Bool = false
     var recordatorios: [String] = []
+
+    /// El día del mes, para la rejilla. **Se calcula de `fecha`**: el mes lo
+    /// filtra el repositorio, así que dentro de una pantalla de agenda dos
+    /// eventos con el mismo `dia` son del mismo mes.
+    ///
+    /// En UTC como el resto de fechas guardadas, por la razón de
+    /// `Fechas.diaSemanaCorto`: "2026-09-21" se parsea como medianoche UTC y
+    /// leerlo con el calendario del aparato lo corre al 20 en cualquier huso
+    /// al oeste de Greenwich, que es donde está la iglesia.
+    var dia: Int {
+        guard let d = Fechas.desdeTexto(fecha) else { return 1 }
+        return Fechas.calendarioUTC.component(.day, from: d)
+    }
+
+    /// **Para la semilla de la maqueta, que va por día del mes.** Sus eventos
+    /// no tienen año ni mes a propósito —así valen para el mes que se esté
+    /// mirando, ver `AgendaViewModel`—, y este init les pone el mes que se les
+    /// pida. No lo use código nuevo: un evento de verdad tiene fecha.
+    init(id: String, dia: Int, hora: String?, titulo: String, descripcion: String,
+         tipo: TipoEvento, completado: Bool, en mes: Date = Date(),
+         todoDia: Bool = false, horaFin: String? = nil, lugar: String = "",
+         responsable: String = "", ministerio: String = "", presupuesto: String = "",
+         notaPie: String = "", repeticion: String = "", estadoEvento: String = "",
+         esFechaImportante: Bool = false, recordatorios: [String] = []) {
+        var comps = Calendar.current.dateComponents([.year, .month], from: mes)
+        comps.day = dia
+        let fecha = Calendar.current.date(from: comps) ?? mes
+        self.init(id: id, fecha: Fechas.claveDia(fecha), hora: hora, titulo: titulo,
+                  descripcion: descripcion, tipo: tipo, completado: completado,
+                  todoDia: todoDia, horaFin: horaFin, lugar: lugar,
+                  responsable: responsable, ministerio: ministerio,
+                  presupuesto: presupuesto, notaPie: notaPie, repeticion: repeticion,
+                  estadoEvento: estadoEvento, esFechaImportante: esFechaImportante,
+                  recordatorios: recordatorios)
+    }
+
+    init(id: String, fecha: String, hora: String?, titulo: String, descripcion: String,
+         tipo: TipoEvento, completado: Bool,
+         todoDia: Bool = false, horaFin: String? = nil, lugar: String = "",
+         responsable: String = "", ministerio: String = "", presupuesto: String = "",
+         notaPie: String = "", repeticion: String = "", estadoEvento: String = "",
+         esFechaImportante: Bool = false, recordatorios: [String] = []) {
+        self.id = id; self.fecha = fecha; self.hora = hora
+        self.titulo = titulo; self.descripcion = descripcion
+        self.tipo = tipo; self.completado = completado
+        self.todoDia = todoDia; self.horaFin = horaFin; self.lugar = lugar
+        self.responsable = responsable; self.ministerio = ministerio
+        self.presupuesto = presupuesto; self.notaPie = notaPie
+        self.repeticion = repeticion; self.estadoEvento = estadoEvento
+        self.esFechaImportante = esFechaImportante; self.recordatorios = recordatorios
+    }
 }
 
 // MARK: - Informes
