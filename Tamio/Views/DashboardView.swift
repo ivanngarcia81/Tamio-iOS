@@ -322,7 +322,11 @@ struct DashboardView: View {
 
     /// Fila naranja de advertencia que navega a la bandeja "Por revisar".
     private func porRevisarBanner(_ d: DashboardData) -> some View {
-        NavigationLink { RevisarView().sinBotonVolver() } label: {
+        // Con chevron: medido, su barra usa una sola cápsula ("Approve N of
+        // M") y no pierde nada. Ojo al medirlo: la pestaña se llama igual que
+        // este aviso, y una prueba que toque la pestaña abre Revisar como
+        // raíz —sin chevron posible— y miente.
+        NavigationLink { RevisarView() } label: {
             HStack(spacing: 14) {
                 Image(systemName: "exclamationmark.circle.fill")
                     .font(.title2)
@@ -403,6 +407,8 @@ struct DashboardView: View {
 
     private func listaMovimientosIPhone(_ d: DashboardData) -> some View {
         tarjetaListaIPhone(titulo: L.t("Últimos movimientos", "Recent activity")) {
+            // Sin chevron, como desde el hub de Tesorería: con él el sistema
+            // tira el `+` de esta pantalla. Ver `IPhoneTesoreriaView`.
             NavigationLink { MovimientosView(tipo: .ingreso).sinBotonVolver() } label: {
                 textoEnlace(L.t("Ver todos", "See all"))
             }
@@ -417,7 +423,10 @@ struct DashboardView: View {
 
     private func listaSemanaIPhone(_ d: DashboardData) -> some View {
         tarjetaListaIPhone(titulo: L.t("Esta semana", "This week")) {
-            NavigationLink { AgendaView().sinBotonVolver() } label: {
+            // Agenda ya traía chevron desde el hub de Secretaría y aquí no:
+            // la misma pantalla se salía de una forma o de ninguna según por
+            // dónde entraras. Su barra usa una cápsula, así que cabe.
+            NavigationLink { AgendaView() } label: {
                 textoEnlace(L.t("Agenda", "Calendar"))
             }
             .buttonStyle(.plain)

@@ -455,7 +455,52 @@ quinto botón que sale al listar la barra no es un menú "More"**: es el
 duplicado interno del `Menu` del selector —mismo marco y `hittable=false`—, así
 que no hay nada escondido detrás.
 
-Tesorería y el Dashboard siguen con el mismo patrón, sin revisar.
+### Tesorería y el Dashboard — 6 de septiembre
+
+Mismo criterio y misma forma de decidirlo: **contar la barra antes y después**
+de devolver el chevron, con la app corriendo, y comparar. El sistema tira la
+cápsula que no cabe sin avisar ni fallar, así que una sola medición no dice
+nada; lo que informa es la diferencia.
+
+Colgaban con `sinBotonVolver()` siete sitios: cuatro del hub de Tesorería
+(Movimientos, Aportantes, Depósitos, Reportes) y tres del Dashboard (Por
+revisar, Movimientos otra vez, y Agenda).
+
+| pantalla | barra antes | con el chevron | |
+|---|---|---|---|
+| Movimientos | Search · filtros · **New** · segmentado | Treasury · Search · filtros · segmentado | **se cae el `+`** |
+| Aportantes | File · Search · Active (9) · New | las cinco, enteras | cabe |
+| Depósitos | Sort · New · segmentado | + chevron | cabe |
+| Reportes | vacía | chevron | cabe |
+| Por revisar | Approve N of M | + chevron | cabe |
+| Agenda (Dashboard) | New | + chevron | cabe |
+
+**Cinco recuperan el chevron. Movimientos no**, y es exactamente el caso que su
+propia `barra` ya documentaba: cuatro cápsulas, y la quinta tira el `+`. Queda
+sin decidir, y no es el mismo trato que Membresía aunque sea el mismo problema:
+allí el alta es ocasional y bajarla a la lista no costó nada, aquí registrar un
+ingreso es la acción más frecuente de Tesorería.
+
+**Agenda se salía o no según por dónde entraras**: desde el hub de Secretaría
+traía chevron desde el 5-sep y desde el Dashboard no. La misma pantalla.
+
+Dos cosas que costaron una medición falsa cada una:
+
+- **La pestaña "Por revisar" se llama igual que el aviso del Dashboard**, y
+  `app.buttons` incluye la de la barra de pestañas. La prueba tocó la pestaña,
+  abrió Revisar como raíz —donde no hay chevron que valga— y midió un "no cabe"
+  que era mentira. Hay que filtrar por marco, fuera de la barra de pestañas.
+- **Un segmentado sale como varios botones** al listar la barra
+  (`Income`, `Expenses`), pero es UNA cápsula. Contar elementos en vez de
+  cápsulas da un número inflado.
+
+**Reportes tiene la barra vacía a propósito** hasta que se abre un informe: es
+una pantalla de elegir entre dos. No es un fallo ni una barra que se cayó.
+
+**Y una prueba de iPad corriendo en el iPhone parece una regresión.**
+`IPadMembresiaTests` falló con `barra = ["Month", "Quarter", "Year"]` al correr
+la tanda entera en el teléfono. Lleva un `XCTSkipUnless` por idioma de
+dispositivo; si se escribe otra prueba solo de iPad, el mismo guardia.
 
 ---
 

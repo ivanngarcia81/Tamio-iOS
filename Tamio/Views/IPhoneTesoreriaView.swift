@@ -15,19 +15,37 @@ struct IPhoneTesoreriaView: View {
                 kpiSaldo
             }
 
+            // **Cuatro de las cinco recuperan su botón de volver**, con el
+            // mismo criterio que el hub de Secretaría: las dos salidas que
+            // justificaban quitarlo —la pestaña y el gesto de borde— existen,
+            // pero ninguna se VE.
+            //
+            // Contadas en el teléfono con la app corriendo, comparando la
+            // barra antes y después de devolver el chevron: Aportantes pasa a
+            // cinco cápsulas y no pierde ninguna, Depósitos a cuatro,
+            // Reportes tiene la barra vacía hasta que se abre un informe, y
+            // Por revisar y Agenda usan una.
+            //
+            // **Movimientos es la excepción y sigue sin chevron**: con él el
+            // sistema tira el `+` sin avisar —la barra pasa a `Treasury,
+            // Search, Period and filters, Income/Expenses` y la pantalla se
+            // queda sin crear un movimiento—, que es lo que ya documenta su
+            // propia `barra`. Es el caso que Membresía resolvió bajando el
+            // alta a la lista, y aquí está sin decidir: registrar un ingreso
+            // es la acción más frecuente de Tesorería, no un alta ocasional.
             Section(L.t("REGISTRO", "RECORDS")) {
                 NavigationLink { MovimientosView(tipo: .ingreso).sinBotonVolver() } label: {
                     HubRow(icono: "arrow.left.arrow.right", color: Color(hex: 0x10B981),
                            titulo: L.t("Movimientos", "Transactions"),
                            subtitulo: subtituloMovimientos)
                 }
-                NavigationLink { MiembrosView().sinBotonVolver() } label: {
+                NavigationLink { MiembrosView() } label: {
                     HubRow(icono: "person.2.fill", color: Color(hex: 0x0D9488),
                            titulo: L.t("Aportantes", "Contributors"),
                            subtitulo: L.t("Diezmos y ofrendas por persona",
                                           "Tithes & offerings per person"))
                 }
-                NavigationLink { DepositosView().sinBotonVolver() } label: {
+                NavigationLink { DepositosView() } label: {
                     HubRow(icono: "building.columns.fill", color: Paleta.aviso,
                            titulo: L.t("Depósitos", "Deposits"),
                            subtitulo: subtituloDepositos,
@@ -36,7 +54,7 @@ struct IPhoneTesoreriaView: View {
             }
 
             Section(L.t("ANÁLISIS", "ANALYSIS")) {
-                NavigationLink { ReportesView().sinBotonVolver() } label: {
+                NavigationLink { ReportesView() } label: {
                     HubRow(icono: "chart.bar.fill", color: Color(hex: 0x0EA5E9),
                            titulo: L.t("Reportes", "Reports"),
                            subtitulo: L.t("Documentos del mes · PDF y hoja",
