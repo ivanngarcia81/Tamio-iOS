@@ -4,6 +4,12 @@ struct AgendaView: View {
     @State private var vm = AgendaViewModel()
     @State private var mostrarNuevo = false
     @State private var diaAbierto = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    /// Mismo criterio que Membresía, Ingresos, Aportantes y Depósitos: en el
+    /// teléfono el título va en la barra —si no, queda detrás del cristal— y
+    /// en iPad se queda grande.
+    private var compacto: Bool { sizeClass == .compact }
 
     /// `L.diaSemana` existía justo para esto y había quedado sin usar en el
     /// único sitio que la necesitaba: con la app en inglés el calendario ponía
@@ -32,7 +38,23 @@ struct AgendaView: View {
             L.t("\(vm.etiquetaMes) · \(vm.pendientesMes) pendientes",
                 "\(vm.etiquetaMes) · \(vm.pendientesMes) pending")
         )
-        .navigationBarTitleDisplayMode(.large)
+        // **El título grande no cabe con una barra de cristal.** Con
+        // `safeAreaBar` el contenido corre por debajo de la barra, y el título
+        // grande vive justo en esa franja: quedaba detrás del desvanecido,
+        // gris sobre negro y sin poder leerse. Lo vio Iván en una captura,
+        // rodeado con el dedo: *"el título se esconde detrás del frosted
+        // glass"*.
+        //
+        // El arreglo NO es acortar el cristal —mide lo que mide su contenido,
+        // y encogerlo apretaría los controles—: es subir el título a la barra
+        // de navegación, que es lo que ya hacían Membresía, Ingresos,
+        // Aportantes y Depósitos en el teléfono, y por eso a ellas no les
+        // pasaba. El subtítulo se conserva: `navigationSubtitle` sigue
+        // saliendo bajo el título en modo `.inline`.
+        //
+        // En iPad se queda `.large`: allí la barra es de la pantalla entera y
+        // el título no compite con ninguna cápsula.
+        .navigationBarTitleDisplayMode(compacto ? .inline : .large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { mostrarNuevo = true } label: {

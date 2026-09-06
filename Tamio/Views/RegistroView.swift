@@ -9,6 +9,12 @@ struct RegistroView: View {
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
     @State private var abierto: Apunte?
     @State private var escribiendo = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    /// Mismo criterio que Membresía, Ingresos, Aportantes y Depósitos: en el
+    /// teléfono el título va en la barra —si no, queda detrás del cristal— y
+    /// en iPad se queda grande.
+    private var compacto: Bool { sizeClass == .compact }
 
     private let morado = Paleta.morado   // Secretaría
 
@@ -33,10 +39,12 @@ struct RegistroView: View {
         .encabezadoNav(L.t("Registro", "Log"),
                        L.t("\(vm.totalCount) apuntes · lo que ha pasado en la iglesia",
                            "\(vm.totalCount) entries · what has happened at church"))
-        // `.large` como las once pantallas raíz restantes: con `.inline` el
-        // título salía centrado sobre el panel de detalle en vez de alineado a
-        // la izquierda como en todas las demás.
-        .navigationBarTitleDisplayMode(.large)
+        // **`.large` SOLO en iPad**, que es donde esta pantalla se usa: con
+        // `.inline` el título salía centrado sobre el panel de detalle en vez
+        // de alineado a la izquierda como en todas las demás. En compacto el
+        // título grande queda detrás del cristal de la barra de pastillas y no
+        // se lee — el mismo caso que Actas y Agenda.
+        .navigationBarTitleDisplayMode(compacto ? .inline : .large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { escribiendo = true } label: {

@@ -398,6 +398,37 @@ del cambio anterior. Un `simctl shutdown` + `boot` lo arregla.
 
 ---
 
+### El título grande no cabe con una barra de cristal — 6 de septiembre
+
+Lo vio Iván en dos capturas del teléfono, rodeando el hueco con el dedo: *"el
+título se esconde detrás del frosted glass"*. En Agenda y en Actas el título
+—"Calendar", "Minutes"— salía gris sobre negro y borroso, ilegible, **sin hacer
+scroll siquiera**.
+
+Con `safeAreaBar` el contenido corre por debajo de la barra: eso es lo que le da
+al glass algo que refractar, y es justo lo que se buscaba. Pero el **título
+grande** vive en esa misma franja, así que queda debajo del desvanecido.
+
+**Su hipótesis era acortar el cristal, y no es eso**: la barra mide lo que mide
+su contenido, y encogerla apretaría los controles sin devolver el título. El
+arreglo es subir el título a la barra de navegación (`.inline`), donde siempre se
+lee. `navigationSubtitle` se conserva: sale bajo el título, más pequeño.
+
+**Y ya estaba resuelto en la mitad de la app sin que nadie lo hubiera escrito.**
+De las nueve pantallas con `safeAreaBar`, cinco ya ramificaban —`.inline` en el
+teléfono, `.large` en iPad— y por eso a Membresía, Ingresos, Aportantes y
+Depósitos no les pasaba. Las cuatro que pedían `.large` en las dos son
+exactamente las cuatro que fallaban: **Actas, Agenda, Servicios y Registro**.
+
+Regla, entonces: **`safeAreaBar` y `.large` no conviven en compacto.** Si una
+pantalla lleva barra de cristal, su título va `.inline` en el teléfono.
+
+Verificado corriendo en iPhone 17e: "Calendar · September 2026 · 7 pending",
+"Minutes · Minutes 2026-08 in draft" y "Service log · Roster & attendance by
+service" se leen enteros, con el chevron y el `+` a los lados.
+
+---
+
 ### El botón de volver de Secretaría — 5 de septiembre
 
 Las seis pantallas del hub de Secretaría colgaban con `sinBotonVolver()`, así
