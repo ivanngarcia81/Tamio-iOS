@@ -674,11 +674,33 @@ revisar, Movimientos otra vez, y Agenda).
 | Por revisar | Approve N of M | + chevron | cabe |
 | Agenda (Dashboard) | New | + chevron | cabe |
 
-**Cinco recuperan el chevron. Movimientos no**, y es exactamente el caso que su
-propia `barra` ya documentaba: cuatro cápsulas, y la quinta tira el `+`. Queda
-sin decidir, y no es el mismo trato que Membresía aunque sea el mismo problema:
-allí el alta es ocasional y bajarla a la lista no costó nada, aquí registrar un
-ingreso es la acción más frecuente de Tesorería.
+**Las seis recuperan el chevron**, aunque Movimientos tardó un día más.
+
+**Movimientos: la lupa al cajón, y cabe todo.** Con el chevron, el sistema
+tiraba el `+`. Las dos salidas que se barajaban costaban algo —bajar el `+` a la
+lista como en Membresía, o renunciar al chevron— hasta que Iván propuso una
+tercera: *"y si se pone la lupa cuando uno hace scroll down que salga"*.
+
+Es `.searchable(placement: .navigationBarDrawer(displayMode: .automatic))`: el
+campo se esconde y aparece al tirar hacia abajo, como en Mail. **No gasta
+cápsula**, y esa cápsula libre es la que deja entrar el chevron sin quitarle
+nada a nadie. Medido: la barra pasa de `Search · filtros · New · segmentado` a
+`Treasury · filtros · New · segmentado`, y el segmentado hasta se lee más
+holgado.
+
+**Por qué no se había encontrado antes:** los experimentos que quedaron escritos
+en `MovimientosView.pantalla` iban todos a bajar la lupa a la BARRA INFERIOR
+—y ahí sí no hay salida, la barra del sistema queda debajo del TabView
+flotante—. El cajón es hacia arriba, no hacia abajo, y nadie lo había probado.
+
+**Y deja una pregunta abierta para Membresía:** allí el `+` bajó a la lista
+porque las dos únicas salidas conocidas eran esa o quedarse sin chevron. Con el
+cajón hay una tercera, y el `+` podría volver a la barra. No se ha tocado: la
+fila de "Nuevo miembro" funciona y la decisión fue de Iván.
+
+**`sinBotonVolver()` se queda sin usar.** No se borra: documenta con una prueba
+que `navigationBarBackButtonHidden` apaga el gesto de borde, y eso vale aunque
+hoy no lo llame nadie.
 
 **Agenda se salía o no según por dónde entraras**: desde el hub de Secretaría
 traía chevron desde el 5-sep y desde el Dashboard no. La misma pantalla.

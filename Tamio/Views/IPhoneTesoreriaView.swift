@@ -15,7 +15,7 @@ struct IPhoneTesoreriaView: View {
                 kpiSaldo
             }
 
-            // **Cuatro de las cinco recuperan su botón de volver**, con el
+            // **Las cinco tienen su botón de volver**, con el
             // mismo criterio que el hub de Secretaría: las dos salidas que
             // justificaban quitarlo —la pestaña y el gesto de borde— existen,
             // pero ninguna se VE.
@@ -26,15 +26,13 @@ struct IPhoneTesoreriaView: View {
             // Reportes tiene la barra vacía hasta que se abre un informe, y
             // Por revisar y Agenda usan una.
             //
-            // **Movimientos es la excepción y sigue sin chevron**: con él el
-            // sistema tira el `+` sin avisar —la barra pasa a `Treasury,
-            // Search, Period and filters, Income/Expenses` y la pantalla se
-            // queda sin crear un movimiento—, que es lo que ya documenta su
-            // propia `barra`. Es el caso que Membresía resolvió bajando el
-            // alta a la lista, y aquí está sin decidir: registrar un ingreso
-            // es la acción más frecuente de Tesorería, no un alta ocasional.
+            // **Movimientos fue la última, y no cabía**: con el chevron el
+            // sistema tiraba el `+` y la pantalla se quedaba sin crear un
+            // movimiento. Se resolvió mandando la lupa al cajón que se abre al
+            // tirar hacia abajo (ver `MovimientosView.pantalla`), que libera
+            // la cápsula sin quitarle nada a nadie.
             Section(L.t("REGISTRO", "RECORDS")) {
-                NavigationLink { MovimientosView(tipo: .ingreso).sinBotonVolver() } label: {
+                NavigationLink { MovimientosView(tipo: .ingreso) } label: {
                     HubRow(icono: "arrow.left.arrow.right", color: Color(hex: 0x10B981),
                            titulo: L.t("Movimientos", "Transactions"),
                            subtitulo: subtituloMovimientos)

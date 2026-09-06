@@ -111,24 +111,30 @@ struct MovimientosView: View {
     private var pantalla: some View {
         if compacto {
             columnas
-                // **La lupa se queda arriba, y no por gusto.** Medido en
-                // pantalla, con `.searchable` no hay forma de tenerla solo
-                // abajo: sin `.minimize` el campo se queda desplegado en una
-                // franja permanente —la tira que había que eliminar—; con
-                // `.minimize` el sistema pone SU botón arriba y salen dos
-                // lupas; `.toolbar(removing: .search)` no lo quita; y
+                // **La lupa vive en el cajón, no en la barra.** Con
+                // `.navigationBarDrawer` el campo se esconde y aparece al
+                // tirar hacia abajo, como en Mail: no gasta cápsula, y esa
+                // cápsula libre es la que deja entrar el botón de volver sin
+                // que el sistema tire el `+`.
+                //
+                // Lo propuso Iván —*"y si se pone la lupa cuando uno hace
+                // scroll down que salga"*— y resolvió lo que llevaba dos días
+                // atascado: Movimientos era la única pantalla de la app sin
+                // salida visible, porque sus cuatro cápsulas no dejaban sitio
+                // al chevron y la que se caía era el `+`.
+                //
+                // **Lo que NO funciona, medido antes:** sin `.minimize` el
+                // campo se queda desplegado en una franja permanente; con
+                // `.minimize` el sistema pone SU botón arriba y gasta la
+                // cápsula; `.toolbar(removing: .search)` no lo quita; y
                 // `DefaultToolbarItem(kind: .search, placement: .bottomBar)`
                 // sí lo baja, pero dentro del `TabView` de iPhone la barra
-                // inferior del sistema queda por DEBAJO de la barra de
-                // pestañas flotante y no se ve.
-                //
-                // Lo que baja en su lugar es el `+`, que es lo que el propio
-                // encargo prevé cuando no cabe todo arriba. Así el segmentado
-                // se lee entero.
+                // inferior queda por DEBAJO de la barra de pestañas flotante y
+                // no se ve. El cajón es la salida, y es la de Apple.
                 .searchable(text: $vm.busqueda,
+                            placement: .navigationBarDrawer(displayMode: .automatic),
                             prompt: Text(L.t("Buscar folio, miembro o nota",
                                              "Search folio, member or note")))
-                .searchToolbarBehavior(.minimize)
 
                 .navigationTitle(tituloBarra)
                 .navigationBarTitleDisplayMode(.inline)

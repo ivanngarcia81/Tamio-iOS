@@ -407,9 +407,9 @@ struct DashboardView: View {
 
     private func listaMovimientosIPhone(_ d: DashboardData) -> some View {
         tarjetaListaIPhone(titulo: L.t("Últimos movimientos", "Recent activity")) {
-            // Sin chevron, como desde el hub de Tesorería: con él el sistema
-            // tira el `+` de esta pantalla. Ver `IPhoneTesoreriaView`.
-            NavigationLink { MovimientosView(tipo: .ingreso).sinBotonVolver() } label: {
+            // Con chevron, como desde el hub de Tesorería: la lupa se fue al
+            // cajón y dejó la cápsula libre. Ver `MovimientosView.pantalla`.
+            NavigationLink { MovimientosView(tipo: .ingreso) } label: {
                 textoEnlace(L.t("Ver todos", "See all"))
             }
             .buttonStyle(.plain)
