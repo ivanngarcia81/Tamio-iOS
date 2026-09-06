@@ -129,9 +129,9 @@ struct MockMembresiaRepository: MembresiaRepository {
         m5.seguimientoRazon = L.t("Dos servicios sin asistir", "Two services missed")
         m5.ausenciaNota = L.t(" · enfermedad", " · illness")
 
-        var m6 = Miembro(id: "6", nombre: "Familia Ruvalcaba")
+        var m6 = Miembro(id: "6", nombre: "Norma Alicia Cantú")
         m6.telefono = "81 3030 4040"; m6.fechaIngreso = "2015-11-01"
-        m6.ministerios = ["cocina"]; m6.notas = L.t("Cuatro miembros · diezman juntos", "Four members · tithe together")
+        m6.ministerios = ["cocina"]
         m6.asistencia = serie(0.84)
         m6.asistenciaResumen = AsistenciaMiembro(presentes: 23, servicios: 27, rachaSinAsistir: 0, ultimaVisita: "2026-08-23")
 

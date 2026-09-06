@@ -39,7 +39,7 @@ struct MockAportantesCatalogo: AportantesCatalogo {
         [AportanteBreve(id: "m1", nombre: "María Hernández Ríos"),
          AportanteBreve(id: "m2", nombre: "Pedro Salas Aguirre"),
          AportanteBreve(id: "m3", nombre: "Ana Lucía Torres"),
-         AportanteBreve(id: "m4", nombre: "Familia Ruvalcaba")]
+         AportanteBreve(id: "m4", nombre: "Norma Alicia Cantú")]
     }
 }
 

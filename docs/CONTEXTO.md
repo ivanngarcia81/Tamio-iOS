@@ -577,16 +577,32 @@ aparato.
    `servicioOrden`), con su repositorio y su sincronización. Lo que falta de
    esa pantalla es el resto de la ficha del culto —cantos, escuela dominical,
    conteos— que sigue guardándose pero sin verse.
-7. **"Familia Ruvalcaba" es una familia registrada como UNA persona**, con la
-   nota "cuatro miembros · diezman juntos". Para Tesorería funciona —una
-   constancia— pero en la lista de asistencia cuenta uno donde hay cuatro y no
-   se puede seguir a ninguno. Hay que partirla en cuatro fichas unidas por
-   parentescos, o aceptar que esa familia no tiene asistencia real.
-8. **Aplicar `frenar_baja_tesorero`.** Está escrito en
-   `supabase/sync-p2-padron.sql` del repo del web (rama
-   `claude/padron-secretaria`) y sin aplicar. Las dos apps ya esconden los
-   botones, así que ya no rompe a nadie; es la base de producción y la aplica
-   Iván. Ver `docs/PADRON-WEB.md` §4.
+7. ~~"Familia Ruvalcaba"~~ **— era una falsa alarma, resuelta el 6 de
+   septiembre.** Estaba anotada como un problema de datos reales que esperaba
+   una decisión de Iván. No lo era: **no existe en la base** —cero filas en
+   `members` con ese apellido— y solo vivía en los datos de maqueta del iOS, en
+   cinco archivos. Lo dijo Iván: *"la familia Rubalcaba es ficticio lo puedes
+   borrar"*. La ficha pasó a ser una persona normal, "Norma Alicia Cantú", y con
+   ella se fue la nota "cuatro miembros · diezman juntos".
+
+   **La lección es la de siempre:** un `select` de un minuto contra la base
+   habría evitado anotar como pendiente de producto algo que era maqueta. Se
+   apuntó mirando la app corriendo en modo revisión, que es justo donde los
+   datos son inventados.
+8. ~~Aplicar `frenar_baja_tesorero`~~ **— HECHO el 6 de septiembre.** Aplicado
+   en el proyecto `hkpbkpojeierxqtbmagh`, que es al que apuntan las DOS apps
+   (`Supabase.swift` y el `.env` del web). Antes se comprobaron los requisitos
+   contra la base, no contra el archivo: las siete columnas que el disparador
+   toca existen y con los tipos que da por hechos —`activo` entero con default
+   1, `deleted` booleano, `fecha_baja`/`motivo_baja` texto y `updated_at`
+   timestamptz—, y el de P1 vive en `transactions`, así que no había conflicto
+   en `members`.
+
+   Verificado con el bloque de comprobación del propio archivo, sobre los datos
+   de verdad: `bloqueado=t` (la baja del tesorero rebota), `relevo=t` (una baja
+   que YA estaba arriba, retransmitida, pasa limpia) y `sello_avanzo=t`. El
+   `raise` final lo deshizo todo; comprobado después que no quedó ninguna fila
+   con el rastro de la prueba.
 9. **Reflejar `traslados_salida`.** Hasta entonces la pastilla "traslado en
    curso" no se ve: dejó de ser un estado de la persona y el expediente vive
    en esa tabla.
