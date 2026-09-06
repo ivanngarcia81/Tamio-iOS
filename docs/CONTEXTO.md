@@ -398,6 +398,38 @@ del cambio anterior. Un `simctl shutdown` + `boot` lo arregla.
 
 ---
 
+### Un segmentado NO es de cristal, aunque esté dentro de una barra que sí — 6 de septiembre
+
+`Picker(.segmented)` dibuja el fondo opaco de UIKit. Dentro de la barra de
+cristal de Agenda se leía como un parche gris pegado encima en vez de como parte
+de la barra. Lo señaló Iván rodeándolo en una captura.
+
+**No se envuelve el `Picker` en `.glassEffect`**: su fondo es opaco y taparía el
+cristal, que es la misma razón por la que las bandas de `.regularMaterial` había
+que QUITARLAS y no esconderlas. Van tres cápsulas en un `GlassEffectContainer`,
+como los demás controles de cristal de la app.
+
+**Y no contradice la nota de Ingresos**, donde el segmentado se queda `Picker` a
+propósito: allí vive en el `toolbar` y el sistema ya le pone su cápsula —glass
+dentro de glass, que es lo que Apple desaconseja—. En una `safeAreaBar` no hay
+cápsula del sistema, así que hay que ponerla.
+
+Dos cosas que costaron una vuelta cada una:
+
+- **La elegida tiene que ir `.glassProminent` y teñida.** Tres cápsulas iguales
+  se leen como tres acciones, no como "elige una".
+- **Y las NO elegidas hay que destintarlas con `.tint(Color.primary)`.**
+  `.glass` hereda el tinte del TabView: las tres salían en verde y las tres
+  parecían activas. Es la misma lección que ya tenía escrita `filaFiltro` de
+  Informes, en otra forma. **`.foregroundStyle` en la etiqueta NO sirve** —
+  probado—: el estilo de botón pinta por encima. La palanca es `.tint`, como en
+  Servicios.
+
+Verificado corriendo con una prueba que lee `isSelected`, no solo con la vista:
+al abrir marca Mes, y tocar Semana marca Semana y solo Semana.
+
+---
+
 ### El título grande no cabe con una barra de cristal — 6 de septiembre
 
 Lo vio Iván en dos capturas del teléfono, rodeando el hueco con el dedo: *"el

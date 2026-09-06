@@ -105,13 +105,8 @@ struct AgendaView: View {
 
     private var cabeceraCalendario: some View {
         VStack(spacing: 0) {
-            Picker(L.t("Vista", "View"), selection: $vm.vistaActual) {
-                Text(L.t("Mes", "Month")).tag(0)
-                Text(L.t("Semana", "Week")).tag(1)
-                Text(L.t("Lista", "List")).tag(2)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+            selectorVista
+                .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
 
             navMes
 
@@ -122,6 +117,77 @@ struct AgendaView: View {
             // suyo, ver `celdaSemana`— y Lista no tiene columnas.
             if vm.vistaActual == 0 { filaDiasSemana }
         }
+    }
+
+    /// **El selector de vista, en cristal.** Era un `Picker(.segmented)`, y un
+    /// segmentado dibuja su propio fondo opaco de UIKit: dentro de una barra de
+    /// cristal se leía como un parche gris pegado encima en vez de como parte
+    /// de la barra. Lo señaló Iván rodeándolo en una captura.
+    ///
+    /// **El `Picker` no se envuelve en `.glassEffect`**: su fondo es opaco y
+    /// taparía el cristal, que es la misma razón por la que las bandas de
+    /// `.regularMaterial` había que quitarlas y no esconderlas. Van tres
+    /// cápsulas en un `GlassEffectContainer`, como los demás controles de
+    /// cristal de la app, y se funden entre sí al estar cerca.
+    ///
+    /// Y NO es el caso de la barra de Ingresos, donde el segmentado se queda
+    /// `Picker` a propósito: allí vive en el `toolbar`, y el sistema ya le pone
+    /// su cápsula —glass dentro de glass—. Aquí vive en una `safeAreaBar`, que
+    /// no pone ninguna.
+    private var selectorVista: some View {
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                ForEach(Self.vistas, id: \.0) { valor, nombre in
+                    chipVista(valor, nombre)
+                }
+            }
+        }
+    }
+
+    /// Un solo sitio con los tres nombres, como en Membresía: el selector y
+    /// cualquier otra cosa que los necesite los leen de aquí.
+    private static var vistas: [(Int, String)] {
+        [(0, L.t("Mes", "Month")),
+         (1, L.t("Semana", "Week")),
+         (2, L.t("Lista", "List"))]
+    }
+
+    /// La elegida va `.glassProminent` con la marca: en un control de "elige
+    /// uno", el relleno es lo único que dice cuál está activa, y sin él tres
+    /// cápsulas iguales se leen como tres acciones. `isSelected` lo dice
+    /// también para quien no ve el relleno.
+    @ViewBuilder
+    private func chipVista(_ valor: Int, _ nombre: String) -> some View {
+        let activa = vm.vistaActual == valor
+        if activa {
+            Button { vm.vistaActual = valor } label: {
+                etiquetaVista(nombre, activa: true)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Paleta.brand)
+            .accessibilityAddTraits(.isSelected)
+        } else {
+            Button { vm.vistaActual = valor } label: {
+                etiquetaVista(nombre, activa: false)
+            }
+            // **El tinte a `.primary` en las NO elegidas.** `.glass` hereda el
+            // tinte del TabView, así que las tres salían en verde y las tres se
+            // leían como activas: la misma lección que ya dejó escrita
+            // `filaFiltro` de Informes. Teñida va solo la elegida.
+            //
+            // Se hace con `.tint` y NO con `.foregroundStyle` en la etiqueta:
+            // probado, el estilo de botón pinta por encima y el verde seguía
+            // ahí. Es la palanca que ya usa Servicios.
+            .buttonStyle(.glass)
+            .tint(Color.primary)
+        }
+    }
+
+    private func etiquetaVista(_ nombre: String, activa: Bool) -> some View {
+        Text(nombre)
+            .font(.subheadline.weight(activa ? .semibold : .regular))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
     }
 
     private var filaDiasSemana: some View {
