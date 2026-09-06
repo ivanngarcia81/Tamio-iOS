@@ -20,7 +20,6 @@ struct ActasView: View {
                 HStack(spacing: 0) {
                     listaColumna
                         .frame(width: Esp.columnaMaestra)
-                        .background(.regularMaterial)
                     Divider()
                     if let acta = vm.seleccion {
                         detalle(acta)
@@ -31,7 +30,6 @@ struct ActasView: View {
                 }
             } else {
                 listaColumna
-                    .background(.regularMaterial)
                     .navigationDestination(item: $abierto) { acta in
                         detalle(acta)
                             .navigationBarTitleDisplayMode(.inline)
@@ -71,18 +69,31 @@ struct ActasView: View {
 
     // MARK: - Lista
 
+    /// **Capas, no hermanos.** El chip del año, un `Divider` y la lista iban
+    /// apilados en un `VStack`, así que la lista no corría por debajo de nada:
+    /// al hacer scroll el contenido chocaba contra el divisor y se CORTABA a
+    /// media fila, con la banda del título vacía encima. Lo dijo Iván mirando
+    /// Actas: *"cuando se hace scroll se corta"*.
+    ///
+    /// Con `safeAreaBar` la lista ocupa todo y pasa por debajo del chip, que es
+    /// lo que le da al glass algo que refractar y al desvanecido algo que
+    /// borrar. El `Divider` sobra: con el degradado, una línea vuelve a leerse
+    /// como pared. Y el título grande ya colapsa como debe, porque ahora la
+    /// lista ES el scroll de la pantalla y no un scroll dentro de otra cosa.
     private var listaColumna: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                chipFiltro("2026", desplegable: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Esp.pantalla)
-            .padding(.vertical, 10)
-            Divider()
+        listaActas
+            .scrollEdgeEffectStyle(.soft, for: .all)
+            .safeAreaBar(edge: .top, spacing: 0) { cabeceraActas }
+            .colchonInferior()
+    }
 
-            listaActas
+    private var cabeceraActas: some View {
+        HStack(spacing: 8) {
+            chipFiltro("2026", desplegable: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Esp.pantalla)
+        .padding(.vertical, 10)
     }
 
     @ViewBuilder

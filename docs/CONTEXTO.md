@@ -342,6 +342,21 @@ datos de muestra (7 personas, 3 cortes) **no hay nada que desplazar**: hubo que
 girar el aparato a horizontal para quitarle altura a la lista y forzar el caso.
 Es la postura a repetir si se vuelve a tocar.
 
+**Actas era un tercer caso: hermanos, no capas.** No tenía material que
+quitar; tenía la cabecera, un `Divider` y la lista apilados en un `VStack`, así
+que la lista no corría por debajo de nada y al hacer scroll el contenido
+**chocaba contra el divisor y se cortaba a media fila**, con la banda del
+título vacía encima. Lo vio Iván: *"cuando se hace scroll se corta"*. Arreglado
+igual que las demás —`safeAreaBar` + `.soft`, sin `Divider`— y de paso el
+título grande ya colapsa como debe, porque ahora la lista ES el scroll de la
+pantalla y no un scroll dentro de otra cosa.
+
+**Con la misma estructura y sin arreglar: Agenda y Registro.** No es el mismo
+cambio mecánico que Actas porque su contenido no es una lista: Agenda dibuja
+una rejilla de calendario (y tres vistas que se alternan) y Registro un
+`ScrollView` con `pinnedViews: [.sectionHeaders]`. Cartas NO tiene este
+problema: su columna es la lista a secas, sin cabecera.
+
 **Y hay que devolver el simulador a vertical.** `XCUIDevice.shared.orientation`
 persiste entre pruebas: la siguiente tanda dio "no abre" en cuatro pantallas de
 Secretaría —las filas del hub quedaban fuera de cuadro— y parecía una regresión
