@@ -74,6 +74,16 @@ enum L {
         return String(s.prefix(1)).uppercased() + String(s.dropFirst())
     }
 
+    /// El mes en curso solo, sin año, para meterlo dentro de una frase:
+    /// "En septiembre" · "In September". En español va en minúscula porque
+    /// dentro de la frase no encabeza nada; en inglés el mes se escribe con
+    /// mayúscula siempre. El hub lo llevaba a mano como "En agosto".
+    static var mesSueltoEnCurso: String {
+        let s = formateador("LLLL").string(from: Date())
+        return esEspanol ? s.lowercased()
+                    : String(s.prefix(1)).uppercased() + String(s.dropFirst())
+    }
+
     // MARK: - Semilla escrita en español
 
     /// Los datos semilla vienen del handoff con meses, días y fechas ya

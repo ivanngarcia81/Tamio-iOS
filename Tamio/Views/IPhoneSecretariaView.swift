@@ -3,10 +3,20 @@ import SwiftUI
 /// Hub de Secretaría para iPhone, fiel al handoff: KPI de padrón activo,
 /// secciones PADRÓN, REGISTRO, EQUIPO y PRÓXIMOS COMPROMISOS.
 struct IPhoneSecretariaView: View {
-    /// Mismas cifras que encabezan Membresía, no un número propio.
-    private let padron = MockMembresiaRepository.resumenPadron
-    /// Mismo conteo que muestra la Agenda y el badge de la sidebar del iPad.
-    private let agendaPendientes = MockAgendaRepository.pendientesCount
+    /// **Las dos cifras del hub se CARGAN, ya no se copian de la maqueta.**
+    ///
+    /// Iban como `MockMembresiaRepository.resumenPadron` y
+    /// `MockAgendaRepository.pendientesCount`, leídos directamente y saltándose
+    /// las fábricas. Con eso la primera pantalla de Secretaría seguía diciendo
+    /// 236 de alta de 248 aunque entraras con la cuenta real y el padrón
+    /// tuviera otras cifras: la maqueta no era el modo revisión, estaba
+    /// clavada en el código.
+    ///
+    /// Ahora salen de `repositorioMembresia()` y `repositorioAgenda()`, que en
+    /// modo revisión devuelven la maqueta y con sesión devuelven la base. Y
+    /// `nil` mientras cargan: un guion se entiende, un cero inventado no.
+    @State private var padron: MembresiaResumen?
+    @State private var agenda: ResumenAgenda?
 
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
@@ -43,8 +53,11 @@ struct IPhoneSecretariaView: View {
                     NavigationLink { MembresiaView() } label: {
                         HubRow(icono: "person.text.rectangle.fill", color: Paleta.brand,
                                titulo: L.t("Membresía", "Membership"),
-                               subtitulo: L.t("\(padron.total) personas · \(padron.activos) activos",
-                                              "\(padron.total) people · \(padron.activos) active"))
+                               subtitulo: padron.map {
+                                   L.t("\($0.total) personas · \($0.activos) activos",
+                                       "\($0.total) people · \($0.activos) active")
+                               } ?? L.t("Fichas, parentescos y traslados",
+                                        "Records, relatives & transfers"))
                     }
                 }
                 NavigationLink { InformesMembresiaView() } label: {
@@ -59,8 +72,10 @@ struct IPhoneSecretariaView: View {
                 NavigationLink { AgendaView() } label: {
                     HubRow(icono: "calendar", color: Color(hex: 0x0D9488),
                            titulo: L.t("Agenda", "Calendar"),
-                           subtitulo: L.t("\(L.mesEnCurso) · \(agendaPendientes) compromisos",
-                                          "\(L.mesEnCurso) · \(agendaPendientes) events"))
+                           subtitulo: agenda.map {
+                               L.t("\(L.mesEnCurso) · \($0.pendientes) compromisos",
+                                   "\(L.mesEnCurso) · \($0.pendientes) events")
+                           } ?? L.mesEnCurso)
                 }
                 NavigationLink { ServiciosView() } label: {
                     HubRow(icono: "checklist", color: Paleta.aviso,
@@ -99,6 +114,10 @@ struct IPhoneSecretariaView: View {
                        L.t("Padrón, servicios y documentos", "Roster, services & documents"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await cfg.cargar() }
+        .task {
+            padron = await repositorioMembresia().resumen()
+            agenda = await repositorioAgenda().resumen()
+        }
     }
 
     // MARK: - KPI Padrón
@@ -109,7 +128,7 @@ struct IPhoneSecretariaView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(padron.activos)")
+                Text(padron.map { "\($0.activos)" } ?? "—")
                     .font(.system(size: 32, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(Paleta.brand)
@@ -120,54 +139,86 @@ struct IPhoneSecretariaView: View {
             // Las tres cifras salen del mismo resumen y cuadran entre sí: antes
             // este KPI decía 12 de alta y 14 en el directorio mientras
             // Membresía encabezaba 248 / 236.
-            Text(L.t("\(padron.total) en el directorio · \(padron.total - padron.activos) de baja o inactivos",
-                     "\(padron.total) in directory · \(padron.total - padron.activos) removed or inactive"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if let padron {
+                Text(L.t("\(padron.total) en el directorio · \(padron.total - padron.activos) de baja o inactivos",
+                         "\(padron.total) in directory · \(padron.total - padron.activos) removed or inactive"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.vertical, 6)
     }
 
     // MARK: - Próximos compromisos
 
+    /// **Nada de aquí está escrito: todo sale de `ResumenAgenda`.**
+    ///
+    /// Estaba clavado en el handoff de agosto —el titular decía "MAÑANA ·
+    /// 19:00" y debajo listaba "VIE 21" y "SÁB 22" con las abreviaturas en
+    /// español aunque la app estuviera en inglés—, así que en septiembre
+    /// anunciaba como "mañana" un viernes 21 que caía dentro de dos semanas, y
+    /// contaba "En agosto" dos filas debajo de una Agenda que ya encabezaba
+    /// septiembre. La "Escuela bíblica" del sábado 22 ni siquiera existía en la
+    /// agenda: solo vivía aquí.
+    ///
+    /// Las dos filas que se enseñan son las dos primeras del resumen, no una
+    /// selección propia: si la Agenda y el hub eligieran por su cuenta cuál es
+    /// el próximo compromiso, tarde o temprano dirían cosas distintas.
+    @ViewBuilder
     private var proximosCompromisos: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(L.t("MAÑANA · 19:00", "TOMORROW · 19:00"))
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Paleta.aviso)
-                Text(L.t("Consejo de ancianos", "Council of elders"))
-                    .font(.subheadline.weight(.semibold))
-                Text(L.t("Salón anexo · levantar acta", "Annex room · take minutes"))
+        if let agenda {
+            if let proximo = agenda.proximo {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(proximo.titularCorto)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Paleta.aviso)
+                        Text(proximo.evento.titulo)
+                            .font(.subheadline.weight(.semibold))
+                        if !proximo.evento.descripcion.isEmpty {
+                            Text(proximo.evento.descripcion)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    HStack(spacing: 0) {
+                        statCell(L.t("Esta semana", "This week"), "\(agenda.estaSemana)")
+                        Divider().frame(height: 30)
+                        // El mes en curso por su nombre, no "agosto" a mano.
+                        statCell(L.t("En \(L.mesSueltoEnCurso)", "In \(L.mesSueltoEnCurso)"),
+                                 "\(agenda.pendientes)")
+                        Divider().frame(height: 30)
+                        statCell(L.t("Días al próximo", "Days to next"), "\(proximo.enDias)")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color(.tertiarySystemFill),
+                                in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                    // **Los que vienen DESPUÉS del titular.** La maqueta repetía
+                    // el primero: encabezaba con el consejo de ancianos y lo
+                    // volvía a listar como primera fila. Con solo dos filas,
+                    // gastar una en repetir deja ver un único compromiso.
+                    VStack(spacing: 0) {
+                        ForEach(Array(agenda.proximos.dropFirst().prefix(2).enumerated()),
+                                id: \.element.id) { i, c in
+                            if i > 0 { Divider().padding(.leading, 52) }
+                            eventoRow(c.diaSemana, c.numDia,
+                                      c.evento.titulo, c.evento.descripcion, c.cuando)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            } else {
+                // Un mes sin nada pendiente es una respuesta, no un hueco.
+                Text(L.t("Sin compromisos próximos este mes",
+                         "Nothing scheduled for the rest of the month"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-
-            HStack(spacing: 0) {
-                statCell(L.t("Esta semana", "This week"), "5")
-                Divider().frame(height: 30)
-                statCell(L.t("En agosto", "In August"), "7")
-                Divider().frame(height: 30)
-                statCell(L.t("Días al próximo", "Days to next"), "1")
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(Color(.tertiarySystemFill),
-                        in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-            VStack(spacing: 0) {
-                eventoRow("VIE", "21",
-                          L.t("Consejo de ancianos", "Council of elders"),
-                          L.t("Salón anexo · levantar acta", "Annex room · take minutes"),
-                          L.t("19:00 mañana", "19:00 tomorrow"))
-                Divider().padding(.leading, 52)
-                eventoRow("SÁB", "22",
-                          L.t("Escuela bíblica", "Bible school"),
-                          L.t("Salón 2 · maestros de niños", "Room 2 · children's teachers"),
-                          "17:00")
+                    .padding(.vertical, 6)
             }
         }
-        .padding(.vertical, 4)
     }
 
     private func statCell(_ label: String, _ value: String) -> some View {
