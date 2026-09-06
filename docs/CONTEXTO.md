@@ -301,6 +301,32 @@ Data Protection) y qué protección le queda al respaldo en iCloud Drive.
 
 ---
 
+### `safeAreaBar`, no `safeAreaInset` — 5 de septiembre
+
+La cabecera de Informes de membresía —los chips de informe y los de periodo—
+llevaba una banda de `.regularMaterial` de lado a lado. Los chips YA eran
+Liquid Glass (`.glass` y `.glassProminent` en un `GlassEffectContainer`), pero
+la banda los estropeaba: iba ENTRE las cápsulas y el contenido que tendrían que
+refractar, así que difuminaban un gris plano, y cortaba la pantalla con una
+línea dura justo por la mitad de una tarjeta.
+
+**La lección, que sirve para las demás pantallas:** quitar el material no basta.
+Sin él el contenido pasa por debajo NÍTIDO —se leía "Kitchen · 12" cruzando por
+detrás de "General"— y `.scrollEdgeEffectStyle(.soft, …)` no hace nada, porque
+un `safeAreaInset` cualquiera **no es una barra** y no hay borde bajo el que
+desvanecer. Con `safeAreaBar` (iOS 26) sí lo es, y entonces aparece el
+degradado: el contenido se difumina al pasar bajo los chips y las cápsulas
+refractan lo que hay detrás de verdad.
+
+Comprobado con la app corriendo y **el contenido desplazado**, que es la única
+postura donde se nota; sin desplazar las tres versiones se ven casi iguales.
+Verificado en iPhone 17e y en iPad Pro 13".
+
+Mismo patrón sin revisar en Actas, Agenda, Servicios, Cartas, Movimientos y
+Membresía: todas montan su cabecera con `.background(.regularMaterial)`.
+
+---
+
 ### El botón de volver de Secretaría — 5 de septiembre
 
 Las seis pantallas del hub de Secretaría colgaban con `sinBotonVolver()`, así

@@ -33,11 +33,26 @@ struct InformesMembresiaView: View {
         contenidoInforme
             // **Capas, no hermanos**, como en Ingresos y en Aportantes: los
             // selectores iban dentro del `ScrollView`, así que se iban con él
-            // y las tarjetas no pasaban por detrás de nada. Aquí el contenido
-            // corre bajo la cabecera, que es lo único que le da al material
-            // algo que difuminar — y sin eso el glass de los chips se resuelve
-            // como una cápsula gris sobre un fondo plano.
-            .safeAreaInset(edge: .top, spacing: 0) { cabeceraInformes }
+            // y las tarjetas no pasaban por detrás de nada. El contenido corre
+            // bajo la cabecera, y eso es lo que le da al glass algo que
+            // refractar.
+            //
+            // **La cabecera ya no lleva `.regularMaterial` detrás.** Se puso
+            // creyendo que era eso lo que el glass difuminaba, y era al revés:
+            // una vez que el contenido pasa por debajo, la banda se mete ENTRE
+            // los chips y lo que tendrían que estar refractando, así que las
+            // cápsulas difuminaban un gris plano. Además cortaba la pantalla
+            // en dos con una línea dura donde no hay ninguna división.
+            //
+            // **Y es `safeAreaBar`, no `safeAreaInset`.** Con el inset el
+            // contenido pasaba por debajo NÍTIDO —se leía "Kitchen · 12"
+            // cruzando por detrás de "General"— y `scrollEdgeEffectStyle` no
+            // hacía nada: un inset cualquiera no es una barra, así que no hay
+            // borde bajo el que desvanecer. `safeAreaBar` (iOS 26) sí lo
+            // declara como barra, y con eso aparece el degradado. Comprobado
+            // con la app corriendo y el contenido desplazado, que es la única
+            // postura donde se nota.
+            .safeAreaBar(edge: .top, spacing: 0) { cabeceraInformes }
             .colchonInferior()
     }
 
@@ -107,7 +122,6 @@ struct InformesMembresiaView: View {
         }
         .padding(.vertical, Esp.chip)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial)
     }
 
     // MARK: - Helpers de exportación
@@ -519,6 +533,11 @@ struct InformesMembresiaView: View {
                 } // end else (general content)
             .padding(Esp.panel)
         }
+        // El desvanecido, en su variante suave: el mismo `.soft` que ya usan
+        // el Dashboard, Servicios y Configuración. Quien lo hace aparecer es
+        // `safeAreaBar` (ver `cuerpo`); esto solo elige que sea un degradado y
+        // no un corte.
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .background(Color(.systemGroupedBackground))
         .animation(.spring(duration: 0.3), value: vm.periodoTipo)
         .animation(.spring(duration: 0.3), value: vm.mesSeleccionado)
