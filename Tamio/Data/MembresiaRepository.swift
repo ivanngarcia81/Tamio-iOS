@@ -129,12 +129,6 @@ struct MockMembresiaRepository: MembresiaRepository {
         m5.seguimientoRazon = L.t("Dos servicios sin asistir", "Two services missed")
         m5.ausenciaNota = L.t(" · enfermedad", " · illness")
 
-        var m6 = Miembro(id: "6", nombre: "Norma Alicia Cantú")
-        m6.telefono = "81 3030 4040"; m6.fechaIngreso = "2015-11-01"
-        m6.ministerios = ["cocina"]
-        m6.asistencia = serie(0.84)
-        m6.asistenciaResumen = AsistenciaMiembro(presentes: 23, servicios: 27, rachaSinAsistir: 0, ultimaVisita: "2026-08-23")
-
         // Recibido por traslado ESTE año: nuevo y recibido a la vez, que es
         // lo que el enum viejo no dejaba ser.
         var m7 = Miembro(id: "7", nombre: "Daniel Salas Hernández")
@@ -163,7 +157,7 @@ struct MockMembresiaRepository: MembresiaRepository {
         m3.familia = [Pariente(id: "f1", tipo: "conyuge", parienteId: "1", nombre: m1.nombre)]
         m7.familia = [Pariente(id: "f2", tipo: "padre", parienteId: "1", nombre: m1.nombre)]
 
-        return [m1, m2, m3, m4, m5, m6, m7, m8]
+        return [m1, m2, m3, m4, m5, m7, m8]
     }
 }
 

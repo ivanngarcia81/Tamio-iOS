@@ -135,7 +135,7 @@ struct MockDashboardRepository: DashboardRepository {
                concepto: L.t("Luz CFE", "CFE power"), folio: "0518", metodo: L.t("Transferencia", "Transfer"), monto: 3_410_50),
             Tx(id: "3", tipo: .ingreso, categoria: L.t("Ofrenda", "Offering"), persona: nil,
                concepto: L.t("Ofrenda misionera", "Mission offering"), folio: "1041", metodo: L.t("Culto domingo", "Sunday service"), monto: 6_845_00),
-            Tx(id: "4", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "Norma Alicia Cantú",
+            Tx(id: "4", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "Ana Lucía Torres",
                concepto: L.t("Diezmo", "Tithe"), folio: "1040", metodo: L.t("Cheque 8823", "Check 8823"), monto: 2_500_00),
         ]
     }

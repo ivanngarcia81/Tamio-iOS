@@ -582,8 +582,17 @@ aparato.
    una decisión de Iván. No lo era: **no existe en la base** —cero filas en
    `members` con ese apellido— y solo vivía en los datos de maqueta del iOS, en
    cinco archivos. Lo dijo Iván: *"la familia Rubalcaba es ficticio lo puedes
-   borrar"*. La ficha pasó a ser una persona normal, "Norma Alicia Cantú", y con
-   ella se fue la nota "cuatro miembros · diezman juntos".
+   borrar"*.
+
+   **Borrada del todo**, no renombrada. El primer intento fue cambiarle el
+   nombre por otro inventado, y Iván lo cortó —*"ella es ficticia también"*—:
+   cambiar una ficha ficticia por otra no borra nada. La maqueta del padrón
+   pasa de ocho fichas a siete, se va del catálogo de aportantes y de los
+   destinatarios de Cartas, y su diezmo de $2,500 (cheque 8823) lo paga ahora
+   Ana Lucía Torres, que sí está en el padrón: un movimiento cuyo aportante no
+   existe en ninguna lista es una incoherencia que la maqueta no debe enseñar.
+   Nada la referenciaba por parentesco, que era lo que había que comprobar
+   antes de quitarla.
 
    **La lección es la de siempre:** un `select` de un minuto contra la base
    habría evitado anotar como pendiente de producto algo que era maqueta. Se

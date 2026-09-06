@@ -349,8 +349,7 @@ private struct NuevaCartaSheet: View {
 
     private let miembrosMock = [
         "María Hernández Ríos", "Pedro Salas Aguirre",
-        "Ana Lucía Torres", "Norma Alicia Cantú",
-        "Javier Medina Cruz",
+        "Ana Lucía Torres", "Javier Medina Cruz",
     ]
     private let tiposDestinatario = [
         L.t("Miembro registrado", "Registered member"),

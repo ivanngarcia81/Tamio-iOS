@@ -38,8 +38,7 @@ struct MockAportantesCatalogo: AportantesCatalogo {
     func activos() async throws -> [AportanteBreve] {
         [AportanteBreve(id: "m1", nombre: "María Hernández Ríos"),
          AportanteBreve(id: "m2", nombre: "Pedro Salas Aguirre"),
-         AportanteBreve(id: "m3", nombre: "Ana Lucía Torres"),
-         AportanteBreve(id: "m4", nombre: "Norma Alicia Cantú")]
+         AportanteBreve(id: "m3", nombre: "Ana Lucía Torres")]
     }
 }
 
