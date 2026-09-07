@@ -231,6 +231,22 @@ enum Respaldo {
                             select \(lista) from respaldo."\(tabla)"
                             """)
                     }
+                    // **Y todo lo recuperado se vuelve a encolar.**
+                    //
+                    // Sin esto, restaurar solo arregla el aparato: el servidor
+                    // sigue con lo que tuviera, y la PRIMERA sincronización se
+                    // lo baja encima y deshace la restauración. Visto en el
+                    // aparato el 7 de septiembre de 2026, después de borrarlo
+                    // todo y recuperarlo — el teléfono quedó con sus 28
+                    // movimientos y el servidor con los 66 marcados de baja,
+                    // esperando a pisárselos.
+                    //
+                    // Se encola como ACTUALIZACIÓN, no como alta: el servidor
+                    // conserva las filas con su `deleted` puesto, así que un
+                    // update las resucita sin tocar nada más. Un alta, en
+                    // cambio, le pediría al contador de Postgres un folio nuevo
+                    // y cada movimiento recuperado cambiaría de número.
+                    try Self.reencolar(db)
                     return .commit
                 }
             } catch {
@@ -310,6 +326,35 @@ enum Respaldo {
             return try String.fetchAll(db, sql: "select identifier from grdb_migrations")
         }
         if !Set(suyas).subtracting(conocidas).isEmpty { throw Fallo.masNuevoQueLaApp }
+    }
+
+    /// Deja en la cola una subida por cada fila viva de lo restaurado.
+    ///
+    /// **La cola del respaldo se tira primero**: viaja dentro del paquete como
+    /// una tabla más, y lo que llevara pendiente el aparato el día que se
+    /// respaldó no tiene por qué ser lo que hace falta subir hoy.
+    ///
+    /// Lo que no viaja no se encola: las tablas sin entidad de sincronización
+    /// —`trasladoSalida`, `plantilla`— se quedan solo en el aparato, que es
+    /// donde ya estaban.
+    @discardableResult
+    static func reencolar(_ db: Database) throws -> Int {
+        try db.execute(sql: "delete from outbox")
+        var total = 0
+        for (tabla, entidad) in BorradoMasivo.entidades.sorted(by: { $0.key < $1.key }) {
+            guard try existe(db, tabla: tabla, esquema: "main") else { continue }
+            let ids = try String.fetchAll(db, sql: "select id from \"\(tabla)\" where borrado = 0")
+            for id in ids {
+                var op = OperacionPendiente(
+                    id: nil, entidad: entidad, registroId: id,
+                    operacion: OperacionPendiente.Operacion.actualizar.rawValue,
+                    creadoEn: Date().timeIntervalSince1970,
+                    intentos: 0, ultimoError: nil)
+                try op.insert(db)
+                total += 1
+            }
+        }
+        return total
     }
 
     private static func tablas(_ db: Database, esquema: String) throws -> [String] {

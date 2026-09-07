@@ -52,6 +52,55 @@ final class RestaurarRespaldoTests: XCTestCase {
         XCTAssertEqual(manifiesto.version, 1)
     }
 
+    /// **Restaurar deja todo encolado para volver a subirlo.**
+    ///
+    /// Sin esto, restaurar solo arregla el aparato: el servidor sigue con lo
+    /// que tuviera y la primera sincronización deshace la restauración. Pasó en
+    /// el aparato el 7 de septiembre de 2026, después de borrarlo todo y
+    /// recuperarlo.
+    func testRestaurarDejaLoRecuperadoEnLaColaDeSubida() async throws {
+        try escribirIglesia("Con cola")
+        let cola = BaseLocal.compartida.cola
+        try await cola.write { db in
+            try db.execute(sql: "delete from movimiento")
+            let obligatorias = try Row.fetchAll(db, sql: "select * from pragma_table_info('movimiento')")
+                .filter { ($0["notnull"] as Int? ?? 0) == 1 && $0["dflt_value"] == nil }
+                .compactMap { $0["name"] as String? }
+            let valores = obligatorias.map { c -> String in
+                switch c {
+                case "id":    return "'m-vuelve'"
+                case "monto": return "100"
+                default:      return "'x'"
+                }
+            }
+            try db.execute(sql: """
+                insert into movimiento (\(obligatorias.joined(separator: ", ")))
+                values (\(valores.joined(separator: ", ")))
+                """)
+        }
+
+        let paquete = try await Respaldo.crear()
+        defer { try? FileManager.default.removeItem(at: paquete) }
+
+        // Se borra y se vacía la cola, como habría quedado tras subir la baja.
+        try await cola.write { db in
+            try db.execute(sql: "update movimiento set borrado = 1")
+            try db.execute(sql: "delete from outbox")
+        }
+
+        _ = try await Respaldo.restaurar(paquete)
+
+        let encolado = try await cola.read { db in
+            try Bool.fetchOne(db, sql: """
+                select count(*) > 0 from outbox
+                where entidad = 'movimiento' and registroId = 'm-vuelve'
+                  and operacion = 'actualizar'
+                """) ?? false
+        }
+        XCTAssertTrue(encolado,
+                      "### se recuperó en el teléfono y nadie iba a contárselo al servidor")
+    }
+
     /// Mirar el paquete no puede tocar nada: es lo que la hoja de confirmación
     /// enseña ANTES de decidir.
     func testInspeccionarNoModificaLaBase() async throws {

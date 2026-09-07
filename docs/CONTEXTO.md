@@ -651,6 +651,25 @@ el teléfono, la base es ilegible; desde el primer desbloqueo tras encenderlo, l
 clave queda disponible hasta el siguiente apagado. O sea: un iPhone robado
 ENCENDIDO y bloqueado tiene la base al alcance de quien sepa extraerla.
 
+**El borrado masivo y la restauración, probados contra el servidor de verdad.**
+Borrar dio de baja 87 registros en el teléfono y dejó en CERO las diez tablas
+sincronizables del servidor —transactions 27→0, members 10→0, y actas, agenda,
+cartas, registro, depósitos, servicios, cortes y categorías—, sin una sola fila
+descolgada: es lo que la prueba de cobertura del mapa tabla→entidad existía para
+garantizar. Restaurar devolvió las cifras exactas de antes: $1,442,201.00, 28
+movimientos, 22 sin depositar, 2 cortes. Y la hoja de confirmación enseñó lo que
+se diseñó para que enseñara — "Iglesia principal · Sep 7, 2026 at 5:52 PM · 28
+transactions, 10 contributors, 2 deposits".
+
+**Pero restaurar no le decía nada al servidor**, y eso solo se ve con un
+servidor al otro lado. El aparato quedó con sus 28 movimientos y el servidor con
+los 66 marcados de baja, esperando a que la primera sincronización se los pisara
+— o sea, la restauración se deshacía sola. Ahora `Respaldo.reencolar` deja una
+subida por cada fila viva recuperada, y va como ACTUALIZACIÓN y no como alta:
+el servidor conserva las filas con su `deleted` puesto, así que un update las
+resucita, mientras que un alta le pediría al contador de Postgres un folio nuevo
+y cada movimiento recuperado cambiaría de número.
+
 **Lo que sí salió bien a la primera:** la migración v25 corrió sobre la base real
 de un aparato con datos y no se llevó nada —la fila "Espacio en este aparato"
 midió 336 KB y 76 registros borrados, y de haber caído a memoria se habría
