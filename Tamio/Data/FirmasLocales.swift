@@ -76,6 +76,13 @@ final class FirmasLocales {
 
     // MARK: - Guardar y borrar
 
+    /// Vuelve a leer del disco. La usa la restauración de un respaldo, que
+    /// escribe los archivos por debajo: sin esto, las firmas restauradas no
+    /// aparecerían hasta el siguiente arranque de la app.
+    func releer() {
+        for f in Firmante.allCases { imagenes[f] = Self.leer(f) }
+    }
+
     func imagen(_ f: Firmante) -> UIImage? { imagenes[f] }
     func tiene(_ f: Firmante) -> Bool { imagenes[f] != nil }
 

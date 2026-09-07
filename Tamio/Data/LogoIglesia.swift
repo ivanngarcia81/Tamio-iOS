@@ -120,6 +120,14 @@ final class LogoIglesia {
 
     // MARK: - Ponerse al día
 
+    /// Borra el archivo del aparato sin tocar el servidor. Lo usa el reinicio
+    /// de fábrica: deja el teléfono limpio, y el logo de la iglesia sigue donde
+    /// estaba para quien vuelva a entrar.
+    func quitarLocal() {
+        Self.limpiarCarpeta()
+        imagen = nil
+    }
+
     /// Deja el aparato con el logo que dice la configuración. Se llama después
     /// de cada sincronización: es el momento en que puede haber cambiado desde
     /// otro aparato.

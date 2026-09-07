@@ -45,6 +45,8 @@ sin trabajo pendiente**: lo que resta son dos decisiones de Iván.
 13. **Secretaría no producía ningún PDF**: ni cartas ni actas. Ver §0.0.e.
 14. **Los traslados del informe salían sin folio y sin iglesia**, con los dos
     datos en el aparato. Y se fueron 154 líneas de maqueta muerta. Ver §0.0.f.
+15. **La restauración de un respaldo**, que llevaba desde siempre en
+    "Próximamente" y tenía apagados otros dos botones. Ver §0.0.g.
 
 ### Las tres lecciones de esta vuelta
 
@@ -291,6 +293,69 @@ con su iglesia.
 fijo y suman 580 puntos, así que en el teléfono la fecha y el estado se quedan
 fuera de la pantalla. Es anterior a esto y se nota más ahora que el folio tiene
 contenido.
+
+### 0.0.g Restaurar un respaldo, borrar y reiniciar
+
+El pie de la Zona de riesgo lo decía: *"Borrar y reiniciar se encienden cuando
+exista la restauración: hoy no habría a dónde volver"*. Ya existe.
+
+**El obstáculo era abrir el `.zip`.** El paquete se comprime con
+`NSFileCoordinator(.forUploading)` —el mecanismo del sistema para adjuntar una
+carpeta en Mail—, y **descomprimir no tiene equivalente público en iOS**. Las
+salidas eran tres: añadir una dependencia a un `.pbxproj` que se edita a mano
+(§2.1), cambiar el formato a AppleArchive y perder que el respaldo se abra con
+doble clic en cualquier ordenador, o leer el zip. `ZipLectura` lee el zip: unas
+180 líneas, directorio central y `compression_decode_buffer` con
+`COMPRESSION_ZLIB`, que en Apple significa deflate crudo — que es justo lo que
+guarda un zip. Solo abre lo que la app misma escribe, y lo que no reconoce lo
+dice en vez de devolver basura.
+
+**La restauración NO sustituye el archivo `tamio.sqlite`**, que es lo primero
+que uno piensa. Hay una `DatabaseQueue` abierta encima de él toda la vida de la
+app —`BaseLocal.compartida.cola` es `let`— y cambiar el archivo por debajo de un
+handle abierto es cómo se pierden las dos bases. Se hace con `ATTACH` y una
+transacción: o entra todo, o el aparato se queda como estaba.
+
+**Tabla por tabla y columna por columna, no `select *`.** Un respaldo de hace
+dos versiones tiene menos columnas que la base de hoy, y copiar por posición
+pondría el teléfono de una persona en su dirección. Se cruzan los nombres. Al
+revés se rechaza: si el respaldo trae migraciones que esta app no conoce,
+restaurar sería perder columnas sin decirlo.
+
+**El fallo que se llevó media tarde**, y que enseña por qué las pruebas de esto
+no son opcionales: el zip envuelve todo en una carpeta con su propio nombre
+(`tamio-2026-09-07/`), así que `respaldo.json` no estaba en la raíz de lo
+extraído. Y **no fallaba ruidosamente**: `DatabaseQueue` abre una base que no
+existe creándola VACÍA, o sea que la restauración habría "funcionado" dejando el
+aparato sin nada. Lo cazó la prueba que abre la base extraída y le pide las
+tablas.
+
+**Los otros dos botones** viven en `BorradoMasivo` y no son lo mismo:
+
+- **Borrar los registros se PROPAGA**: marca cada fila como borrada y encola su
+  baja, igual que borrar un movimiento a mano. La configuración se conserva.
+- **El reinicio de fábrica es de ESTE aparato**: vacía base, carpetas y
+  preferencias y cierra sesión. Lo del servidor sigue ahí y vuelve a bajar. Es
+  lo que ya decía el texto del iPad ("Borrar datos de este iPad").
+
+**El mapa tabla → entidad de sincronización** salió de leer qué encola cada
+repositorio, no de suponerlo, y hay **dos pruebas que lo cuidan**: que ninguna
+tabla con borrado lógico se quede fuera, y que el mapa no nombre tablas que ya
+no existen. Escribir mal una sola deja filas borradas en el teléfono que el
+siguiente `sync` vuelve a bajar — un fallo que no se ve al probarlo a mano, se
+ve un minuto después.
+
+**Verificado** con siete pruebas nuevas y las **80 unitarias en verde**: la ida
+y vuelta entera (respaldar, estropear la base a propósito, restaurar), que
+inspeccionar no toca nada, que un archivo cualquiera se rechaza con su motivo, y
+que borrar da de baja Y encola. Y la pantalla, con las tres acciones vivas.
+
+**Lo que NO está probado**: el flujo desde el selector de Archivos con un
+paquete guardado de verdad —la prueba pasa la URL directamente— y la propagación
+del borrado contra Supabase. Las dos piden un aparato con sesión.
+
+**Sigue siendo texto muerto** en esa pantalla: "Compactar base de datos", que
+dice "la base ya está compacta" siempre y no compacta nada.
 
 ### 0.0.a Los cinco sucesos de Tesorería
 

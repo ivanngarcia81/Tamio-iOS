@@ -105,6 +105,12 @@ final class PreferenciasApp {
     private static let claveIdioma = "prefs.idioma"
     private static let claveTamano = "prefs.tamano"
 
+    /// Todas las de este aparato, en un sitio. Las usa el reinicio de fábrica:
+    /// vaciar el dominio entero de `UserDefaults` se llevaría por delante lo
+    /// que guardan las SDK de Apple y de Supabase, y borrar por una lista
+    /// escrita en otro archivo es cómo se olvida la siguiente.
+    static var claves: [String] { [claveTema, claveIdioma, claveTamano] }
+
     private init() {
         let d = UserDefaults.standard
         tema = Tema(rawValue: d.string(forKey: Self.claveTema) ?? "") ?? .automatico

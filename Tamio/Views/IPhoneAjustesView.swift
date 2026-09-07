@@ -1152,6 +1152,12 @@ private struct AjustesZonaView: View {
     @State private var confirmarBorrar = false
     @State private var confirmarReinicio = false
     @State private var trabajando = false
+    @State private var eligiendoRespaldo = false
+    /// Lo que trae el paquete elegido, leído SIN tocar nada. La confirmación no
+    /// puede ser un "¿seguro?" genérico: hay que poder ver que el archivo es de
+    /// esta iglesia y no de otra, que es el fallo que la app web ya cometió.
+    @State private var porRestaurar: (url: URL, manifiesto: Respaldo.Manifiesto)?
+    @State private var hecho: String?
     @State private var paquete: URL?
     @State private var csvMovimientos: URL?
     @State private var csvAportantes: URL?
@@ -1159,6 +1165,7 @@ private struct AjustesZonaView: View {
     /// Se lee al aparecer y se refresca al terminar: `Respaldo.ultimo` vive en
     /// `UserDefaults` y no es observable.
     @State private var ultimo = Respaldo.ultimoLegible
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
 
     var body: some View {
         List {
@@ -1232,17 +1239,21 @@ private struct AjustesZonaView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(L.t("Restaurar un respaldo", "Restore a backup")).font(.subheadline.weight(.medium))
-                        Spacer()
-                        Text(L.t("Próximamente", "Coming soon"))
-                            .font(.subheadline).foregroundStyle(.tertiary)
-                    }
+                    Text(L.t("Restaurar un respaldo", "Restore a backup")).font(.subheadline.weight(.medium))
                     Text(L.t("Reemplaza todo lo capturado después de la fecha del respaldo.",
                              "Replaces everything captured after the backup date."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
+                Button {
+                    eligiendoRespaldo = true
+                } label: {
+                    Text(L.t("Elegir un archivo…", "Choose a file…"))
+                        .font(.subheadline).foregroundStyle(Paleta.brand)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .disabled(trabajando)
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
@@ -1260,7 +1271,7 @@ private struct AjustesZonaView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-                .disabled(true).opacity(0.4)
+                .disabled(trabajando)
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
@@ -1278,11 +1289,11 @@ private struct AjustesZonaView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-                .disabled(true).opacity(0.4)
+                .disabled(trabajando)
             } footer: {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(L.t("Borrar y reiniciar se encienden cuando exista la restauración: hoy no habría a dónde volver.",
-                             "Delete and reset will be enabled once restore exists: today there would be nothing to go back to."))
+                    Text(L.t("Ninguna de las dos se puede deshacer. Haz un respaldo antes: es lo único que puede devolver lo que se vaya.",
+                             "Neither can be undone. Make a backup first: it's the only thing that can bring back what's lost."))
                     Text(VersionApp.pie)
                         .foregroundStyle(.quaternary)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -1299,6 +1310,96 @@ private struct AjustesZonaView: View {
         .sheet(item: $paquete) { CompartirArchivo(url: $0) }
         .sheet(item: $csvMovimientos) { CompartirArchivo(url: $0) }
         .sheet(item: $csvAportantes) { CompartirArchivo(url: $0) }
+        // `.zip` a secas: el paquete lo arma `NSFileCoordinator` y ese es su
+        // tipo. Aceptar cualquier archivo dejaría elegir un PDF para luego
+        // decir que no sirve.
+        .fileImporter(isPresented: $eligiendoRespaldo,
+                      allowedContentTypes: [.zip]) { resultado in
+            guard case .success(let url) = resultado else { return }
+            Task { await inspeccionar(url) }
+        }
+        .alert(L.t("Restaurar este respaldo", "Restore this backup"),
+               isPresented: .init(get: { porRestaurar != nil },
+                                  set: { if !$0 { porRestaurar = nil } })) {
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) { porRestaurar = nil }
+            Button(L.t("Restaurar", "Restore"), role: .destructive) {
+                if let p = porRestaurar { Task { await restaurar(p.url) } }
+            }
+        } message: {
+            if let m = porRestaurar?.manifiesto { Text(ResumenRespaldo.frase(m)) }
+        }
+        .alert(L.t("Borrar todos los registros", "Delete all records"),
+               isPresented: $confirmarBorrar) {
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
+            Button(L.t("Borrar", "Delete"), role: .destructive) {
+                Task { await borrarRegistros() }
+            }
+        } message: {
+            Text(L.t("Se dan de baja los movimientos, los aportantes, el padrón, los servicios, las actas y las cartas, y la baja se propaga a los demás aparatos de la iglesia. La configuración se conserva. Esto no se puede deshacer sin un respaldo.",
+                     "Transactions, contributors, the roster, services, minutes, and letters are all removed, and the removal propagates to the church's other devices. Configuration is preserved. This can't be undone without a backup."))
+        }
+        .alert(L.t("Reinicio de fábrica", "Factory reset"), isPresented: $confirmarReinicio) {
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
+            Button(L.t("Reiniciar", "Reset"), role: .destructive) {
+                Task { await reiniciar() }
+            }
+        } message: {
+            Text(L.t("Este aparato queda como recién instalado y se cierra la sesión. Lo que está en el servidor NO se borra: vuelve a bajar en cuanto alguien entre.",
+                     "This device is left as newly installed and the session is closed. What's on the server is NOT deleted: it comes back down as soon as someone signs in."))
+        }
+        .alert(L.t("Listo", "Done"), isPresented: .init(get: { hecho != nil },
+                                                        set: { if !$0 { hecho = nil } })) {
+            Button("OK", role: .cancel) { hecho = nil }
+        } message: {
+            if let hecho { Text(hecho) }
+        }
+    }
+
+    private func inspeccionar(_ url: URL) async {
+        trabajando = true
+        error = nil
+        do { porRestaurar = (url, try await Respaldo.inspeccionar(url)) }
+        catch { self.error = error.localizedDescription }
+        trabajando = false
+    }
+
+    private func restaurar(_ url: URL) async {
+        porRestaurar = nil
+        trabajando = true
+        error = nil
+        do {
+            let m = try await Respaldo.restaurar(url)
+            hecho = L.t("Restaurado el respaldo de \(m.iglesia). Cierra y vuelve a abrir las pantallas para verlo.",
+                        "Restored the backup from \(m.iglesia). Close and reopen screens to see it.")
+        } catch {
+            self.error = error.localizedDescription
+        }
+        trabajando = false
+    }
+
+    private func borrarRegistros() async {
+        trabajando = true
+        error = nil
+        do {
+            let n = try await BorradoMasivo.borrarRegistros()
+            hecho = L.t("Se dieron de baja \(n) registros. La baja se sube en la próxima sincronización.",
+                        "\(n) records were removed. The removal uploads on the next sync.")
+        } catch {
+            self.error = error.localizedDescription
+        }
+        trabajando = false
+    }
+
+    private func reiniciar() async {
+        trabajando = true
+        error = nil
+        do {
+            try await BorradoMasivo.reinicioDeFabrica()
+            await sesion?.cerrarSesion()
+        } catch {
+            self.error = error.localizedDescription
+        }
+        trabajando = false
     }
 
     private var avisoPrevio: String {

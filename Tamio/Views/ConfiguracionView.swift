@@ -1306,6 +1306,11 @@ private struct SeccionZona: View {
     @State private var csvAportantes: URL?
     @State private var error: String?
     @State private var ultimo = Respaldo.ultimoLegible
+    @State private var eligiendoRespaldo = false
+    @State private var confirmarReinicio = false
+    @State private var porRestaurar: (url: URL, manifiesto: Respaldo.Manifiesto)?
+    @State private var hecho: String?
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
 
     var body: some View {
         ScrollView {
@@ -1386,15 +1391,19 @@ private struct SeccionZona: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         Spacer()
-                        Text(L.t("Próximamente", "Coming soon"))
-                            .font(.system(size: 15)).foregroundStyle(.tertiary)
+                        Button { eligiendoRespaldo = true } label: {
+                            Text(L.t("Elegir un archivo…", "Choose a file…"))
+                                .font(.system(size: 15)).foregroundStyle(Paleta.brand)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(trabajando)
                     }
                     .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
                 }
 
                 // Borrar datos
                 GrupoConf {
-                    Button(role: .destructive) { } label: {
+                    Button(role: .destructive) { confirmarReinicio = true } label: {
                         HStack {
                             Text(L.t("Borrar datos de este iPad", "Erase data from this iPad"))
                                 .font(.system(size: 16)).foregroundStyle(Paleta.negativo)
@@ -1403,9 +1412,9 @@ private struct SeccionZona: View {
                         .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
                     }
                     .buttonStyle(.plain)
-                    .disabled(true).opacity(0.4)
-                    Text(L.t("Se enciende cuando exista la restauración: hoy no habría a dónde volver. Borra solo la copia de este aparato; lo que ya se sincronizó sigue en el servidor de la iglesia.",
-                             "Enabled once restore exists: today there would be nothing to go back to. It erases only this device's copy; anything already synced stays on the church server."))
+                    .disabled(trabajando)
+                    Text(L.t("Borra solo la copia de este aparato; lo que ya se sincronizó sigue en el servidor de la iglesia y vuelve a bajar en cuanto alguien entre.",
+                             "It erases only this device's copy; anything already synced stays on the church server and comes back down as soon as someone signs in."))
                         .font(.system(size: 12.5)).foregroundStyle(.tertiary)
                         .padding(.horizontal, Esp.pantalla).padding(.bottom, 14)
                 }
@@ -1419,6 +1428,64 @@ private struct SeccionZona: View {
         .sheet(item: $paquete) { CompartirArchivo(url: $0) }
         .sheet(item: $csvMovimientos) { CompartirArchivo(url: $0) }
         .sheet(item: $csvAportantes) { CompartirArchivo(url: $0) }
+        .fileImporter(isPresented: $eligiendoRespaldo,
+                      allowedContentTypes: [.zip]) { resultado in
+            guard case .success(let url) = resultado else { return }
+            Task { await inspeccionar(url) }
+        }
+        .alert(L.t("Restaurar este respaldo", "Restore this backup"),
+               isPresented: .init(get: { porRestaurar != nil },
+                                  set: { if !$0 { porRestaurar = nil } })) {
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) { porRestaurar = nil }
+            Button(L.t("Restaurar", "Restore"), role: .destructive) {
+                if let p = porRestaurar { Task { await restaurar(p.url) } }
+            }
+        } message: {
+            if let m = porRestaurar?.manifiesto { Text(ResumenRespaldo.frase(m)) }
+        }
+        .alert(L.t("Borrar datos de este iPad", "Erase data from this iPad"),
+               isPresented: $confirmarReinicio) {
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
+            Button(L.t("Borrar", "Erase"), role: .destructive) {
+                Task { await reiniciar() }
+            }
+        } message: {
+            Text(L.t("Este aparato queda como recién instalado y se cierra la sesión. Lo que está en el servidor NO se borra.",
+                     "This device is left as newly installed and the session is closed. What's on the server is NOT deleted."))
+        }
+        .alert(L.t("Listo", "Done"), isPresented: .init(get: { hecho != nil },
+                                                        set: { if !$0 { hecho = nil } })) {
+            Button("OK", role: .cancel) { hecho = nil }
+        } message: {
+            if let hecho { Text(hecho) }
+        }
+    }
+
+    private func inspeccionar(_ url: URL) async {
+        trabajando = true; error = nil
+        do { porRestaurar = (url, try await Respaldo.inspeccionar(url)) }
+        catch { self.error = error.localizedDescription }
+        trabajando = false
+    }
+
+    private func restaurar(_ url: URL) async {
+        porRestaurar = nil
+        trabajando = true; error = nil
+        do {
+            let m = try await Respaldo.restaurar(url)
+            hecho = L.t("Restaurado el respaldo de \(m.iglesia).",
+                        "Restored the backup from \(m.iglesia).")
+        } catch { self.error = error.localizedDescription }
+        trabajando = false
+    }
+
+    private func reiniciar() async {
+        trabajando = true; error = nil
+        do {
+            try await BorradoMasivo.reinicioDeFabrica()
+            await sesion?.cerrarSesion()
+        } catch { self.error = error.localizedDescription }
+        trabajando = false
     }
 
     private enum Exportacion { case movimientos, aportantes }

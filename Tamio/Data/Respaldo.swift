@@ -39,6 +39,9 @@ enum Respaldo {
     enum Fallo: LocalizedError {
         case sinBase
         case noSePudoEmpaquetar
+        case sinManifiesto
+        case versionDesconocida(Int)
+        case masNuevoQueLaApp
 
         var errorDescription: String? {
             switch self {
@@ -48,6 +51,15 @@ enum Respaldo {
             case .noSePudoEmpaquetar:
                 return L.t("No se pudo armar el archivo de respaldo.",
                            "The backup file couldn't be created.")
+            case .sinManifiesto:
+                return L.t("Ese archivo no es un respaldo de Tamio: le falta el manifiesto.",
+                           "That file isn't a Tamio backup: the manifest is missing.")
+            case .versionDesconocida(let v):
+                return L.t("El respaldo es de un formato que esta versión no conoce (v\(v)).",
+                           "The backup uses a format this version doesn't know (v\(v)).")
+            case .masNuevoQueLaApp:
+                return L.t("El respaldo se hizo con una versión más nueva de Tamio. Actualiza la app antes de restaurarlo.",
+                           "The backup was made with a newer version of Tamio. Update the app before restoring it.")
             }
         }
     }
@@ -153,6 +165,188 @@ enum Respaldo {
         return salida
     }
 
+    // MARK: - Restaurar
+
+    /// **Lee el paquete sin tocar nada.** Es lo que la hoja de confirmación
+    /// enseña antes de reemplazar: de qué iglesia es, de cuándo y qué trae.
+    ///
+    /// Existe separado de `restaurar` a propósito, y es la razón por la que
+    /// `crear` escribe un manifiesto: la app web descubrió que un "¿seguro?"
+    /// genérico no deja ver que el archivo elegido es de otra congregación.
+    static func inspeccionar(_ paquete: URL) async throws -> Manifiesto {
+        let carpeta = try desempaquetar(paquete)
+        defer { try? FileManager.default.removeItem(at: carpeta) }
+        return try leerManifiesto(carpeta)
+    }
+
+    /// **Reemplaza el contenido de la base por el del respaldo.**
+    ///
+    /// No sustituye el archivo `tamio.sqlite`, que es lo primero que uno
+    /// piensa: hay una `DatabaseQueue` abierta encima de él durante toda la
+    /// vida de la app —`BaseLocal.compartida.cola` es `let`— y cambiar el
+    /// archivo por debajo de un handle abierto es la forma de quedarse sin las
+    /// dos bases. Se hace con `ATTACH` y una transacción: o entra todo, o no
+    /// entra nada y el aparato se queda como estaba.
+    ///
+    /// **Tabla por tabla y columna por columna, no `select *`.** Un respaldo de
+    /// hace dos versiones tiene menos columnas que la base de hoy; copiar por
+    /// posición pondría el teléfono de una persona en su dirección. Se cruzan
+    /// los nombres y lo que no venga en el respaldo se queda con su valor por
+    /// omisión, que es lo que hizo la migración cuando esa columna nació.
+    ///
+    /// Al revés no vale: si el respaldo trae migraciones que esta app no
+    /// conoce, se rechaza. Restaurar quitando columnas es perder datos sin
+    /// decirlo.
+    static func restaurar(_ paquete: URL) async throws -> Manifiesto {
+        let base = BaseLocal.compartida
+        guard !base.enMemoria else { throw Fallo.sinBase }
+
+        let carpeta = try desempaquetar(paquete)
+        defer { try? FileManager.default.removeItem(at: carpeta) }
+        let manifiesto = try leerManifiesto(carpeta)
+
+        let sqlite = carpeta.appendingPathComponent("tamio.sqlite")
+        guard FileManager.default.fileExists(atPath: sqlite.path) else {
+            throw Fallo.sinManifiesto
+        }
+        try comprobarMigraciones(sqlite)
+
+        try await base.cola.writeWithoutTransaction { db in
+            try db.execute(sql: "attach database ? as respaldo", arguments: [sqlite.path])
+            do {
+                try db.inTransaction {
+                    // El orden no importa porque las claves foráneas se
+                    // apagan mientras dura: las tablas se vacían todas antes
+                    // de rellenarse, y a media faena cualquier orden viola
+                    // alguna referencia.
+                    try db.execute(sql: "pragma defer_foreign_keys = on")
+                    for tabla in try Self.tablas(db, esquema: "main") {
+                        guard try Self.existe(db, tabla: tabla, esquema: "respaldo") else { continue }
+                        let columnas = try Self.columnasComunes(db, tabla: tabla)
+                        guard !columnas.isEmpty else { continue }
+                        let lista = columnas.map { "\"\($0)\"" }.joined(separator: ", ")
+                        try db.execute(sql: "delete from main.\"\(tabla)\"")
+                        try db.execute(sql: """
+                            insert into main."\(tabla)" (\(lista))
+                            select \(lista) from respaldo."\(tabla)"
+                            """)
+                    }
+                    return .commit
+                }
+            } catch {
+                try? db.execute(sql: "detach database respaldo")
+                throw error
+            }
+            try db.execute(sql: "detach database respaldo")
+        }
+
+        // Las firmas y los recibos van fuera de la base, así que se copian
+        // aparte. **Se añaden, no se reemplazan**: un recibo que este aparato
+        // tiene y el respaldo no es una foto que nadie puede volver a hacer.
+        copiarCarpeta(carpeta.appendingPathComponent("recibos"), a: RecibosLocales.carpeta)
+
+        // Lo que vive en memoria tiene que enterarse: la configuración de la
+        // iglesia y las firmas son singletons y se quedarían con lo de antes.
+        await MainActor.run {
+            copiarCarpeta(carpeta.appendingPathComponent("firmas"), a: FirmasLocales.carpeta)
+            FirmasLocales.compartidas.releer()
+        }
+        await ConfiguracionIglesiaViewModel.compartido.recargar()
+        return manifiesto
+    }
+
+    // MARK: - Piezas de la restauración
+
+    private static func desempaquetar(_ paquete: URL) throws -> URL {
+        // El selector de archivos entrega una URL fuera del sandbox; sin pedir
+        // acceso explícito, la lectura falla. Es lo mismo que hace
+        // `SupabaseComprobantesStorage.subir`.
+        let concedido = paquete.startAccessingSecurityScopedResource()
+        defer { if concedido { paquete.stopAccessingSecurityScopedResource() } }
+
+        let destino = FileManager.default.temporaryDirectory
+            .appendingPathComponent("restaurar-\(UUID().uuidString)", isDirectory: true)
+        try ZipLectura.extraer(paquete, a: destino)
+        return raizDelPaquete(destino)
+    }
+
+    /// **El zip envuelve todo en una carpeta con su propio nombre.** Es lo que
+    /// hace `NSFileCoordinator` al comprimir un directorio —y lo que se ve al
+    /// descomprimirlo en cualquier ordenador: sale `tamio-2026-09-07/`, no los
+    /// archivos sueltos—, así que buscar `respaldo.json` en la raíz de lo
+    /// extraído no encontraba nada. Y el fallo no era ruidoso: la base
+    /// inexistente se abría como una base VACÍA, que es lo peor que puede
+    /// pasarle a una restauración.
+    private static func raizDelPaquete(_ carpeta: URL) -> URL {
+        let fm = FileManager.default
+        guard let dentro = try? fm.contentsOfDirectory(at: carpeta,
+                                                       includingPropertiesForKeys: [.isDirectoryKey]),
+              dentro.count == 1,
+              (try? dentro[0].resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+        else { return carpeta }
+        return dentro[0]
+    }
+
+    private static func leerManifiesto(_ carpeta: URL) throws -> Manifiesto {
+        let url = carpeta.appendingPathComponent("respaldo.json")
+        guard let datos = try? Data(contentsOf: url),
+              let m = try? JSONDecoder().decode(Manifiesto.self, from: datos) else {
+            throw Fallo.sinManifiesto
+        }
+        guard m.version == 1 else { throw Fallo.versionDesconocida(m.version) }
+        return m
+    }
+
+    /// Que el respaldo no traiga migraciones que esta app no sabe aplicar.
+    private static func comprobarMigraciones(_ sqlite: URL) throws {
+        let conocidas = Set(BaseLocal.migrador.migrations)
+        let cola = try DatabaseQueue(path: sqlite.path)
+        let suyas = try cola.read { db -> [String] in
+            let hay = try Bool.fetchOne(db, sql: """
+                select count(*) > 0 from sqlite_master
+                where type = 'table' and name = 'grdb_migrations'
+                """) ?? false
+            guard hay else { return [] }
+            return try String.fetchAll(db, sql: "select identifier from grdb_migrations")
+        }
+        if !Set(suyas).subtracting(conocidas).isEmpty { throw Fallo.masNuevoQueLaApp }
+    }
+
+    private static func tablas(_ db: Database, esquema: String) throws -> [String] {
+        try String.fetchAll(db, sql: """
+            select name from \(esquema).sqlite_master
+            where type = 'table' and name not like 'sqlite_%' and name not like 'grdb_%'
+            """)
+    }
+
+    private static func existe(_ db: Database, tabla: String, esquema: String) throws -> Bool {
+        try Bool.fetchOne(db, sql: """
+            select count(*) > 0 from \(esquema).sqlite_master
+            where type = 'table' and name = ?
+            """, arguments: [tabla]) ?? false
+    }
+
+    private static func columnasComunes(_ db: Database, tabla: String) throws -> [String] {
+        let aqui = try String.fetchAll(db, sql: "select name from pragma_table_info(?)",
+                                       arguments: [tabla])
+        let alla = try String.fetchAll(db, sql: "select name from pragma_table_info(?, 'respaldo')",
+                                       arguments: [tabla])
+        let disponibles = Set(alla)
+        return aqui.filter { disponibles.contains($0) }
+    }
+
+    private static func copiarCarpeta(_ origen: URL, a destino: URL?) {
+        let fm = FileManager.default
+        guard let destino,
+              let archivos = try? fm.contentsOfDirectory(at: origen,
+                                                         includingPropertiesForKeys: nil) else { return }
+        for archivo in archivos {
+            let salida = destino.appendingPathComponent(archivo.lastPathComponent)
+            try? fm.removeItem(at: salida)
+            try? fm.copyItem(at: archivo, to: salida)
+        }
+    }
+
     // MARK: - Cuándo fue el último
 
     /// La fecha del último respaldo hecho desde este aparato. Va en
@@ -226,5 +420,33 @@ enum ExportadorMovimientos {
         }
         return CSV.archivo(nombre: "movimientos-\(CSV.fecha(Date()))",
                            encabezados: columnas, filas: filas)
+    }
+}
+
+
+/// **El manifiesto de un respaldo, en una frase.** Es lo que enseña la
+/// confirmación antes de reemplazar nada, y lo enseñan las dos pantallas: un
+/// "¿seguro?" genérico no deja ver que el archivo elegido es de otra
+/// congregación, que es el fallo que la app web ya cometió.
+enum ResumenRespaldo {
+    static func frase(_ m: Respaldo.Manifiesto) -> String {
+        let iso = ISO8601DateFormatter()
+        let salida = DateFormatter()
+        salida.locale = L.locale
+        salida.dateStyle = .medium
+        salida.timeStyle = .short
+        let cuando = iso.date(from: m.creadoEn).map { salida.string(from: $0) } ?? m.creadoEn
+        let iglesia = m.iglesia.isEmpty ? L.t("Sin nombre", "Unnamed") : m.iglesia
+        return L.t("""
+            \(iglesia) · \(cuando)
+            \(m.movimientos) movimientos, \(m.aportantes) aportantes, \(m.depositos) depósitos y \(m.recibos) recibos.
+
+            Se reemplaza todo lo capturado después de esa fecha.
+            """, """
+            \(iglesia) · \(cuando)
+            \(m.movimientos) transactions, \(m.aportantes) contributors, \(m.depositos) deposits, and \(m.recibos) receipts.
+
+            Everything captured after that date will be replaced.
+            """)
     }
 }
