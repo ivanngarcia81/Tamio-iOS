@@ -1489,16 +1489,10 @@ Secretaría, ya no bloquea" y en el §5 de Tesorería.
   Lo mismo pasa con `Acta.fechaLegible` y `Apunte.texto`: en este código hay
   pares de campo-guardado y campo-para-leer, y el que se compara es el
   primero.
-- **"Próximos" en Servicios incluye cultos pasados**: la cabecera es un `Text`
-  fijo sobre la lista entera, sin filtrar por fecha.
-- **El selector de "Tipo de carta" ofrece quince** y cinco no existen en el
-  catálogo del web —`autorizacion`, `solicitud`, `reconocimiento`, `bautismo`,
-  `bienvenida`—: una carta de esos tipos sube un `tipo` que el web no sabe
-  dibujar. La lista de PLANTILLAS ya solo enseña las once reales.
-- **El responsable de una actividad se guarda como texto**, no como
-  `member_uid`. El selector ya lleva el id de cada persona: falta usarlo.
-- **En Actas y Servicios el estado sale dos veces** y por eso los títulos se
-  cortan.
+- ~~Los cuatro de acabado —"Próximos" en Servicios, los tipos de carta, el
+  responsable de una actividad y el estado repetido—.~~ **HECHOS el 7 de
+  septiembre**, y dos no eran lo que decían. El detalle, en el §6, punto 4: esa
+  es la lista que hay que mirar, esta solo la repetía.
 
 ### Lo que ya no bloquea
 
@@ -1542,13 +1536,13 @@ va a fallar.
    además se ve la mezcla con "todos los meses" puesto.
 2. **El total de Movimientos en iPad** ya solo vive en la hoja de filtros. Allí
    el pie no causaba ninguno de los tres problemas del teléfono.
-3. **Verificar los recurrentes en aparato** (§5). **Es el riesgo real que
-   queda**: código escrito entero que nunca ha corrido en un aparato, y que
-   crea movimientos solo.
+3. ~~Verificar los recurrentes en aparato.~~ **— PROBADOS por Iván el 7 de
+   septiembre y salen bien.** Era el riesgo real que quedaba: código escrito
+   entero, que crea movimientos solo, y que nunca había corrido fuera del Mac.
 4. **Las dos medidas del cifrado** (§5).
-5. ~~Membresía: probar la sincronización con la cuenta real~~ **— sigue
-   pendiente y ahora es el punto de arriba de esta sección**, porque ya no es
-   solo membresía.
+5. ~~Probar la sincronización con la cuenta real.~~ **— HECHO el 6 y el 7 de
+   septiembre**, en las dos direcciones y con las entidades nuevas. Ver §5, "La
+   subida SÍ funciona", y el §0.
 6. ~~Los servicios: el resto de la ficha se guarda y no se ve.~~ **— HECHO el
    7 de septiembre.** La ficha enseña ya el mensaje, el conteo por grupo, la
    escuela bíblica, las canciones, los visitantes y los eventos especiales. Cada
