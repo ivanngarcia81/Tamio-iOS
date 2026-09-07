@@ -172,8 +172,11 @@ struct Aportante: Identifiable, Hashable {
     /// Todo lo aportado, de siempre. Es lo que suma el pie de la lista.
     var aportesTotal: Centavos { aportes.reduce(0) { $0 + $1.monto } }
 
+    /// **En UTC, que es como se guardó la fecha.** Con el calendario local, un
+    /// aporte del 1 de enero contaba en el año anterior y su importe se iba de
+    /// la constancia de ese año. Ver `Fechas.anio(de:)`.
     func aportes(anio: Int) -> [Aporte] {
-        aportes.filter { Calendar.current.component(.year, from: $0.fecha) == anio }
+        aportes.filter { Fechas.anio(de: $0.fecha) == anio }
     }
 
     /// Lo aportado en un año: lo que encabeza la ficha y lo que certifica la
@@ -185,9 +188,11 @@ struct Aportante: Identifiable, Hashable {
     /// Los años con aporte, del más reciente al más antiguo, y siempre el año
     /// en curso: quien no ha dado nada este año también tiene ficha que mirar.
     var aniosConAportes: [Int] {
-        let cal = Calendar.current
-        let enCurso = cal.component(.year, from: Date())
-        return Set(aportes.map { cal.component(.year, from: $0.fecha) } + [enCurso])
+        // El año en curso SÍ se lee con el calendario local: "hoy" es hoy en la
+        // zona de quien mira. Los de los aportes, en UTC, que es como se
+        // guardaron. Son dos preguntas distintas y no llevan el mismo reloj.
+        let enCurso = Calendar.current.component(.year, from: Date())
+        return Set(aportes.map { Fechas.anio(de: $0.fecha) } + [enCurso])
             .sorted(by: >)
     }
 

@@ -35,18 +35,21 @@ struct DocumentoAportanteView: View {
             .sorted { $0.fecha > $1.fecha }
     }
 
+    /// **La misma función que encabeza la ficha**, no una copia: la constancia
+    /// y la ficha del aportante tienen que certificar la misma cifra, y aquí
+    /// estaban escritas dos veces.
     private var aportesDelAnio: [Aporte] {
-        aportante.aportes
-            .filter { Calendar.current.component(.year, from: $0.fecha) == anio }
-            .sorted { $0.fecha > $1.fecha }
+        aportante.aportes(anio: anio).sorted { $0.fecha > $1.fecha }
     }
 
     /// Años en los que hay algo que certificar. Ofrecer años vacíos solo lleva
     /// a generar constancias en blanco.
+    /// **No es el `aniosConAportes` del modelo**, a propósito: aquel añade
+    /// siempre el año en curso —quien no ha dado nada este año también tiene
+    /// ficha que mirar— y aquí ofrecer un año vacío solo lleva a imprimir una
+    /// constancia en blanco. Lo que sí comparten es el reloj: UTC.
     private var aniosConAportes: [Int] {
-        let cal = Calendar.current
-        let años = Set(aportante.aportes.map { cal.component(.year, from: $0.fecha) })
-        return años.sorted(by: >)
+        Set(aportante.aportes.map { Fechas.anio(de: $0.fecha) }).sorted(by: >)
     }
 
     private var periodoLegible: String {

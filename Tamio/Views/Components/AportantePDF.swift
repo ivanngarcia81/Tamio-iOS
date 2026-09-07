@@ -26,9 +26,10 @@ enum PeriodoReporte: String, CaseIterable, Identifiable {
             let inicio = cal.date(byAdding: .month, value: -1, to: hoy) ?? hoy
             return inicio...hoy
         case .anio:
-            let inicio = cal.date(from: DateComponents(year: cal.component(.year, from: hoy),
-                                                       month: 1, day: 1)) ?? hoy
-            return inicio...hoy
+            // El 1 de enero en UTC, no en la zona del aparato: las fechas con
+            // las que se compara se guardaron como texto y se parsearon en UTC,
+            // así que un arranque local dejaba fuera el aporte del día 1.
+            return Fechas.inicioDeAnio(cal.component(.year, from: hoy))...hoy
         case .rango:
             return desde <= hasta ? desde...hasta : hasta...desde
         }

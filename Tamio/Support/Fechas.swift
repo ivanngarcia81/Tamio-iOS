@@ -311,6 +311,25 @@ enum Fechas {
         return c
     }()
 
+    /// **El año de una fecha GUARDADA.** Con `Calendar.current`, un aporte del
+    /// 1 de enero —que se guardó como "2026-01-01" y se parseó a medianoche
+    /// UTC— cae en el año anterior en cualquier zona al oeste de Greenwich, y
+    /// con él su importe: en Monterrey son las 18:00 del 31 de diciembre. Eso
+    /// mueve la cifra de una constancia anual, que es un documento que se
+    /// firma.
+    ///
+    /// Existe para que la respuesta esté en UN sitio: la misma cuenta estaba
+    /// escrita cuatro veces —dos en el modelo y dos en la pantalla que imprime
+    /// la constancia— y podían separarse sin que nadie lo decidiera.
+    static func anio(de fecha: Date) -> Int {
+        calendarioUTC.component(.year, from: fecha)
+    }
+
+    /// El 1 de enero de ese año, en UTC, para comparar contra fechas guardadas.
+    static func inicioDeAnio(_ anio: Int) -> Date {
+        calendarioUTC.date(from: DateComponents(year: anio, month: 1, day: 1)) ?? Date()
+    }
+
     /// `"2026"`. Se saca de la clave del periodo y no con un formateador
     /// aparte, para que un movimiento no pueda caer en un mes de un año y en
     /// otro año distinto.

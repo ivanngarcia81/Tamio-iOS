@@ -455,7 +455,7 @@ Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.
 
 ## 5. Estado por zonas
 
-### Recurrentes — escrito entero, sin probar en aparato
+### Recurrentes — PROBADOS por Iván el 7 de septiembre
 
 Cuatro commits del 4 de septiembre: modelo (`MovimientoRecurrente`, tabla
 propia, **v14** local + `movimientos_recurrentes` en Supabase),
@@ -468,6 +468,10 @@ materializador, sincronización e interfaz.
 - **La idempotencia entre aparatos**: que al cerrar el mes la renta se genera
   UNA vez y no una por aparato. La marca `ultimoMesGenerado` la puede mover
   otro aparato; por eso la definición baja ANTES de materializar.
+
+**Probado en el aparato y sale bien** (Iván, 7-sep-2026). Era el único riesgo
+real que quedaba: código escrito entero que crea movimientos solo y que nunca
+había corrido fuera del Mac.
 
 ### Barra y pie de las listas — hecho y verificado el 5 de septiembre
 
@@ -882,6 +886,23 @@ Falta **Seguimiento**. El web lo tiene resuelto en
 ---
 
 ### La fecha se PARSEA en UTC, así que también hay que LEERLA en UTC — 6 de septiembre
+
+**El año de un aporte, la misma piedra — 7 de septiembre.** `aportes(anio:)`
+leía el año con `Calendar.current` sobre una fecha guardada como texto y
+parseada a medianoche UTC: en Monterrey, un aporte del 1 de enero contaba en el
+año anterior **y su importe se iba de la constancia de ese año**, que es un
+documento que se firma. La cuenta estaba escrita CUATRO veces —dos en el modelo
+y dos en la pantalla que imprime la constancia—, y el periodo "Año" del PDF
+además arrancaba el 1 de enero LOCAL, así que dejaba fuera el mismo aporte por
+el otro lado.
+
+Ahora hay un solo sitio, `Fechas.anio(de:)` y `Fechas.inicioDeAnio(_:)`, y la
+pantalla usa las funciones del modelo en vez de repetirlas. **Regla:** el
+calendario local es el correcto para "hoy" —quien mira vive en su zona— y el de
+UTC para una fecha GUARDADA. Son dos preguntas distintas y no llevan el mismo
+reloj. Prueba en `pruebas/AnioDeUnAporteTests.swift`, que se salta sola al este
+de Greenwich porque allí no probaría nada.
+
 
 En Servicios la pastilla decía "SAT 5" al lado de un subtítulo que decía
 "Sep 6, 2026", que es domingo. **Un día entero de diferencia dentro de la misma
@@ -1345,10 +1366,21 @@ hasta `3ffc483` (§1).
 
 - **"Próximos" en Servicios incluye cultos pasados**: la cabecera es un `Text`
   fijo sobre la lista entera, sin filtrar por fecha.
-- **El selector de "Tipo de carta" ofrece quince** y cinco no existen en el
-  catálogo del web —`autorizacion`, `solicitud`, `reconocimiento`, `bautismo`,
-  `bienvenida`—: una carta de esos tipos sube un `tipo` que el web no sabe
-  dibujar. La lista de PLANTILLAS ya solo enseña las once reales.
+- **El selector de "Tipo de carta": SON DOS, no cinco.** Este pendiente estaba
+  mal escrito y se comprobó contra el web el 7 de septiembre. Hay que mirar DOS
+  listas distintas de `Tamio-app`, no una:
+
+  - `TIPOS_CARTA` (`components/CartaEditor.tsx`) son los **14 tipos que el web
+    ofrece y sabe dibujar**, e incluye `autorizacion`, `solicitud` y
+    `reconocimiento` — o sea que esos tres NO son problema.
+  - `TIPOS_INICIALES` (`services/cartas/plantillas.ts`) son las **11 plantillas
+    sembradas**, que es otra cosa: un tipo puede existir sin plantilla.
+
+  iOS ofrece 16. Los únicos que el web no conoce son **`bautismo` y
+  `bienvenida`**, los dos marcados "legacy — kept for existing mock data" en
+  `TipoPlantilla`. Una carta de esos tipos se lee en el web como la clave cruda
+  (`cartas.tipoDoc.bautismo`) y no sale en su selector. **Pendiente de decisión
+  de Iván**: o se añaden al web, o se quitan de iOS.
 - **El responsable de una actividad se guarda como texto**, no como
   `member_uid`. `padronParaSelector()` ya devuelve el id de cada persona:
   falta usarlo al guardar.
