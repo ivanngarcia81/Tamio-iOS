@@ -5,7 +5,120 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **7 de septiembre de 2026**, al cerrar el §6.
+Última actualización: **7 de septiembre de 2026**, al cerrar los arreglos
+visuales del iPad (§0.0).
+
+---
+
+## 0.0 Los arreglos visuales del iPad · rama `arreglos-ipad`
+
+**Diecisiete commits en una rama aparte**, salida de `liquid-glass` en
+`87441d6` y sin fusionar todavía. Se trabajó en un `git worktree` propio
+(`~/Desktop/Tamio-iOS-ipad`) porque otra sesión tenía el árbol de
+`~/Desktop/Tamio-iOS` ocupado con cambios sin commitear en `ActasView`,
+`CartasView` y un `SecretariaPDF.swift` nuevo. **Al fusionar, mirar el
+`.pbxproj`**: si ese trabajo añadió archivos, ahí habrá conflicto.
+
+Origen: una revisión de doce capturas del iPad en apaisado y en inglés, con la
+cuenta real. El encargo venía escrito contra `0c8a914`; la rama estaba dos
+commits más adelante y se partió del extremo.
+
+### Lo que se cerró
+
+Un commit por punto, y el título de cada uno cuenta el problema:
+
+- **La dona sumaba 101 %.** Cada porcentaje se redondeaba por su cuenta.
+  `Money.reparto` da los puntos que faltan a las partes con el resto decimal
+  mayor, en la dona y en las tres tablas de categoría (pantalla y los dos PDF).
+- **"1 records".** `L.plural` en el `enum L`, aplicado en los cinco sitios que
+  lo pedían.
+- **Los dos meses de la dona** ("September" en Inicio, "september" en
+  Reportes), unificados en `L.mesSuelto`.
+- **La fecha inventada de la carta** y **seis plantillas que decían "Iglesia
+  Getsemaní"** dentro del cuerpo. Más el typo "oficiant".
+- **`.disabled` sobre `.glass`** a 1.70:1, en los cuatro botones que lo tenían.
+- **El título de la ficha de aportante** pisaba el de la columna en iPad.
+- **El resumen mensual partía los importes** en dos y tres renglones.
+- **Las tarjetas vacías de Inicio**, la **fila del aportante con la fecha ISO**,
+  **la píldora de la bandeja**, **los dos botones grises del corte**, **el ancho
+  de la columna del calendario**, **el día vacío dicho dos veces** y **el
+  detalle de un ingreso repetido**.
+- **A8 y B7**, que eran decisión de Iván y se decidieron en la sesión (abajo).
+
+### Lo que NO era lo que el pendiente decía
+
+Esto es lo que ahorra tiempo a la próxima sesión:
+
+1. **B1 tenía un comentario que lo justificaba, y el comentario era falso.** La
+   píldora cian se defendía con «lo que reclama ya lo dicen los badges naranjas
+   de al lado»: en esa fila **no hay más badges**, esa es la única. Merece la
+   pena leer la fila entera antes de creerse un comentario.
+2. **B2 decía "el único `.bordered` con tinte gris de la app". Eran dos**, los
+   dos en `CorteDetalle`: "Nuevo corte" y "Segunda firma". Arreglar solo el
+   primero dejaba el panel con dos estilos de botón a la vez, peor que antes.
+3. **A6 se quedaba corto.** El literal "20 de agosto de 2026" estaba en la
+   tarjeta de vista previa, sí, pero la hoja grande ponía **la fecha de hoy**,
+   no la de la carta: el mismo documento cambiaba de fecha según el día en que
+   se abriera.
+4. **A2 se dejaba uno fuera.** El subtítulo del día de Agenda dice "1
+   pendientes" y "1 completos", y no estaba en la lista de cinco.
+5. **A5 se dejaba tres fuera.** Hay cuatro `.buttonStyle(.glass)` con
+   `.disabled` en la app, no uno.
+6. **A10 le pasa igual al teléfono** (`tarjetaListaIPhone` tiene el mismo
+   hueco). No se tocó: taparlo cambia el alto de una pantalla que no entraba en
+   esta pasada. Queda apuntado.
+7. **B7 no es un cableado que falte: es un hueco de esquema.** Un traslado ya
+   completado **no guarda folio en ninguna parte** —el folio vive en
+   `TrasladoEnCurso` y desaparece al cerrarse— y la baja del padrón no anota a
+   qué iglesia se fue. No hay nada que enchufar hasta que el web lo guarde.
+8. **`Money.reparto` se comprueba a sí mismo.** Hay porcentajes que a propósito
+   no suman 100 (los gastos del mes contra el ingreso del mes). La función mira
+   si las partes SON el total y, si no lo son, redondea cada una por su cuenta:
+   la regla no depende de que quien llama se acuerde.
+
+### Las dos decisiones de Iván
+
+- **A8 · el contador de la carta cuenta la firma** (`0 de 4`). No era solo
+  cuadrar el número: ese contador es lo que deja emitir, y hasta ahora una carta
+  podía emitirse **sin ningún firmante**.
+- **B7 · fuera FOLIO y la columna de iglesia** del informe de movimientos,
+  mientras el dato no exista. Los campos siguen en el modelo y vuelven a la
+  tabla cuando el esquema guarde el folio de cierre.
+
+### Dos cosas de la lista de "no tocar", ya resueltas mirándolas
+
+- **Los conteos que no cuadraban entre pantallas** cuentan universos distintos,
+  y se ve en la maqueta: Aportantes dice 9 y el informe de membresía dice «7
+  members» con Active 6 · Removed 1 — que cuadra consigo mismo. No hay nada que
+  arreglar; son el padrón y los aportantes, que no son la misma lista.
+- **El icono de filtro que asomaba tras la sidebar** en la captura de
+  "Membership reports" **no se reproduce**. En el simulador la barra de esa
+  pantalla sale entera y en su sitio.
+
+### Cómo se verificó, que es reutilizable
+
+La receta del §3 funciona; esto es lo que le faltaba para una revisión visual:
+
+- **El apaisado se consigue con XCUITest**, no con `simctl`:
+  `XCUIDevice.shared.orientation = .landscapeLeft` en el `setUp`. El simulador
+  no gira desde el shell, y hacerlo por AppleScript se queda colgado pidiendo
+  permiso de accesibilidad.
+- **Las capturas, con `simctl` y no con `XCTAttachment`.** El adjunto de
+  XCUITest en apaisado devuelve la imagen rotada dentro de un lienzo apaisado y
+  **recorta**; `xcrun simctl io <udid> screenshot` más `sips -r -90` sale
+  entera. El truco de la marca y el `sleep` del §3 es el que las sincroniza.
+- **Los estados que la maqueta no produce se fuerzan en la COPIA**: las tarjetas
+  vacías de Inicio, el botón de depositar apagado, y los millones de la tabla
+  del resumen (multiplicar por 185 en `ReportesRepository.mensual`). Nunca en el
+  repo.
+- **La comprobación del teléfono se hace con un diff de píxeles** entre la rama
+  y su base, con el mismo recorrido de nueve pantallas en el 17e. Las nueve
+  salen idénticas — **pero hay que correr un control**: la cápsula de cristal
+  del botón "Nuevo" de Inicio cambia un 0.018 % **entre dos corridas del mismo
+  código**. Sin el control, ese ruido se lee como una regresión.
+- **El modo revisión (`Support/ModoRevision.swift`) se enciende en local para
+  recorrer pantallas sin credenciales** y se apaga antes de commitear. Ninguno
+  de los diecisiete commits lo lleva encendido.
 
 ---
 
@@ -2103,6 +2216,24 @@ va a fallar.
 10. Observación sin acción: el hub dice "Transacciones · 29 registros" y la
    lista dice "16 movimientos". No es un error —una suma ingresos y gastos, la
    otra solo el tipo activo— pero se leen como el mismo número.
+
+### Lo que dejó abierto la pasada del iPad (§0.0)
+
+Tres cosas, y ninguna es un arreglo pendiente: son decisiones.
+
+- **B5 · las mayúsculas de las píldoras.** "Not deposited", "Draft" y
+  "Duplicate" van capitalizadas; las tres de `EstadoRoster` van en minúscula
+  —"roster completo", "roster parcial", "sin asignar"—, y dentro de su familia
+  son coherentes. **No se tocó a propósito**: antes hay que decidir el criterio
+  para toda la app (o toda píldora empieza en mayúscula, o las que describen un
+  grado de cobertura van en minúscula), y entonces se cambian las tres juntas,
+  no una.
+- **Las tarjetas vacías del teléfono.** `tarjetaListaIPhone` tiene el mismo
+  hueco que se tapó en el iPad: sin datos se dibuja el borde y nada dentro.
+  Taparlo cambia el alto de una pantalla del teléfono, que quedaba fuera de esa
+  pasada.
+- **El folio de un traslado cerrado.** Mientras el web no lo guarde, la columna
+  no vuelve al informe. Es decisión de esquema, no de iOS.
 
 ---
 
