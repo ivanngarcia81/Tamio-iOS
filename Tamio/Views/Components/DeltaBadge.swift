@@ -16,6 +16,7 @@ struct DeltaBadge: View {
                 Image(systemName: sube ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
                     .font(.system(size: 8, weight: .bold))
                 Text(String(format: "%.1f%%", abs(pct) * 100) + (sufijo.isEmpty ? "" : " " + sufijo))
+                    .lineLimit(1)
             }
             .foregroundStyle(bueno ? Paleta.brand : Paleta.negativo)
         }

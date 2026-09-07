@@ -594,9 +594,9 @@ struct ReportesView: View {
                         HStack(spacing: 6) {
                             Text(f.mes).lineLimit(1).minimumScaleFactor(0.8)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).frame(width: anchoCol, alignment: .trailing)
-                            Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).frame(width: anchoCol, alignment: .trailing)
-                            Text(Money.fmt(f.balance)).fontWeight(.semibold).frame(width: anchoCol, alignment: .trailing)
+                            Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).celdaDinero(anchoCol)
+                            Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).celdaDinero(anchoCol)
+                            Text(Money.fmt(f.balance)).fontWeight(.semibold).celdaDinero(anchoCol)
                         }
                         .font(compacto ? .caption : .subheadline).monospacedDigit()
                         .padding(.vertical, 9)
@@ -607,9 +607,9 @@ struct ReportesView: View {
                     HStack(spacing: 6) {
                         Text(L.t("Total \(a.anio)", "Total \(a.anio)")).fontWeight(.semibold)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        Text(Money.fmt(a.totalIngresos)).foregroundStyle(Paleta.brand).frame(width: anchoCol, alignment: .trailing)
-                        Text(Money.fmt(a.totalGastos)).foregroundStyle(Paleta.negativo).frame(width: anchoCol, alignment: .trailing)
-                        Text(Money.fmt(a.balance)).fontWeight(.semibold).frame(width: anchoCol, alignment: .trailing)
+                        Text(Money.fmt(a.totalIngresos)).foregroundStyle(Paleta.brand).celdaDinero(anchoCol)
+                        Text(Money.fmt(a.totalGastos)).foregroundStyle(Paleta.negativo).celdaDinero(anchoCol)
+                        Text(Money.fmt(a.balance)).fontWeight(.semibold).celdaDinero(anchoCol)
                     }
                     .font(compacto ? .caption.weight(.semibold) : .subheadline.weight(.semibold)).monospacedDigit()
                     .padding(.vertical, 9)
@@ -631,7 +631,7 @@ struct ReportesView: View {
                         Text(L.t("INGRESOS", "INCOME")).frame(width: anchoCol, alignment: .trailing)
                         Text(L.t("GASTOS", "EXPENSES")).frame(width: anchoCol, alignment: .trailing)
                         Text(L.t("BALANCE", "BALANCE")).frame(width: anchoCol, alignment: .trailing)
-                        if !compacto { Text("").frame(width: 52, alignment: .trailing) }
+                        if !compacto { Text("").frame(width: anchoVariacion, alignment: .trailing) }
                     }
                     .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     .padding(.vertical, 8)
@@ -645,15 +645,15 @@ struct ReportesView: View {
                             Text(f.mes).fontWeight(esActual ? .semibold : .regular)
                                 .lineLimit(1).minimumScaleFactor(0.8)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).frame(width: anchoCol, alignment: .trailing)
-                            Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).frame(width: anchoCol, alignment: .trailing)
-                            Text(Money.fmt(f.balance)).fontWeight(.semibold).frame(width: anchoCol, alignment: .trailing)
+                            Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).celdaDinero(anchoCol)
+                            Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).celdaDinero(anchoCol)
+                            Text(Money.fmt(f.balance)).fontWeight(.semibold).celdaDinero(anchoCol)
                             // La variación se cae en el teléfono: con cuatro
                             // columnas de dinero no cabe, y es lo único que se
                             // puede deducir mirando las dos filas.
                             if !compacto {
-                                Group { if let d = f.delta { DeltaBadge(pct: d) } else { Text("") } }
-                                    .frame(width: 52, alignment: .trailing)
+                                Group { if let d = f.delta { DeltaBadge(pct: d).fixedSize() } else { Text("") } }
+                                    .frame(width: anchoVariacion, alignment: .trailing)
                             }
                         }
                         .font(compacto ? .caption : .subheadline).monospacedDigit()
@@ -666,7 +666,33 @@ struct ReportesView: View {
         }
     }
 
-    /// Las columnas de dinero se estrechan en el teléfono: con 92 pt cada una
-    /// no quedaba sitio para el nombre del mes.
-    private var anchoCol: CGFloat { compacto ? 74 : 92 }
+    /// Las columnas de dinero se estrechan en el teléfono: con el ancho del
+    /// iPad no quedaba sitio para el nombre del mes.
+    ///
+    /// **112 pt es una medida, no un gusto.** `$9,999,999.99` —el importe más
+    /// largo que la tabla puede tener que escribir— mide 110.2 pt a
+    /// `.subheadline` en seminegrita, que es como va la columna de balance.
+    /// Con los 92 anteriores agosto salía partido en dos renglones:
+    /// `$2,640,685.` sobre `50`.
+    private var anchoCol: CGFloat { compacto ? 74 : 112 }
+
+    /// La columna de variación. "▲3459.4%" mide 75.2 pt a `.subheadline`, y
+    /// con los 52 anteriores se rompía en tres líneas.
+    private let anchoVariacion: CGFloat = 80
+}
+
+private extension View {
+    /// Una celda de dinero de las tablas de resumen: ancho fijo, alineada a la
+    /// derecha y **en una sola línea**.
+    ///
+    /// Solo el nombre del mes llevaba `lineLimit`, así que las cuatro celdas de
+    /// dinero se partían en dos renglones en cuanto el importe pasaba del
+    /// millón: agosto salía como `$2,640,685.` sobre `50`. El ancho da de sobra
+    /// para el importe más largo posible; el `minimumScaleFactor` es el seguro
+    /// por si alguien sube el tamaño de letra del sistema.
+    func celdaDinero(_ ancho: CGFloat) -> some View {
+        lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .frame(width: ancho, alignment: .trailing)
+    }
 }
