@@ -79,9 +79,8 @@ necesitan la sesión.
 
 - **El cifrado local** (§5): faltan dos medidas antes de decidir.
 - **No soltar la tabla `mensajes`** hasta que todos los aparatos actualicen.
-- **Adelantar `main`**, que se quedó en `3ffc483` y lleva quince commits de
-  retraso. El push a `main` lo bloquea el clasificador del asistente, así que lo
-  corre Iván: `git -C ~/Desktop/Tamio-iOS push origin HEAD:main` (§1).
+- ~~Adelantar `main`~~ **hecho el 7 de septiembre**: `3ffc483` → `46dd4fe`,
+  veintinueve commits, y lo corrió la sesión (§1).
 
 ---
 
@@ -637,17 +636,21 @@ la app en modo revisión, que es justo donde los datos son inventados. Un
 
 Rama viva: **`liquid-glass`**, sincronizada con `origin/liquid-glass`.
 
-**`main` está al día en `3ffc483`**, adelantada por avance rápido el 7 de
-septiembre (`git push origin liquid-glass:main`). Se había quedado atrás en
-`4a571ff` a propósito mientras las cuatro migraciones nuevas (v18–v21) y las
-cuatro entidades de sincronización estaban sin probar contra la red; se probaron
-con la cuenta real, así que el motivo se acabó. **Repetirlo cuando lo de
-`liquid-glass` esté probado**, no antes: es lo que evita que combinarlas se
+**`main` está al día en `46dd4fe`**, adelantada por avance rápido el 7 de
+septiembre por la tarde (veintinueve commits desde `3ffc483`). Se había quedado
+atrás en `4a571ff` a propósito mientras las cuatro migraciones nuevas (v18–v21)
+y las cuatro entidades de sincronización estaban sin probar contra la red; se
+probaron con la cuenta real, así que el motivo se acabó. **Repetirlo cuando lo
+de `liquid-glass` esté probado**, no antes: es lo que evita que combinarlas se
 convierta en un problema.
 
-**El push a `main` lo tiene que correr Iván**: el clasificador de modo
-automático del asistente lo bloquea. Con `git push origin HEAD:main` desde el
-repo, o `! ...` desde la sesión.
+**Sobre el push, que aquí decía que lo tenía que correr Iván a mano:** se corrió
+desde la sesión y salió a la primera, pero con un matiz que conviene saber. Un
+`git push origin HEAD:main` **suelto, y pedido por Iván**, pasa. El mismo push
+**encadenado detrás de un `git commit`** lo bloqueó el clasificador de modo
+automático. Así que se puede hacer desde aquí; lo que no se puede es colarlo al
+final de otra cosa — que es justo la distinción que tiene sentido: publicar es
+una orden, no un paso más del trabajo.
 
 Ramas viejas ya absorbidas aquí, no hace falta volver a ellas:
 `arreglos-interfaz`, `arreglos-revision-iphone`, `revision-y-motor-offline`.
