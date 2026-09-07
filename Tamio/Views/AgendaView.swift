@@ -20,8 +20,13 @@ struct AgendaView: View {
         GeometryReader { geo in
             if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
+                    // `Esp.columnaMaestra` como las otras doce pantallas de
+                    // maestro-detalle. Este ancho se quedó fuera de la
+                    // unificación —era el único con un rango en vez de un
+                    // valor— y hacía que el detalle diera un salto lateral al
+                    // llegar aquí desde cualquier otra sección.
                     calendarioColumna
-                        .frame(minWidth: 300, maxWidth: 420)
+                        .frame(width: Esp.columnaMaestra)
                     Divider()
                     detalleDiaColumna
                 }
@@ -438,8 +443,14 @@ struct AgendaView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(tituloDia)
                         .font(.title3.weight(.semibold))
-                    Text(subtituloDia(pendientes: pendientes, completos: completos))
-                        .font(.subheadline).foregroundStyle(.secondary)
+                    // **El día vacío lo dice una vez.** Bajo "Lunes 7" ponía
+                    // "Sin compromisos" y justo debajo el estado vacío grande
+                    // repetía "Sin eventos". Se queda el estado vacío, que es
+                    // el que se lee; el subtítulo, la fecha sola.
+                    if let sub = subtituloDia(pendientes: pendientes, completos: completos) {
+                        Text(sub)
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
                 }
 
                 if evs.isEmpty {
@@ -539,13 +550,16 @@ struct AgendaView: View {
         return "\(nombres[offset]) \(vm.diaSeleccionado)"
     }
 
-    private func subtituloDia(pendientes: Int, completos: Int) -> String {
-        guard pendientes + completos > 0 else {
-            return L.t("Sin compromisos", "No commitments")
-        }
+    /// `nil` cuando el día no tiene nada: lo dice el estado vacío de abajo.
+    private func subtituloDia(pendientes: Int, completos: Int) -> String? {
+        guard pendientes + completos > 0 else { return nil }
         var partes: [String] = []
-        if pendientes > 0 { partes.append("\(pendientes) \(L.t("pendientes", "pending"))") }
-        if completos  > 0 { partes.append("\(completos) \(L.t("completos", "completed"))") }
+        if pendientes > 0 {
+            partes.append(L.plural(pendientes, es: "pendiente", en: "pending", enPlural: "pending"))
+        }
+        if completos > 0 {
+            partes.append(L.plural(completos, es: "completo", en: "completed", enPlural: "completed"))
+        }
         return partes.joined(separator: " · ")
     }
 
