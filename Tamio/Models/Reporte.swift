@@ -85,10 +85,10 @@ struct EstadoFinanciero {
 
     let mensual: [FilaMensual]
 
-    /// Etiqueta corta del centro de la dona ("agosto" · "august").
+    /// Etiqueta corta del centro de la dona ("agosto" · "August").
     var composicionMesCorto: String {
         guard let d = Fechas.fechaDePeriodo(periodo.clave) else { return periodo.etiqueta }
-        return L.formateador("LLLL").string(from: d).lowercased()
+        return L.mesSuelto(d)
     }
 }
 

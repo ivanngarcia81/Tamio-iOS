@@ -548,12 +548,7 @@ struct DashboardView: View {
         return "\(fecha) · \(corte)"
     }
 
-    private var mesCorto: String {
-        let f = DateFormatter()
-        f.locale = L.locale
-        f.dateFormat = "MMMM"
-        return f.string(from: Date())
-    }
+    private var mesCorto: String { L.mesSuelto(Date()) }
 }
 
 // MARK: - Subvistas privadas iPhone
