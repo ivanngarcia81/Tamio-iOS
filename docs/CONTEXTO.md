@@ -1062,9 +1062,29 @@ memoria y no en una tabla. **El web tampoco la tiene**: propone la cuenta del
 corte, porque `cuentas()` las saca de los cortes guardados; solo se pierde la
 que se teclea y no se usa. Reflejar, no diseñar.
 
-**Probado:** diez pruebas nuevas (`InicioCalculadoTests`), 28 en total en verde.
-**Sin verificar:** verlo en el aparato con la cuenta real — Inicio con datos de
-verdad, y el selector de aportante en avión.
+**Probado:** diez pruebas nuevas (`InicioCalculadoTests`), 28 en total en verde,
+**y en el simulador con la cuenta real**: Inicio enseña las cifras de la iglesia
+y el selector de aportante ofrece el padrón del teléfono (foto en la sesión).
+
+**Y ahí salió lo que ninguna prueba podía ver.** En un teléfono recién estrenado
+la base local está vacía, el arranque lanza la sincronización, y la pantalla se
+dibuja mientras los datos bajan: Inicio leía la base UNA vez, con `.task`, y se
+quedaba en ceros hasta que alguien tiraba hacia abajo. Dos arranques seguidos
+daban pantallas distintas según quién terminara antes. Mientras Inicio fue una
+maqueta no podía pasar; aparece justo al enchufarlo.
+
+El arreglo va en `sincronizable` —las catorce pantallas con ese gesto tienen el
+mismo problema—: además del tirón, recargan cuando el motor termina una
+sincronización, escuchando `ultimaSincronizacion`, que ya se publicaba.
+
+**La receta de la prueba de interfaz** quedó en `pruebas/`: un target
+`bundle.ui-testing` en la copia, imprimir `app.buttons...map(\.label)` para
+saber cómo se llaman las cosas, y una marca en el log + `simctl io screenshot`
+desde el shell para fotografiar un estado transitorio (§3).
+
+**Sin verificar:** el selector de aportante con el aparato en avión —el camino
+no toca la red, pero no se ejercitó—, y los cinco sucesos de Tesorería vistos en
+la pantalla de Registro: para eso hay que borrar un movimiento de verdad.
 
 ---
 
