@@ -950,8 +950,9 @@ struct InformesMembresiaView: View {
 
                                 ForEach(r.traslados) { t in
                                     HStack(spacing: 0) {
-                                        Text(t.folio).font(.caption).monospacedDigit().frame(width: 110, alignment: .leading)
-                                        Pill(texto: t.tipoTraslado, color: t.tipoTraslado == L.t("Enviado", "Sent") ? Paleta.aviso : Paleta.brand)
+                                        Text(t.folioLegible).font(.caption).monospacedDigit().frame(width: 110, alignment: .leading)
+                                        Pill(texto: t.tipoTraslado,
+                                             color: t.sentido == .salida ? Paleta.aviso : Paleta.brand)
                                             .frame(width: 90, alignment: .leading)
                                         VStack(alignment: .leading, spacing: 1) {
                                             Text(t.persona).font(.subheadline.weight(.medium)).lineLimit(1)

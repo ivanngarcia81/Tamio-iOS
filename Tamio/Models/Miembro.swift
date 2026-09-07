@@ -173,13 +173,27 @@ struct CambioEstado: Codable, Hashable {
 ///
 /// La asistencia sigue viniendo de fuera hasta la v16: son cadenas porque
 /// todavía no hay `servicios` de donde contarlas.
-/// Lo que el teléfono enseña de un traslado abierto. El expediente entero
+/// Lo que el teléfono enseña de un traslado de salida. El expediente entero
 /// —motivo, pastor receptor, fechas de aprobación y entrega, historial— vive en
 /// el escritorio, que es donde se aprueba y se firma.
-struct TrasladoEnCurso: Hashable {
+///
+/// **Se llamaba `TrasladoEnCurso`**, y el nombre dejó de ser cierto en cuanto
+/// el informe de membresía necesitó el folio y el destino de los traslados ya
+/// TERMINADOS: son los mismos tres campos, esté el expediente abierto o
+/// cerrado. Cuál de los dos se tiene delante lo dice la propiedad que lo
+/// contiene —`trasladoSalida` es el último, `trasladoEnCurso` solo el abierto—,
+/// no el nombre del tipo.
+struct TrasladoDeSalida: Hashable {
     let folio: String
     let iglesiaDestino: String
     let estado: String
+
+    /// **En curso es todo lo que no ha terminado**, la misma regla del web
+    /// (`memberTieneTrasladoActivo`). Vive aquí y no en `TrasladoSalidaFila`
+    /// —que es quien la tenía— porque ahora la preguntan las dos capas, y una
+    /// regla con dos dueños acaba contestando distinto según a quién se le
+    /// pregunte.
+    var enCurso: Bool { estado != "completado" && estado != "cancelado" }
 
     /// **En la lista, la palabra sola.** Con el destino dentro, la pastilla
     /// parte en dos renglones y engorda la fila entera —visto en el
@@ -206,7 +220,15 @@ struct Miembro: Identifiable, Hashable {
     /// lo que se puede hacer con ella —darla de baja a medias de un traslado es
     /// justo lo que el expediente existe para ordenar—. Lo rellena el
     /// repositorio; `nil` cuando no hay ninguno.
-    var trasladoEnCurso: TrasladoEnCurso? = nil
+    var trasladoSalida: TrasladoDeSalida? = nil
+
+    /// El traslado ABIERTO, que es el que cambia lo que se puede hacer con la
+    /// persona. Se deriva de `trasladoSalida` en vez de guardarse aparte: eran
+    /// dos campos sobre lo mismo que podían discrepar.
+    var trasladoEnCurso: TrasladoDeSalida? {
+        guard let t = trasladoSalida, t.enCurso else { return nil }
+        return t
+    }
 
     // Compartido con Tesorería: la misma fila.
     var telefono = ""

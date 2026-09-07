@@ -353,11 +353,12 @@ struct TrasladoSalidaFila: Codable, FetchableRecord, PersistableRecord {
     var actualizadoEn: String?
     var borrado: Bool
 
-    /// **En curso es todo lo que no ha terminado.** Es la misma regla del web
-    /// (`memberTieneTrasladoActivo`): cualquier estado que no sea completado ni
-    /// cancelado significa que hay un traslado abierto sobre esa persona.
-    static func enCurso(_ estado: String) -> Bool {
-        estado != "completado" && estado != "cancelado"
+    /// El expediente, para el modelo. La regla de si sigue abierto la contesta
+    /// él (`TrasladoDeSalida.enCurso`): la tenía esta capa, y desde que el
+    /// informe de membresía también la pregunta, tenerla dos veces era pedir
+    /// que se desincronizaran.
+    var traslado: TrasladoDeSalida {
+        TrasladoDeSalida(folio: folio, iglesiaDestino: iglesiaDestino, estado: estado)
     }
 }
 

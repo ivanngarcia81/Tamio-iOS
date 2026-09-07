@@ -858,13 +858,37 @@ struct MesAlta: Identifiable {
 }
 
 struct MovimientoTraslado: Identifiable {
+    /// **Salida o entrada, como clave y no como texto.** La tabla del informe
+    /// pintaba la pastilla comparando `tipoTraslado` con `L.t("Enviado",
+    /// "Sent")`, un rótulo que nadie generaba —el origen dice "Salida"—, así
+    /// que la condición era falsa siempre y las salidas salían del color de
+    /// las entradas. Es el mismo error que ya documentan `Catalogos` y
+    /// `TipoActa`: comparar contra texto traducido no acierta ni en el idioma
+    /// en el que se escribió.
+    enum Sentido {
+        case salida, entrada
+
+        var etiqueta: String {
+            switch self {
+            case .salida:  return L.t("Salida", "Outgoing")
+            case .entrada: return L.t("Entrada", "Incoming")
+            }
+        }
+    }
+
     let id: Int
     let folio: String
-    let tipoTraslado: String
+    let sentido: Sentido
     let persona: String
     let iglesia: String
     let fecha: String
     let estado: String
+
+    var tipoTraslado: String { sentido.etiqueta }
+
+    /// El folio, listo para enseñar. Una ENTRADA no lo tiene y no es un olvido:
+    /// el expediente lo abre y lo numera la iglesia que envía.
+    var folioLegible: String { folio.isEmpty ? "—" : folio }
 }
 
 struct InformeResumen {

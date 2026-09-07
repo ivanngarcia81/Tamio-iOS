@@ -88,11 +88,17 @@ final class InformesMembresiaViewModel {
 
     // MARK: - Informe de Miembros · el padrón de verdad
 
-    /// **Este informe NO sale de la maqueta.** El General sigue leyendo
-    /// `resumenMes`/`resumenAnio`, que son constantes escritas a mano, y para
-    /// distribuciones de ejemplo da igual. El padrón no: un informe que
-    /// encabeza 248 sobre una lista de siete no es un informe, es dos pantallas
-    /// discrepando. Así que lee del mismo repositorio que Membresía.
+    /// **Este informe no sale de la maqueta**, y desde el 7 de septiembre de
+    /// 2026 ninguno: un informe que encabeza 248 sobre una lista de siete no es
+    /// un informe, son dos pantallas discrepando. Lee del mismo repositorio que
+    /// Membresía.
+    ///
+    /// Aquí decía que "el General sigue leyendo `resumenMes`/`resumenAnio`,
+    /// que son constantes escritas a mano". **Ya no era cierto** —el General
+    /// usa `resumen`, que cuenta el padrón—, pero las constantes seguían en el
+    /// archivo: 210 líneas de personas, ministerios y tres traslados inventados
+    /// que nadie llamaba y que el traspaso ya avisaba de no confundir con lo
+    /// real. Se fueron con este comentario.
     private let padronRepo: MembresiaRepository
     private(set) var miembros: [Miembro] = []
     private(set) var padronCargado = false
@@ -432,23 +438,36 @@ final class InformesMembresiaViewModel {
 
     /// Los traslados del padrón: quien se fue con motivo "traslado" y quien
     /// llegó recibido. Salen de las fichas, no de una lista aparte.
+    ///
+    /// **El folio y la iglesia iban en blanco.** Los dos estaban en el aparato
+    /// —el folio y el destino en `trasladoSalida`, la iglesia de origen en el
+    /// `iglesiaAnterior` del propio miembro—, y esta función los ponía como
+    /// cadena vacía: la tabla del informe pintaba una columna de folio de 110
+    /// puntos vacía y otra de iglesia también, en un documento que se comparte
+    /// con la junta.
     private var trasladosDelPeriodo: [MovimientoTraslado] {
         let año = añoSeleccionado
         let salidas = miembros.filter {
             $0.estado.baja?.motivo == "traslado"
             && ($0.estado.baja?.fecha.hasPrefix(String(año)) ?? false)
-        }.map {
-            MovimientoTraslado(id: abs($0.id.hashValue), folio: "", 
-                               tipoTraslado: L.t("Salida", "Outgoing"),
-                               persona: $0.nombre, iglesia: "",
-                               fecha: Fechas.diaLegible($0.estado.baja?.fecha ?? ""),
+        }.map { m in
+            MovimientoTraslado(id: abs(m.id.hashValue),
+                               folio: m.trasladoSalida?.folio ?? "",
+                               sentido: .salida,
+                               persona: m.nombre,
+                               iglesia: m.trasladoSalida?.iglesiaDestino ?? "",
+                               fecha: Fechas.diaLegible(m.estado.baja?.fecha ?? ""),
                                estado: L.t("Completado", "Completed"))
         }
-        let entradas = miembros.filter { $0.esRecibido && $0.esNuevo(en: año) }.map {
-            MovimientoTraslado(id: abs($0.id.hashValue) &+ 1, folio: "",
-                               tipoTraslado: L.t("Entrada", "Incoming"),
-                               persona: $0.nombre, iglesia: "",
-                               fecha: Fechas.diaLegible($0.fechaIngreso),
+        // **Una entrada no tiene folio y no es un olvido**: el expediente lo
+        // abre y lo numera la iglesia que ENVÍA. Lo que sí consta es de dónde
+        // vino, que es `iglesiaAnterior` — el mismo campo que define
+        // `esRecibido`, así que quien esté en esta lista lo tiene.
+        let entradas = miembros.filter { $0.esRecibido && $0.esNuevo(en: año) }.map { m in
+            MovimientoTraslado(id: abs(m.id.hashValue) &+ 1, folio: "",
+                               sentido: .entrada,
+                               persona: m.nombre, iglesia: m.iglesiaAnterior,
+                               fecha: Fechas.diaLegible(m.fechaIngreso),
                                estado: L.t("Completado", "Completed"))
         }
         return salidas + entradas
@@ -476,142 +495,6 @@ final class InformesMembresiaViewModel {
     private static let fmtCorto: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = L.t("d MMM yy", "MMM d, yy"); f.locale = L.locale; return f
     }()
-
-    // MARK: - Mock data por periodo
-
-    private static func resumenMes(mes: Int, año: Int) -> InformeResumen {
-        let altas = [3, 1, 2, 4, 2, 1, 5, 3, 0, 0, 0, 0]
-        let n = nombreMes(mes)
-        return InformeResumen(
-            totalMiembros: 248,
-            periodo: "\(n) \(año)",
-            porEstado: [
-                (L.t("Activo", "Active"), 236),
-                (L.t("Nuevo", "New"), 7),
-                (L.t("Traslado", "Transfer"), 2),
-                (L.t("Inactivo", "Inactive"), 3),
-            ],
-            porMinisterio: [
-                (L.t("Enseñanza", "Teaching"), 46),
-                (L.t("Música", "Music"), 38),
-                (L.t("Ujieres", "Ushers"), 24),
-                (L.t("Niños", "Children"), 22),
-            ],
-            expedienteCompleto: 227, expedienteIncompleto: 21,
-            altasPorMes: [MesAlta(id: 1, mes: n, altas: mes <= 12 ? altas[mes - 1] : 0)],
-            traslados: [trasladoJavier]
-        )
-    }
-
-    private static func resumenTrimestre(q: Int, año: Int) -> InformeResumen {
-        let grupos: [[Int]] = [[1,2,3],[4,5,6],[7,8,9],[10,11,12]]
-        let meses = grupos[min(q - 1, 3)]
-        let altasData = [3, 1, 2, 4, 2, 1, 5, 3, 0, 0, 0, 0]
-        return InformeResumen(
-            totalMiembros: 248,
-            periodo: "Q\(q) \(año) · \(mesesDelTrimestre(q))",
-            porEstado: [
-                (L.t("Activo", "Active"), 236),
-                (L.t("Nuevo", "New"), 9),
-                (L.t("Traslado", "Transfer"), 2),
-                (L.t("Inactivo", "Inactive"), 1),
-            ],
-            porMinisterio: [
-                (L.t("Enseñanza", "Teaching"), 46),
-                (L.t("Música", "Music"), 38),
-                (L.t("Ujieres", "Ushers"), 24),
-                (L.t("Niños", "Children"), 22),
-                (L.t("Medios", "Media"), 14),
-            ],
-            expedienteCompleto: 240, expedienteIncompleto: 8,
-            altasPorMes: meses.enumerated().map { idx, m in
-                MesAlta(id: idx + 1, mes: nombreMes(m), altas: altasData[m - 1])
-            },
-            traslados: [trasladoJavier, trasladoDaniel]
-        )
-    }
-
-    private static func resumenAnio(año: Int) -> InformeResumen {
-        InformeResumen(
-            totalMiembros: 262,
-            periodo: L.t("Año \(año)", "Year \(año)"),
-            porEstado: [
-                (L.t("Activo", "Active"), 248),
-                (L.t("Inactivo", "Inactive"), 6),
-                (L.t("Visitante", "Visitor"), 4),
-                (L.t("En proceso", "In process"), 2),
-                (L.t("Trasladado", "Transferred"), 2),
-            ],
-            porMinisterio: [
-                (L.t("Enseñanza", "Teaching"), 46),
-                (L.t("Música", "Music"), 38),
-                (L.t("Ujieres", "Ushers"), 24),
-                (L.t("Niños", "Children"), 22),
-                (L.t("Medios", "Media"), 14),
-                (L.t("Cocina", "Kitchen"), 12),
-            ],
-            expedienteCompleto: 250, expedienteIncompleto: 12,
-            altasPorMes: [
-                MesAlta(id: 1,  mes: L.t("ene","jan"), altas: 3),
-                MesAlta(id: 2,  mes: L.t("feb","feb"), altas: 1),
-                MesAlta(id: 3,  mes: L.t("mar","mar"), altas: 2),
-                MesAlta(id: 4,  mes: L.t("abr","apr"), altas: 4),
-                MesAlta(id: 5,  mes: L.t("may","may"), altas: 2),
-                MesAlta(id: 6,  mes: L.t("jun","jun"), altas: 1),
-                MesAlta(id: 7,  mes: L.t("jul","jul"), altas: 5),
-                MesAlta(id: 8,  mes: L.t("ago","aug"), altas: 3),
-            ],
-            traslados: [trasladoJavier, trasladoDaniel, trasladoRosa]
-        )
-    }
-
-    private static let resumenRango = InformeResumen(
-        totalMiembros: 248,
-        periodo: L.t("Rango personalizado", "Custom range"),
-        porEstado: [
-            (L.t("Activo", "Active"), 236),
-            (L.t("Nuevo", "New"), 5),
-            (L.t("Traslado", "Transfer"), 2),
-        ],
-        porMinisterio: [
-            (L.t("Enseñanza", "Teaching"), 44),
-            (L.t("Música", "Music"), 36),
-            (L.t("Ujieres", "Ushers"), 22),
-        ],
-        expedienteCompleto: 235, expedienteIncompleto: 13,
-        altasPorMes: [
-            MesAlta(id: 1, mes: L.t("jul","jul"), altas: 2),
-            MesAlta(id: 2, mes: L.t("ago","aug"), altas: 3),
-        ],
-        traslados: [trasladoJavier, trasladoDaniel]
-    )
-
-    private static let resumenTodo = InformeResumen(
-        totalMiembros: 280,
-        periodo: L.t("Todo el historial", "All time"),
-        porEstado: [
-            (L.t("Activo", "Active"), 248),
-            (L.t("Inactivo", "Inactive"), 12),
-            (L.t("Visitante", "Visitor"), 8),
-            (L.t("Trasladado", "Transferred"), 10),
-            (L.t("Baja", "Removed"), 2),
-        ],
-        porMinisterio: [
-            (L.t("Enseñanza", "Teaching"), 52),
-            (L.t("Música", "Music"), 44),
-            (L.t("Ujieres", "Ushers"), 30),
-            (L.t("Niños", "Children"), 28),
-            (L.t("Medios", "Media"), 18),
-            (L.t("Cocina", "Kitchen"), 14),
-        ],
-        expedienteCompleto: 265, expedienteIncompleto: 15,
-        altasPorMes: [
-            MesAlta(id: 1,  mes: "2024", altas: 18),
-            MesAlta(id: 2,  mes: "2025", altas: 22),
-            MesAlta(id: 3,  mes: "2026", altas: 21),
-        ],
-        traslados: [trasladoJavier, trasladoDaniel, trasladoRosa]
-    )
 
     // MARK: - Exportación
 
@@ -668,23 +551,4 @@ final class InformesMembresiaViewModel {
         return t
     }
 
-    // MARK: - Traslados mock compartidos
-
-    private static let trasladoJavier = MovimientoTraslado(
-        id: 1, folio: "TS-2026-014", tipoTraslado: L.t("Enviado","Sent"),
-        persona: "Javier Medina Cruz",
-        iglesia: L.t("Iglesia Betel · Saltillo","Iglesia Betel · Saltillo"),
-        fecha: "12 ago 2026", estado: L.t("Pendiente de firma","Awaiting signature"))
-
-    private static let trasladoDaniel = MovimientoTraslado(
-        id: 2, folio: "TE-2026-007", tipoTraslado: L.t("Recibido","Received"),
-        persona: "Daniel Guerra Salinas",
-        iglesia: L.t("Iglesia Emanuel · Torreón","Iglesia Emanuel · Torreón"),
-        fecha: "6 jul 2026", estado: L.t("Completado","Completed"))
-
-    private static let trasladoRosa = MovimientoTraslado(
-        id: 3, folio: "TS-2026-011", tipoTraslado: L.t("Enviado","Sent"),
-        persona: "Rosa Elena Vega",
-        iglesia: L.t("Iglesia Getsemaní · Reynosa","Iglesia Getsemaní · Reynosa"),
-        fecha: "14 mar 2026", estado: L.t("Entregado","Delivered"))
 }

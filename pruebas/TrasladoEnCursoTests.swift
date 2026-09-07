@@ -6,7 +6,7 @@ import GRDB
 /// no puede fallar en silencio: si `migrate` lanza, `BaseLocal` se cae a una
 /// base en memoria sin avisar y se pierde todo lo local.
 @MainActor
-final class TrasladoEnCursoTests: XCTestCase {
+final class TrasladoDeSalidaTests: XCTestCase {
 
     private let padron = OfflineMembresiaRepository()
 

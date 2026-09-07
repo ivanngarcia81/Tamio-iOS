@@ -111,7 +111,9 @@ struct MockMembresiaRepository: MembresiaRepository {
         m3.asistenciaResumen = AsistenciaMiembro(presentes: 24, servicios: 27, rachaSinAsistir: 0, ultimaVisita: "2026-08-23")
 
         // Traslado EN CURSO: sigue activo hasta que se cierre. El expediente
-        // vivirá en `traslados_salida`; mientras, aquí no se ve.
+        // vive en `traslados_salida`, y desde el 7 de septiembre de 2026 el
+        // ejemplo lo trae: sin él, el modo revisión no podía enseñar ni la
+        // pastilla de la ficha ni el folio del informe.
         var m4 = Miembro(id: "4", nombre: "Javier Medina Cruz")
         m4.telefono = "81 8899 1020"; m4.correo = "jmedina@outlook.com"
         m4.fechaIngreso = "2016-05-20"; m4.bautizadoAgua = true
@@ -119,6 +121,9 @@ struct MockMembresiaRepository: MembresiaRepository {
         m4.asistenciaResumen = AsistenciaMiembro(presentes: 11, servicios: 27, rachaSinAsistir: 4, ultimaVisita: "2026-07-26")
         m4.seguimientoRazon = L.t("Cuatro servicios sin asistir · traslado en curso", "Four services missed · transfer in progress")
         m4.ausenciaNota = L.t(" · traslado", " · transfer")
+        m4.trasladoSalida = TrasladoDeSalida(folio: "TS-2026-014",
+                                             iglesiaDestino: "Iglesia Betel, Saltillo",
+                                             estado: "enviado")
 
         var m5 = Miembro(id: "5", nombre: "Ana Lucía Torres")
         m5.telefono = "81 1010 2020"; m5.correo = "ana.torres@correo.mx"; m5.estadoCivil = "casado"
@@ -143,6 +148,11 @@ struct MockMembresiaRepository: MembresiaRepository {
         m8.telefono = "81 9090 0101"; m8.fechaIngreso = "2013-08-11"
         m8.estado = .baja("2026-03-14", "traslado")
         m8.historialEstados = [CambioEstado(de: "activo", a: "trasladado", fecha: "2026-03-14")]
+        // Cerrado: su expediente ya no la pone "en curso", pero el folio y el
+        // destino siguen siendo suyos y son los que cita el informe.
+        m8.trasladoSalida = TrasladoDeSalida(folio: "TS-2026-011",
+                                             iglesiaDestino: "Iglesia Getsemaní, Reynosa",
+                                             estado: "completado")
         m8.bautizadoAgua = true; m8.fechaBautismoAgua = "2013-09-01"
         m8.asistencia = serie(0)
         m8.asistenciaResumen = AsistenciaMiembro(presentes: 0, servicios: 27, rachaSinAsistir: 27,
@@ -230,17 +240,26 @@ struct OfflineMembresiaRepository: MembresiaRepository {
         // estado de la persona —sigue activa mientras dura—, pero la ficha
         // tiene que decirlo: dar de baja a alguien a mitad de un traslado es
         // justo lo que ese expediente existe para ordenar.
-        var traslados: [String: TrasladoEnCurso] = [:]
-        for t in try TrasladoSalidaFila.filter(Column("borrado") == false).fetchAll(db) {
-            guard let id = t.miembroId, TrasladoSalidaFila.enCurso(t.estado) else { continue }
-            traslados[id] = TrasladoEnCurso(folio: t.folio,
-                                            iglesiaDestino: t.iglesiaDestino,
-                                            estado: t.estado)
+        // **Todos, no solo los abiertos.** Antes se filtraba aquí por
+        // `enCurso`, así que el folio y la iglesia de un traslado TERMINADO
+        // estaban en la base del aparato y no salían de esta función: el
+        // informe de membresía los pintaba en blanco. Quién sigue abierto lo
+        // decide ahora `Miembro.trasladoEnCurso`, que es de quien es la
+        // pregunta.
+        //
+        // Se ordena por fecha de solicitud y gana el ÚLTIMO: una persona puede
+        // haberse trasladado, vuelto y vuelto a trasladar, y el expediente que
+        // cuenta es el de ahora.
+        var traslados: [String: TrasladoSalidaFila] = [:]
+        for t in try TrasladoSalidaFila.filter(Column("borrado") == false)
+            .order(Column("fechaSolicitud")).fetchAll(db) {
+            guard let id = t.miembroId else { continue }
+            traslados[id] = t
         }
 
         return filas.map { f in
             var m = f.miembro(familia: familia[f.id] ?? [])
-            m.trasladoEnCurso = traslados[f.id]
+            m.trasladoSalida = traslados[f.id]?.traslado
             return m
         }
     }

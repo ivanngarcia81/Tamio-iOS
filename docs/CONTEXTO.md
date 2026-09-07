@@ -43,6 +43,8 @@ sin trabajo pendiente**: lo que resta son dos decisiones de Iván.
 12. **El logo de la iglesia**, que la pantalla llevaba prometiendo como
     "Próximamente". Ver §0.0.d.
 13. **Secretaría no producía ningún PDF**: ni cartas ni actas. Ver §0.0.e.
+14. **Los traslados del informe salían sin folio y sin iglesia**, con los dos
+    datos en el aparato. Y se fueron 154 líneas de maqueta muerta. Ver §0.0.f.
 
 ### Las tres lecciones de esta vuelta
 
@@ -230,6 +232,65 @@ llena con el botón puesto.
 **Lo que este trabajo deja al descubierto:** el logo que se metió en el membrete
 de carta y acta (§0.0.d) hasta ahora solo se veía en pantalla, porque esos dos
 documentos no llegaban a imprimirse. Ahora sale en los seis de verdad.
+
+### 0.0.f Los traslados del informe, y la maqueta que sobraba
+
+La tabla "Movimientos de membresía" del informe pintaba una columna de folio de
+110 puntos **en blanco** y la iglesia vacía, en un documento que se comparte con
+la junta. Los dos datos estaban en el aparato:
+
+- **El folio y el destino** viven en `trasladoSalida`, y el repositorio los
+  descartaba: filtraba por `enCurso` al leer, así que en cuanto el expediente se
+  cerraba —que es justo cuando el traslado sale en el informe— sus datos no
+  salían de esa función. Ahora se leen todos y **quién sigue abierto lo decide
+  `Miembro.trasladoEnCurso`**, que se deriva en vez de guardarse aparte.
+- **La iglesia de origen de una entrada** es `iglesiaAnterior`, el mismo campo
+  que define `esRecibido`: quien esté en la lista lo tiene, y se estaba
+  poniendo `""` teniéndolo al lado.
+
+**Una entrada no tiene folio y no es un olvido**: el expediente lo abre y lo
+numera la iglesia que ENVÍA. Se enseña "—", que es lo que la app usa para "no
+hay".
+
+**Dos cosas que aparecieron por el camino:**
+
+- **La pastilla de sentido nunca acertaba.** La vista comparaba
+  `t.tipoTraslado == L.t("Enviado", "Sent")` y el origen escribía "Salida": la
+  condición era falsa siempre y las salidas salían del color de las entradas.
+  Es el error que ya documentan `Catalogos` y `TipoActa` — comparar contra texto
+  traducido no acierta ni en el idioma en que se escribió—, así que
+  `MovimientoTraslado` lleva ahora un `Sentido` con clave.
+- **`TrasladoEnCurso` pasó a llamarse `TrasladoDeSalida`.** El nombre dejó de
+  ser cierto en cuanto hizo falta el expediente cerrado: son los mismos tres
+  campos, y cuál se tiene delante lo dice la propiedad, no el tipo.
+
+**Y 154 líneas de maqueta muerta fuera** de `InformesMembresiaViewModel`:
+`resumenMes`, `resumenTrimestre`, `resumenRango`, `resumenTodo` y los tres
+traslados de ejemplo (Javier, Daniel, Rosa). **Nadie los llamaba** —comprobado
+símbolo por símbolo antes de tocar—, pero el comentario del archivo seguía
+diciendo que "el General sigue leyendo `resumenMes`/`resumenAnio`", que ya no
+era verdad, y este traspaso avisaba de no confundirlos con lo real. El aviso
+sobra si la trampa no está.
+
+**Cuidado al borrar por rangos**: el primer corte se llevó por delante
+`csvExportString` y `textoInforme`, que sí se usan, porque el bloque muerto
+tenía la sección de Exportación en medio. Compiló mal y se restauró; el segundo
+corte fue símbolo a símbolo con las líneas comprobadas antes de borrar.
+
+**El padrón de ejemplo trae ya los dos expedientes** —el abierto de Javier y el
+cerrado de Rosa—, porque el comentario decía "vivirá en `traslados_salida`;
+mientras, aquí no se ve", y sin ellos el modo revisión no podía enseñar ni la
+pastilla de la ficha ni el folio del informe.
+
+**Verificado** con tres pruebas nuevas (`pruebas/TrasladosDelInformeTests.swift`,
+con un repositorio inyectado) y las **73 unitarias en verde**, más la tabla en
+pantalla: "TS-2026-011 · Salida" en naranja y "— · Entrada" en verde, cada una
+con su iglesia.
+
+**Lo que sigue mal ahí y no se tocó:** las columnas de esa tabla son de ancho
+fijo y suman 580 puntos, así que en el teléfono la fecha y el estado se quedan
+fuera de la pantalla. Es anterior a esto y se nota más ahora que el folio tiene
+contenido.
 
 ### 0.0.a Los cinco sucesos de Tesorería
 
