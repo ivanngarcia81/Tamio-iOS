@@ -7,6 +7,65 @@ protocol DashboardRepository {
     func cargar(periodo: Periodo) async throws -> DashboardData
 }
 
+/// **La aritmética de Inicio, aparte del repositorio.** La comparten la maqueta
+/// y las cuentas de verdad: si cada una sumara a su manera, recorrer la app sin
+/// sesión dejaría de valer para ver lo que hace con sesión. Igual que
+/// `CalculadoraReportes` y `CalculadoraRevisiones`: entra lo que ya existe,
+/// sale lo que la pantalla enseña, y nada se guarda.
+enum CalculadoraInicio {
+
+    /// Lo que hay que saber de un tramo de tiempo, sacado de los movimientos.
+    struct Resumen {
+        var ingresos: Centavos = 0
+        var gastos: Centavos = 0
+        var registrosIngreso = 0
+        var registrosGasto = 0
+        var diezmos = 0
+        var porCategoria: [CategoriaMonto] = []
+    }
+
+    static func resumen(_ movimientos: [Movimiento], en rango: Range<Date>) -> Resumen {
+        let delRango = movimientos.filter { rango.contains($0.fecha) }
+        let ingresos = delRango.filter(\.esIngreso)
+        var r = Resumen()
+        r.ingresos = ingresos.reduce(0) { $0 + $1.monto }
+        let gastos = delRango.filter { !$0.esIngreso }
+        r.gastos = gastos.reduce(0) { $0 + $1.monto }
+        r.registrosIngreso = ingresos.count
+        r.registrosGasto = gastos.count
+        r.diezmos = ingresos.filter { $0.claveCategoria == .diezmo }.count
+        r.porCategoria = porCategoria(ingresos)
+        return r
+    }
+
+    /// Los ingresos agrupados por categoría, de mayor a menor. Se agrupa por
+    /// CLAVE y no por la etiqueta escrita: "Ofrenda misionera" y "Ofrenda del
+    /// miércoles" son las dos ofrendas y la dona no tiene por qué partirlas en
+    /// dos porciones. La que la iglesia se inventó y no se parece a nada del
+    /// catálogo conserva su nombre tal cual.
+    ///
+    /// La dona tiene cuatro colores: a partir del cuarto se acumulan en
+    /// "Otras", que además mantiene su suma igual al total del periodo.
+    static func porCategoria(_ ingresos: [Movimiento]) -> [CategoriaMonto] {
+        let porNombre = Dictionary(grouping: ingresos) { m in
+            m.claveCategoria.map(Catalogos.etiqueta(de:)) ?? m.categoria
+        }
+            .map { CategoriaMonto(nombre: $0.key, monto: $0.value.reduce(0) { $0 + $1.monto }) }
+            .sorted { $0.monto > $1.monto }
+        guard porNombre.count > Paleta.donut.count else { return porNombre }
+        let visibles = porNombre.prefix(Paleta.donut.count - 1)
+        let resto = porNombre.dropFirst(Paleta.donut.count - 1).reduce(0) { $0 + $1.monto }
+        return visibles + [CategoriaMonto(nombre: L.t("Otras", "Other"), monto: resto)]
+    }
+
+    /// Variación de un periodo al siguiente. `nil` si el anterior fue cero: no
+    /// es un +100%, es que no hay con qué comparar.
+    static func variacion(de anterior: Centavos, a actual: Centavos) -> Double? {
+        guard anterior > 0 else { return nil }
+        return Double(actual - anterior) / Double(anterior)
+    }
+}
+
 /// Datos falsos que reproducen EXACTAMENTE las cifras del handoff del iPad
 /// (Iglesia Getsemaní, agosto 2026). Los importes están en centavos.
 struct MockDashboardRepository: DashboardRepository {
@@ -20,8 +79,8 @@ struct MockDashboardRepository: DashboardRepository {
         // septiembre y la lista de Ingresos, con los mismos movimientos
         // delante, sumaba $23,863.00 en 8.
         let movimientos = MockMovimientosRepository.todos
-        let actual = Self.resumen(movimientos, en: Fechas.intervalo(periodo))
-        let anterior = Self.resumen(movimientos, en: Fechas.intervalo(periodo, hace: 1))
+        let actual = CalculadoraInicio.resumen(movimientos, en: Fechas.intervalo(periodo))
+        let anterior = CalculadoraInicio.resumen(movimientos, en: Fechas.intervalo(periodo, hace: 1))
 
         let ingresos = actual.ingresos
         let gastos = actual.gastos
@@ -47,8 +106,8 @@ struct MockDashboardRepository: DashboardRepository {
             // a mano (4,2% y 11,0%) sobre unos datos de ejemplo que solo
             // cubren la última semana: no había con qué compararlos.
             deltaSaldo: nil,
-            deltaIngresos: Self.variacion(de: anterior.ingresos, a: actual.ingresos),
-            deltaGastos: Self.variacion(de: anterior.gastos, a: actual.gastos),
+            deltaIngresos: CalculadoraInicio.variacion(de: anterior.ingresos, a: actual.ingresos),
+            deltaGastos: CalculadoraInicio.variacion(de: anterior.gastos, a: actual.gastos),
             registrosIngreso: actual.registrosIngreso,
             registrosGasto: actual.registrosGasto,
             diezmos: actual.diezmos,
@@ -63,57 +122,6 @@ struct MockDashboardRepository: DashboardRepository {
             recientes: Self.recientes,
             semana: Self.semana
         )
-    }
-
-    /// Lo que hay que saber de un tramo de tiempo, sacado de los movimientos.
-    private struct Resumen {
-        var ingresos: Centavos = 0
-        var gastos: Centavos = 0
-        var registrosIngreso = 0
-        var registrosGasto = 0
-        var diezmos = 0
-        var porCategoria: [CategoriaMonto] = []
-    }
-
-    private static func resumen(_ movimientos: [Movimiento], en rango: Range<Date>) -> Resumen {
-        let delRango = movimientos.filter { rango.contains($0.fecha) }
-        let ingresos = delRango.filter(\.esIngreso)
-        var r = Resumen()
-        r.ingresos = ingresos.reduce(0) { $0 + $1.monto }
-        let gastos = delRango.filter { !$0.esIngreso }
-        r.gastos = gastos.reduce(0) { $0 + $1.monto }
-        r.registrosIngreso = ingresos.count
-        r.registrosGasto = gastos.count
-        r.diezmos = ingresos.filter { $0.claveCategoria == .diezmo }.count
-        r.porCategoria = porCategoria(ingresos)
-        return r
-    }
-
-    /// Los ingresos agrupados por categoría, de mayor a menor. Se agrupa por
-    /// CLAVE y no por la etiqueta escrita: "Ofrenda misionera" y "Ofrenda del
-    /// miércoles" son las dos ofrendas y la dona no tiene por qué partirlas en
-    /// dos porciones. La que la iglesia se inventó y no se parece a nada del
-    /// catálogo conserva su nombre tal cual.
-    ///
-    /// La dona tiene cuatro colores: a partir del cuarto se acumulan en
-    /// "Otras", que además mantiene su suma igual al total del periodo.
-    private static func porCategoria(_ ingresos: [Movimiento]) -> [CategoriaMonto] {
-        let porNombre = Dictionary(grouping: ingresos) { m in
-            m.claveCategoria.map(Catalogos.etiqueta(de:)) ?? m.categoria
-        }
-            .map { CategoriaMonto(nombre: $0.key, monto: $0.value.reduce(0) { $0 + $1.monto }) }
-            .sorted { $0.monto > $1.monto }
-        guard porNombre.count > Paleta.donut.count else { return porNombre }
-        let visibles = porNombre.prefix(Paleta.donut.count - 1)
-        let resto = porNombre.dropFirst(Paleta.donut.count - 1).reduce(0) { $0 + $1.monto }
-        return visibles + [CategoriaMonto(nombre: L.t("Otras", "Other"), monto: resto)]
-    }
-
-    /// Variación de un periodo al siguiente. `nil` si el anterior fue cero: no
-    /// es un +100%, es que no hay con qué comparar.
-    private static func variacion(de anterior: Centavos, a actual: Centavos) -> Double? {
-        guard anterior > 0 else { return nil }
-        return Double(actual - anterior) / Double(anterior)
     }
 
     private static var seisMeses: [MesResumen] {
@@ -156,4 +164,159 @@ struct MockDashboardRepository: DashboardRepository {
                        subtitulo: L.t("Pendiente de firma del pastor", "Awaiting pastor's signature"), familia: 3),
         ]
     }
+}
+
+/// **Inicio no es un dato: es una consulta**, como el estado financiero y como
+/// la bandeja de revisión.
+///
+/// Era la última pantalla de Tesorería que no tocaba un movimiento real: la
+/// primera que se ve al abrir la app enseñaba la iglesia Getsemaní de
+/// Monterrey, seis meses de barras escritas a mano y cuatro movimientos
+/// inventados, con la sesión de la iglesia de verdad abierta. Lee de los mismos
+/// repositorios que las pantallas de las que es resumen, para que Inicio no
+/// pueda decir una cifra que Ingresos desmienta una capa más abajo.
+struct DashboardCalculado: DashboardRepository {
+    private let movimientos = repositorioMovimientos()
+    private let agenda = repositorioAgenda()
+
+    func cargar(periodo: Periodo) async throws -> DashboardData {
+        async let movs = todos()
+        async let asuntos = RevisarCalculado().asuntos()
+        async let resumenAgenda = agenda.resumen()
+        let todos = await movs
+
+        // **Solo lo aprobado cuenta**, la misma regla del web y de los
+        // informes: un movimiento que espera visto bueno todavía no es un
+        // hecho contable. Los devueltos no llegan siquiera, los descarta la
+        // lista.
+        let contables = todos.filter { $0.estadoRevision == .aprobado }
+        let actual = CalculadoraInicio.resumen(contables, en: Fechas.intervalo(periodo))
+        let anterior = CalculadoraInicio.resumen(contables, en: Fechas.intervalo(periodo, hace: 1))
+        let config = ConfiguracionIglesiaViewModel.compartido.config
+
+        return DashboardData(
+            church: Church(id: "1",
+                           nombre: config.nombre,
+                           ciudad: config.ciudad,
+                           moneda: config.moneda,
+                           tesoreroNombre: config.tesoreroNombre.isEmpty
+                               ? nil : config.tesoreroNombre),
+            // Lo recibido en efectivo que ningún corte depositado reclama. Es
+            // la misma definición que la consulta de `OfflineDepositosRepository`
+            // y la que ya usa la pantalla de Depósitos: como lo contado se
+            // deposita íntegro, eso ES el efectivo en caja.
+            saldoCaja: contables
+                .filter { $0.esIngreso && $0.esEfectivo && $0.sinDepositar }
+                .reduce(0) { $0 + $1.monto },
+            // Estos DOS cuentan todo lo registrado, aprobado o no: son "cuántos
+            // movimientos hay" y "cuántos siguen sin depositar", no cifras
+            // contables. El hub los enseña juntos y el segundo es trabajo
+            // pendiente aunque el visto bueno no haya llegado.
+            movimientosTotal: todos.count,
+            sinDepositarCount: todos.filter { $0.esIngreso && $0.sinDepositar }.count,
+            ingresos: actual.ingresos,
+            gastos: actual.gastos,
+            // Sin periodo anterior no hay variación que enseñar, que es lo que
+            // le pasa a una iglesia en su primer mes con la app.
+            deltaSaldo: nil,
+            deltaIngresos: CalculadoraInicio.variacion(de: anterior.ingresos, a: actual.ingresos),
+            deltaGastos: CalculadoraInicio.variacion(de: anterior.gastos, a: actual.gastos),
+            registrosIngreso: actual.registrosIngreso,
+            registrosGasto: actual.registrosGasto,
+            diezmos: actual.diezmos,
+            // De la bandeja CALCULADA: el KPI de Inicio, el badge del tab y la
+            // propia bandeja responden a la misma pregunta.
+            pendientes: await asuntos.filter { !$0.archivado }.count,
+            tramos: Self.seisMeses(contables),
+            ingresosPorCategoria: actual.porCategoria,
+            recientes: Self.recientes(todos),
+            semana: Self.semana(await resumenAgenda))
+    }
+
+    // MARK: - Origen
+
+    private func todos() async -> [Movimiento] {
+        async let ingresos = try? movimientos.lista(tipo: .ingreso)
+        async let gastos = try? movimientos.lista(tipo: .gasto)
+        return ((await ingresos) ?? []) + ((await gastos) ?? [])
+    }
+
+    // MARK: - Aritmética
+
+    /// Las barras: los seis meses que acaban en el actual. **Siempre seis,
+    /// aunque estén vacíos** — una iglesia que empieza en septiembre tiene que
+    /// ver una barra creciendo, no una gráfica de un solo palo.
+    private static func seisMeses(_ movimientos: [Movimiento]) -> [MesResumen] {
+        let cal = Calendar.current
+        let hoy = Date()
+        return (0..<CalculadoraReportes.mesesDeHistoria).reversed().compactMap { atras in
+            guard let mes = cal.date(byAdding: .month, value: -atras, to: hoy),
+                  let rango = cal.dateInterval(of: .month, for: mes) else { return nil }
+            let delMes = movimientos.filter { rango.contains($0.fecha) }
+            return MesResumen(
+                clave: Fechas.clavePeriodo(mes),
+                // "Sep" — el mes solo, que es lo que cabe bajo una barra.
+                etiqueta: L.formateador("LLL").string(from: mes).capitalized,
+                ingresos: delMes.filter(\.esIngreso).reduce(0) { $0 + $1.monto },
+                gastos: delMes.filter { !$0.esIngreso }.reduce(0) { $0 + $1.monto })
+        }
+    }
+
+    /// Los últimos cuatro capturados, del más nuevo al más viejo. Sin filtrar
+    /// por periodo a propósito: es "lo último que pasó", no un resumen del mes,
+    /// y en los primeros días de un mes estaría siempre vacío.
+    private static func recientes(_ movimientos: [Movimiento]) -> [Tx] {
+        movimientos.sorted { $0.fecha > $1.fecha }.prefix(4).map { m in
+            Tx(id: m.id, tipo: m.tipo, categoria: m.categoria, persona: m.persona,
+               // El concepto de la fila es la nota; sin ella, la categoría
+               // completa, que es lo que enseña la lista de Ingresos.
+               concepto: (m.nota?.isEmpty == false ? m.nota! : m.categoriaCompleta),
+               folio: m.folio, metodo: m.metodo, monto: m.monto)
+        }
+    }
+
+    /// "Esta semana": los próximos compromisos de la agenda de verdad, que ya
+    /// los calcula el propio protocolo contra la fecha de hoy. El mock traía
+    /// cuatro de agosto escritos a mano, así que en septiembre anunciaba un
+    /// consejo de ancianos "mañana viernes 21" estando a domingo.
+    private static func semana(_ resumen: ResumenAgenda) -> [AgendaItem] {
+        resumen.proximos.prefix(4).map { c in
+            AgendaItem(id: c.id, dia: c.diaSemana, num: c.numDia,
+                       titulo: c.evento.titulo,
+                       subtitulo: Self.subtitulo(c),
+                       familia: Self.familia(c.evento.tipo))
+        }
+    }
+
+    /// `"19:00 mañana · salón anexo"`. El lugar solo si lo hay: un punto medio
+    /// seguido de nada es peor que no ponerlo.
+    private static func subtitulo(_ c: CompromisoProximo) -> String {
+        let lugar = c.evento.lugar.trimmingCharacters(in: .whitespaces)
+        guard !lugar.isEmpty else { return c.cuando }
+        return "\(c.cuando) · \(lugar)"
+    }
+
+    /// El punto de color, que tiene cuatro. Se agrupa por lo que la fila ES
+    /// —un culto, una reunión, algo de dinero, lo demás—: repartir los colores
+    /// por orden de aparición haría que el mismo compromiso cambiara de color
+    /// al llegar otro antes.
+    private static func familia(_ tipo: TipoEvento) -> Int {
+        switch tipo {
+        case .culto, .cultoEspecial, .vigilia, .cenaPascual, .bautismo,
+             .dedicacionNino, .boda, .ensayo:
+            return 0
+        case .reunion, .reunionLideres, .reunionAdministrativa, .asamblea,
+             .conferencia, .retiro, .campana:
+            return 1
+        case .deposito, .fechaLimite, .tarea, .carta:
+            return 2
+        default:
+            return 3
+        }
+    }
+}
+
+/// Maqueta sin sesión, cuentas de verdad con ella.
+func repositorioDashboard() -> DashboardRepository {
+    ModoRevision.sinLogin ? MockDashboardRepository() : DashboardCalculado()
 }

@@ -14,7 +14,7 @@ final class DashboardViewModel {
     private(set) var data: DashboardData?
     private(set) var cargando = false
 
-    init(repo: DashboardRepository = MockDashboardRepository()) {
+    init(repo: DashboardRepository = repositorioDashboard()) {
         self.repo = repo
     }
 
