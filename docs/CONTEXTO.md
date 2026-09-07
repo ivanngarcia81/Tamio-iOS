@@ -9,18 +9,46 @@ el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
 ---
 
-## 0. La sesión del 6 de septiembre · segunda vuelta
+## 0. Secretaría, cerrada · 6 y 7 de septiembre
 
-Cinco commits, de `d2e999c` a `ae245a6`, subidos a `liquid-glass`. **`main` se
-quedó en `4a571ff`**: no se adelantó a propósito, porque esto trae cuatro
-migraciones nuevas y cuatro entidades de sincronización sin estrenar.
+Una sesión larga que cruzó la medianoche. Empezó con una pregunta de Iván
+—"¿cuáles son las páginas que faltan por arreglar?"— y la respuesta correcta no
+era la que parecía: **las seis pantallas de Secretaría abrían, cargaban y
+dejaban volver, y cinco de las seis eran maqueta.**
 
-Toda la sesión salió de una pregunta de Iván —"¿cuáles son las páginas que
-faltan por arreglar?"— y de la respuesta correcta, que no era la que parecía:
-**las seis pantallas de Secretaría abrían, cargaban y dejaban volver, pero
-cinco de las seis eran maqueta.**
+Trece commits, de `d2e999c` a `5d0d91b`, todos en `liquid-glass`. **`main` sigue
+en `4a571ff` a propósito** (§1).
 
-### Lo que se cerró
+### Dónde quedó Secretaría
+
+Las seis pantallas leen y escriben en la base local y suben y bajan de
+Supabase. **La sincronización está probada con la cuenta real en las DOS
+direcciones** (§5). Y ninguna pantalla enseña ya un número inventado.
+
+| | Repositorio | Tabla | Sincronización |
+|---|---|---|---|
+| Membresía | ✅ | v15 | ✅ |
+| Servicios | ✅ | v16–v17 | ✅ |
+| Agenda | ✅ | v18 | ✅ |
+| Actas | ✅ | v19 | ✅ |
+| Cartas | ✅ | v20 | ✅ |
+| Registro | ✅ | v21 | ✅ |
+| Plantillas | ✅ | v22 | solo baja, a propósito |
+
+Lo demás que cayó: el hub dejó de anunciar compromisos de agosto; los tres
+selectores de personas leen el padrón; las firmas de un acta constan; el
+registro anota los cuatro sucesos de Secretaría; los informes General y
+Seguimiento salen del padrón. Y dos cosas que pidió Iván: **tirar hacia abajo
+para sincronizar** en catorce pantallas, y los próximos compromisos arriba del
+hub.
+
+**Mensajes se quitó, no se hizo.** Ver §5, "Mensajes no existe".
+
+### Lo siguiente
+
+Está en el §6, y lo de más valor es el primero.
+
+### La primera mitad: enchufarlas
 
 **Las cinco pantallas de Secretaría que no estaban enchufadas, lo están.**
 Agenda (v18), Actas (v19), Cartas (v20) y Registro (v21): tabla local espejo de
@@ -61,7 +89,18 @@ congelada en un idioma", y `registro` nació guardando `tipo` + `datos` para
 componer al leer. Antes de escribir un repositorio nuevo, mirar cómo guarda el
 web esa misma cosa.
 
-### Las cuatro lecciones de esta vuelta
+### La segunda mitad: que sirvan
+
+Enchufadas no es lo mismo que terminadas. Con la cuenta real puesta salió lo
+que la maqueta tapaba: **pasar lista corría sobre doce personas inventadas**,
+firmar un acta no dejaba constancia de quién, el registro no registraba nada
+automático, las plantillas de carta se leían de un `enum` mientras la iglesia
+tenía las suyas en la base, y dos informes seguían con cifras escritas a mano.
+
+Los cinco se cerraron, cada uno verificado en la app corriendo contra la
+cuenta. El detalle está en los mensajes de commit y en el §6.
+
+### Las lecciones de esta vuelta
 
 **Comprobar la premisa antes de construir, otra vez.** El encargo era "haz
 Mensajes". Diez minutos de leer el web y un `select` contra la base evitaron
@@ -193,15 +232,27 @@ archivos nuevos. **Si puedes, evita el archivo nuevo**: mete el código en un
 archivo que ya exista y el `.pbxproj` no se toca. Así se añadió
 `sinBotonVolver()` dentro de `Support/NavHeader.swift`.
 
-### 2.2 El modo revisión está ENCENDIDO
+### 2.2 El modo revisión, y qué cambia con él apagado
 
-`Support/ModoRevision.swift` tiene `activada = true`: la app salta el login y
-sirve datos de ejemplo. Con él encendido **no se ejercita nada de Supabase** —
-ni folios, ni sincronización, ni subida de comprobantes—, y los repositorios
-que se inyectan son los `Mock*`, no los `Offline*`.
+**APAGADO desde el 7 de septiembre**, que es lo que este aviso llevaba
+pidiendo. `Support/ModoRevision.swift` tiene ahora `activada = false`: la app
+pide sesión y sirve los datos de la iglesia.
 
-Para probar de verdad hay que ponerlo en `false` y entrar con la cuenta real.
-Está dentro de `#if DEBUG`, así que un olvido no llega a la App Store.
+Con él ENCENDIDO no se ejercita nada de Supabase —ni folios, ni sincronización,
+ni subida de comprobantes— y los repositorios que se inyectan son los `Mock*`,
+no los `Offline*`. Se vuelve a poner en `true` para recorrer pantallas sin
+credenciales, y el aviso naranja lo hace visible. Está dentro de `#if DEBUG`,
+así que un olvido no llega a la App Store.
+
+**Lo que cambia ahora que está apagado**, y hay que tenerlo presente:
+
+- **Las pruebas corren contra la base de la iglesia.** Ni unitarias ni de
+  interfaz deben correr contra un contenedor con sesión: ya subieron una nota y
+  dos actividades sin que nadie lo pidiera. Ver §5, "Las pruebas unitarias
+  corren DENTRO del contenedor".
+- **La suite de interfaz se escribió contra la maqueta.** Lo que mire un dato
+  concreto —un nombre, un conteo— va a fallar con datos reales, y eso no es una
+  regresión.
 
 ### 2.3 Compilar no es verificar
 
@@ -1083,6 +1134,49 @@ aparato.
 ---
 
 ## 6. Pendientes concretos
+
+### LO SIGUIENTE, en orden
+
+**1. Los cinco sucesos de Tesorería.** Es lo de más valor que queda en toda la
+app. `movEliminado`, `corteEntregado`, `corteDepositado`, `segundaFirma` y
+`descuadre`; el primero es, en palabras del web, "el único que hace desaparecer
+dinero de las cuentas", y hoy no deja rastro ninguno.
+
+La mitad del trabajo ya está hecha: `anotarSuceso(_:_:)` existe, la tabla y la
+sincronización del registro funcionan, y `TipoSuceso` ya tiene los cinco casos
+con su área. Falta llamarlo desde donde se hace la cosa —
+`OfflineMovimientosRepository` al dar de baja, `OfflineDepositosRepository` y
+el corte al entregar, depositar, dar la segunda firma y detectar el descuadre—
+y una prueba por cada uno de que anota **solo al cruzar el umbral**, como las
+de `SucesosTests`.
+
+**2. Enchufar lo que quede de Tesorería.** Mismo trabajo que Secretaría y misma
+receta (§5, "Las cinco pantallas de Secretaría, enchufadas"). Antes de empezar
+ninguna: mirar cómo guarda el web esa misma cosa, que es donde estaban todas
+las respuestas.
+
+**3. Adelantar `main`.** Se quedó en `4a571ff` a propósito mientras la
+sincronización estaba sin probar. Ya está probada, así que el motivo se acabó:
+`git push origin liquid-glass:main`.
+
+**4. Los cuatro de acabado de Secretaría**, que no impiden usarla:
+
+- **"Próximos" en Servicios incluye cultos pasados**: la cabecera es un `Text`
+  fijo sobre la lista entera, sin filtrar por fecha.
+- **El selector de "Tipo de carta" ofrece quince** y cinco no existen en el
+  catálogo del web —`autorizacion`, `solicitud`, `reconocimiento`, `bautismo`,
+  `bienvenida`—: una carta de esos tipos sube un `tipo` que el web no sabe
+  dibujar. La lista de PLANTILLAS ya solo enseña las once reales.
+- **El responsable de una actividad se guarda como texto**, no como
+  `member_uid`. `padronParaSelector()` ya devuelve el id de cada persona:
+  falta usarlo al guardar.
+- **En Actas y Servicios el estado sale dos veces** —en el subtítulo y en la
+  pastilla— y por eso los títulos se cortan.
+
+**Y lo que NO hay que hacer todavía:** soltar la tabla remota `mensajes`. Sigue
+existiendo vacía a propósito hasta que todos los aparatos actualicen (§5).
+
+---
 
 ### ~~El de arriba de todo~~ — HECHO el 6 de septiembre
 
