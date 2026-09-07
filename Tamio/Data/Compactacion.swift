@@ -37,6 +37,10 @@ enum Compactacion {
         /// Recibos de depósito en disco que ninguna fila reclama.
         let recibosHuerfanos: Int
         let bytesRecibosHuerfanos: Int64
+        /// **Con qué clase de Data Protection está escrito `tamio.sqlite`.**
+        /// `nil` en el simulador, que no la implementa — y por eso esta medida
+        /// llevaba meses pendiente de "hacerla en un aparato".
+        let proteccion: FileProtectionType?
 
         var hayAlgoQueLimpiar: Bool {
             filasBorradas > 0 || recibosHuerfanos > 0 || bytesLibres > 64 * 1024
@@ -78,7 +82,24 @@ enum Compactacion {
                       filasPurgables: purgables,
                       bytesLibres: libres,
                       recibosHuerfanos: huerfanos,
-                      bytesRecibosHuerfanos: bytesHuerfanos)
+                      bytesRecibosHuerfanos: bytesHuerfanos,
+                      proteccion: proteccionDeLaBase())
+    }
+
+    /// La clase de protección REAL del archivo, preguntada al sistema.
+    ///
+    /// Es una de las dos medidas que el traspaso lleva pidiendo para poder
+    /// decidir sobre el cifrado local (§5, `docs/CIFRADO-LOCAL.md`), y no se
+    /// podía tomar en el simulador: allí Data Protection no está implementada y
+    /// el atributo viene vacío, que no es lo mismo que "sin protección".
+    static func proteccionDeLaBase() -> FileProtectionType? {
+        let fm = FileManager.default
+        guard let carpeta = try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                                        appropriateFor: nil, create: false),
+              let atributos = try? fm.attributesOfItem(
+                  atPath: carpeta.appendingPathComponent("tamio.sqlite").path)
+        else { return nil }
+        return atributos[.protectionKey] as? FileProtectionType
     }
 
     /// **Huérfano es el que NADIE reclama**, ni siquiera un depósito ya
@@ -107,6 +128,29 @@ enum Compactacion {
             let ruta = carpeta.appendingPathComponent(nombre).path
             let bytes = (try? fm.attributesOfItem(atPath: ruta)[.size] as? Int64) ?? 0
             return total + (bytes ?? 0)
+        }
+    }
+
+    /// La clase de protección, en una frase que diga qué significa. El nombre
+    /// crudo (`NSFileProtectionCompleteUntilFirstUserAuthentication`) no le
+    /// dice a nadie cuándo se puede leer el archivo, que es la pregunta.
+    static func proteccionLegible(_ p: FileProtectionType?) -> String {
+        switch p {
+        case .some(.complete):
+            return L.t("Completa · solo se puede leer con el aparato desbloqueado",
+                       "Complete · readable only while the device is unlocked")
+        case .some(.completeUnlessOpen):
+            return L.t("Completa salvo si ya estaba abierto",
+                       "Complete unless already open")
+        case .some(.completeUntilFirstUserAuthentication):
+            return L.t("Hasta el primer desbloqueo · protegida mientras nadie haya desbloqueado desde que se encendió",
+                       "Until first unlock · protected until someone unlocks the device after a reboot")
+        case .some(.none):
+            return L.t("Ninguna · el archivo se puede leer con el aparato bloqueado",
+                       "None · the file can be read while the device is locked")
+        default:
+            return L.t("No se puede saber aquí · el simulador no implementa Data Protection",
+                       "Can't be determined here · the simulator doesn't implement Data Protection")
         }
     }
 

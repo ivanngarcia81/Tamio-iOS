@@ -1247,6 +1247,17 @@ private struct AjustesZonaView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
+
+                // **Cómo está protegido el archivo**, preguntado al sistema.
+                // Es una de las dos medidas que faltaban para decidir sobre el
+                // cifrado local, y solo se puede tomar en un aparato de verdad.
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L.t("Protección del archivo", "File protection"))
+                        .font(.subheadline.weight(.medium))
+                    Text(Compactacion.proteccionLegible(estadoBase?.proteccion))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
             } header: {
                 Text(L.t("Mantenimiento", "Maintenance")).textCase(nil)
             } footer: {

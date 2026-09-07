@@ -24,12 +24,29 @@ final class CartaNaceVaciaTests: XCTestCase {
                           "la comprobación de campos incompletos se cumplía sola")
     }
 
-    func testConLosTresCamposPuestosSiSePuede() {
+    /// **Cuatro y no tres desde `d13d775`**: el contador pasó a mirar también
+    /// la firma, porque el formulario dibuja cuatro filas y el número decía
+    /// tres. La prueba se quedó atrás y empezó a fallar; se pone la firma a
+    /// mano y no se hereda del pastor de Ajustes, que en el anfitrión de las
+    /// pruebas puede estar vacío o no según lo que haya corrido antes.
+    func testConLosCuatroCamposPuestosSiSePuede() {
         var c = CartaEnEdicion()
         c.aportante = "María Hernández"
         c.iglesiaDestino = "Iglesia Betel"
         c.miembroDesde = "2019"
+        c.firma = "Samuel Ruvalcaba"
         XCTAssertEqual(c.camposCompletos, c.camposTotales)
+    }
+
+    /// Y sin firma no se puede, que es lo que ese cambio vino a conseguir.
+    func testSinFirmaFaltaUnCampo() {
+        var c = CartaEnEdicion()
+        c.aportante = "María Hernández"
+        c.iglesiaDestino = "Iglesia Betel"
+        c.miembroDesde = "2019"
+        c.firma = ""
+        XCTAssertLessThan(c.camposCompletos, c.camposTotales,
+                          "### una carta sin firmante no debería poder emitirse")
     }
 
     func testLaFirmaLaPropoveLaIglesia() {
