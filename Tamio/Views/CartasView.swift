@@ -254,6 +254,11 @@ struct CartasView: View {
         let destino = vm.carta.iglesiaDestino.isEmpty ? "___" : vm.carta.iglesiaDestino
         let persona = vm.carta.aportante.isEmpty ? "___" : vm.carta.aportante
         let desde   = vm.carta.miembroDesde.isEmpty ? "___" : vm.carta.miembroDesde
+        // El membrete ya salía de Ajustes y el cuerpo no: cuatro plantillas
+        // certificaban pertenencia a la iglesia de maqueta. Si Ajustes no tiene
+        // nombre va el hueco, como los otros tres de arriba; inventar una
+        // congregación en un certificado de miembro es peor que dejarlo vacío.
+        let propia  = iglesia.nombre.isEmpty ? "___" : iglesia.nombre
 
         if !vm.carta.cuerpoTexto.isEmpty { return vm.carta.cuerpoTexto }
 
@@ -265,8 +270,8 @@ struct CartasView: View {
             )
         case .certificadoMiembro:
             return L.t(
-                "Certificamos que \(persona) es miembro activo de Iglesia Getsemaní y participa regularmente en nuestros servicios y actividades desde \(desde).",
-                "We certify that \(persona) is an active member of Iglesia Getsemaní and regularly participates in our services and activities since \(desde)."
+                "Certificamos que \(persona) es miembro activo de \(propia) y participa regularmente en nuestros servicios y actividades desde \(desde).",
+                "We certify that \(persona) is an active member of \(propia) and regularly participates in our services and activities since \(desde)."
             )
         case .recomendacion, .buenaConducta:
             return L.t(
@@ -285,8 +290,8 @@ struct CartasView: View {
             )
         case .reconocimiento:
             return L.t(
-                "En reconocimiento a los años de servicio fiel y dedicado, la Iglesia Getsemaní otorga la presente distinción a \(persona), cuya entrega ha sido una bendición para esta congregación.",
-                "In recognition of faithful and dedicated years of service, Iglesia Getsemaní bestows this distinction upon \(persona), whose commitment has been a blessing to this congregation."
+                "En reconocimiento a los años de servicio fiel y dedicado, \(propia) otorga la presente distinción a \(persona), cuya entrega ha sido una bendición para esta congregación.",
+                "In recognition of faithful and dedicated years of service, \(propia) bestows this distinction upon \(persona), whose commitment has been a blessing to this congregation."
             )
         case .certificadoServicio:
             return L.t(
@@ -295,18 +300,18 @@ struct CartasView: View {
             )
         case .bautismo:
             return L.t(
-                "Hacemos constar que \(persona) recibió el bautismo en agua el \(destino), siendo \(desde) el oficiant del sacramento.",
+                "Hacemos constar que \(persona) recibió el bautismo en agua el \(destino), siendo \(desde) el oficiante del sacramento.",
                 "We certify that \(persona) received water baptism on \(destino), with \(desde) serving as officiant of the sacrament."
             )
         case .bienvenida:
             return L.t(
-                "Con gran alegría damos la bienvenida a \(persona) como nuevo miembro de Iglesia Getsemaní. Procede de \(destino) y fue recibido el \(desde).",
-                "With great joy we welcome \(persona) as a new member of Iglesia Getsemaní. They come from \(destino) and were received on \(desde)."
+                "Con gran alegría damos la bienvenida a \(persona) como nuevo miembro de \(propia). Procede de \(destino) y fue recibido el \(desde).",
+                "With great joy we welcome \(persona) as a new member of \(propia). They come from \(destino) and were received on \(desde)."
             )
         default:
             return L.t(
-                "La presente carta es emitida en favor de \(persona), miembro de Iglesia Getsemaní, para los fines que estime convenientes.",
-                "This letter is issued in favor of \(persona), member of Iglesia Getsemaní, for the purposes deemed appropriate."
+                "La presente carta es emitida en favor de \(persona), miembro de \(propia), para los fines que estime convenientes.",
+                "This letter is issued in favor of \(persona), member of \(propia), for the purposes deemed appropriate."
             )
         }
     }
@@ -582,11 +587,14 @@ private struct NuevaCartaSheet: View {
         let nombre = datos.miembroSeleccionado.isEmpty
             ? L.t("{{nombre_miembro}}", "{{member_name}}")
             : datos.miembroSeleccionado
+        // Ver `cuerpoPlantilla`: el nombre de la iglesia sale de Ajustes.
+        let propiaCfg = ConfiguracionIglesiaViewModel.compartido.config.nombre
+        let propia = propiaCfg.isEmpty ? "___" : propiaCfg
         switch tipo {
         case .certificadoMiembro:
             return L.t(
-                "Certificamos que \(nombre) es miembro activo de Iglesia Getsemaní y participa regularmente en nuestros servicios y actividades.",
-                "We certify that \(nombre) is an active member of Iglesia Getsemaní and regularly participates in our services and activities."
+                "Certificamos que \(nombre) es miembro activo de \(propia) y participa regularmente en nuestros servicios y actividades.",
+                "We certify that \(nombre) is an active member of \(propia) and regularly participates in our services and activities."
             )
         case .recomendacion, .buenaConducta:
             return L.t(
@@ -610,8 +618,8 @@ private struct NuevaCartaSheet: View {
             )
         case .reconocimiento:
             return L.t(
-                "En reconocimiento a los años de servicio fiel y dedicado, la Iglesia Getsemaní otorga la presente distinción a \(nombre), cuya entrega ha sido una bendición para esta congregación.",
-                "In recognition of faithful and dedicated years of service, Iglesia Getsemaní bestows this distinction upon \(nombre), whose commitment has been a blessing to this congregation."
+                "En reconocimiento a los años de servicio fiel y dedicado, \(propia) otorga la presente distinción a \(nombre), cuya entrega ha sido una bendición para esta congregación.",
+                "In recognition of faithful and dedicated years of service, \(propia) bestows this distinction upon \(nombre), whose commitment has been a blessing to this congregation."
             )
         case .certificadoServicio:
             return L.t(
