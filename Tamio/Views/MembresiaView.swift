@@ -65,13 +65,20 @@ struct MembresiaView: View {
                     .navigationBarTitleDisplayMode(.inline)
             } else {
                 columnas
-                    // La lupa se queda arriba por el límite del sistema que
-                    // documenta `MovimientosView.pantalla`: con `.searchable`
-                    // no hay forma de tenerla solo en la barra inferior.
+                    // **La lupa vive en el cajón, no en la barra.** Con
+                    // `.navigationBarDrawer` el campo se esconde y aparece al
+                    // tirar hacia abajo, como en Mail, y **no gasta cápsula**:
+                    // esa es la que deja subir el `+` a la barra sin quitarle
+                    // nada a nadie. Es la salida que destrabó Movimientos —lo
+                    // propuso Iván— y la que aquí devuelve el alta a su sitio.
+                    //
+                    // Lo que NO funciona está medido en `MovimientosView`:
+                    // `.minimize` deja el botón del sistema arriba y gasta la
+                    // cápsula, que es justo lo que hacía esta pantalla.
                     .searchable(text: $vm.busqueda,
+                                placement: .navigationBarDrawer(displayMode: .automatic),
                                 prompt: Text(L.t("Buscar por nombre o correo",
                                                  "Search by name or email")))
-                    .searchToolbarBehavior(.minimize)
                     .navigationTitle(L.t("Membresía", "Membership"))
                     .navigationBarTitleDisplayMode(.inline)
             }
@@ -147,19 +154,21 @@ struct MembresiaView: View {
                 // En Asistencia no hay lista que filtrar, así que el botón no
                 // se dibuja en vez de quedarse sin efecto.
                 if subtab != 1 { botonFiltros }
+                // El `+` va el ÚLTIMO del grupo, o sea el más a la derecha:
+                // el sitio donde estaba la lupa y donde cae el pulgar.
+                if administraPadron { botonNuevo }
             }
-            // **Aquí NO va el `+`.** Con él, la barra del teléfono llegaba a
-            // cinco cápsulas —volver, lupa, selector de vista, filtros y `+`—
-            // y el sistema tira la quinta sin avisar: la barra pasaba a
-            // `Secretary, Search, Members (8), More filters` y la pantalla se
-            // quedaba sin dar de alta, sin que nada lo dijera. Era la única
-            // de las seis de Secretaría que por eso seguía sin chevron.
+            // **El `+` vuelve a la barra**, en el sitio que ocupaba la lupa.
+            // No cabía cuando la barra eran cinco cápsulas —volver, lupa,
+            // selector de vista, filtros y `+`—: el sistema tiraba la quinta
+            // sin avisar y la pantalla se quedaba sin dar de alta. El alta
+            // bajó entonces a la primera fila de la lista.
             //
-            // El alta bajó a la lista, ver `filaNuevoMiembro`. Se eligió
-            // frente a bajar el selector a un segmentado como el de iPad
-            // porque el conteo de su etiqueta es lo único que dice cuántas
-            // personas se ven y que la lista está filtrada: moverlo obligaba
-            // a inventarle sitio, o sea una franja de cromo más.
+            // Al mandar la lupa al cajón queda cuatro, y el alta puede volver
+            // a donde la busca la mano. Medido antes y después con la app
+            // corriendo, que es la única forma de saberlo:
+            // `Secretary · Search · Members (8) · More filters` pasa a
+            // `Secretary · Members (8) · More filters · New`.
         } else if administraPadron {
             ToolbarItem(placement: .topBarTrailing) { botonNuevo }
         }
@@ -496,9 +505,6 @@ struct MembresiaView: View {
             // nace un alta— y Asistencia ni siquiera es una lista. En iPad la
             // barra es de la pantalla entera y el `+` cabe de sobra, así que
             // allí sigue arriba y esta fila no se dibuja.
-            if compacto && administraPadron && subtab == 0 {
-                filaNuevoMiembro
-            }
             if subtab == 2 {
                 ForEach(vm.itemsSeguimiento) { m in
                     filaSeguimiento(m)
