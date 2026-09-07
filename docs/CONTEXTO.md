@@ -1470,7 +1470,9 @@ va a fallar.
    corta no se explica sola. Se arregla sumando el mes al contador.
 2. **El total de Movimientos en iPad** ya solo vive en la hoja de filtros. Allí
    el pie no causaba ninguno de los tres problemas del teléfono.
-3. **Verificar los recurrentes en aparato** (§5). Es el riesgo real que queda.
+3. **Verificar los recurrentes en aparato** (§5). **Es el riesgo real que
+   queda**: código escrito entero que nunca ha corrido en un aparato, y que
+   crea movimientos solo.
 4. **Las dos medidas del cifrado** (§5).
 5. ~~Membresía: probar la sincronización con la cuenta real~~ **— sigue
    pendiente y ahora es el punto de arriba de esta sección**, porque ya no es
@@ -1520,22 +1522,17 @@ va a fallar.
    Supabase y están vacías; Cartas ya sube a `public.cartas`, que es la mitad
    del expediente.
 
-11. **El informe General sigue escrito a mano.** `InformesMembresiaViewModel`
-   guarda las cifras de cada periodo como constantes, y el de Año dice 262
-   miembros / 248 activos mientras el hub dice 248 / 236 y el informe de
-   Miembros —el de al lado, mismo periodo— dice 7. Las tres se ven a la vez.
+11. ~~El informe General sigue escrito a mano.~~ **— HECHO el 7 de
+   septiembre**: se calcula del padrón.
 
-12. **El informe de Seguimiento promete tres alertas y enseña "Próximamente".**
-   El badge `(3)` de `InformesMembresiaView.swift` está escrito a mano y al
-   entrar sale un `ContentUnavailableView`. El web lo tiene resuelto en
-   `services/informes/membresia.ts`: `alertasSeguimiento` y sus `TipoAlerta`.
+12. ~~El informe de Seguimiento promete tres alertas y enseña "Próximamente".~~
+   **— HECHO el 7 de septiembre**: refleja `alertasSeguimiento` del web con sus
+   cuatro tipos, y el badge cuenta las de verdad.
 
-13. **"Próximos" en Servicios incluye el pasado.** La cabecera es un `Text`
-   fijo sobre `vm.lista` entera, sin filtrar por fecha, así que bajo "Próximos"
-   aparecen cultos que ya pasaron.
-
-14. **En Actas y Servicios el estado sale dos veces** —en el subtítulo y en la
-   pastilla— y por eso los títulos se cortan ("Minutes 2026-07 · Asse…").
+13 y 14. **"Próximos" en Servicios incluye el pasado** y **el estado sale dos
+   veces en Actas y Servicios**. Siguen abiertos y son dos de los cuatro de
+   acabado de Secretaría: están arriba, en "LO SIGUIENTE", punto 4, que es la
+   lista que hay que mirar.
 10. Observación sin acción: el hub dice "Transacciones · 29 registros" y la
    lista dice "16 movimientos". No es un error —una suma ingresos y gastos, la
    otra solo el tipo activo— pero se leen como el mismo número.
