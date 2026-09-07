@@ -47,10 +47,14 @@ struct AportanteDetalle: View {
         .colchonInferior()
         .background(Color(.systemGroupedBackground))
         .scrollEdgeEffectStyle(.soft, for: .all)
-        // El nombre estaba DOS veces: en la barra y en el H1 de la ficha, uno
-        // encima del otro. Se queda el H1, que es el que lleva el avatar y las
-        // etiquetas, y la barra se libera para el segmentado.
-        .navigationTitle(compacto ? "" : a.nombre)
+        // **La ficha no pone título, nunca.** En iPad vive dentro del mismo
+        // `NavigationStack` que la lista, así que su título no era el suyo:
+        // pisaba el de la columna, y el encabezado de Aportantes decía "Ana
+        // Torres · 9 activos · 0 bajas". El nombre ya estaba dos veces —en esa
+        // barra y en el H1 de la ficha, con su avatar—, así que se queda el H1.
+        //
+        // En compacto lo pone quien la empuja (`MiembrosView`), que es el que
+        // sabe de dónde viene.
         .toolbar { barra }
         .sheet(item: $documento) { tipo in
             DocumentoAportanteView(aportante: a, tipo: tipo)
