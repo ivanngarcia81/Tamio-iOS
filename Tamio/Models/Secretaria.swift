@@ -2,7 +2,15 @@ import SwiftUI
 
 // MARK: - Actas
 
-enum EstadoActa {
+/// **Siete estados aquí, cinco en el web.** Se guardan LOS SIETE en la base
+/// local —por eso el `String` de respaldo— y la traducción a los cinco del web
+/// se hace al subir, que es donde se traduce todo lo demás.
+///
+/// Guardar directamente la clave del web perdía el matiz nada más recargar:
+/// firmar un acta la enseñaba como "Aprobada" al volver a entrar, porque
+/// `firmada` sube como `aprobada` y volvía como `aprobada`. Lo cazó una
+/// prueba, no se vio en pantalla.
+enum EstadoActa: String {
     case borrador, pendienteAprobacion, aprobada, enmendada, archivada, firmada, cerrada
 
     var etiqueta: String {
@@ -26,6 +34,37 @@ enum EstadoActa {
         }
     }
     var color: Color { estadoVisual.color }
+
+    /// **La clave del web**, que solo tiene cinco estados:
+    /// `borrador | pendiente | aprobada | corregida | archivada`.
+    ///
+    /// Aquí hay siete porque el iOS separa dos pasos que allá no son estados:
+    /// `firmada` —el web guarda las firmas en su propia columna `firmas`, y
+    /// un acta con firmas es una acta aprobada— y `cerrada`, que allá es
+    /// archivarla. Se mandan como `aprobada` y `archivada`. Es una pérdida
+    /// consciente: el matiz vive en la columna `firmas`, que es donde el web
+    /// lo busca.
+    var clave: String {
+        switch self {
+        case .borrador:            return "borrador"
+        case .pendienteAprobacion: return "pendiente"
+        case .aprobada, .firmada:  return "aprobada"
+        case .enmendada:           return "corregida"
+        case .archivada, .cerrada: return "archivada"
+        }
+    }
+
+    init(clave: String) {
+        switch clave {
+        case "pendiente":  self = .pendienteAprobacion
+        case "aprobada":   self = .aprobada
+        case "corregida":  self = .enmendada
+        case "archivada":  self = .archivada
+        // Lo desconocido vuelve como borrador: es el estado que no afirma
+        // nada, y dar por aprobada un acta que no se entendió sería peor.
+        default:           self = .borrador
+        }
+    }
 }
 
 struct AcuerdoActa: Identifiable {
@@ -33,28 +72,155 @@ struct AcuerdoActa: Identifiable {
     let texto: String
 }
 
+/// **Un acta guarda sus campos, no su prosa.**
+///
+/// Antes tenía siete: folio, tipo, una fecha ya escrita para leer, el número
+/// de acuerdos, el estado, un `cuerpo` de texto corrido y los acuerdos. El
+/// formulario recogía QUINCE —lugar, horas, quién preside, quién levanta el
+/// acta, presentes, ausentes, invitados, quórum, orden del día, resumen,
+/// mociones, confidencial— y los fundía todos en ese `cuerpo` antes de
+/// devolver el acta. Se veían en pantalla y no existían en ninguna parte:
+/// no se podían editar, ni buscar, ni mandar al web, que sí tiene una columna
+/// para cada uno.
+///
+/// Ahora se guardan como los guarda el web (`public.actas`) y `cuerpo` se
+/// CALCULA de ellos. Es la regla de siempre: si dos cosas tienen que decir lo
+/// mismo, una se deriva de la otra.
 struct Acta: Identifiable, Hashable {
     let id: String
     let folio: String
-    let tipo: String
+    /// La clave del catálogo del web, no la etiqueta traducida. Ver
+    /// `TipoActa`: se guardaba "Consejo" y en inglés "Council", así que la
+    /// misma acta cambiaba de tipo al cambiar de idioma.
+    let tipo: TipoActa
+    /// `"YYYY-MM-DD"`, como en el web. Era la fecha ya escrita —"21 de
+    /// agosto"— y con eso no se puede ordenar, ni filtrar, ni guardar.
     let fecha: String
-    let acuerdos: Int
     var estado: EstadoActa
-    let cuerpo: String
     let items: [AcuerdoActa]
     var tituloPersonalizado: String? = nil
 
+    // Lo que el formulario recogía y se perdía.
+    var lugar: String = ""
+    var horaInicio: String? = nil
+    var horaCierre: String? = nil
+    var preside: String = ""
+    var secretario: String = ""
+    var presentes: [String] = []
+    var ausentes: [String] = []
+    var invitados: [String] = []
+    var quorum: Bool = false
+    var agenda: String = ""
+    var resumen: String = ""
+    var mociones: [String] = []
+    var confidencial: Bool = false
+
+    /// **Se cuentan, no se guardan.** Iba como un `Int` propio al lado de
+    /// `items`: dos números sobre lo mismo que podían discrepar, que es
+    /// exactamente lo que ya pasó en los informes de membresía.
+    var acuerdos: Int { items.count }
+
     var titulo: String {
         if let t = tituloPersonalizado, !t.isEmpty { return t }
-        return L.t("Acta \(folio) · \(tipo)", "Minutes \(folio) · \(tipo)")
+        return L.t("Acta \(folio) · \(tipo.etiqueta)", "Minutes \(folio) · \(tipo.etiqueta)")
     }
+
     var subtitulo: String {
         let ac = acuerdos > 0 ? " · \(acuerdos) \(L.t("acuerdos", "agreements"))" : ""
-        return "\(fecha)\(ac) · \(estado.etiqueta.lowercased())"
+        return "\(fechaLegible)\(ac) · \(estado.etiqueta.lowercased())"
+    }
+
+    /// `"21 de agosto"` · `"August 21"`. En UTC como el resto de fechas
+    /// guardadas; ver `Fechas.diaLegible`.
+    var fechaLegible: String {
+        guard let d = Fechas.desdeTexto(fecha) else { return fecha }
+        let f = L.formateador(L.t("d 'de' MMMM", "MMMM d"))
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f.string(from: d)
+    }
+
+    /// El acta redactada. **Se arma de los campos cada vez**, así que corregir
+    /// el lugar o añadir un ausente cambia el texto; antes el `cuerpo` se
+    /// escribía una vez al crear el acta y se quedaba con lo de aquel día.
+    var cuerpo: String {
+        let fmtLargo = L.formateador(L.t("d 'de' MMMM 'de' yyyy", "MMMM d, yyyy"))
+        fmtLargo.timeZone = TimeZone(identifier: "UTC")
+        let fechaLarga = Fechas.desdeTexto(fecha).map { fmtLargo.string(from: $0) } ?? fecha
+
+        let horaTxt = horaInicio.map {
+            L.t(", a las \($0) horas", ", at \($0)")
+        } ?? ""
+        let cierreTxt = horaCierre.map {
+            L.t(" Cierre: \($0) h.", " Close: \($0).")
+        } ?? ""
+        let donde = lugar.isEmpty ? "" : L.t(" en \(lugar)", " at \(lugar)")
+        let pres = presentes.isEmpty
+            ? L.t("los miembros convocados", "the members convened")
+            : presentes.joined(separator: ", ")
+
+        var partes: [String] = []
+        partes.append(L.t(
+            """
+            En \(fechaLarga)\(horaTxt), se reunió el \(tipo.etiqueta.lowercased())\(donde).\(cierreTxt)
+            Presidió: \(preside.isEmpty ? "—" : preside). Secretaria de actas: \(secretario.isEmpty ? "—" : secretario).
+            Miembros presentes: \(pres).
+            """,
+            """
+            On \(fechaLarga)\(horaTxt), the \(tipo.etiqueta.lowercased()) convened\(donde).\(cierreTxt)
+            Presided by: \(preside.isEmpty ? "—" : preside). Recording secretary: \(secretario.isEmpty ? "—" : secretario).
+            Members present: \(pres).
+            """
+        ))
+        if !ausentes.isEmpty {
+            partes.append(L.t("Ausentes: \(ausentes.joined(separator: ", ")).",
+                              "Absent: \(ausentes.joined(separator: ", "))."))
+        }
+        if !invitados.isEmpty {
+            partes.append(L.t("Invitados: \(invitados.joined(separator: ", ")).",
+                              "Guests: \(invitados.joined(separator: ", "))."))
+        }
+        if !agenda.isEmpty {
+            partes.append(L.t("Orden del día:\n\(agenda)", "Agenda:\n\(agenda)"))
+        }
+        if !resumen.isEmpty { partes.append(resumen) }
+        if !mociones.isEmpty {
+            let lista = mociones.map { "· \($0)" }.joined(separator: "\n")
+            partes.append(L.t("Mociones y propuestas:\n\(lista)",
+                              "Motions and proposals:\n\(lista)"))
+        }
+        return partes.joined(separator: "\n\n")
     }
 
     static func == (l: Acta, r: Acta) -> Bool { l.id == r.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+
+/// El catálogo de tipos de acta del web (`Acta.tipo` en `src/db.ts`). Se
+/// guardaba la ETIQUETA traducida —"Consejo", y en inglés "Council"—, así que
+/// la misma acta cambiaba de tipo al cambiar de idioma y ninguno de los dos
+/// valores era el que el web sabe leer.
+enum TipoActa: String, CaseIterable {
+    case administrativa, lideres, asamblea, pastoral, eleccion
+    case nombramiento, recepcion, compraventa, presupuesto, disciplina, otra
+
+    var etiqueta: String {
+        switch self {
+        case .administrativa: return L.t("Administrativa", "Administrative")
+        case .lideres:        return L.t("Consejo", "Council")
+        case .asamblea:       return L.t("Asamblea", "Assembly")
+        case .pastoral:       return L.t("Pastoral", "Pastoral")
+        case .eleccion:       return L.t("Elección", "Election")
+        case .nombramiento:   return L.t("Nombramiento", "Appointment")
+        case .recepcion:      return L.t("Recepción", "Reception")
+        case .compraventa:    return L.t("Compraventa", "Purchase or sale")
+        case .presupuesto:    return L.t("Presupuesto", "Budget")
+        case .disciplina:     return L.t("Disciplina", "Discipline")
+        case .otra:           return L.t("Extraordinaria", "Extraordinary")
+        }
+    }
+
+    /// Lo que no se reconoce cae en `otra` en vez de tumbar la lista.
+    init(clave: String) { self = TipoActa(rawValue: clave) ?? .otra }
 }
 
 // MARK: - Servicios

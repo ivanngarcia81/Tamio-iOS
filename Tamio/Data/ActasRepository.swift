@@ -1,24 +1,46 @@
 import Foundation
+import GRDB
 
 protocol ActasRepository {
     func lista() async throws -> [Acta]
+    /// Alta o edición: lo que llega es el acta entera. Antes no existía —el
+    /// alta solo hacía `insert` en un array del view model— y por eso un acta
+    /// nueva desaparecía al volver a entrar.
+    func guardar(_ a: Acta) async throws
+    func eliminar(id: String) async throws
 }
 
 struct MockActasRepository: ActasRepository {
     func lista() async throws -> [Acta] {
         try? await Task.sleep(nanoseconds: 100_000_000)
-        return Self.actas
+        // Las de esta sesión primero: se acaban de escribir y son lo que la
+        // secretaria espera ver arriba.
+        return Self.añadidas.reversed() + Self.actas.filter { a in
+            !Self.añadidas.contains { $0.id == a.id }
+        }
     }
 
+    func guardar(_ a: Acta) async throws {
+        Self.añadidas.removeAll { $0.id == a.id }
+        Self.añadidas.append(a)
+    }
+
+    func eliminar(id: String) async throws {
+        Self.añadidas.removeAll { $0.id == id }
+    }
+
+    nonisolated(unsafe) private static var añadidas: [Acta] = []
+
+    /// **La semilla, ahora con campos en vez de prosa.** Antes cada acta traía
+    /// su `cuerpo` escrito a mano; ahora el cuerpo se deriva, así que lo que
+    /// se escribe aquí son los datos de la reunión, que es lo que una de
+    /// verdad tendría. El año es el corriente para que la maqueta no envejezca
+    /// como envejecieron los compromisos del hub.
     private static var actas: [Acta] {
-        [
-            Acta(id: "1", folio: "2026-08", tipo: L.t("Consejo", "Council"),
-                 fecha: L.t("21 de agosto", "August 21"),
-                 acuerdos: 6, estado: .borrador,
-                 cuerpo: L.t(
-                    "En Monterrey, Nuevo León, a las 19:00 horas del 21 de agosto de 2026, reunidos en el salón anexo los miembros del consejo, con la asistencia de siete de nueve integrantes, se declaró legalmente instalada la sesión.",
-                    "In Monterrey, Nuevo León, at 19:00 hours on August 21, 2026, the council members gathered in the annex hall. With seven of nine members present, the session was declared legally convened."
-                 ),
+        let año = Calendar.current.component(.year, from: Date())
+        return [
+            Acta(id: "1", folio: "\(año)-08", tipo: .lideres,
+                 fecha: "\(año)-08-21", estado: .borrador,
                  items: [
                     AcuerdoActa(id: 1, texto: L.t("Se aprueba el estado financiero de julio con un saldo de $27,174.50.", "The July financial statement is approved with a balance of $27,174.50.")),
                     AcuerdoActa(id: 2, texto: L.t("Se autoriza la compra del equipo de sonido del salón anexo por hasta $18,000.00.", "The purchase of sound equipment for the annex hall is authorized for up to $18,000.00.")),
@@ -26,43 +48,231 @@ struct MockActasRepository: ActasRepository {
                     AcuerdoActa(id: 4, texto: L.t("Se nombra a la hermana Lucía Márquez coordinadora de la escuela bíblica.", "Sister Lucía Márquez is appointed coordinator of the Bible school.")),
                     AcuerdoActa(id: 5, texto: L.t("Se programan actividades especiales para el mes de septiembre.", "Special activities are scheduled for the month of September.")),
                     AcuerdoActa(id: 6, texto: L.t("Se aprueba el presupuesto de mantenimiento del templo.", "The temple maintenance budget is approved.")),
-                 ]),
-            Acta(id: "2", folio: "2026-07", tipo: L.t("Asamblea", "Assembly"),
-                 fecha: L.t("18 de julio", "July 18"),
-                 acuerdos: 4, estado: .firmada,
-                 cuerpo: L.t(
-                    "En Monterrey, Nuevo León, a las 10:30 horas del 18 de julio de 2026, se celebró la asamblea general ordinaria con la asistencia de 142 miembros, cumpliendo el quórum estatutario.",
-                    "In Monterrey, Nuevo León, at 10:30 hours on July 18, 2026, the regular general assembly was held with 142 members in attendance, fulfilling the statutory quorum."
-                 ),
+                 ],
+                 lugar: L.t("el salón anexo", "the annex hall"),
+                 horaInicio: "19:00",
+                 preside: "Pastor Abel Ramos", secretario: "María Hernández Ríos",
+                 presentes: ["Pastor Abel Ramos", "María Hernández Ríos", "Pedro Salas Aguirre",
+                             "Lucía Márquez Peña", "Ana Lucía Torres", "Javier Medina Cruz",
+                             "Daniel Salas Hernández"],
+                 ausentes: ["Jorge Hernández", "Carlos Rivas"],
+                 quorum: true),
+
+            Acta(id: "2", folio: "\(año)-07", tipo: .asamblea,
+                 fecha: "\(año)-07-18", estado: .firmada,
                  items: [
                     AcuerdoActa(id: 7, texto: L.t("Se aprueba el informe semestral del pastor.", "The pastor's semiannual report is approved.")),
-                    AcuerdoActa(id: 8, texto: L.t("Se ratifica la junta directiva para el periodo 2026-2027.", "The board of directors is ratified for the 2026-2027 period.")),
+                    AcuerdoActa(id: 8, texto: L.t("Se ratifica la junta directiva para el periodo \(año)-\(año + 1).", "The board of directors is ratified for the \(año)-\(año + 1) period.")),
                     AcuerdoActa(id: 9, texto: L.t("Se aprueba el presupuesto para el segundo semestre.", "The second semester budget is approved.")),
                     AcuerdoActa(id: 10, texto: L.t("Se autoriza la renovación del contrato del salón social.", "The renewal of the social hall contract is authorized.")),
-                 ]),
-            Acta(id: "3", folio: "2026-06", tipo: L.t("Consejo", "Council"),
-                 fecha: L.t("14 de junio", "June 14"),
-                 acuerdos: 3, estado: .firmada,
-                 cuerpo: L.t(
-                    "En Monterrey, Nuevo León, a las 19:00 horas del 14 de junio de 2026, reunidos los miembros del consejo, se declaró instalada la sesión con seis de nueve integrantes presentes.",
-                    "In Monterrey, Nuevo León, at 19:00 hours on June 14, 2026, the council members gathered. The session was declared open with six of nine members present."
-                 ),
+                 ],
+                 lugar: L.t("el templo", "the sanctuary"),
+                 horaInicio: "10:30",
+                 preside: "Pastor Abel Ramos", secretario: "María Hernández Ríos",
+                 quorum: true,
+                 resumen: L.t("Asistieron 142 miembros, cumpliendo el quórum estatutario.",
+                              "142 members attended, fulfilling the statutory quorum.")),
+
+            Acta(id: "3", folio: "\(año)-06", tipo: .lideres,
+                 fecha: "\(año)-06-14", estado: .firmada,
                  items: [
                     AcuerdoActa(id: 11, texto: L.t("Se aprueba la planificación del campamento de jóvenes.", "The youth camp planning is approved.")),
                     AcuerdoActa(id: 12, texto: L.t("Se acepta la donación del equipo de cocina.", "The kitchen equipment donation is accepted.")),
                     AcuerdoActa(id: 13, texto: L.t("Se aprueba el informe financiero de mayo.", "The May financial report is approved.")),
-                 ]),
-            Acta(id: "4", folio: "2026-05", tipo: L.t("Extraordinaria", "Extraordinary"),
-                 fecha: L.t("3 de mayo", "May 3"),
-                 acuerdos: 2, estado: .firmada,
-                 cuerpo: L.t(
-                    "En Monterrey, Nuevo León, a las 18:00 horas del 3 de mayo de 2026, se celebró sesión extraordinaria del consejo convocada por el pastor para tratar asuntos urgentes.",
-                    "In Monterrey, Nuevo León, at 18:00 hours on May 3, 2026, an extraordinary council session was held, convened by the pastor to address urgent matters."
-                 ),
+                 ],
+                 lugar: L.t("el salón anexo", "the annex hall"),
+                 horaInicio: "19:00",
+                 preside: "Pastor Abel Ramos", secretario: "María Hernández Ríos",
+                 presentes: ["Pastor Abel Ramos", "María Hernández Ríos", "Pedro Salas Aguirre",
+                             "Lucía Márquez Peña", "Ana Lucía Torres", "Daniel Salas Hernández"],
+                 quorum: true),
+
+            Acta(id: "4", folio: "\(año)-05", tipo: .otra,
+                 fecha: "\(año)-05-03", estado: .firmada,
                  items: [
                     AcuerdoActa(id: 14, texto: L.t("Se aprueba la reparación urgente del techo del templo.", "The urgent repair of the temple roof is approved.")),
                     AcuerdoActa(id: 15, texto: L.t("Se autoriza el uso del fondo de reserva por hasta $25,000.00.", "The use of the reserve fund for up to $25,000.00 is authorized.")),
-                 ]),
+                 ],
+                 lugar: L.t("el salón anexo", "the annex hall"),
+                 horaInicio: "18:00",
+                 preside: "Pastor Abel Ramos", secretario: "María Hernández Ríos",
+                 quorum: true,
+                 resumen: L.t("Sesión extraordinaria convocada por el pastor para tratar asuntos urgentes.",
+                              "Extraordinary session convened by the pastor to address urgent matters.")),
         ]
     }
+}
+
+/// Las actas de verdad: tabla `acta` de la base local, y de ahí a
+/// `public.actas` por el motor de sincronización.
+struct OfflineActasRepository: ActasRepository {
+
+    private var cola: DatabaseQueue { BaseLocal.compartida.cola }
+
+    func lista() async throws -> [Acta] {
+        try await cola.read { db in
+            try ActaFila
+                .filter(Column("borrado") == false)
+                // La más reciente arriba, que es como se trabaja: el acta del
+                // mes pasado se corrige, la de hace dos años se consulta.
+                .order(Column("fecha").desc)
+                .fetchAll(db)
+                .map(Self.aActa)
+        }
+    }
+
+    func guardar(_ a: Acta) async throws {
+        try await cola.write { db in
+            let previa = try ActaFila.fetchOne(db, key: a.id)
+            // Las firmas no las toca el formulario: se recogen aparte. Si se
+            // sobreescribieran aquí, corregir una coma en un acta ya firmada
+            // borraría las firmas.
+            try Self.aFila(a, previa: previa).save(db)
+            try Self.encolar(db, id: a.id, operacion: previa == nil ? .crear : .actualizar)
+        }
+    }
+
+    func eliminar(id: String) async throws {
+        try await cola.write { db in
+            guard var fila = try ActaFila.fetchOne(db, key: id) else { return }
+            fila.borrado = true
+            try fila.update(db)
+            try Self.encolar(db, id: id, operacion: .eliminar)
+        }
+    }
+
+    // MARK: - Traducción
+
+    static func aActa(_ f: ActaFila) -> Acta {
+        Acta(id: f.id,
+             folio: f.folio,
+             tipo: TipoActa(clave: f.tipo),
+             fecha: f.fecha,
+             // El estado local guarda el caso de iOS, no la clave del web.
+             estado: EstadoActa(rawValue: f.estado) ?? EstadoActa(clave: f.estado),
+             items: Self.acuerdos(f.acuerdos),
+             tituloPersonalizado: f.titulo.isEmpty ? nil : f.titulo,
+             lugar: f.lugar,
+             horaInicio: f.horaInicio,
+             horaCierre: f.horaCierre,
+             preside: f.preside,
+             secretario: f.secretario,
+             presentes: Self.textos(f.presentes),
+             ausentes: Self.textos(f.ausentes),
+             invitados: Self.textos(f.invitados),
+             quorum: f.quorum,
+             agenda: f.agenda,
+             resumen: f.resumen,
+             mociones: Self.mociones(f.mociones),
+             confidencial: f.confidencial)
+    }
+
+    static func aFila(_ a: Acta, previa: ActaFila?) -> ActaFila {
+        ActaFila(id: a.id,
+                 folio: a.folio,
+                 tipo: a.tipo.rawValue,
+                 titulo: a.tituloPersonalizado ?? "",
+                 fecha: a.fecha,
+                 horaInicio: a.horaInicio,
+                 horaCierre: a.horaCierre,
+                 lugar: a.lugar,
+                 preside: a.preside,
+                 secretario: a.secretario,
+                 testigo: previa?.testigo ?? "",
+                 presentes: Self.json(a.presentes),
+                 ausentes: Self.json(a.ausentes),
+                 invitados: Self.json(a.invitados),
+                 quorum: a.quorum,
+                 agenda: a.agenda,
+                 resumen: a.resumen,
+                 mociones: Self.jsonMociones(a.mociones),
+                 acuerdos: Self.jsonAcuerdos(a.items),
+                 estado: a.estado.rawValue,
+                 confidencial: a.confidencial,
+                 fechaAprobacion: previa?.fechaAprobacion,
+                 firmas: previa?.firmas ?? "[]",
+                 actualizadoEn: previa?.actualizadoEn,
+                 borrado: false)
+    }
+
+    // MARK: - Los JSON del web
+
+    /// **Los acuerdos del web son objetos, no textos.** `ActaAcuerdo` lleva
+    /// `texto`, `responsable` y `fecha_limite`; el iOS solo enseña el texto.
+    /// Se leen los tres y se escribe el texto con los otros dos vacíos, en vez
+    /// de guardar una lista de cadenas que el web no sabría abrir.
+    private struct AcuerdoJSON: Codable {
+        var texto: String
+        var responsable: String = ""
+        var fecha_limite: String? = nil
+    }
+
+    private struct MocionJSON: Codable {
+        var texto: String
+        var presenta: String = ""
+        var secunda: String = ""
+        var resultado: String = ""
+    }
+
+    static func acuerdos(_ json: String) -> [AcuerdoActa] {
+        guard let d = json.data(using: .utf8),
+              let v = try? JSONDecoder().decode([AcuerdoJSON].self, from: d) else { return [] }
+        return v.enumerated().map { AcuerdoActa(id: $0.offset + 1, texto: $0.element.texto) }
+    }
+
+    static func jsonAcuerdos(_ items: [AcuerdoActa]) -> String {
+        let v = items.map { AcuerdoJSON(texto: $0.texto) }
+        guard let d = try? JSONEncoder().encode(v),
+              let s = String(data: d, encoding: .utf8) else { return "[]" }
+        return s
+    }
+
+    static func mociones(_ json: String) -> [String] {
+        guard let d = json.data(using: .utf8),
+              let v = try? JSONDecoder().decode([MocionJSON].self, from: d) else { return [] }
+        return v.map(\.texto)
+    }
+
+    static func jsonMociones(_ textos: [String]) -> String {
+        let v = textos.map { MocionJSON(texto: $0) }
+        guard let d = try? JSONEncoder().encode(v),
+              let s = String(data: d, encoding: .utf8) else { return "[]" }
+        return s
+    }
+
+    /// Las listas de nombres sí son cadenas sueltas allá.
+    static func textos(_ json: String) -> [String] {
+        guard let d = json.data(using: .utf8),
+              let v = try? JSONDecoder().decode([String].self, from: d) else { return [] }
+        return v
+    }
+
+    static func json(_ v: [String]) -> String {
+        guard let d = try? JSONEncoder().encode(v),
+              let s = String(data: d, encoding: .utf8) else { return "[]" }
+        return s
+    }
+
+    private static func encolar(_ db: Database, id: String,
+                                operacion: OperacionPendiente.Operacion) throws {
+        let previa = try OperacionPendiente
+            .filter(Column("entidad") == "acta" && Column("registroId") == id)
+            .fetchOne(db)
+        let efectiva: OperacionPendiente.Operacion =
+            (previa?.operacion == OperacionPendiente.Operacion.crear.rawValue
+             && operacion == .actualizar) ? .crear : operacion
+        try OperacionPendiente
+            .filter(Column("entidad") == "acta" && Column("registroId") == id)
+            .deleteAll(db)
+        var nueva = OperacionPendiente(id: nil, entidad: "acta", registroId: id,
+                                       operacion: efectiva.rawValue,
+                                       creadoEn: Date().timeIntervalSince1970,
+                                       intentos: 0, ultimoError: nil)
+        try nueva.insert(db)
+    }
+}
+
+/// Maqueta sin sesión, base con ella.
+func repositorioActas() -> ActasRepository {
+    ModoRevision.sinLogin ? MockActasRepository() : OfflineActasRepository()
 }

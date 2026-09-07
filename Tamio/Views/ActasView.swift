@@ -70,17 +70,19 @@ struct ActasView: View {
         }
         .task { await vm.cargar(); await cfg.cargar() }
         .sheet(isPresented: $mostrarNueva) {
-            NuevaActaSheet(proximoId: vm.proximoId) { vm.agregarActa($0) }
+            NuevaActaSheet(proximoId: vm.proximoId) { acta in
+                Task { await vm.agregarActa(acta) }
+            }
         }
         .sheet(isPresented: $mostrarFirmas) {
             if let acta = vm.seleccion {
-                FirmasSheet(acta: acta) { vm.firmarActa(id: acta.id) }
+                FirmasSheet(acta: acta) { Task { await vm.firmarActa(id: acta.id) } }
             }
         }
         .alert(L.t("Cerrar acta", "Close minutes"), isPresented: $mostrarCerrarAlert) {
             Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
             Button(L.t("Cerrar", "Close"), role: .destructive) {
-                if let id = vm.seleccionId { vm.cerrarActa(id: id) }
+                if let id = vm.seleccionId { Task { await vm.cerrarActa(id: id) } }
             }
         } message: {
             Text(L.t("El acta quedará cerrada y no se podrá editar.",
@@ -305,7 +307,7 @@ private struct NuevaActaSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     // BASIC INFORMATION
-    @State private var tipo = L.t("Consejo", "Council")
+    @State private var tipo = TipoActa.lideres
     @State private var tituloCustom = ""
     @State private var fecha = Date()
     @State private var lugar = ""
@@ -341,13 +343,11 @@ private struct NuevaActaSheet: View {
     // APPROVAL
     @State private var estadoForm = EstadoActa.borrador
 
-    private let tipos = [
-        L.t("Consejo", "Council"),
-        L.t("Directiva", "Board"),
-        L.t("Disciplina", "Discipline"),
-        L.t("Misiones", "Missions"),
-        L.t("Especial", "Special"),
-    ]
+    // **El catálogo del web, no cinco opciones propias.** Eran Consejo,
+    // Directiva, Disciplina, Misiones y Especial, escritas aquí y guardadas
+    // como texto traducido: tres de las cinco no existen en `TIPOS_ACTIVIDAD`
+    // del web, y las otras dos cambiaban de valor al cambiar de idioma.
+    private let tipos = TipoActa.allCases
 
     private var guardadoHabilitado: Bool { !tituloCustom.isEmpty }
 
@@ -387,7 +387,7 @@ private struct NuevaActaSheet: View {
     private var seccionInfoBasica: some View {
         Section(L.t("INFORMACIÓN BÁSICA", "BASIC INFORMATION")) {
             Picker(L.t("Tipo de reunión", "Meeting type"), selection: $tipo) {
-                ForEach(tipos, id: \.self) { Text($0).tag($0) }
+                ForEach(tipos, id: \.self) { Text($0.etiqueta).tag($0) }
             }
             TextField(L.t("Título", "Title"), text: $tituloCustom)
                 .autocorrectionDisabled()
@@ -576,68 +576,16 @@ private struct NuevaActaSheet: View {
         return f.string(from: date)
     }
 
+    /// **Devuelve los campos, ya no la prosa.** Aquí se armaba a mano el texto
+    /// del acta —quince campos fundidos en un `cuerpo`— y se devolvía eso,
+    /// así que lo recogido en el formulario existía en pantalla y en ninguna
+    /// parte más. La redacción vive ahora en `Acta.cuerpo`, que la calcula de
+    /// los campos: corregir el lugar cambia el texto, que antes no pasaba.
     private func construir() -> Acta {
         let cal = Calendar.current
         let año = cal.component(.year, from: fecha)
         let mes = cal.component(.month, from: fecha)
         let folio = String(format: "%04d-%02d", año, mes)
-
-        let fmtLargo = DateFormatter()
-        fmtLargo.dateFormat = L.t("d 'de' MMMM 'de' yyyy", "MMMM d, yyyy")
-        fmtLargo.locale = L.locale
-        let fechaLarga = fmtLargo.string(from: fecha)
-
-        let fmtCorto = DateFormatter()
-        fmtCorto.dateFormat = L.t("d 'de' MMMM", "MMMM d")
-        fmtCorto.locale = L.locale
-        let fechaCorta = fmtCorto.string(from: fecha)
-
-        let horaTxt = tieneHoraInicio
-            ? L.t(", a las \(fmtHora(horaInicio)) horas", ", at \(fmtHora(horaInicio))")
-            : ""
-        let cierreTxt = tieneHoraCierre
-            ? L.t(" Cierre: \(fmtHora(horaCierre)) h.", " Close: \(fmtHora(horaCierre)).")
-            : ""
-        let pres = presentes.isEmpty
-            ? L.t("los miembros convocados", "the members convened")
-            : presentes.map(\.nombre).joined(separator: ", ")
-
-        var partes: [String] = []
-        partes.append(L.t(
-            """
-            En \(fechaLarga)\(horaTxt), se reunió el \(tipo.lowercased()) de la Iglesia Getsemaní.\(cierreTxt)
-            Presidió: \(presidido.isEmpty ? "—" : presidido). Secretaria de actas: \(secretariaActas.isEmpty ? "—" : secretariaActas).
-            Miembros presentes: \(pres).
-            """,
-            """
-            On \(fechaLarga)\(horaTxt), the \(tipo.lowercased()) of Iglesia Getsemaní convened.\(cierreTxt)
-            Presided by: \(presidido.isEmpty ? "—" : presidido). Recording secretary: \(secretariaActas.isEmpty ? "—" : secretariaActas).
-            Members present: \(pres).
-            """
-        ))
-        if !ausentes.isEmpty {
-            partes.append(L.t(
-                "Ausentes: \(ausentes.map(\.nombre).joined(separator: ", ")).",
-                "Absent: \(ausentes.map(\.nombre).joined(separator: ", "))."
-            ))
-        }
-        if !invitados.isEmpty {
-            partes.append(L.t(
-                "Invitados: \(invitados.map(\.nombre).joined(separator: ", ")).",
-                "Guests: \(invitados.map(\.nombre).joined(separator: ", "))."
-            ))
-        }
-        if !puntosAgenda.isEmpty {
-            partes.append(L.t("Orden del día:\n\(puntosAgenda)", "Agenda:\n\(puntosAgenda)"))
-        }
-        if !resumenAsuntos.isEmpty {
-            partes.append(resumenAsuntos)
-        }
-        if !mociones.isEmpty {
-            let lista = mociones.map(\.texto).enumerated()
-                .map { "· \($0.element)" }.joined(separator: "\n")
-            partes.append(L.t("Mociones y propuestas:\n\(lista)", "Motions and proposals:\n\(lista)"))
-        }
 
         let items = acuerdoItems.enumerated()
             .map { AcuerdoActa(id: $0.offset + 1, texto: $0.element.texto) }
@@ -646,12 +594,23 @@ private struct NuevaActaSheet: View {
             id: proximoId,
             folio: folio,
             tipo: tipo,
-            fecha: fechaCorta,
-            acuerdos: items.count,
+            fecha: Fechas.claveDia(fecha),
             estado: estadoForm,
-            cuerpo: partes.joined(separator: "\n\n"),
             items: items,
-            tituloPersonalizado: tituloCustom.isEmpty ? nil : tituloCustom
+            tituloPersonalizado: tituloCustom.isEmpty ? nil : tituloCustom,
+            lugar: lugar.trimmingCharacters(in: .whitespaces),
+            horaInicio: tieneHoraInicio ? fmtHora(horaInicio) : nil,
+            horaCierre: tieneHoraCierre ? fmtHora(horaCierre) : nil,
+            preside: presidido.trimmingCharacters(in: .whitespaces),
+            secretario: secretariaActas.trimmingCharacters(in: .whitespaces),
+            presentes: presentes.map(\.nombre),
+            ausentes: ausentes.map(\.nombre),
+            invitados: invitados.map(\.nombre),
+            quorum: quorumCumplido,
+            agenda: puntosAgenda.trimmingCharacters(in: .whitespaces),
+            resumen: resumenAsuntos.trimmingCharacters(in: .whitespaces),
+            mociones: mociones.map(\.texto),
+            confidencial: esConfidencial
         )
     }
 }

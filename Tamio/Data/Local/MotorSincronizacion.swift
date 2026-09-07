@@ -96,6 +96,7 @@ final class MotorSincronizacion {
             // id, y una lista cuyo culto no ha bajado no se puede colocar.
             try await bajarCultos()
             try await bajarAgenda()
+            try await bajarActas()
             // Las tres hijas del culto, después de él y por la misma razón que
             // los parentescos van después de las personas.
             try await bajarAsistencia()
@@ -181,6 +182,10 @@ final class MotorSincronizacion {
         }
         if op.entidad == "evento" {
             try await subirEvento(op)
+            return
+        }
+        if op.entidad == "acta" {
+            try await subirActa(op)
             return
         }
         if op.entidad == "asistencia" {
@@ -441,6 +446,137 @@ final class MotorSincronizacion {
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
         case .none:
             return
+        }
+    }
+
+    // MARK: - Las actas
+
+    /// Lo que el aparato escribe en `actas`. `quorum` y `confidencial` son
+    /// `int` allá, no booleanos, igual que en la agenda.
+    private struct ActaEscritura: Encodable {
+        let uid, churchId: String
+        let folio, tipo, titulo, fecha: String?
+        let horaInicio, horaCierre, lugar, preside, secretario, testigo: String?
+        let presentes, ausentes, invitados: String
+        let quorum: Int
+        let agenda, resumen: String?
+        let mociones, acuerdos, estado: String
+        let confidencial: Int
+        let fechaAprobacion: String?
+        let firmas: String
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, folio, tipo, titulo, fecha, lugar, preside, secretario, testigo
+            case presentes, ausentes, invitados, quorum, agenda, resumen
+            case mociones, acuerdos, estado, confidencial, firmas, deleted
+            case churchId         = "church_id"
+            case horaInicio       = "hora_inicio"
+            case horaCierre       = "hora_cierre"
+            case fechaAprobacion  = "fecha_aprobacion"
+        }
+
+        init(_ f: ActaFila, churchId: String, deleted: Bool) {
+            func o(_ s: String) -> String? { s.isEmpty ? nil : s }
+            uid = f.id; self.churchId = churchId
+            folio = o(f.folio); tipo = o(f.tipo); titulo = o(f.titulo); fecha = o(f.fecha)
+            horaInicio = f.horaInicio; horaCierre = f.horaCierre
+            lugar = o(f.lugar); preside = o(f.preside)
+            secretario = o(f.secretario); testigo = o(f.testigo)
+            presentes = f.presentes; ausentes = f.ausentes; invitados = f.invitados
+            quorum = f.quorum ? 1 : 0
+            agenda = o(f.agenda); resumen = o(f.resumen)
+            mociones = f.mociones; acuerdos = f.acuerdos
+            // De los siete de aquí a los cinco de allá. `firmada` sube como
+            // `aprobada` y `cerrada` como `archivada`: el matiz de la firma
+            // vive en la columna `firmas`, que es donde el web lo busca.
+            estado = (EstadoActa(rawValue: f.estado) ?? .borrador).clave
+            confidencial = f.confidencial ? 1 : 0
+            fechaAprobacion = f.fechaAprobacion
+            firmas = f.firmas
+            self.deleted = deleted
+        }
+    }
+
+    private func subirActa(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try ActaFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+        let cuerpo = ActaEscritura(
+            fila, churchId: churchIdActivo,
+            deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("actas").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("actas").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+        case .none:
+            return
+        }
+    }
+
+    private func bajarActas() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let folio, tipo, titulo, fecha: String?
+            let horaInicio, horaCierre, lugar, preside, secretario, testigo: String?
+            let presentes, ausentes, invitados: String?
+            let quorum: Int?
+            let agenda, resumen, mociones, acuerdos, estado: String?
+            let confidencial: Int?
+            let fechaAprobacion, firmas, updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, folio, tipo, titulo, fecha, lugar, preside, secretario, testigo
+                case presentes, ausentes, invitados, quorum, agenda, resumen
+                case mociones, acuerdos, estado, confidencial, firmas, deleted
+                case horaInicio      = "hora_inicio"
+                case horaCierre      = "hora_cierre"
+                case fechaAprobacion = "fecha_aprobacion"
+                case updatedAt       = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'acta'")
+        }
+        var consulta = supabase.from("actas").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                let pendiente = try OperacionPendiente
+                    .filter(Column("entidad") == "acta" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if pendiente { continue }
+                try ActaFila(
+                    id: r.uid, folio: r.folio ?? "", tipo: r.tipo ?? "otra",
+                    titulo: r.titulo ?? "", fecha: r.fecha ?? "",
+                    horaInicio: r.horaInicio, horaCierre: r.horaCierre,
+                    lugar: r.lugar ?? "", preside: r.preside ?? "",
+                    secretario: r.secretario ?? "", testigo: r.testigo ?? "",
+                    presentes: r.presentes ?? "[]", ausentes: r.ausentes ?? "[]",
+                    invitados: r.invitados ?? "[]", quorum: (r.quorum ?? 0) != 0,
+                    agenda: r.agenda ?? "", resumen: r.resumen ?? "",
+                    mociones: r.mociones ?? "[]", acuerdos: r.acuerdos ?? "[]",
+                    // Y de vuelta a un caso de iOS. Lo que viene del web no
+                    // distingue firmada de aprobada porque allá no existe.
+                    estado: EstadoActa(clave: r.estado ?? "borrador").rawValue,
+                    confidencial: (r.confidencial ?? 0) != 0,
+                    fechaAprobacion: r.fechaAprobacion,
+                    firmas: r.firmas ?? "[]",
+                    actualizadoEn: r.updatedAt,
+                    borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('acta', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
         }
     }
 

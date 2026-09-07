@@ -319,6 +319,37 @@ struct EventoAgendaFila: Codable, FetchableRecord, PersistableRecord {
     var borrado: Bool
 }
 
+/// Un acta. Espejo de `public.actas`.
+struct ActaFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "acta"
+
+    var id: String
+    var folio: String
+    var tipo: String
+    var titulo: String
+    var fecha: String
+    var horaInicio: String?
+    var horaCierre: String?
+    var lugar: String
+    var preside: String
+    var secretario: String
+    var testigo: String
+    var presentes: String
+    var ausentes: String
+    var invitados: String
+    var quorum: Bool
+    var agenda: String
+    var resumen: String
+    var mociones: String
+    var acuerdos: String
+    var estado: String
+    var confidencial: Bool
+    var fechaAprobacion: String?
+    var firmas: String
+    var actualizadoEn: String?
+    var borrado: Bool
+}
+
 /// Quién vino a un culto. Una fila por persona, aunque la lista se tome por
 /// familia. Espejo de `servicio_asistencia`.
 struct AsistenciaFila: Codable, FetchableRecord, PersistableRecord {

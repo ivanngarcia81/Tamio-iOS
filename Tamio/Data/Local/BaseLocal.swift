@@ -707,6 +707,47 @@ final class BaseLocal {
             }
         }
 
+        // **Las actas, espejo de `public.actas`.** Mismo caso que la agenda:
+        // la pantalla llevaba desde el principio con `MockActasRepository` y
+        // sus cuatro actas escritas, mientras la tabla del web ya existía.
+        //
+        // Los nombres, columna a columna, son los del web. Las listas de
+        // nombres —presentes, ausentes, invitados— y las de mociones y
+        // acuerdos viajan como el JSON que son allá.
+        //
+        // `firmas` se guarda aunque el iOS todavía recoja las suyas en
+        // `FirmasLocales`: si no estuviera, bajar un acta firmada desde el web
+        // perdería las firmas al volver a subirla.
+        m.registerMigration("v19_actas") { db in
+            try db.create(table: "acta") { t in
+                t.primaryKey("id", .text)
+                t.column("folio", .text).notNull().defaults(to: "")
+                t.column("tipo", .text).notNull().defaults(to: "otra")
+                t.column("titulo", .text).notNull().defaults(to: "")
+                t.column("fecha", .text).notNull().indexed()   // "YYYY-MM-DD"
+                t.column("horaInicio", .text)
+                t.column("horaCierre", .text)
+                t.column("lugar", .text).notNull().defaults(to: "")
+                t.column("preside", .text).notNull().defaults(to: "")
+                t.column("secretario", .text).notNull().defaults(to: "")
+                t.column("testigo", .text).notNull().defaults(to: "")
+                t.column("presentes", .text).notNull().defaults(to: "[]")
+                t.column("ausentes", .text).notNull().defaults(to: "[]")
+                t.column("invitados", .text).notNull().defaults(to: "[]")
+                t.column("quorum", .integer).notNull().defaults(to: 0)
+                t.column("agenda", .text).notNull().defaults(to: "")
+                t.column("resumen", .text).notNull().defaults(to: "")
+                t.column("mociones", .text).notNull().defaults(to: "[]")
+                t.column("acuerdos", .text).notNull().defaults(to: "[]")
+                t.column("estado", .text).notNull().defaults(to: "borrador")
+                t.column("confidencial", .boolean).notNull().defaults(to: false)
+                t.column("fechaAprobacion", .text)
+                t.column("firmas", .text).notNull().defaults(to: "[]")
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return m
     }
 
