@@ -266,9 +266,31 @@ struct Aportante: Identifiable, Hashable {
         return (cumplidos, periodos)
     }
 
+    /// El año de ingreso, para leer.
+    ///
+    /// `miembroDesde` es el campo "para leer" del padrón —la semilla trae
+    /// "2018"— pero con datos reales llega de `fecha_ingreso` y viene en ISO,
+    /// así que la fila enseñaba "Member since 2026-08-15…", truncada. El año
+    /// es lo único que la fila necesita, que es lo que ya hacía
+    /// `Miembro.añoIngreso`. Lo que no tenga forma de fecha se respeta tal
+    /// cual: puede ser texto escrito a mano.
+    var desdeLegible: String? {
+        let texto = miembroDesde.trimmingCharacters(in: .whitespaces)
+        guard !texto.isEmpty else { return nil }
+        let anio = texto.prefix(4)
+        return anio.count == 4 && anio.allSatisfy(\.isNumber) ? String(anio) : texto
+    }
+
     /// Subtítulo de la fila: "Miembro desde 2018 · diezmo".
+    ///
+    /// Cada mitad puede faltar, y entonces no se escribe: sin fecha de ingreso
+    /// la fila decía "Member since  · donor", con el separador huérfano y dos
+    /// espacios. Queda el rol solo, que es lo que se sabe.
     var subtitulo: String {
-        L.t("Miembro desde \(miembroDesde) · \(rol)", "Member since \(miembroDesde) · \(rol)")
+        let papel = rol.trimmingCharacters(in: .whitespaces)
+        guard let desde = desdeLegible else { return papel }
+        let entrada = L.t("Miembro desde \(desde)", "Member since \(desde)")
+        return papel.isEmpty ? entrada : "\(entrada) · \(papel)"
     }
 
     var iniciales: String {
