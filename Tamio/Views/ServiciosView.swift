@@ -221,7 +221,12 @@ struct ServiciosView: View {
                     Spacer()
                 }
 
-                // Roster
+                // **Las tres tarjetas de siempre, solo si tienen algo.**
+                // Salían con el título y el hueco: un culto sin puestos
+                // asignados enseñaba tres cajas vacías seguidas, que se leen
+                // como una pantalla a medio cargar. Lo que hay que hacer ya lo
+                // dicen los botones de arriba —"Asignar", "Tomar lista"—.
+                if !s.puestos.isEmpty {
                 Tarjeta {
                     VStack(alignment: .leading, spacing: 0) {
                         TituloSeccion(texto: L.t("ROSTER", "ROSTER"))
@@ -247,8 +252,10 @@ struct ServiciosView: View {
                         }
                     }
                 }
+                }
 
                 // Asistencia del último mes
+                if !s.historial.isEmpty {
                 Tarjeta {
                     VStack(alignment: .leading, spacing: 12) {
                         TituloSeccion(texto: L.t("ASISTENCIA DEL ÚLTIMO MES", "LAST MONTH ATTENDANCE"))
@@ -269,8 +276,24 @@ struct ServiciosView: View {
                         }
                     }
                 }
+                }
+
+                // **Lo que se capturó y no se veía.** El formulario pregunta
+                // el mensaje, la escuela bíblica, el conteo, los visitantes y
+                // los eventos especiales, se guardan y se sincronizan desde la
+                // v16, y la ficha no enseñaba ninguno: quien tomaba nota del
+                // culto el domingo no podía leerla el lunes. Cada tarjeta se
+                // dibuja solo si tiene algo dentro — una vacía dice menos que
+                // ninguna.
+                mensaje(s)
+                conteo(s)
+                escuela(s)
+                participaciones(s)
+                visitantes(s)
+                eventos(s)
 
                 // Orden del culto
+                if !s.orden.isEmpty {
                 Tarjeta {
                     VStack(alignment: .leading, spacing: 0) {
                         TituloSeccion(texto: L.t("ORDEN DEL CULTO", "SERVICE ORDER"))
@@ -297,10 +320,135 @@ struct ServiciosView: View {
                         }
                     }
                 }
+                }
             }
             .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
+    }
+
+    // MARK: - Lo capturado en la ficha del culto
+
+    /// Una tarjeta con título, o nada si no hay qué enseñar.
+    @ViewBuilder
+    private func tarjeta(_ titulo: String, si hay: Bool,
+                         @ViewBuilder _ contenido: () -> some View) -> some View {
+        if hay {
+            Tarjeta {
+                VStack(alignment: .leading, spacing: 10) {
+                    TituloSeccion(texto: titulo)
+                    contenido()
+                }
+            }
+        }
+    }
+
+    /// Un renglón de "etiqueta: valor" de los de la ficha.
+    @ViewBuilder
+    private func renglon(_ etiqueta: String, _ valor: String) -> some View {
+        if !valor.isEmpty {
+            HStack(alignment: .top, spacing: 12) {
+                Text(etiqueta)
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .frame(width: 100, alignment: .leading)
+                Text(valor).font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func mensaje(_ s: Servicio) -> some View {
+        tarjeta(L.t("MENSAJE", "MESSAGE"),
+                si: !(s.tituloMensaje + s.textoBiblico + s.resumenMensaje).isEmpty) {
+            renglon(L.t("Título", "Title"), s.tituloMensaje)
+            renglon(L.t("Texto", "Passage"), s.textoBiblico)
+            renglon(L.t("Resumen", "Summary"), s.resumenMensaje)
+        }
+    }
+
+    @ViewBuilder
+    private func escuela(_ s: Servicio) -> some View {
+        tarjeta(L.t("ESCUELA BÍBLICA", "BIBLE SCHOOL"),
+                si: !(s.temaEscuela + s.maestroEscuela).isEmpty) {
+            renglon(L.t("Tema", "Topic"), s.temaEscuela)
+            renglon(L.t("Maestro(a)", "Teacher"), s.maestroEscuela)
+        }
+    }
+
+    @ViewBuilder
+    private func eventos(_ s: Servicio) -> some View {
+        tarjeta(L.t("EVENTOS ESPECIALES", "SPECIAL EVENTS"), si: !s.eventos.isEmpty) {
+            Text(s.eventos).font(.subheadline)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder
+    private func participaciones(_ s: Servicio) -> some View {
+        tarjeta(L.t("CANCIONES Y PARTICIPACIONES", "SONGS & PARTICIPATIONS"),
+                si: !s.participaciones.isEmpty) {
+            ForEach(s.participaciones, id: \.self) { p in
+                HStack(alignment: .top, spacing: 8) {
+                    Text("·").foregroundStyle(.secondary)
+                    Text(p).font(.subheadline)
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func visitantes(_ s: Servicio) -> some View {
+        tarjeta(L.t("VISITANTES", "VISITORS"), si: !s.visitantes.isEmpty) {
+            ForEach(s.visitantes) { v in
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 6) {
+                        Text(v.nombre).font(.subheadline)
+                        // Quien viene por primera vez es a quien hay que
+                        // visitar esta semana: es el dato que justifica
+                        // apuntar visitantes.
+                        if v.primeraVisita {
+                            Pill(texto: L.t("Primera visita", "First visit"), color: Paleta.brand)
+                        }
+                    }
+                    let contacto = [v.telefono, v.correo].compactMap { $0 }
+                        .filter { !$0.isEmpty }.joined(separator: " · ")
+                    if !contacto.isEmpty {
+                        Text(contacto).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    /// **El conteo por grupo, que no es la lista.** La lista de miembros da la
+    /// asistencia nominal; esto es el conteo de cabezas para el culto donde no
+    /// se pasa lista. Se enseñan los dos porque responden a preguntas
+    /// distintas, y por eso el formulario avisa de cuál usar.
+    @ViewBuilder
+    private func conteo(_ s: Servicio) -> some View {
+        let total = s.ninos + s.jovenes + s.adultos
+        tarjeta(L.t("CONTEO POR GRUPO", "HEADCOUNT BY GROUP"), si: total > 0) {
+            HStack(spacing: 0) {
+                grupoContado(L.t("Niños", "Children"), s.ninos)
+                grupoContado(L.t("Jóvenes", "Youth"), s.jovenes)
+                grupoContado(L.t("Adultos", "Adults"), s.adultos)
+                grupoContado(L.t("Total", "Total"), total, destacado: true)
+            }
+        }
+    }
+
+    private func grupoContado(_ etiqueta: String, _ n: Int,
+                              destacado: Bool = false) -> some View {
+        VStack(spacing: 2) {
+            Text("\(n)")
+                .font(.title3.weight(.semibold)).monospacedDigit()
+                .foregroundStyle(destacado ? Paleta.brand : .primary)
+            Text(etiqueta).font(.caption2).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func abrir(_ s: Servicio) {

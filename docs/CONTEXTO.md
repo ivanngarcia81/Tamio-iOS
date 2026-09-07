@@ -1537,10 +1537,13 @@ va a fallar.
 5. ~~Membresía: probar la sincronización con la cuenta real~~ **— sigue
    pendiente y ahora es el punto de arriba de esta sección**, porque ya no es
    solo membresía.
-6. **Los servicios ya tienen forma de fila** (v17: `servicioPuesto` y
-   `servicioOrden`), con su repositorio y su sincronización. Lo que falta de
-   esa pantalla es el resto de la ficha del culto —cantos, escuela dominical,
-   conteos— que sigue guardándose pero sin verse.
+6. ~~Los servicios: el resto de la ficha se guarda y no se ve.~~ **— HECHO el
+   7 de septiembre.** La ficha enseña ya el mensaje, el conteo por grupo, la
+   escuela bíblica, las canciones, los visitantes y los eventos especiales. Cada
+   tarjeta aparece solo si tiene algo dentro, **y las tres viejas también**:
+   ROSTER, ASISTENCIA y ORDEN DEL CULTO salían con el título y el hueco, así que
+   un culto recién creado enseñaba tres cajas vacías seguidas y parecía una
+   pantalla a medio cargar.
 7. ~~"Familia Ruvalcaba"~~ **— era una falsa alarma, resuelta el 6 de
    septiembre.** Estaba anotada como un problema de datos reales que esperaba
    una decisión de Iván. No lo era: **no existe en la base** —cero filas en
