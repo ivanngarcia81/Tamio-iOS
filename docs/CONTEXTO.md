@@ -425,6 +425,20 @@ Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.
 
 ## 4. Cosas ya medidas · no volver a discutirlas
 
+- **El teléfono no gira: solo vertical.** En apaisado, un iPhone grande pasa a
+  clase de tamaño **regular**, y toda la app decide su forma con
+  `sizeClass == .compact`: girar el teléfono daba las dos columnas y la sidebar,
+  o sea la app del iPad en un teléfono. Lo señaló Iván —"parece iPad"—. El iPad
+  conserva las cuatro orientaciones, que ahí las dos columnas son la pantalla y
+  no un accidente.
+
+  Va en `INFOPLIST_KEY_UISupportedInterfaceOrientations` (la clave SIN sufijo es
+  la del teléfono; `_iPad` manda en el iPad). **Se toca en los dos sitios**: el
+  `.pbxproj`, que es el que compila, y el `project.yml`, que no se regenera
+  nunca (§2.1) pero es lo que alguien leerá para entender el proyecto. Medido
+  girando el simulador con `XCUIDevice.shared.orientation`: la ventana se queda
+  en 390×844 (`pruebas/OrientacionUITests.swift`).
+
 - **`navigationBarBackButtonHidden` apaga el gesto de volver** en iOS 26.
   Medido con XCUITest: con botón visible el deslizamiento vuelve, ocultándolo
   no. Por eso existe `sinBotonVolver()` en `Support/NavHeader.swift`, que lo

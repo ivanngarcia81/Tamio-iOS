@@ -28,7 +28,12 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: church.tamio.native
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        # **El teléfono, solo en vertical.** En apaisado el iPhone grande pasa
+        # a clase de tamaño regular y la app se dibuja como en iPad —lista y
+        # detalle en dos columnas, la sidebar—, así que girar el teléfono daba
+        # una app que no es la del teléfono. El iPad conserva las cuatro: ahí
+        # las dos columnas son la pantalla, no un accidente.
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
