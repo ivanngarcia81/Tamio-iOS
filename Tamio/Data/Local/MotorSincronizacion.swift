@@ -513,9 +513,18 @@ final class MotorSincronizacion {
     }
 
     private func subirActa(_ op: OperacionPendiente) async throws {
-        guard let fila = try await cola.read({ db in
+        guard var fila = try await cola.read({ db in
             try ActaFila.fetchOne(db, key: op.registroId)
         }) else { return }
+        // Tres dígitos, que es como numera las actas el web (`ACTA-2026-001`).
+        if fila.folioProvisional, !fila.borrado {
+            let anio = Int(fila.fecha.prefix(4)) ?? Calendar.current.component(.year, from: Date())
+            if let folio = try await canjearFolio(tabla: "acta", serie: "acta", prefijo: "ACTA",
+                                                  id: fila.id, anio: anio, digitos: 3) {
+                fila.folio = folio
+                fila.folioProvisional = false
+            }
+        }
         let cuerpo = ActaEscritura(
             fila, churchId: churchIdActivo,
             deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
@@ -638,10 +647,59 @@ final class MotorSincronizacion {
         }
     }
 
+    // MARK: - El folio de un documento
+
+    /// **Pide el folio bueno al contador del servidor y lo guarda.**
+    ///
+    /// Cartas y actas lo calculaban en el cliente —`max + 1` de lo que tuviera
+    /// delante— y así nacieron las cuatro actas con el folio ACTA-2026-001 que
+    /// hay en la base de la iglesia: dos aparatos sin sincronizar calculan el
+    /// mismo número. El RPC lo entrega y lo reserva en un solo statement, que
+    /// es lo que hace imposible repetirlo.
+    ///
+    /// Solo se pide UNA vez, al subir por primera vez: mientras el documento
+    /// lleve folio provisional. Un folio ya emitido no se vuelve a pedir aunque
+    /// el documento se edite diez veces.
+    ///
+    /// Devuelve el folio definitivo, o `nil` si no había que canjearlo.
+    private func canjearFolio(tabla: String, serie: String, prefijo: String,
+                              id: String, anio: Int, digitos: Int) async throws -> String? {
+        struct Params: Encodable {
+            let churchId: String, serie: String, anio: Int
+            enum CodingKeys: String, CodingKey {
+                case churchId = "p_church_id"
+                case serie    = "p_serie"
+                case anio     = "p_anio"
+            }
+        }
+        let seq: Int = try await supabase
+            .rpc("siguiente_folio_anual",
+                 params: Params(churchId: churchIdActivo, serie: serie, anio: anio))
+            .execute()
+            .value
+        let folio = "\(prefijo)-\(anio)-\(String(format: "%0\(digitos)d", seq))"
+        // Se guarda ANTES de subir: si la subida falla después, el documento ya
+        // tiene su número reservado y no pide otro en el reintento. Gastar un
+        // folio es barato; repetirlo, no.
+        _ = try await cola.write { db in
+            try db.execute(sql: "update \(tabla) set folio = ?, folioProvisional = 0 where id = ?",
+                           arguments: [folio, id])
+        }
+        return folio
+    }
+
     private func subirCarta(_ op: OperacionPendiente) async throws {
-        guard let fila = try await cola.read({ db in
+        guard var fila = try await cola.read({ db in
             try CartaFila.fetchOne(db, key: op.registroId)
         }) else { return }
+        if fila.folioProvisional, !fila.borrado {
+            let anio = Int(fila.fechaEmision.prefix(4)) ?? Calendar.current.component(.year, from: Date())
+            if let folio = try await canjearFolio(tabla: "carta", serie: "carta", prefijo: "CAR",
+                                                  id: fila.id, anio: anio, digitos: 4) {
+                fila.folio = folio
+                fila.folioProvisional = false
+            }
+        }
         let cuerpo = CartaEscritura(
             fila, churchId: churchIdActivo,
             deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)

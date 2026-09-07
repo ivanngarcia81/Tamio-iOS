@@ -92,6 +92,7 @@ struct RegistroView: View {
     /// está.
     private var listaColumna: some View {
         scrollApuntes
+            .background(Color(.secondarySystemGroupedBackground))
             .scrollEdgeEffectStyle(.soft, for: .all)
             .safeAreaBar(edge: .top, spacing: 0) { barraFiltros }
             .colchonInferior()

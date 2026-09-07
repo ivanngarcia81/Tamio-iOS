@@ -848,6 +848,25 @@ final class BaseLocal {
             }
         }
 
+        // **El folio de un documento lo da el servidor.** Cartas y actas lo
+        // calculaban en el cliente, y así nacieron las cuatro actas con el
+        // folio ACTA-2026-001 que hay en la base de la iglesia: dos aparatos
+        // sin sincronizar calculan el mismo número. El contador de Postgres lo
+        // entrega y lo reserva en un solo statement (migración
+        // `20260907_folios_por_serie_y_anio`), como ya hacían los movimientos.
+        //
+        // Mientras el documento no ha subido lleva un folio PROVISIONAL, y esta
+        // columna es la que lo dice. Es lo mismo que `movimiento.folioProvisional`
+        // y por la misma razón: un número que todavía puede cambiar no se
+        // imprime ni se cita.
+        m.registerMigration("v24_folioProvisional") { db in
+            for tabla in ["carta", "acta"] {
+                try db.alter(table: tabla) { t in
+                    t.add(column: "folioProvisional", .boolean).notNull().defaults(to: false)
+                }
+            }
+        }
+
         return m
     }
 

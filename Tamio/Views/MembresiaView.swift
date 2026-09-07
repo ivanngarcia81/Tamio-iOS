@@ -488,7 +488,7 @@ struct MembresiaView: View {
                 // columna entera el material no tenía nada que difuminar y se
                 // resolvía como un gris plano.
                 .scrollContentBackground(.hidden)
-                .background(Color(.systemGroupedBackground))
+                .background(Color(.secondarySystemGroupedBackground))
                 // El desvanecido de borde: la fila deja de aparecer y
                 // desaparecer de golpe al cruzar por detrás de la cabecera.
                 // Sustituye al margen de scroll que había como parche, de

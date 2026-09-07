@@ -445,12 +445,18 @@ Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.
   se emitió y está citado en algún papel—. Comprobado sobre los datos de la
   iglesia: con `CAR-2026-0001…0005` dentro, el siguiente sale `CAR-2026-0006`.
 
-  **Lo que sigue sin resolverse, y es del web también:** dos aparatos sin
-  conexión pueden calcular el mismo número. El web lo repara al sincronizar
-  (`repararFoliosDuplicados`, que renumera el más nuevo); iOS no repara, a
-  propósito, porque dos reparadores con criterios distintos —el del web ordena
-  por su `id` autoincremental, que aquí no existe— se pisarían. Una iglesia que
-  solo use teléfonos no tiene quien repare.
+  **Y desde el 7 de septiembre el número lo da el SERVIDOR** —migración
+  `20260907_folios_por_serie_y_anio`—, que es lo único que hace imposible
+  repetirlo: entregar y reservar son un solo statement. Mientras el documento no
+  ha subido lleva un folio provisional marcado con "P-", como los movimientos, y
+  por eso no se imprime hasta sincronizar. **Las dos apps a la vez**: iOS canjea
+  al subir (`canjearFolio`), el web pide al insertar y cae al conteo local sin
+  red, donde su `repararFoliosDuplicados` sigue cubriendo.
+
+  Dos detalles que costaron una vuelta: el folio se guarda ANTES de subir —si la
+  subida falla, el reintento no pide otro número; gastar un folio es barato,
+  repetirlo no— y **los provisionales cuentan para el siguiente provisional**,
+  que si no dos borradores sin subir salen los dos "P-1".
 
 - **Un formulario no nace con datos dentro.** `CartaEnEdicion` traía cuatro
   valores de maqueta escritos —"Javier Medina Cruz", "Iglesia El Buen Pastor",

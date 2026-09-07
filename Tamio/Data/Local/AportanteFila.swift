@@ -402,6 +402,9 @@ struct CartaFila: Codable, FetchableRecord, PersistableRecord {
     var fechaEntrega: String?
     var actualizadoEn: String?
     var borrado: Bool
+    /// **El folio todavía no es el bueno.** Lo pone el contador del servidor al
+    /// subir; hasta entonces se enseña marcado y no se imprime. Ver la v24.
+    var folioProvisional: Bool = false
 }
 
 /// Un acta. Espejo de `public.actas`.
@@ -433,6 +436,9 @@ struct ActaFila: Codable, FetchableRecord, PersistableRecord {
     var firmas: String
     var actualizadoEn: String?
     var borrado: Bool
+    /// Igual que en la carta: el folio bueno lo da el contador del servidor al
+    /// subir. Ver la v24.
+    var folioProvisional: Bool = false
 }
 
 /// Quién vino a un culto. Una fila por persona, aunque la lista se tome por

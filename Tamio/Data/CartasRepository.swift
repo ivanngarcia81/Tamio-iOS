@@ -27,6 +27,19 @@ enum FolioCarta {
         "\(prefijo)-\(anio)-\(String(format: "%04d", seq))"
     }
 
+    /// `"P-6"`. El que lleva una carta que todavía no ha subido. La marca es la
+    /// misma que la de los movimientos: quien lo vea sabe que ese número aún no
+    /// es el suyo, y por eso no se imprime.
+    static func provisional(seq: Int) -> String { "P-\(seq)" }
+
+    /// El número de un folio provisional. **Cuenta para el siguiente**: sin
+    /// esto, dos borradores sin subir salían los dos "P-1" y en la lista no se
+    /// distinguían. Lo cazó una prueba, no la pantalla.
+    static func seqProvisional(de folio: String) -> Int? {
+        guard folio.hasPrefix("P-") else { return nil }
+        return Int(folio.dropFirst(2))
+    }
+
     /// El número de un folio de ese año, o `nil` si no lo es. Con esto, contar
     /// mira TODAS las cartas de la iglesia —las que subió el escritorio
     /// incluidas—, que es lo que evita repetir número.
@@ -129,18 +142,26 @@ struct OfflineCartasRepository: CartasRepository {
         }
     }
 
-    /// **Contra la base entera, no contra lo cargado en pantalla.** La lista
-    /// puede estar filtrada o a medio cargar, y de ahí no sale un número de
-    /// documento. Se cuentan también las borradas: su folio se emitió y está
-    /// citado en algún papel, así que ese número no se reutiliza.
+    /// **Un folio PROVISIONAL, porque el bueno lo da el servidor.**
+    ///
+    /// Contarlo aquí es lo que hizo nacer cuatro actas con el mismo folio: dos
+    /// aparatos sin sincronizar calculan el mismo número. El definitivo lo
+    /// entrega el contador de Postgres al subir, en un solo statement, y hasta
+    /// entonces la carta lleva este —marcado con "P-", como los movimientos—
+    /// que se ve y no se imprime.
+    ///
+    /// Se cuentan también las borradas: su número se emitió y está citado.
     func siguienteFolio(fecha: Date) async -> String {
         let anio = String(Fechas.claveDia(fecha).prefix(4))
         let maximo = (try? await cola.read { db in
-            try String.fetchAll(db, sql: "select folio from carta")
-                .compactMap { FolioCarta.seq(de: $0, anio: anio) }
-                .max()
+            let folios = try String.fetchAll(db, sql: "select folio from carta")
+            // Los definitivos del año y los provisionales que esperan turno:
+            // el siguiente tiene que ir por delante de los dos.
+            return folios.compactMap {
+                FolioCarta.seq(de: $0, anio: anio) ?? FolioCarta.seqProvisional(de: $0)
+            }.max()
         }) ?? nil
-        return FolioCarta.texto(anio: anio, seq: (maximo ?? 0) + 1)
+        return FolioCarta.provisional(seq: (maximo ?? 0) + 1)
     }
 
     func eliminar(id: String) async throws {
@@ -177,6 +198,9 @@ struct OfflineCartasRepository: CartasRepository {
                      fechaEntrega: f.fechaEntrega)
     }
 
+    /// **Una carta nueva nace con folio provisional**; una que se edita conserva
+    /// lo que ya tuviera. Las que bajan del servidor llegan con el suyo bueno y
+    /// no pasan por aquí.
     static func aFila(_ c: CartaEmitida, previa: CartaFila?) -> CartaFila {
         CartaFila(id: c.id,
                   folio: c.folio,
@@ -200,7 +224,10 @@ struct OfflineCartasRepository: CartasRepository {
                   entregadaA: c.entregadaA,
                   fechaEntrega: c.fechaEntrega,
                   actualizadoEn: previa?.actualizadoEn,
-                  borrado: false)
+                  borrado: false,
+                  // Nueva: el folio que lleva es el provisional. Editada:
+                  // conserva lo que tuviera, que puede ser un folio ya bueno.
+                  folioProvisional: previa?.folioProvisional ?? true)
     }
 
     /// **La firma del web es un objeto**, con nombre y cargo; el iOS solo pide

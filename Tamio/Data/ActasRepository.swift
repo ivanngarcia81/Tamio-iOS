@@ -205,7 +205,10 @@ struct OfflineActasRepository: ActasRepository {
                  firmas: a.firmas.isEmpty ? (previa?.firmas ?? "[]")
                                           : Self.jsonFirmas(a.firmas),
                  actualizadoEn: previa?.actualizadoEn,
-                 borrado: false)
+                 borrado: false,
+                 // Igual que la carta: nueva, folio provisional; editada,
+                 // conserva el que tuviera.
+                 folioProvisional: previa?.folioProvisional ?? true)
     }
 
     // MARK: - Los JSON del web

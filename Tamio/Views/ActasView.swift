@@ -71,7 +71,8 @@ struct ActasView: View {
         .task { await vm.cargar(); await cfg.cargar() }
         .sincronizable { await vm.cargar() }
         .sheet(isPresented: $mostrarNueva) {
-            NuevaActaSheet(proximoId: vm.proximoId) { acta in
+            NuevaActaSheet(proximoId: vm.proximoId,
+                           proximoNumeroProvisional: vm.lista.count + 1) { acta in
                 Task { await vm.agregarActa(acta) }
             }
         }
@@ -128,6 +129,7 @@ struct ActasView: View {
         listaActasCuerpo
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .background(Color(.secondarySystemGroupedBackground))
     }
 
     @ViewBuilder
@@ -311,6 +313,9 @@ struct ActasView: View {
 
 private struct NuevaActaSheet: View {
     let proximoId: String
+    /// Cuántas actas hay ya, para que dos borradores sin subir no lleven el
+    /// mismo provisional. No es el folio: el folio lo da el servidor.
+    let proximoNumeroProvisional: Int
     let onGuardar: (Acta) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -590,10 +595,13 @@ private struct NuevaActaSheet: View {
     /// parte más. La redacción vive ahora en `Acta.cuerpo`, que la calcula de
     /// los campos: corregir el lugar cambia el texto, que antes no pasaba.
     private func construir() -> Acta {
-        let cal = Calendar.current
-        let año = cal.component(.year, from: fecha)
-        let mes = cal.component(.month, from: fecha)
-        let folio = String(format: "%04d-%02d", año, mes)
+        // **El folio es PROVISIONAL.** Era "2026-08" —año y mes—, que no es una
+        // serie: dos actas del mismo mes nacían con el mismo folio por diseño,
+        // y encima en otra serie que la del web (`ACTA-2026-001`). El bueno lo
+        // entrega el contador del servidor al subir; hasta entonces se enseña
+        // marcado con "P-", como el de un movimiento sin subir, y por eso no se
+        // imprime.
+        let folio = FolioCarta.provisional(seq: proximoNumeroProvisional)
 
         let items = acuerdoItems.enumerated()
             .map { AcuerdoActa(id: $0.offset + 1, texto: $0.element.texto) }

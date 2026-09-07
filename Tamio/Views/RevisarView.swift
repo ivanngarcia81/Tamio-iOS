@@ -268,7 +268,7 @@ struct RevisarView: View {
                 .font(.caption2).foregroundStyle(.tertiary).padding(Esp.tarjeta)
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color(.secondarySystemGroupedBackground))
         // El desvanecido de borde: la fila deja de aparecer y desaparecer de
         // golpe al cruzar por detrás de la barra.
         .scrollEdgeEffectStyle(.soft, for: .all)

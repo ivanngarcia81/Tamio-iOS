@@ -22,10 +22,9 @@ struct InformesMembresiaView: View {
     private var compacto: Bool { sizeClass == .compact }
 
     var body: some View {
-        encabezado(cuerpo)
+        contenidoPrincipal
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar { barra }
-            // El padrón del informe de Miembros. Esta pantalla no tenía
-            // `.task` porque todo lo suyo era calculado de constantes.
             .task { await vm.cargarPadron() }
             .sincronizable { await vm.cargarPadron() }
             .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
@@ -34,29 +33,24 @@ struct InformesMembresiaView: View {
             }
     }
 
-    /// Sin cabecera: los selectores se fueron a la barra y a la hoja del
-    /// periodo, así que el contenido empieza arriba y no hay nada bajo lo que
-    /// desvanecer. Se queda el `.soft` del propio `contenidoInforme` para el
-    /// borde de la barra de navegación.
+    /// En iPad: columna maestra de informes a la izquierda y contenido a la
+    /// derecha. En iPhone: solo el contenido, con el selector en el título.
+    @ViewBuilder
+    private var contenidoPrincipal: some View {
+        if compacto {
+            cuerpo
+        } else {
+            HStack(spacing: 0) {
+                sidebarInformes
+                Divider()
+                cuerpo
+            }
+        }
+    }
+
     private var cuerpo: some View {
         contenidoInforme
             .colchonInferior()
-    }
-
-    /// **La barra ya no lleva el nombre de la pantalla, lleva el del informe.**
-    /// El título era texto fijo —"Informes de membresía"— repitiendo lo que la
-    /// fila del hub acababa de decir, mientras el dato que sí cambia, cuál de
-    /// los cuatro informes se está viendo, gastaba una franja entera de
-    /// contenido en cuatro cápsulas. Ahora ese estado ES el título y se elige
-    /// tocándolo. El subtítulo "Panorama, seguimiento e informes del padrón"
-    /// se pierde y está bien: el encabezado del contenido dice "Panorama
-    /// general · 262 miembros · Año 2026", que es lo mismo pero con datos.
-    ///
-    /// `.inline` en las dos clases de tamaño, no solo en el teléfono: un
-    /// `ToolbarItem(placement: .title)` es un control, y el título grande lo
-    /// reserva como banda de texto aparte.
-    private func encabezado<C: View>(_ contenido: C) -> some View {
-        contenido.navigationBarTitleDisplayMode(.inline)
     }
 
     // MARK: - Barra
@@ -76,11 +70,48 @@ struct InformesMembresiaView: View {
     /// esta pantalla no tiene buscador.
     @ToolbarContentBuilder
     private var barra: some ToolbarContent {
-        ToolbarItem(placement: .title) { menuInforme }
+        // En iPhone el título ES el selector; en iPad la selección vive en la
+        // columna izquierda y el título queda libre para la barra de navegación.
+        if compacto {
+            ToolbarItem(placement: .title) { menuInforme }
+        }
         ToolbarItem(placement: .topBarTrailing) { botonFiltros }
         ToolbarItem(placement: .topBarTrailing) { menuAcciones }
         ToolbarSpacer(.fixed, placement: .topBarTrailing)
         ToolbarItem(placement: .topBarTrailing) { botonCompartir }
+    }
+
+    // MARK: - Columna maestra (iPad)
+
+    /// Las cuatro opciones visibles en iPad como columna fija. En el teléfono
+    /// caben en un menú del título porque solo muestra una cosa a la vez; en
+    /// iPad hay ancho para la lista al lado del contenido y el informe activo
+    /// se ve de un vistazo sin abrir nada.
+    private var sidebarInformes: some View {
+        List {
+            ForEach(Array(informes.enumerated()), id: \.offset) { idx, informe in
+                Button { vm.informeSeleccionado = idx } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(etiquetaInforme(idx))
+                            .font(.subheadline)
+                            .fontWeight(vm.informeSeleccionado == idx ? .semibold : .regular)
+                            .foregroundStyle(.primary)
+                        Text(informe.1)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .filaDeLista(seleccionada: vm.informeSeleccionado == idx, tarjeta: false)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color(.secondarySystemGroupedBackground))
+        .frame(width: 220)
     }
 
     /// El informe activo, que es estado y por eso vive en el título y no en el
