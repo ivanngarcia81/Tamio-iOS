@@ -1639,6 +1639,19 @@ final class MotorSincronizacion {
         }
     }
 
+    /// Lo que el servidor acepta sin decir nada y no hay que dar por hecho.
+    enum FalloDeSubida: LocalizedError {
+        case nadieRecibioLaIglesia
+
+        var errorDescription: String? {
+            switch self {
+            case .nadieRecibioLaIglesia:
+                return L.t("El servidor no aceptó los datos de la iglesia. Se reintentará.",
+                           "The server didn't accept the church data. It will be retried.")
+            }
+        }
+    }
+
     // MARK: - Configuración de la iglesia
 
     private func subirIglesia(_ id: String) async throws {
@@ -1679,8 +1692,25 @@ final class MotorSincronizacion {
             }
         }
 
+        // **Se comprueba que el update TOCÓ algo.**
+        //
+        // Un `update` que RLS filtra no da error: afecta a cero filas y
+        // devuelve 204. Esta función lo daba por bueno, la operación se
+        // borraba de la cola y en la siguiente bajada el servidor devolvía los
+        // valores viejos, que pisaban lo editado. Así se perdió TODO lo que se
+        // escribía en Ajustes · Iglesia —la moneda volvía a MXN en cada
+        // arranque, el logo desaparecía— sin un solo error por ninguna parte,
+        // y sin que el contador de "sin subir" dijera nada, porque la cola se
+        // vaciaba igual.
+        //
+        // La política que faltaba está en `20260907_iglesias_se_pueden_actualizar.sql`,
+        // pero esto se queda: si mañana otra regla del servidor vuelve a
+        // filtrar una subida en silencio, la operación tiene que quedarse en la
+        // cola y decirlo, no desaparecer como si hubiera salido bien.
+        struct FilaTocada: Decodable { let id: String }
+
         let c = fila.configuracion
-        try await supabase
+        let tocadas: [FilaTocada] = try await supabase
             .from("iglesias")
             .update(IglesiaUpdate(
                 nombre: c.nombre, direccion: c.direccion, ciudad: c.ciudad,
@@ -1696,7 +1726,13 @@ final class MotorSincronizacion {
                 secretarioNombre: c.secretarioNombre, secretarioCargo: c.secretarioCargo,
                 imprimirFirmas: c.imprimirFirmas))
             .eq("id", value: id)
+            .select("id")
             .execute()
+            .value
+
+        guard !tocadas.isEmpty else {
+            throw FalloDeSubida.nadieRecibioLaIglesia
+        }
     }
 
     private func bajarIglesia() async throws {
