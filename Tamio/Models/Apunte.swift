@@ -53,6 +53,17 @@ enum TipoSuceso: String, CaseIterable {
     /// de las cuentas", como lo dice el web.
     var esAlerta: Bool { self == .descuadre || self == .movEliminado }
 
+    /// Qué dice la pastilla roja de una alerta. Los dos avisan, pero no de lo
+    /// mismo: la del descuadre decía "No cuadró" para los dos, y un movimiento
+    /// dado de baja no es un conteo que no cuadró.
+    var etiquetaAlerta: String? {
+        switch self {
+        case .descuadre:    return L.t("No cuadró", "Didn't match")
+        case .movEliminado: return L.t("Dinero dado de baja", "Money removed")
+        default:            return nil
+        }
+    }
+
     init(clave: String) { self = TipoSuceso(rawValue: clave) ?? .nota }
 }
 
@@ -112,11 +123,19 @@ struct Apunte: Identifiable, Hashable {
     /// web arregló al retirar `mensajes`.
     var texto: String {
         if tipo == .nota { return cuerpo }
-        func d(_ k: String) -> String { datos[k] ?? "—" }
+        // La primera clave que traiga algo. **Las claves son las del web** —es
+        // quien escribió la tabla—, pero iOS llegó a escribir otras en dos
+        // sucesos (`nombre` por `destinatario`, `quien` por `firmante`), y esos
+        // apuntes ya están en la base de la iglesia: si solo se leyera la buena
+        // se quedarían en guiones para siempre.
+        func d(_ claves: String...) -> String {
+            for k in claves where !(datos[k] ?? "").isEmpty { return datos[k]! }
+            return "—"
+        }
         switch tipo {
         case .movEliminado:
-            return L.t("Se dio de baja el movimiento \(d("folio")) de \(d("monto"))",
-                       "Entry \(d("folio")) of \(d("monto")) was removed")
+            return L.t("Se eliminó el movimiento «\(d("concepto"))» de \(d("monto")) (folio \(d("folio")))",
+                       "Transaction «\(d("concepto"))» for \(d("monto")) was deleted (folio \(d("folio")))")
         case .corteEntregado:
             return L.t("Salió de la caja el corte «\(d("corte"))», con \(d("movimientos")) movimiento(s)",
                        "The «\(d("corte"))» cut left the cash box, with \(d("movimientos")) entries")
@@ -124,8 +143,8 @@ struct Apunte: Identifiable, Hashable {
             return L.t("El corte «\(d("corte"))» llegó al banco",
                        "The «\(d("corte"))» cut reached the bank")
         case .segundaFirma:
-            return L.t("\(d("quien")) dio la segunda firma del corte «\(d("corte"))»",
-                       "\(d("quien")) gave the second signature of the «\(d("corte"))» cut")
+            return L.t("\(d("firmante", "quien")) dio la segunda firma del corte «\(d("corte"))»\(modoEntreParentesis)",
+                       "\(d("firmante", "quien")) gave the second signature of the «\(d("corte"))» cut\(modoEntreParentesis)")
         case .descuadre:
             return L.t("El corte «\(d("corte"))» NO cuadró: se contaron \(d("contado")) y no coincide con lo registrado",
                        "The «\(d("corte"))» cut did NOT match: \(d("contado")) counted, which differs from what was recorded")
@@ -136,12 +155,29 @@ struct Apunte: Identifiable, Hashable {
             return L.t("\(d("nombre")) se dio de baja del padrón: \(d("motivo"))",
                        "\(d("nombre")) was removed from the roster: \(d("motivo"))")
         case .cartaEmitida:
-            return L.t("Se emitió la carta \(d("folio")) a \(d("nombre"))",
-                       "Letter \(d("folio")) issued to \(d("nombre"))")
+            return L.t("Se emitió la carta \(d("folio")) a \(d("destinatario", "nombre"))",
+                       "Letter \(d("folio")) issued to \(d("destinatario", "nombre"))")
         case .actaCerrada:
-            return L.t("Se cerró el acta \(d("folio"))", "Minutes \(d("folio")) were closed")
+            // El acta del web lleva título; las que anotó iOS hasta hoy, solo
+            // folio. Sin título la frase es la de antes y no dice «—».
+            guard let titulo = datos["titulo"], !titulo.isEmpty else {
+                return L.t("Se cerró el acta \(d("folio"))", "Minutes \(d("folio")) were closed")
+            }
+            return L.t("Se cerró el acta «\(titulo)» (\(d("folio")))",
+                       "Minutes «\(titulo)» (\(d("folio"))) were closed")
         case .nota:
             return cuerpo
+        }
+    }
+
+    /// `" (contó el dinero)"` · `" (revisó el registro)"` · `""`. El web lo
+    /// guarda crudo —`conteo` o `revision`— y lo enseña así; aquí se lee, que
+    /// es la razón de ser de esta tabla: la clave viaja, la frase se compone.
+    private var modoEntreParentesis: String {
+        switch datos["modo"] {
+        case "conteo":   return L.t(" (contó el dinero)", " (counted the money)")
+        case "revision": return L.t(" (revisó lo registrado)", " (reviewed the record)")
+        default:         return ""
         }
     }
 

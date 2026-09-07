@@ -77,8 +77,11 @@ struct OfflineCartasRepository: CartasRepository {
         // rastro. Y solo al PASAR a emitida: guardar dos veces una carta ya
         // emitida no es emitirla dos veces.
         if c.estado == "emitida" && previa?.estado != "emitida" {
+            // `destinatario`, no `nombre`: las claves de `datos` las lee
+            // también el web, y allí la frase pide esa. Ver `SUCESOS` en su
+            // `src/db.ts`.
             await anotarSuceso(.cartaEmitida, ["folio": c.folio,
-                                               "nombre": c.destinatarioNombre])
+                                               "destinatario": c.destinatarioNombre])
         }
     }
 

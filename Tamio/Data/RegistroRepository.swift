@@ -142,10 +142,24 @@ struct OfflineRegistroRepository: RegistroRepository {
 
     /// Las piezas del texto. Lo que llegue ilegible se lee como vacío: un
     /// apunte con los datos rotos enseña guiones, pero la bitácora abre.
+    ///
+    /// **No todo lo que escribe el web son cadenas.** `corteEntregado` guarda
+    /// `movimientos` como NÚMERO —`txIds.length`—, y un `decode([String: String])`
+    /// no falla en esa clave: falla en el objeto entero y devuelve vacío, así
+    /// que el apunte se quedaba en guiones de punta a punta. Se lee suelto y
+    /// cada valor se pasa a texto.
     static func datos(_ json: String) -> [String: String] {
         guard let d = json.data(using: .utf8),
-              let v = try? JSONDecoder().decode([String: String].self, from: d) else { return [:] }
-        return v
+              let objeto = try? JSONSerialization.jsonObject(with: d) as? [String: Any]
+        else { return [:] }
+        return objeto.reduce(into: [:]) { acc, par in
+            switch par.value {
+            case let s as String: acc[par.key] = s
+            case let n as NSNumber: acc[par.key] = n.stringValue
+            case is NSNull: break
+            default: acc[par.key] = String(describing: par.value)
+            }
+        }
     }
 
     static func json(_ v: [String: String]) -> String {

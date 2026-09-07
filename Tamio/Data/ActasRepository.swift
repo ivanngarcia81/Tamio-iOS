@@ -136,7 +136,7 @@ struct OfflineActasRepository: ActasRepository {
         let cerradaAntes = previa.map { EstadoActa(rawValue: $0.estado) == .cerrada
                                      || EstadoActa(rawValue: $0.estado) == .archivada } ?? false
         if cerradaAhora && !cerradaAntes {
-            await anotarSuceso(.actaCerrada, ["folio": a.folio])
+            await anotarSuceso(.actaCerrada, ["folio": a.folio, "titulo": a.titulo])
         }
     }
 
