@@ -221,6 +221,7 @@ struct ActasView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         // Encabezado
                         VStack(alignment: .center, spacing: 4) {
+                            LogoMembrete(alto: 52)
                             // **El encabezado dice de qué acta es.** Estaba
                             // escrito "ACTA DE REUNIÓN DEL CONSEJO" para
                             // todas, así que un acta administrativa o una

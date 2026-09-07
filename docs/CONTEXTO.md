@@ -40,6 +40,8 @@ sin trabajo pendiente**: lo que resta son dos decisiones de Iván.
 10. **El folio de los documentos que se firman, al servidor** (§4 y §6).
 11. **Las ocho secciones de Ajustes se pintaban para todos los roles**, aunque
     el web ya escondiera dos. Ver §0.0.c.
+12. **El logo de la iglesia**, que la pantalla llevaba prometiendo como
+    "Próximamente". Ver §0.0.d.
 
 ### Las tres lecciones de esta vuelta
 
@@ -116,10 +118,66 @@ y corriendo la app en los dos aparatos con el perfil de ejemplo parcheado al rol
 Iglesia siguen abiertas: el membrete y las firmas los usan los documentos de las
 dos áreas, y Acceso ya se reserva por dentro con `administraPermisos`.
 
-**Y una promesa que sigue en falso:** `SeccionAjustes.descripcion` de Iglesia
-dice "Nombre, ubicación, **logo** y datos fiscales". No hay logo en iOS ni en el
-web —`grep -i logo` no da nada en ninguno de los dos—. O se quita la palabra o
-se hace el logo; no se decidió.
+**La promesa del logo, que estaba en falso**, se cumplió en la misma sesión:
+ver §0.0.d.
+
+### 0.0.d El logo de la iglesia
+
+Iván lo pidió al ver que la descripción de Ajustes · Iglesia prometía un logo
+que no existía ni en iOS ni en el web. **Se decidió el esquema aquí**, así que
+esta vez iOS va por delante del web y no al revés.
+
+**Las tres decisiones, con su porqué:**
+
+- **La columna guarda la RUTA, no la imagen** (`iglesias.logo_path`, migración
+  `20260907_logo_de_la_iglesia.sql`, aplicada). Los bytes viven en Storage y
+  cacheados en Application Support. La ruta lleva un UUID nuevo cada vez, así
+  que **la ruta ES el número de versión**: "¿tengo yo este logo?" se contesta
+  mirando si existe ese archivo, sin marcas de tiempo ni banderas.
+- **En el bucket `comprobantes`**, bajo `<church_id>/logo/<uuid>.png`, y no en
+  uno propio: sus tres políticas ya aíslan por iglesia mirando el primer
+  segmento de la ruta. Un bucket `logos` habría sido escribir esas mismas tres
+  políticas otra vez para no ganar nada.
+- **El logo SÍ se sincroniza, la firma NO**, y es la pareja que conviene leer
+  junta (`LogoIglesia` contra `FirmasLocales`). Una firma que viaja a todos los
+  aparatos es un sello que cualquiera estampa; un logo no autoriza nada, y un
+  membrete que cambia según el aparato desde el que se imprime no es un
+  membrete. Por lo mismo el logo **no entra en el respaldo**: vuelve solo con la
+  siguiente sincronización, mientras que la firma solo existe en el aparato.
+
+**Dónde sale:** los seis membretes —estado financiero, reporte anual, reporte de
+aportes, constancia, carta y acta—. Los tres primeros lo llevan a la izquierda,
+que es como encabezan; carta y acta, centrado sobre el nombre. La constancia
+faltó en el primer recuento porque su encabezado se escribe con `iglesia.nombre`
+y no con `membrete`, así que no aparecía al buscar los membretes — y es el
+documento que la gente lleva a hacer su declaración.
+
+**Lo que encontró correr la app, y ninguna prueba unitaria podía:**
+
+1. **El logo salía en Ajustes y no en el PDF.** `LogoMembrete` guardaba la
+   referencia en un `@State`, y el PDF se dibuja con `ImageRenderer` FUERA de la
+   jerarquía de vistas, donde ese `@State` no llega a instalarse. `FirmasPDF` ya
+   lo tenía resuelto con una propiedad normal; bastaba mirarlo.
+2. **El membrete de los tres reportes se fue al centro de la página.** Meterlo
+   en un `HStack` hace que ocupe todo el ancho y reparta el sobrante. Un
+   `Spacer(minLength: 0)` al final lo devuelve a la izquierda — y de paso dejó
+   de truncarse la línea de la ubicación.
+
+**Verificado**: siete pruebas unitarias (`pruebas/LogoDeLaIglesiaTests.swift`),
+entre ellas la v25 aplicada sobre una base sembrada con la v24 —la receta del §3
+automatizada, sin desinstalar nada, gracias a que `BaseLocal.migrador` dejó de
+ser `private`—; y la app corriendo: la fila de Ajustes, el PDF con logo, la
+carta con logo y **el PDF SIN logo**, que es el caso que más se va a dar y sale
+igual que antes, sin hueco reservado.
+
+**Lo que NO está probado y hay que probar con sesión:** el viaje real a Storage
+—subir, bajar en otro aparato y borrar el anterior al reemplazarlo—. En modo
+revisión el almacén es un `Mock` y el archivo no sale del teléfono. Es lo
+primero que hay que mirar en la próxima sesión con credenciales.
+
+**El web no lo lleva todavía** (decisión de Iván, 7-sep): el esquema queda
+puesto y lo adopta cuando toque. Mientras, un documento generado desde el web
+sale sin logo.
 
 ### 0.0.a Los cinco sucesos de Tesorería
 

@@ -21,6 +21,21 @@ struct ConfiguracionIglesia: Equatable {
     /// Unidos. Se cambia en Ajustes · Iglesia.
     var moneda: String = "USD"
     var pieInstitucional: String = ""
+    /// **La RUTA del logo dentro del bucket, no la imagen.** El archivo lo
+    /// gestiona `LogoIglesia`; aquí solo viaja el `<church_id>/logo/<uuid>.png`
+    /// que dice cuál es el vigente.
+    ///
+    /// Que sea una ruta y no los bytes es lo que permite que el logo se
+    /// sincronice sin engordar cada bajada de la iglesia, y lo que deja saber a
+    /// un aparato que el logo CAMBIÓ: la ruta lleva un UUID nuevo cada vez, así
+    /// que basta comparar con lo que hay en disco.
+    ///
+    /// Es la diferencia con las firmas, que no se sincronizan a propósito (ver
+    /// `FirmasLocales`): una firma que viaja a todos los aparatos es un sello
+    /// que cualquiera puede estampar. Un logo no firma nada — es el membrete, y
+    /// un membrete que cambia según el aparato desde el que se imprime no es un
+    /// membrete.
+    var logoPath: String = ""
     /// **El saldo de apertura, en centavos.** El dinero que la tesorería ya
     /// tenía antes del primer movimiento registrado.
     ///

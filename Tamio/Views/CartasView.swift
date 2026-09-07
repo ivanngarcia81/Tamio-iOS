@@ -198,6 +198,9 @@ struct CartasView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         // Encabezado de la iglesia
                         VStack(alignment: .center, spacing: 3) {
+                            // Centrado y encima del nombre: la carta encabeza
+                            // centrada, al contrario que los reportes.
+                            LogoMembrete(alto: 44)
                             Text(iglesia.nombre)
                                 .font(.subheadline.weight(.bold))
                             Text(iglesia.ubicacionLegible)
@@ -647,6 +650,7 @@ private struct VistaPreviaSheet: View {
 
                         // Encabezado de la iglesia
                         VStack(alignment: .center, spacing: 4) {
+                            LogoMembrete(alto: 60)
                             Text(iglesia.nombre)
                                 .font(.headline.weight(.bold))
                             Text(iglesia.ubicacionLegible)

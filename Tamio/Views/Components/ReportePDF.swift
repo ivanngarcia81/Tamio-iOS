@@ -17,13 +17,23 @@ struct ReporteHojaPDF: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             // Membrete
-            VStack(alignment: .leading, spacing: 4) {
-                Text(L.t("Estado financiero", "Financial statement"))
-                    .font(.system(.title, design: .serif).weight(.bold))
-                Text(periodo).font(.headline).foregroundStyle(.secondary)
-                if !iglesia.membrete.isEmpty {
-                    Text(iglesia.membrete).font(.subheadline).foregroundStyle(.secondary)
+            // El logo a la izquierda del membrete y no encima: estos tres
+            // documentos encabezan alineados a la izquierda, y un logo
+            // centrado sobre un bloque de texto que no lo está se lee como
+            // dos encabezados distintos.
+            HStack(alignment: .top, spacing: 14) {
+                LogoMembrete()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L.t("Estado financiero", "Financial statement"))
+                        .font(.system(.title, design: .serif).weight(.bold))
+                    Text(periodo).font(.headline).foregroundStyle(.secondary)
+                    if !iglesia.membrete.isEmpty {
+                        Text(iglesia.membrete).font(.subheadline).foregroundStyle(.secondary)
+                    }
                 }
+                // Sin esto el bloque se centra en la página: el HStack ocupa
+                // todo el ancho y su contenido se reparte el sobrante.
+                Spacer(minLength: 0)
             }
 
             Divider()
@@ -371,13 +381,23 @@ struct ReporteAnualHojaPDF: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(L.t("Reporte anual", "Annual report"))
-                    .font(.system(.title, design: .serif).weight(.bold))
-                Text(a.anio).font(.headline).foregroundStyle(.secondary)
-                if !iglesia.membrete.isEmpty {
-                    Text(iglesia.membrete).font(.subheadline).foregroundStyle(.secondary)
+            // El logo a la izquierda del membrete y no encima: estos tres
+            // documentos encabezan alineados a la izquierda, y un logo
+            // centrado sobre un bloque de texto que no lo está se lee como
+            // dos encabezados distintos.
+            HStack(alignment: .top, spacing: 14) {
+                LogoMembrete()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L.t("Reporte anual", "Annual report"))
+                        .font(.system(.title, design: .serif).weight(.bold))
+                    Text(a.anio).font(.headline).foregroundStyle(.secondary)
+                    if !iglesia.membrete.isEmpty {
+                        Text(iglesia.membrete).font(.subheadline).foregroundStyle(.secondary)
+                    }
                 }
+                // Sin esto el bloque se centra en la página: el HStack ocupa
+                // todo el ancho y su contenido se reparte el sobrante.
+                Spacer(minLength: 0)
             }
 
             Divider()

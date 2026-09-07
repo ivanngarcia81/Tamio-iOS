@@ -157,6 +157,7 @@ struct IPhoneAjustesView: View {
                                estado: $cfg.config.estado, pais: $cfg.config.pais,
                                cp: $cfg.config.codigoPostal,
                                ein: $cfg.config.idFiscal, moneda: $cfg.config.moneda,
+                               logo: $cfg.config.logoPath,
                                apertura: $cfg.config.saldoInicial)
         case .institucion:
             AjustesInstitucionView(nombreIglesia: cfg.config.nombre,
@@ -343,6 +344,7 @@ private struct AjustesIglesiaView: View {
     @Binding var cp: String
     @Binding var ein: String
     @Binding var moneda: String
+    @Binding var logo: String
     /// En centavos, como todo el dinero de la app. Era un `String` suelto que
     /// no salía de la pantalla: se tecleaba "5000", se veía escrito, y al salir
     /// se perdía. Y como texto libre, "cinco mil" era un valor válido.
@@ -352,13 +354,13 @@ private struct AjustesIglesiaView: View {
     var body: some View {
         List {
             Section {
-                HStack {
-                    Text("Logo").font(.subheadline)
-                    Spacer()
-                    Text(L.t("Próximamente", "Coming soon")).font(.subheadline).foregroundStyle(.tertiary)
-                }
+                SelectorLogo(ruta: $logo)
             } footer: {
-                Text(L.t("Sale en cartas y reportes.", "Appears on letters and reports."))
+                // Lo que hace distinto al logo de la firma, dicho donde se
+                // decide: la firma se queda en el aparato a propósito, el logo
+                // no. Sin esto, quien conoce una regla supone la otra.
+                Text(L.t("El logo se guarda para toda la iglesia: sale en los documentos que genere cualquier aparato. Las firmas, en cambio, se quedan en el aparato donde se dibujan.",
+                         "The logo is saved for the whole church: it appears on documents generated from any device. Signatures, on the other hand, stay on the device where they're drawn."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 

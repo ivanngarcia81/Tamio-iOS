@@ -38,7 +38,11 @@ final class BaseLocal {
 
     // MARK: - Esquema
 
-    private static var migrador: DatabaseMigrator {
+    /// No es `private` para que las pruebas puedan migrar una base sembrada
+    /// con la versión ANTERIOR, que es la única forma de ver una migración
+    /// rota: si `migrate` lanza, la app se cae a una base en memoria sin
+    /// avisar y el fallo se nota tarde y con datos perdidos (§3 del traspaso).
+    static var migrador: DatabaseMigrator {
         var m = DatabaseMigrator()
 
         m.registerMigration("v1_movimientos") { db in
@@ -864,6 +868,15 @@ final class BaseLocal {
                 try db.alter(table: tabla) { t in
                     t.add(column: "folioProvisional", .boolean).notNull().defaults(to: false)
                 }
+            }
+        }
+
+        m.registerMigration("v25_logo") { db in
+            // La RUTA en el bucket, no la imagen: los bytes viven en
+            // Application Support y los administra `LogoIglesia`. Una columna
+            // `text` vacía por omisión, que es lo que significa "sin logo".
+            try db.alter(table: "iglesia") { t in
+                t.add(column: "logoPath", .text).notNull().defaults(to: "")
             }
         }
 

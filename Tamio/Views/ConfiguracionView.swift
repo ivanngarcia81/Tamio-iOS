@@ -503,36 +503,9 @@ private struct SeccionIglesia: View {
                 HeroCard(seccion: .iglesia)
 
                 // Logo
-                GrupoConf {
-                    // Ni botón ni "Añadir" en verde ni chevron: no hay
-                    // selector de logo en ninguna parte. En el teléfono esta
-                    // misma fila ya decía "Próximamente"; aquí prometía una
-                    // pantalla con tres señales distintas a la vez.
-                    HStack(spacing: 14) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(L.t("Logo", "Logo"))
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(.primary)
-                                Text(L.t("Sale en cartas y reportes", "Used in letters and reports"))
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Text(L.t("Próximamente", "Coming soon"))
-                                .font(.system(size: 15.5))
-                                .foregroundStyle(.tertiary)
-                            // Las iniciales de la IGLESIA, que es de quien
-                            // sería el logo. Iban escritas "IG" a mano, que
-                            // resultaban ser las de la persona.
-                            Text(cfg.config.iniciales)
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .frame(width: 46, height: 46)
-                                .background(Paleta.brand,
-                                            in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                    .frame(minHeight: 64)
-                    .padding(.horizontal, Esp.pantalla)
+                GrupoConf(nota: L.t("El logo se guarda para toda la iglesia: sale en los documentos que genere cualquier aparato. Las firmas, en cambio, se quedan en el aparato donde se dibujan.",
+                                    "The logo is saved for the whole church: it appears on documents generated from any device. Signatures, on the other hand, stay on the device where they're drawn.")) {
+                    SelectorLogo(ruta: $cfg.config.logoPath, enLista: false)
                 }
 
                 // Información

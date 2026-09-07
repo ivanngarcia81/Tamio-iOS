@@ -84,8 +84,8 @@ enum SeccionAjustes: String, CaseIterable, Identifiable, Hashable {
             return L.t("Tu sesión, la versión de Tamio y el estado de sincronización de este aparato.",
                        "Your session, Tamio version, and sync status of this device.")
         case .iglesia:
-            return L.t("Nombre, ubicación, logo y datos fiscales de la iglesia. Se usan en cartas, reportes y PDFs.",
-                       "Church name, location, logo, and tax data used in letters, reports, and PDFs.")
+            return L.t("Nombre, ubicación, logo y datos fiscales de la iglesia. Se usan en el membrete de cartas, actas y reportes.",
+                       "Church name, location, logo, and tax data used in the letterhead of letters, minutes, and reports.")
         case .institucion:
             return L.t("El membrete institucional: dirección, contacto y firmas que encabezan los documentos impresos.",
                        "Institutional letterhead: address, contact, and signatures at the top of printed documents.")

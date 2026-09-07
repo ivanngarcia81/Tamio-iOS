@@ -50,6 +50,12 @@ final class ConfiguracionIglesiaViewModel {
         cargando = true
         config = c
         cargando = false
+
+        // El logo va aparte porque lo que se guarda aquí es su RUTA, no la
+        // imagen. Sin red, `sincronizar` no hace nada y se sigue viendo la que
+        // ya está en el aparato. En una `Task` para no dejar la pantalla
+        // esperando a una descarga: el resto de la configuración ya está.
+        Task { await LogoIglesia.compartido.sincronizar(con: c.logoPath) }
     }
 
     /// Se guarda sola poco después de dejar de escribir. Un botón "Guardar" en

@@ -51,13 +51,23 @@ struct ReporteAportesHojaPDF: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(L.t("Reporte de aportes", "Giving report"))
-                    .font(.system(.title, design: .serif).weight(.bold))
-                Text(periodoLegible).font(.headline).foregroundStyle(.secondary)
-                if !iglesia.membrete.isEmpty {
-                    Text(iglesia.membrete).font(.subheadline).foregroundStyle(.secondary)
+            // El logo a la izquierda del membrete y no encima: estos tres
+            // documentos encabezan alineados a la izquierda, y un logo
+            // centrado sobre un bloque de texto que no lo está se lee como
+            // dos encabezados distintos.
+            HStack(alignment: .top, spacing: 14) {
+                LogoMembrete()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L.t("Reporte de aportes", "Giving report"))
+                        .font(.system(.title, design: .serif).weight(.bold))
+                    Text(periodoLegible).font(.headline).foregroundStyle(.secondary)
+                    if !iglesia.membrete.isEmpty {
+                        Text(iglesia.membrete).font(.subheadline).foregroundStyle(.secondary)
+                    }
                 }
+                // Sin esto el bloque se centra en la página: el HStack ocupa
+                // todo el ancho y su contenido se reparte el sobrante.
+                Spacer(minLength: 0)
             }
 
             Divider()
@@ -145,18 +155,26 @@ struct ConstanciaHojaPDF: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            VStack(alignment: .leading, spacing: 4) {
-                if !iglesia.nombre.isEmpty {
-                    Text(iglesia.nombre)
-                        .font(.system(.title2, design: .serif).weight(.bold))
+            // **La constancia también.** Este encabezado se escribe con
+            // `iglesia.nombre` y no con `membrete`, así que no aparecía al
+            // buscar los membretes — y es el documento que la gente lleva a
+            // hacer su declaración: el que más falta le hace el logo.
+            HStack(alignment: .top, spacing: 14) {
+                LogoMembrete()
+                VStack(alignment: .leading, spacing: 4) {
+                    if !iglesia.nombre.isEmpty {
+                        Text(iglesia.nombre)
+                            .font(.system(.title2, design: .serif).weight(.bold))
+                    }
+                    if !iglesia.ubicacionLegible.isEmpty {
+                        Text(iglesia.ubicacionLegible).font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    if !iglesia.idFiscal.isEmpty {
+                        Text(L.t("ID fiscal: \(iglesia.idFiscal)", "Tax ID: \(iglesia.idFiscal)"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
-                if !iglesia.ubicacionLegible.isEmpty {
-                    Text(iglesia.ubicacionLegible).font(.subheadline).foregroundStyle(.secondary)
-                }
-                if !iglesia.idFiscal.isEmpty {
-                    Text(L.t("ID fiscal: \(iglesia.idFiscal)", "Tax ID: \(iglesia.idFiscal)"))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
+                Spacer(minLength: 0)
             }
 
             Divider()
