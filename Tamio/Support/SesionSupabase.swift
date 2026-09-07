@@ -159,6 +159,7 @@ final class SesionSupabase {
                 guardado.perfil.correo = correo
                 churchIdActivo = guardado.churchId
                 perfil = guardado.perfil
+                autorActual = guardado.perfil.firma
                 modoSinConexion = true
                 self.error = nil
                 estado = .autenticada(churchId: guardado.churchId)
@@ -183,6 +184,10 @@ final class SesionSupabase {
         churchIdActivo = leido.churchId
         perfil = leido.perfil
         perfil.correo = correo
+        // El autor de lo que se anote en el registro, ya con el correo puesto
+        // por si el perfil no trae nombre: `firma` cae al correo antes que
+        // dejar un apunte sin autor.
+        autorActual = perfil.firma
         Self.guardarCache(uid: uid, churchId: leido.churchId, perfil: leido.perfil)
         modoSinConexion = false
         error = nil

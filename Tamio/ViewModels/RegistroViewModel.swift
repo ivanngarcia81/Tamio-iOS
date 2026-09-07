@@ -104,7 +104,7 @@ final class RegistroViewModel {
             creadoEn: Date(),
             area: area
         )
-        await repo.escribirNota(nuevo)
+        await repo.anotar(nuevo)
         await cargar()
         seleccionId = nuevo.id
     }

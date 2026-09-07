@@ -255,11 +255,37 @@ struct OfflineMembresiaRepository: MembresiaRepository {
     }
 
     func guardar(_ m: Miembro) async throws {
+        let previa = try await cola.read { db in try MiembroFila.fetchOne(db, key: m.id) }
         try await cola.write { db in
-            let previa = try MiembroFila.fetchOne(db, key: m.id)
             try MiembroFila(m, actualizadoEn: previa?.actualizadoEn).save(db)
             try Self.encolar(db, entidad: "miembro", id: m.id,
                              operacion: previa == nil ? .crear : .actualizar)
+        }
+        await Self.anotarCambio(de: previa, a: m)
+    }
+
+    /// **Lo que le pasó a una persona del padrón, para el registro.**
+    ///
+    /// Se compara contra la ficha ANTERIOR y no contra lo que diga la
+    /// pantalla: guardar una ficha sin tocar el estado —corregir un teléfono—
+    /// no puede anotar un cambio de estado, y un alta nueva tampoco es un
+    /// cambio: no había de dónde cambiar.
+    private static func anotarCambio(de previa: MiembroFila?, a m: Miembro) async {
+        guard let previa else { return }
+        let antes = EstadoMiembro.desde(clave: previa.estado) ?? .activo
+        guard antes.clave != m.estado.clave else { return }
+
+        if m.estado.esBaja {
+            // La baja es la que más importa: alguien deja de estar en el
+            // padrón y el registro tiene que decir por qué.
+            await anotarSuceso(.bajaMiembro, [
+                "nombre": m.nombre,
+                "motivo": m.estado.baja?.motivo ?? L.t("sin motivo", "no reason given")])
+        } else {
+            await anotarSuceso(.estadoMiembro, [
+                "nombre": m.nombre,
+                "de": EstadoMiembro.etiqueta(clave: antes.clave).lowercased(),
+                "a": EstadoMiembro.etiqueta(clave: m.estado.clave).lowercased()])
         }
     }
 

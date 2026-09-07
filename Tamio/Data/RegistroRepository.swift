@@ -3,7 +3,29 @@ import GRDB
 
 protocol RegistroRepository {
     func apuntes() async -> [Apunte]
-    func escribirNota(_ apunte: Apunte) async
+    /// Añade un apunte. Se llamaba `escribirNota` y solo lo usaba la hoja de
+    /// notas; el nombre estrechaba lo que es: una bitácora donde también caen
+    /// los sucesos que la app anota sola.
+    func anotar(_ apunte: Apunte) async
+}
+
+/// **Anota un suceso. Lo llaman las funciones que hacen la cosa, no la
+/// interfaz** — igual que en el web, y por la misma razón: si lo llamara la
+/// pantalla, el mismo cambio hecho desde otro sitio no dejaría rastro.
+///
+/// **Nunca lanza y nunca estorba.** Un registro que falla no puede impedir que
+/// se emita una carta o se cierre un acta: la operación es lo importante y el
+/// apunte es su sombra. Por eso no devuelve nada y por eso el repositorio de
+/// abajo se traga sus errores.
+@MainActor
+func anotarSuceso(_ tipo: TipoSuceso, _ datos: [String: String]) async {
+    await repositorioRegistro().anotar(
+        Apunte(id: UUID().uuidString, tipo: tipo, datos: datos,
+               // Sin sesión no hay nombre: un apunte sin autor no sirve para
+               // una auditoría, pero uno que dice "sin identificar" al menos
+               // dice cuándo pasó.
+               autor: autorActual.isEmpty ? L.t("Sin identificar", "Unidentified") : autorActual,
+               creadoEn: Date()))
 }
 
 /// **La maqueta, con instantes en vez de "HOY" escrito.** La semilla llevaba
@@ -19,7 +41,7 @@ struct MockRegistroRepository: RegistroRepository {
         return Self.almacen.sorted { $0.creadoEn > $1.creadoEn }
     }
 
-    func escribirNota(_ apunte: Apunte) async {
+    func anotar(_ apunte: Apunte) async {
         Self.almacen.insert(apunte, at: 0)
     }
 
@@ -84,7 +106,7 @@ struct OfflineRegistroRepository: RegistroRepository {
         }) ?? []
     }
 
-    func escribirNota(_ apunte: Apunte) async {
+    func anotar(_ apunte: Apunte) async {
         try? await cola.write { db in
             try Self.aFila(apunte).save(db)
             try Self.encolar(db, id: apunte.id, operacion: .crear)

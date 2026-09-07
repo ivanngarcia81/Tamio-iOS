@@ -16,3 +16,15 @@ let supabase = SupabaseClient(
 /// `perfiles.church_id` del usuario autenticado: `SesionSupabase` lo reescribe
 /// al iniciar sesión. El valor inicial solo cubre el arranque previo a la sesión.
 var churchIdActivo = "84c92ad0-5362-49f8-8962-0c7b8c34b858"
+
+/// **Quién está usando la app**, para firmar lo que se anota en el registro.
+///
+/// Va aquí y no se pasa por parámetro por lo mismo que `churchIdActivo`: quien
+/// anota un suceso es un repositorio —"lo llaman las funciones que hacen la
+/// cosa, no la interfaz", como lo dice el web—, y un repositorio no tiene, ni
+/// debe tener, la sesión a mano. `SesionSupabase` lo reescribe al adoptar el
+/// perfil, igual que la iglesia.
+///
+/// Es una INSTANTÁNEA del nombre: el registro guarda copias, no referencias, y
+/// si esa persona se da de baja el apunte tiene que seguir diciendo quién fue.
+var autorActual = ""

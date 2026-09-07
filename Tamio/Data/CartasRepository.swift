@@ -67,10 +67,18 @@ struct OfflineCartasRepository: CartasRepository {
     }
 
     func guardar(_ c: CartaEmitida) async throws {
+        let previa = try await cola.read { db in try CartaFila.fetchOne(db, key: c.id) }
         try await cola.write { db in
-            let previa = try CartaFila.fetchOne(db, key: c.id)
             try Self.aFila(c, previa: previa).save(db)
             try Self.encolar(db, id: c.id, operacion: previa == nil ? .crear : .actualizar)
+        }
+        // **El registro se anota aquí y no en la pantalla.** Emitir una carta
+        // desde otro sitio —el iPad, un flujo nuevo— tiene que dejar el mismo
+        // rastro. Y solo al PASAR a emitida: guardar dos veces una carta ya
+        // emitida no es emitirla dos veces.
+        if c.estado == "emitida" && previa?.estado != "emitida" {
+            await anotarSuceso(.cartaEmitida, ["folio": c.folio,
+                                               "nombre": c.destinatarioNombre])
         }
     }
 

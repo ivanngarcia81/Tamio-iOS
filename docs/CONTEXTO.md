@@ -1106,10 +1106,17 @@ Por orden de lo que más se nota usando la app un domingo:
    etiqueta que a veces es adjetivo, roto al pasar al catálogo del web— y el
    encabezado decía **"ACTA DE REUNIÓN DEL CONSEJO" para todas**. Ver
    `TipoActa.fraseEnActa`.
-3. **El registro no anota nada automático.** Cero llamadas desde el resto de la
-   app: emitir una carta o cerrar un acta no deja rastro, y la bitácora solo
-   tiene lo que alguien escriba a mano. En el web esto "lo llaman las funciones
-   que hacen la cosa", no la interfaz.
+3. ~~El registro no anota nada automático.~~ **— HECHO a medias el 7 de
+   septiembre.** Los cuatro sucesos de Secretaría ya se anotan solos:
+   `cartaEmitida`, `actaCerrada`, `estadoMiembro` y `bajaMiembro`. Las llamadas
+   van en los repositorios y no en las pantallas, como en el web, y solo al
+   CRUZAR el umbral: guardar dos veces una carta ya emitida no anota dos veces.
+
+   **Faltan los cinco de Tesorería** —`movEliminado`, `corteEntregado`,
+   `corteDepositado`, `segundaFirma`, `descuadre`—, que son los de más valor:
+   el primero es "el único que hace desaparecer dinero de las cuentas". Van en
+   `OfflineMovimientosRepository`, `OfflineDepositosRepository` y el corte, con
+   el mismo `anotarSuceso(_:_:)`.
 4. **Las plantillas de carta viven en el `enum`** mientras `public.plantillas`
    tiene esas once filas en la base: editarlas en el web no llega al iPhone.
 

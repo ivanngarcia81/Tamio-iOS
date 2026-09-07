@@ -122,13 +122,21 @@ struct OfflineActasRepository: ActasRepository {
     }
 
     func guardar(_ a: Acta) async throws {
+        let previa = try await cola.read { db in try ActaFila.fetchOne(db, key: a.id) }
         try await cola.write { db in
-            let previa = try ActaFila.fetchOne(db, key: a.id)
             // Las firmas no las toca el formulario: se recogen aparte. Si se
             // sobreescribieran aquí, corregir una coma en un acta ya firmada
             // borraría las firmas.
             try Self.aFila(a, previa: previa).save(db)
             try Self.encolar(db, id: a.id, operacion: previa == nil ? .crear : .actualizar)
+        }
+        // Solo al PASAR a cerrada. `cerrada` y `archivada` son el mismo paso
+        // para el web, que tiene cinco estados donde aquí hay siete.
+        let cerradaAhora = a.estado == .cerrada || a.estado == .archivada
+        let cerradaAntes = previa.map { EstadoActa(rawValue: $0.estado) == .cerrada
+                                     || EstadoActa(rawValue: $0.estado) == .archivada } ?? false
+        if cerradaAhora && !cerradaAntes {
+            await anotarSuceso(.actaCerrada, ["folio": a.folio])
         }
     }
 
