@@ -599,6 +599,64 @@ Verificado con las **89 unitarias en verde** y las cuatro pantallas corriendo,
 iPad incluido — la cabecera FOLIO sigue existiendo allí, que es lo que dice que
 no se perdió la tabla.
 
+### 0.0.j La tarde en el aparato: lo que el simulador no podía decir
+
+Iván instaló la app en su iPhone el 7 de septiembre por la tarde y en veinte
+minutos salieron cinco cosas. **Ninguna era visible desde el Mac.**
+
+**Lo gordo: `iglesias` no tenía política de UPDATE.** RLS activo y una sola
+política, `leer_mi_iglesia`, de SELECT. Y esto es lo que lo hacía invisible: un
+`update` que RLS filtra **no da error** — afecta a cero filas y devuelve 204—,
+así que `subirIglesia` lo daba por bueno, borraba la operación de la cola, y la
+siguiente bajada devolvía los valores viejos y pisaba lo editado. **Nada de lo
+que se escribe en Ajustes · Iglesia se había guardado nunca desde iOS.** El
+síntoma que lo destapó no fue el logo: fue Iván diciendo que **la moneda vuelve
+a MXN cada vez que abre la app**. Sin ese dato yo habría seguido persiguiendo el
+logo, que era el mismo fallo con otra cara.
+
+Las huellas, para la próxima: `logo_path` en null y un `updated_at` congelado
+semanas atrás. Cuando una columna no cambia NUNCA, la sospecha es el permiso, no
+el código.
+
+Arreglado en `20260907_iglesias_se_pueden_actualizar.sql` —política de UPDATE
+más un trigger que congela id, plan, suscripción y los dos permisos del
+tesorero—, **aplicada por Iván**: el clasificador bloquea las migraciones desde
+la sesión. Y el cliente dejó de tragarse el silencio: la subida pide
+`select("id")` y comprueba que tocó una fila.
+
+**El logo, tres fallos más:**
+
+1. **La ruta se guardaba 800 ms tarde**, con el temporizador que comparte con
+   los treinta campos de texto de la pantalla. El logo no es un campo que se
+   teclea: es un suceso único. En esa ventana, una sincronización releía la
+   configuración sin la ruta.
+2. **Y `sincronizar` borraba el archivo por una ruta vacía.** Vacía también
+   significa "todavía no se ha guardado la que acabo de poner". Ahora solo borra
+   si la iglesia no tiene nada pendiente de subir.
+3. **El anterior no se borraba.** Estaba escrito en un comentario de `quitar` y
+   no implementado en `poner`. Cuando se vio, ya había SEIS archivos de 1,6 MB
+   en el bucket, así que la limpieza acabó barriendo la carpeta entera en vez de
+   "el anterior": un borrado que solo mira la ruta que conoce no alcanza lo que
+   ya se acumuló.
+
+**Y el formato.** PNG por la transparencia es correcto para un logo recortado;
+para una FOTO del carrete, que es lo que se elige la primera vez, son 1,6 MB que
+se baja cada aparato de la iglesia. Ahora se mira si hay alfa de verdad y sin él
+va JPEG al 90 %. El detector de alfa nació mal —partía de un lienzo opaco, así
+que un píxel transparente no dejaba marca— y lo cazó su propia prueba.
+
+**La medida del cifrado, por fin tomada** (§5): `tamio.sqlite` está en
+**`completeUntilFirstUserAuthentication`**, el valor por defecto de iOS. Apagado
+el teléfono, la base es ilegible; desde el primer desbloqueo tras encenderlo, la
+clave queda disponible hasta el siguiente apagado. O sea: un iPhone robado
+ENCENDIDO y bloqueado tiene la base al alcance de quien sepa extraerla.
+
+**Lo que sí salió bien a la primera:** la migración v25 corrió sobre la base real
+de un aparato con datos y no se llevó nada —la fila "Espacio en este aparato"
+midió 336 KB y 76 registros borrados, y de haber caído a memoria se habría
+quedado en "Midiendo…"—, y el respaldo se armó, se guardó en Archivos y trae sus
+dos piezas (`respaldo.json` y un `tamio.sqlite` de 328 K).
+
 ### 0.0.a Los cinco sucesos de Tesorería
 
 Lo que el §6 llevaba marcado como "lo de más valor que queda en toda la app":

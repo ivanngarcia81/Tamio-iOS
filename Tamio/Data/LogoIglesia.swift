@@ -109,14 +109,33 @@ final class LogoIglesia {
 
         try await almacen.subir(datos, a: tipo, ruta)
 
-        // **El anterior, fuera.** Estaba escrito en el comentario de `quitar`
-        // —"sin ella quedaría ocupando el bucket para siempre"— y no se hacía
-        // aquí: en el aparato, dos cambios de logo dejaron dos archivos de 1,6
-        // MB huérfanos en el bucket, y así hasta el infinito. Se borra DESPUÉS
-        // de que el nuevo esté arriba, y si falla no se dice nada: es basura,
-        // no un dato de nadie.
-        if !anterior.isEmpty, anterior != ruta { try? await almacen.borrar(anterior) }
+        // **Se barre la carpeta entera, no solo el anterior.**
+        //
+        // Empezó siendo "borra el que sustituyes", y con eso bastaba para no
+        // acumular de aquí en adelante. Pero en el aparato de Iván ya había
+        // SEIS archivos de 1,6 MB de intentos anteriores —casi diez megas—, y
+        // un borrado que solo mira la ruta que conoce no los habría tocado
+        // nunca. Barrer la carpeta los alcanza a todos.
+        //
+        // Es seguro porque ahí dentro solo hay logos de ESTA iglesia: el primer
+        // segmento de la ruta es el `church_id` y es lo que miran las políticas
+        // del bucket. Y va DESPUÉS de que el nuevo esté arriba; si falla no se
+        // dice nada, porque es basura y no el dato de nadie.
+        await limpiarSobrantes(salvo: ruta, anterior: anterior)
         return ruta
+    }
+
+    private func limpiarSobrantes(salvo vigente: String, anterior: String) async {
+        let carpeta = "\(churchIdActivo)/logo/"
+        guard let nombres = try? await almacen.listar() else {
+            // Sin listado —sin red, o el bucket no deja listar— queda al menos
+            // el de siempre: el que se acaba de sustituir.
+            if !anterior.isEmpty, anterior != vigente { try? await almacen.borrar(anterior) }
+            return
+        }
+        for nombre in nombres where carpeta + nombre != vigente {
+            try? await almacen.borrar(carpeta + nombre)
+        }
     }
 
     /// Quita el logo de este aparato y del servidor. La ruta anterior se pasa
@@ -293,6 +312,8 @@ protocol LogoStorage: Sendable {
     func subir(_ datos: Data, a tipo: String, _ ruta: String) async throws
     func descargar(_ ruta: String) async throws -> Data
     func borrar(_ ruta: String) async throws
+    /// Los nombres de archivo que hay en la carpeta de logos de esta iglesia.
+    func listar() async throws -> [String]
 }
 
 struct SupabaseLogoStorage: LogoStorage {
@@ -311,6 +332,13 @@ struct SupabaseLogoStorage: LogoStorage {
     func borrar(_ ruta: String) async throws {
         _ = try await supabase.storage.from(bucket).remove(paths: [ruta])
     }
+
+    func listar() async throws -> [String] {
+        try await supabase.storage
+            .from(bucket)
+            .list(path: "\(churchIdActivo)/logo")
+            .map(\.name)
+    }
 }
 
 /// En modo revisión no hay sesión y Storage rechazaría la subida. El archivo se
@@ -325,6 +353,7 @@ struct MockLogoStorage: LogoStorage {
             L.t("En modo revisión no hay logo que bajar.", "No logo to download in review mode.")])
     }
     func borrar(_ ruta: String) async throws {}
+    func listar() async throws -> [String] { [] }
 }
 
 func almacenLogo() -> LogoStorage {
