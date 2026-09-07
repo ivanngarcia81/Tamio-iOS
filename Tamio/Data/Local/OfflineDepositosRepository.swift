@@ -73,11 +73,14 @@ struct OfflineDepositosRepository: DepositosRepository {
     /// la MISMA transacción: un corte marcado depositado que apunte a un
     /// depósito inexistente sería peor que no haberlo cerrado.
     func registrarDeposito(corteId: String, _ deposito: DepositoBancario) async throws {
-        try await cola.write { db in
+        let llegoAlBanco: String? = try await cola.write { db in
             try DepositoFila(deposito).insert(db)
             try Self.encolar(db, entidad: "deposito", id: deposito.id, operacion: .crear)
 
-            guard var corte = try CorteFila.fetchOne(db, key: corteId) else { return }
+            guard var corte = try CorteFila.fetchOne(db, key: corteId) else { return nil }
+            // Solo al CRUZAR el umbral: volver a registrar el depósito de un
+            // corte que ya está en el banco no es llevarlo dos veces.
+            let yaEstaba = corte.estado == CorteFila.depositado
             corte.estado = CorteFila.depositado
             corte.depositoId = deposito.id
             corte.fecha = deposito.fecha
@@ -86,6 +89,10 @@ struct OfflineDepositosRepository: DepositosRepository {
                                     "Deposited \(Fechas.diaLegible(deposito.fecha))")
             try corte.update(db)
             try Self.encolar(db, entidad: "corte", id: corteId, operacion: .actualizar)
+            return yaEstaba ? nil : corte.titulo
+        }
+        if let titulo = llegoAlBanco {
+            await anotarSuceso(.corteDepositado, ["corte": titulo])
         }
     }
 
@@ -104,8 +111,15 @@ struct OfflineDepositosRepository: DepositosRepository {
         if let local { RecibosLocales.borrar(local) }
     }
 
+    /// **El corte es el momento en que el dinero SALE DE LA CAJA**, y eso en el
+    /// teléfono no pasa al crearlo: aquí un corte nace vacío y el tesorero le va
+    /// echando movimientos, mientras que en el web se crea ya con ellos dentro
+    /// y por eso allí el apunte va en `crearCorte`. El equivalente honesto es la
+    /// PRIMERA vez que el corte deja de estar vacío: antes de eso no ha salido
+    /// nada, y un apunte que dijera «con 0 movimiento(s)» no diría nada.
     func agregarAlCorte(corteId: String, movimientoIds: [String]) async throws {
-        try await cola.write { db in
+        let entregado: (titulo: String, cuantos: Int)? = try await cola.write { db in
+            let antes = try Self.cuantosEnElCorte(corteId, db)
             for movId in movimientoIds {
                 // **Un movimiento vivo pertenece a UN corte.** El índice único
                 // lo impone igual que Postgres; se comprueba antes para poder
@@ -124,6 +138,17 @@ struct OfflineDepositosRepository: DepositosRepository {
                 try Self.encolar(db, entidad: "corteMovimiento", id: fila.id,
                                  operacion: .crear)
             }
+            let ahora = try Self.cuantosEnElCorte(corteId, db)
+            guard antes == 0, ahora > 0,
+                  let corte = try CorteFila.fetchOne(db, key: corteId) else { return nil }
+            return (corte.titulo, ahora)
+        }
+        if let e = entregado {
+            // Cuántos movimientos lleva es lo que permite mirar el apunte meses
+            // después y saber si aquel domingo fue normal o raro, sin abrir
+            // nada. Es la razón por la que el web lo guarda.
+            await anotarSuceso(.corteEntregado,
+                               ["corte": e.titulo, "movimientos": String(e.cuantos)])
         }
     }
 
@@ -154,8 +179,13 @@ struct OfflineDepositosRepository: DepositosRepository {
                 modo: ModoSegundaFirma, conteo: Centavos?) async throws {
         let limpio = nombre?.trimmingCharacters(in: .whitespacesAndNewlines)
         let hayNombre = !(limpio?.isEmpty ?? true)
-        try await cola.write { db in
-            guard var fila = try CorteFila.fetchOne(db, key: corteId) else { return }
+        let anotar: (TipoSuceso, [String: String])? = try await cola.write { db in
+            guard var fila = try CorteFila.fetchOne(db, key: corteId) else { return nil }
+            // Contra lo que había ANTES, para anotar solo al cruzar el umbral:
+            // volver a guardar la misma firma —o el mismo conteo— no es firmar
+            // otra vez. Se lee aquí porque abajo la fila ya está pisada.
+            let firmaPrevia = fila.segundaFirma
+            let conteoPrevio = fila.segundaConteo
             fila.segundaFirma = hayNombre ? limpio : nil
             fila.segundaFirmaRol = hayNombre ? rol : nil
             fila.segundaFirmaModo = modo.rawValue
@@ -167,7 +197,22 @@ struct OfflineDepositosRepository: DepositosRepository {
             fila.segundaFirmaEn = hayNombre ? Self.selloDeTiempo() : nil
             try fila.update(db)
             try Self.encolar(db, entidad: "corte", id: corteId, operacion: .actualizar)
+
+            if hayNombre, let quien = limpio, quien != firmaPrevia {
+                return (.segundaFirma, ["corte": fila.titulo, "firmante": quien,
+                                        "modo": modo.rawValue])
+            }
+            // **Sin nombre y CON conteo es un descuadre**: alguien contó, no le
+            // cuadró y lo dejó anotado sin firmar. Es el apunte más valioso de
+            // los diez junto con la baja de un movimiento —dice que el efectivo
+            // y lo registrado no coincidieron— y hasta hoy solo vivía en una
+            // columna del corte que nadie miraba salvo abriéndolo.
+            if !hayNombre, let contado = conteo, contado != conteoPrevio {
+                return (.descuadre, ["corte": fila.titulo, "contado": Money.fmt(contado)])
+            }
+            return nil
         }
+        if let (tipo, datos) = anotar { await anotarSuceso(tipo, datos) }
     }
 
     /// Deshace la segunda firma. Para el caso honesto de haberla dado por error
@@ -186,6 +231,14 @@ struct OfflineDepositosRepository: DepositosRepository {
     }
 
     // MARK: - Resolución
+
+    /// Cuántos movimientos vivos apunta un corte. Es el `JOIN` reducido a un
+    /// número, para saber si el corte estaba vacío antes de esta escritura.
+    private static func cuantosEnElCorte(_ corteId: String, _ db: Database) throws -> Int {
+        try CorteMovimientoFila
+            .filter(Column("corteId") == corteId && Column("borrado") == false)
+            .fetchCount(db)
+    }
 
     /// Rellena el corte con los movimientos que apunta y con el efectivo en
     /// caja. Ninguno de los dos se guarda: son el `JOIN`.

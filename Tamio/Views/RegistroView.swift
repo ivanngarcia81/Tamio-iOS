@@ -208,7 +208,7 @@ struct RegistroView: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 8) {
                     if a.esNota { Pill(texto: L.t("Nota", "Note"), color: Paleta.aviso) }
-                    else if a.esAlerta { Pill(texto: L.t("No cuadró", "Didn't match"), color: Paleta.negativo) }
+                    else if let alerta = a.tipo.etiquetaAlerta { Pill(texto: alerta, color: Paleta.negativo) }
                     else { Pill(texto: a.area.etiqueta, color: color(a)) }
                     Spacer()
                     Text("\(a.fecha) · \(a.hora)").font(.caption).foregroundStyle(.secondary)

@@ -72,15 +72,38 @@ struct OfflineMovimientosRepository: MovimientosRepository {
         }
     }
 
+    /// **Dar de baja un movimiento es el único acto que hace desaparecer
+    /// dinero de las cuentas**, y por eso es el que más falta hace en el
+    /// registro. Lo dice así el web, que lo anota desde `deleteTx`.
     func eliminar(id: String) async throws {
-        try await cola.write { db in
-            guard var fila = try MovimientoFila.fetchOne(db, key: id) else { return }
+        // La fila se devuelve para componer el apunte FUERA de la escritura:
+        // dentro no se puede esperar, y el registro guarda copias y no
+        // referencias — dentro de un mes este movimiento ya no se consulta y
+        // el apunte tiene que seguir diciendo cuál era.
+        let dadoDeBaja: MovimientoFila? = try await cola.write { db in
+            guard var fila = try MovimientoFila.fetchOne(db, key: id),
+                  // Solo al CRUZAR el umbral: borrar dos veces lo ya borrado no
+                  // hace desaparecer el dinero dos veces.
+                  !fila.borrado else { return nil }
             // Borrado lógico, igual que en Supabase: así el borrado se puede
             // propagar. Un DELETE de verdad no se puede sincronizar.
             fila.borrado = true
             try fila.update(db)
             try Self.encolar(db, id: id, operacion: .eliminar)
+            return fila
         }
+        guard let m = dadoDeBaja else { return }
+        await anotarSuceso(.movEliminado, [
+            // `concepto` es lo que en iOS se llama `nota`; sin ella, la
+            // categoría, que es lo que enseña la lista. Un apunte que dijera
+            // «—» no serviría para encontrar qué se borró.
+            "concepto": (m.nota?.isEmpty == false ? m.nota! : m.categoriaCompleta),
+            "monto": "\(Money.fmt(m.monto)) \(Money.codigo)",
+            // El folio COMO SE ENSEÑA: uno capturado en el teléfono y aún sin
+            // subir lleva el suyo provisional ("P-3"), y ese es el que la
+            // persona tiene delante. El apunte tiene que decir el mismo número
+            // que la pantalla de la que se borró.
+            "folio": m.movimiento.folio])
     }
 
     /// Vista previa para la hoja de captura.
