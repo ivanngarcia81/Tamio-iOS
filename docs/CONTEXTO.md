@@ -5,15 +5,96 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **6 de septiembre de 2026**.
+Última actualización: **6 de septiembre de 2026**, segunda vuelta.
 
 ---
 
-## 0. La sesión del 6 de septiembre, en una página
+## 0. La sesión del 6 de septiembre · segunda vuelta
+
+Cinco commits, de `d2e999c` a `ae245a6`, subidos a `liquid-glass`. **`main` se
+quedó en `4a571ff`**: no se adelantó a propósito, porque esto trae cuatro
+migraciones nuevas y cuatro entidades de sincronización sin estrenar.
+
+Toda la sesión salió de una pregunta de Iván —"¿cuáles son las páginas que
+faltan por arreglar?"— y de la respuesta correcta, que no era la que parecía:
+**las seis pantallas de Secretaría abrían, cargaban y dejaban volver, pero
+cinco de las seis eran maqueta.**
+
+### Lo que se cerró
+
+**Las cinco pantallas de Secretaría que no estaban enchufadas, lo están.**
+Agenda (v18), Actas (v19), Cartas (v20) y Registro (v21): tabla local espejo de
+la del web, repositorio `Offline*`, cola de salida, `subirX` y `bajarX` en el
+motor, y la fábrica decidiendo maqueta sin sesión / base con ella. Membresía y
+Servicios ya lo estaban. **El backend no hizo falta tocarlo**: las tablas del
+web ya existían con datos puestos.
+
+**El hub dejó de mentir.** Leía `MockMembresiaRepository.resumenPadron` y
+`MockAgendaRepository.pendientesCount` DIRECTAMENTE, saltándose las fábricas:
+con la cuenta real habría seguido diciendo 236 de alta de 248. Y sus "próximos
+compromisos" estaban escritos a mano en agosto —"MAÑANA · 19:00", "VIE 21",
+"En agosto"— estando a 6 de septiembre.
+
+**Mensajes se quitó.** No estaba pendiente de construir: estaba retirada. Ver
+§5, "Mensajes no existe".
+
+### El patrón que se repitió cinco veces
+
+No es casualidad, y quien siga por Tesorería se lo va a encontrar igual: **la
+pantalla guardaba lo que se VE, no lo que ES.**
+
+- La agenda guardaba el día del mes, sin año: un evento del 21 valía para el 21
+  de cualquier mes de cualquier año.
+- El acta fundía quince campos del formulario en un `cuerpo` de prosa y
+  devolvía eso: existían en pantalla y en ninguna parte más.
+- La carta guardaba cuatro campos —"Javier Medina · traslado" entre ellos, ya
+  escrito y por tanto congelado en español—; el cuerpo, el destinatario y la
+  fecha se tiraban al emitir.
+- El registro guardaba la frase redactada, más `hora`, `grupo` y `fecha` como
+  texto: un apunte de ayer decía HOY para siempre.
+- Las actas guardaban el tipo TRADUCIDO: la misma acta cambiaba de tipo al
+  cambiar de idioma.
+
+**El web ya había aprendido esto y está escrito en su código.** Retiró
+`mensajes` precisamente porque "guardaba la frase ya armada y por eso se quedaba
+congelada en un idioma", y `registro` nació guardando `tipo` + `datos` para
+componer al leer. Antes de escribir un repositorio nuevo, mirar cómo guarda el
+web esa misma cosa.
+
+### Las cuatro lecciones de esta vuelta
+
+**Comprobar la premisa antes de construir, otra vez.** El encargo era "haz
+Mensajes". Diez minutos de leer el web y un `select` contra la base evitaron
+construir una pantalla sobre una tabla muerta. Es la misma lección de la familia
+Ruvalcaba, con otro disfraz.
+
+**Las tres cosas que rompí las cazó una prueba, ninguna la pantalla.** El mes de
+la agenda salía vacío en octubre porque mezclaba una fecha parseada en UTC con
+un formateador local; firmar un acta y recargar la enseñaba como "Aprobada"
+porque guardaba en local la clave empobrecida del web; el texto del registro se
+componía en el idioma correcto solo porque la prueba corría en inglés y lo
+enseñó. Ninguna se habría visto mirando la app en modo revisión.
+
+**Una migración se prueba con una prueba unitaria, no arrancando la app.** Si
+`migrate` lanza, `BaseLocal` se cae a memoria sin avisar, y en modo revisión la
+base ni se abre. Se montó por fin el target `bundle.unit-test` de la receta del
+§3; está en el scratchpad, no en el repo (ver §5, "El target de pruebas").
+
+**Leer el §5 ENTERO antes de pelearse con algo.** Se perdió media hora
+peleando con `-AppleLanguages` para probar en español, y la respuesta llevaba
+ahí escrita desde el 5 de septiembre: se pasa `-prefs.idioma espanol`.
+
+---
+
+## 0.1 Antes, ese mismo día: las salidas y los informes
+
+**Esto es la sesión ANTERIOR, se conserva por el detalle de sus decisiones.**
+Su lista de "lo que queda" está desfasada: la de verdad es el §6, y varias de
+las de aquí se cerraron en la segunda vuelta.
 
 Doce commits, de `1520d98` a `98ef902`, todos subidos y con `main` adelantada a
-la par. Lo que sigue es el resumen; el detalle de cada decisión está más abajo
-en su sección y en los mensajes de commit.
+la par en aquel momento. Lo que sigue es el resumen; el detalle de cada
+decisión está más abajo en su sección y en los mensajes de commit.
 
 ### Lo que se cerró
 
@@ -83,10 +164,14 @@ la app en modo revisión, que es justo donde los datos son inventados. Un
 
 ## 1. Dónde está el trabajo
 
-Rama viva: **`liquid-glass`**, sincronizada con `origin/liquid-glass`. **`main`
-está a la par**: el 5 y el 6 de septiembre se adelantó por avance rápido
-(`git push origin liquid-glass:main`), y conviene repetirlo de vez en cuando
-para que combinarlas no se convierta en un problema.
+Rama viva: **`liquid-glass`**, sincronizada con `origin/liquid-glass`.
+
+**`main` se quedó atrás en `4a571ff`**, a cinco commits. El 5 y el 6 de
+septiembre se adelantó por avance rápido (`git push origin liquid-glass:main`)
+y conviene repetirlo para que combinarlas no se convierta en un problema, pero
+la segunda vuelta del 6 NO se adelantó a propósito: trae cuatro migraciones
+nuevas (v18–v21) y cuatro entidades de sincronización que nunca han tocado la
+red. Adelantarla después de probar contra la cuenta real, no antes.
 
 Ramas viejas ya absorbidas aquí, no hace falta volver a ellas:
 `arreglos-interfaz`, `arreglos-revision-iphone`, `revision-y-motor-offline`.
@@ -365,6 +450,77 @@ cuestan tiempo: la fila de un miembro es una `Cell` con `StaticText` dentro —n
 un `Button`—, y una opción de la hoja sí es `Button`; y en iPad no vale buscar
 "Transferred" para probar que los indicadores no están, porque es también el
 estado de una persona de la lista.
+
+### Las cinco pantallas de Secretaría, enchufadas — 6 de septiembre, 2ª vuelta
+
+**La receta, que es la misma cuatro veces** y sirve para las que falten en
+Tesorería:
+
+1. Migración en `BaseLocal.swift` con una tabla espejo de la del web, columnas
+   incluidas. Los nombres en camelCase como el resto de filas de aquí; la
+   traducción a los del web se hace en el motor.
+2. La `Fila` en `Local/AportanteFila.swift` (ahí viven todas; **no crear
+   archivo nuevo**, ver §2.1).
+3. `OfflineXRepository` con `lista/guardar/eliminar`, encolando en el outbox.
+   Borrar deja **lápida**, no borra la fila: si desapareciera, el otro aparato
+   no se enteraría nunca.
+4. `subirX` + `bajarX` en `MotorSincronizacion.swift`, su rama en `subir(_:)`
+   y su llamada en la tanda de bajadas. El cursor va en `syncEstado` con la
+   misma clave que la entidad del outbox.
+5. `func repositorioX()` con `ModoRevision.sinLogin ? Mock : Offline`, y el
+   view model usándola por omisión.
+
+Entidades del outbox que existen ahora: `evento`, `acta`, `carta`, `apunte`,
+además de las de antes.
+
+**Tres cosas que se aprendieron haciéndolo, y que se van a repetir:**
+
+- **La base local NO tiene que empobrecerse para parecerse al web.** Las actas
+  tienen siete estados aquí y cinco allá; guardar la clave del web en local
+  hacía que firmar un acta la enseñara como "Aprobada" al recargar. Lo local
+  guarda los siete y la traducción va en el motor, que es donde va toda.
+- **Las listas del web suelen ser objetos, no cadenas.** Los acuerdos de un
+  acta llevan `texto`/`responsable`/`fecha_limite`, las mociones cuatro campos
+  y las firmas de una carta `nombre`/`cargo`. Escribir una lista de cadenas
+  produce JSON que el web no sabe abrir.
+- **Lo que el formulario no pisa, no se pisa.** `guardar` de un acta no toca
+  `firmas` ni `testigo`, y el de una carta no toca `historial_estados`:
+  corregir una coma habría borrado las firmas.
+
+**Lo que NO trae:** la recurrencia de la agenda viaja como el JSON que es, sin
+interpretarla; el responsable de una actividad se guarda como texto y no como
+`member_uid`; y las cartas se folian contando el máximo del año, que se queda
+corto si dos aparatos emiten a la vez sin sincronizar —lo que lo resuelve de
+verdad es el contador de Postgres que ya usan los movimientos, y todavía no
+cubre cartas—.
+
+### Mensajes no existe: está retirada, no pendiente
+
+`supabase/retiro-msg1-mensajes.sql` en el repo del web, del **26 de agosto de
+2026**, abre citando a Iván: "cerrar el reemplazo de Mensajes y borrar". La
+tabla la sustituyó `registro` en su migración 50.
+
+Comprobado contra la base y no contra el archivo: `public.mensajes` tiene siete
+filas y **las siete están marcadas como borradas**. La tabla remota sigue
+existiendo vacía a propósito —el paso 2 del retiro no la suelta hasta que todos
+los aparatos lleven la 1.2.12, para que un iPad viejo no rompa su
+sincronización—, así que **verla en `list_tables` no significa que esté viva**.
+
+La fila del hub se quitó el 6 de septiembre y en su sitio va el Registro. Iván:
+"Mensaje no es necesario lo puedes eliminar".
+
+### El target de pruebas unitarias vive en la COPIA, no en el repo
+
+Se montó por fin el `bundle.unit-test` de la receta del §3 y con él se probaron
+las cuatro migraciones nuevas, que es lo único que no puede fallar en silencio.
+**No está en el repo**: vive en el directorio temporal, junto al `project.yml`
+parcheado, porque meterlo aquí obliga a tocar el `.pbxproj` a mano (§2.1).
+
+Quien vuelva: `TEST_HOST` y `BUNDLE_LOADER` apuntando a `Tamio.app/Tamio` para
+poder `@testable import Tamio`, y el tipo es `bundle.unit-test`, **no**
+`bundle.unit-testing`. Las pruebas escritas cubren, por cada entidad: que la
+base abre EN DISCO con la migración aplicada, la ida y vuelta por la tabla, que
+un alta editada antes de subir sigue siendo alta, y que el borrado deja lápida.
 
 ### Cifrado local — decisión pendiente
 
@@ -856,6 +1012,31 @@ aparato.
 
 ## 6. Pendientes concretos
 
+### El de arriba de todo, y ahora más grande
+
+**Probar la sincronización con la cuenta real.** Ya no son solo el padrón y los
+cultos: son **cuatro entidades nuevas** —`evento`, `acta`, `carta`, `apunte`—
+con su subida y su bajada escritas y jamás ejercitadas. El modo revisión no
+toca la red, así que arrancar la app no prueba nada de esto.
+
+Se hace poniendo `ModoRevision.activada = false` (§2.2) y entrando con la
+cuenta. Conviene hacerlo **antes de acumular la quinta**: cuatro sin estrenar a
+la vez es donde los errores se juntan y luego cuesta saber de cuál es cada uno.
+Las migraciones sí están probadas contra la base local.
+
+### Los tres selectores de personas que no leen el padrón
+
+`ServiciosView.miembrosMock` (12 nombres), `AgendaView.miembrosMock` (8) y
+`CartasView.miembrosMock` (4), cada uno con su lista escrita a mano. **No
+coinciden entre sí**: "Brenda Rosado" vs "Brenda Castillo", "Pedro Salas" vs
+"Pedro García", "Susana Orts" vs "Susana Ortiz". Los tres deberían leer
+`repositorioMembresia()`, que lleva tiempo enchufado.
+
+Es lo que impide, de paso, guardar el responsable de una actividad como
+`member_uid` en vez de como texto.
+
+### El resto
+
 1. **El mes es invisible en Ingresos.** Al quitar el pie, el mes solo se lee
    abriendo la hoja de filtros: en agosto las cabeceras dicen "VIERNES 29" y el
    mes no aparece en ninguna parte. Y `filtrosActivos` **no cuenta el periodo**,
@@ -865,9 +1046,9 @@ aparato.
    el pie no causaba ninguno de los tres problemas del teléfono.
 3. **Verificar los recurrentes en aparato** (§5). Es el riesgo real que queda.
 4. **Las dos medidas del cifrado** (§5).
-5. **Membresía: probar la sincronización con la cuenta real** (§5). El
-   repositorio y el motor están escritos —padrón, parentescos, cultos y
-   asistencia—; la red no se ha ejercitado nunca.
+5. ~~Membresía: probar la sincronización con la cuenta real~~ **— sigue
+   pendiente y ahora es el punto de arriba de esta sección**, porque ya no es
+   solo membresía.
 6. **Los servicios ya tienen forma de fila** (v17: `servicioPuesto` y
    `servicioOrden`), con su repositorio y su sincronización. Lo que falta de
    esa pantalla es el resto de la ficha del culto —cantos, escuela dominical,
@@ -909,7 +1090,26 @@ aparato.
    con el rastro de la prueba.
 9. **Reflejar `traslados_salida`.** Hasta entonces la pastilla "traslado en
    curso" no se ve: dejó de ser un estado de la persona y el expediente vive
-   en esa tabla.
+   en esa tabla. Las tablas `traslados_salida` y `traslados_entrada` existen en
+   Supabase y están vacías; Cartas ya sube a `public.cartas`, que es la mitad
+   del expediente.
+
+11. **El informe General sigue escrito a mano.** `InformesMembresiaViewModel`
+   guarda las cifras de cada periodo como constantes, y el de Año dice 262
+   miembros / 248 activos mientras el hub dice 248 / 236 y el informe de
+   Miembros —el de al lado, mismo periodo— dice 7. Las tres se ven a la vez.
+
+12. **El informe de Seguimiento promete tres alertas y enseña "Próximamente".**
+   El badge `(3)` de `InformesMembresiaView.swift` está escrito a mano y al
+   entrar sale un `ContentUnavailableView`. El web lo tiene resuelto en
+   `services/informes/membresia.ts`: `alertasSeguimiento` y sus `TipoAlerta`.
+
+13. **"Próximos" en Servicios incluye el pasado.** La cabecera es un `Text`
+   fijo sobre `vm.lista` entera, sin filtrar por fecha, así que bajo "Próximos"
+   aparecen cultos que ya pasaron.
+
+14. **En Actas y Servicios el estado sale dos veces** —en el subtítulo y en la
+   pastilla— y por eso los títulos se cortan ("Minutes 2026-07 · Asse…").
 10. Observación sin acción: el hub dice "Transacciones · 29 registros" y la
    lista dice "16 movimientos". No es un error —una suma ingresos y gastos, la
    otra solo el tipo activo— pero se leen como el mismo número.
