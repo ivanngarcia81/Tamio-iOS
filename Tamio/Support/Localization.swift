@@ -26,6 +26,25 @@ enum L {
         esEspanol ? es : en
     }
 
+    /// **El conteo con su plural.** `L.plural(1, es: "registro", en: "record")`
+    /// da "1 registro" y no "1 registros", que es lo que se leía en el pie de
+    /// Inicio, en el total de Ingresos, en Registro de cultos (dos sitios) y
+    /// en el subtítulo de Agenda.
+    ///
+    /// El patrón ya estaba resuelto a mano en Ajustes con un ternario por
+    /// llamada; escrito cinco veces más era invitar a que la sexta se olvidara.
+    ///
+    /// Los plurales por omisión son los regulares —"registro" → "registros",
+    /// "record" → "records"—; los irregulares se dicen aparte, que es lo que
+    /// necesita "entry" → "entries".
+    static func plural(_ n: Int,
+                       es: String, esPlural: String? = nil,
+                       en: String, enPlural: String? = nil) -> String {
+        let singular = esEspanol ? es : en
+        let varios = esEspanol ? (esPlural ?? es + "s") : (enPlural ?? en + "s")
+        return "\(n) \(n == 1 ? singular : varios)"
+    }
+
     // MARK: - Fechas
 
     /// **El locale del idioma de la app**, que no tiene por qué ser el del

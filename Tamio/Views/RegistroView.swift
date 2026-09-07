@@ -108,7 +108,7 @@ struct RegistroView: View {
                         encabezadoDia(grupo.titulo, grupo.apuntes.count)
                     }
                 }
-                Text(L.t("\(vm.visibles.count) apuntes", "\(vm.visibles.count) entries"))
+                Text(L.plural(vm.visibles.count, es: "apunte", en: "entry", enPlural: "entries"))
                     .font(.caption).foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(Esp.tarjeta)
@@ -147,7 +147,8 @@ struct RegistroView: View {
         HStack {
             Text(titulo).font(.caption.weight(.bold)).foregroundStyle(.primary)
             Spacer()
-            Text(L.t("\(n) apuntes", "\(n) entries")).font(.caption2).foregroundStyle(.secondary)
+            Text(L.plural(n, es: "apunte", en: "entry", enPlural: "entries"))
+                .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(.horizontal, Esp.pantalla).padding(.vertical, 6)
         .background(.regularMaterial)

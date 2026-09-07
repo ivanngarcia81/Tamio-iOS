@@ -631,8 +631,8 @@ struct MovimientosView: View {
                             .monospacedDigit().fontWeight(.semibold)
                             .foregroundStyle(Money.color(ingreso: vm.tipo == .ingreso))
                     } label: {
-                        Text(L.t("\(vm.itemsFiltrados.count) movimientos",
-                                 "\(vm.itemsFiltrados.count) entries"))
+                        Text(L.plural(vm.itemsFiltrados.count,
+                                      es: "movimiento", en: "entry", enPlural: "entries"))
                             .foregroundStyle(.secondary)
                     }
                 }

@@ -259,7 +259,7 @@ struct DashboardView: View {
         // A…". El periodo con el que se compara ya lo dice el segmentado
         // Mes|Trimestre|Año que hay justo encima.
         HStack(spacing: 6) {
-            Text(L.t("\(registros) registros", "\(registros) records"))
+            Text(L.plural(registros, es: "registro", en: "record"))
                 .foregroundStyle(.secondary)
             DeltaBadge(pct: delta, invert: invert)
         }

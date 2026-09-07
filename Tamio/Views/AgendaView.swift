@@ -35,8 +35,8 @@ struct AgendaView: View {
         }
         .encabezadoNav(
             L.t("Agenda", "Calendar"),
-            L.t("\(vm.etiquetaMes) · \(vm.pendientesMes) pendientes",
-                "\(vm.etiquetaMes) · \(vm.pendientesMes) pending")
+            "\(vm.etiquetaMes) · " + L.plural(vm.pendientesMes,
+                                              es: "pendiente", en: "pending", enPlural: "pending")
         )
         // **El título grande no cabe con una barra de cristal.** Con
         // `safeAreaBar` el contenido corre por debajo de la barra, y el título
