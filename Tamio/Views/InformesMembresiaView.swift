@@ -14,7 +14,10 @@ struct InformesMembresiaView: View {
         (L.t("Asistencia", "Attendance"), L.t("27 servicios · 78% de asistencia general", "27 services · 78% general attendance")),
         (L.t("Seguimiento", "Follow-up"), L.t("Alertas pastorales sin revisar", "Unreviewed pastoral alerts")),
     ]
-    private let alertasSeguimiento = 3
+    /// **El badge cuenta las alertas de verdad.** Iba escrito a mano como `3`:
+    /// la pestaña prometía tres personas que atender y al entrar salía
+    /// "Próximamente". Un número inventado al lado de una pantalla vacía.
+    private var alertasSeguimiento: Int { vm.alertas.count }
 
     private var compacto: Bool { sizeClass == .compact }
 
@@ -377,6 +380,77 @@ struct InformesMembresiaView: View {
 
     // MARK: - Informe de Asistencia
 
+    // MARK: - Informe de Seguimiento
+
+    /// **Las alertas pastorales, del padrón.** Aquí salía "Próximamente" con
+    /// un badge que prometía tres. Ver `InformesMembresiaViewModel.alertas`.
+    @ViewBuilder
+    private var informeSeguimiento: some View {
+        let alertas = vm.alertas
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L.t("Seguimiento pastoral", "Pastoral follow-up"))
+                    .font(.title3.weight(.semibold))
+                Text(alertas.isEmpty
+                     ? L.t("Nadie pendiente · \(vm.etiquetaPeriodo)",
+                           "No one pending · \(vm.etiquetaPeriodo)")
+                     : L.t("\(alertas.count) alertas · \(vm.etiquetaPeriodo)",
+                           "\(alertas.count) alerts · \(vm.etiquetaPeriodo)"))
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+
+            if alertas.isEmpty {
+                // **Vacío no es lo mismo que "no está hecho".** Un padrón al
+                // corriente tiene que poder decirlo.
+                ContentUnavailableView(
+                    L.t("Todo al corriente", "All up to date"),
+                    systemImage: "checkmark.circle",
+                    description: Text(L.t("Nadie lleva servicios sin venir ni tiene el expediente a medias.",
+                                          "Nobody has missed services or has an incomplete record.")))
+                    .frame(maxWidth: .infinity, minHeight: 260)
+            } else {
+                // Agrupadas por motivo: quien pastorea hace una cosa cada vez
+                // —llamar a los que no vienen, o completar expedientes—, no
+                // recorre una lista mezclada.
+                ForEach(InformesMembresiaViewModel.TipoAlerta.allCases) { tipo in
+                    let delTipo = alertas.filter { $0.tipo == tipo }
+                    if !delTipo.isEmpty {
+                        Tarjeta {
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack {
+                                    TituloSeccion(texto: tipo.etiqueta.uppercased())
+                                    Spacer()
+                                    Pill(texto: "\(delTipo.count)", color: tipo.estado.color)
+                                }
+                                .padding(.bottom, 10)
+                                ForEach(delTipo) { a in
+                                    filaAlerta(a)
+                                    if a.id != delTipo.last?.id { Divider() }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func filaAlerta(_ a: InformesMembresiaViewModel.Alerta) -> some View {
+        HStack(spacing: 12) {
+            Avatar(iniciales: a.miembro.nombre.split(separator: " ").prefix(2)
+                                .compactMap(\.first).map(String.init).joined().uppercased(),
+                   color: a.tipo.estado.color, lado: 34)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(a.miembro.nombre)
+                    .font(.subheadline.weight(.medium)).lineLimit(1)
+                Text(a.detalle)
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer(minLength: 4)
+        }
+        .padding(.vertical, 10)
+    }
+
     /// Las cuatro cifras del periodo y quiénes vinieron más. Reflejado del web
     /// (`resumenAsistencia` + `topAsistencia`), con sus mismos cuatro
     /// indicadores y su mismo criterio de desempate.
@@ -659,11 +733,8 @@ struct InformesMembresiaView: View {
                     informeMiembros
                 } else if vm.informeSeleccionado == 2 {
                     informeAsistencia
-                } else if vm.informeSeleccionado != 0 {
-                    ContentUnavailableView(L.t("Próximamente", "Coming soon"),
-                                           systemImage: "doc.text.magnifyingglass",
-                                           description: Text(L.t("Este informe llegará pronto.", "This report is coming soon.")))
-                        .frame(maxWidth: .infinity, minHeight: 320)
+                } else if vm.informeSeleccionado == 3 {
+                    informeSeguimiento
                 } else {
                 // Encabezado
                 VStack(alignment: .leading, spacing: 2) {

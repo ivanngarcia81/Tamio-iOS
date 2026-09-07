@@ -267,16 +267,191 @@ final class InformesMembresiaViewModel {
         }
     }
 
+    // MARK: - Informe de Seguimiento
+
+    /// Por qué una persona aparece en Seguimiento. Las claves y las reglas son
+    /// las del web (`TipoAlerta` en `services/informes/membresia.ts`).
+    enum TipoAlerta: String, CaseIterable, Identifiable {
+        case rachaServicios, diasSinAsistir, nuevoSeguimiento, expedienteIncompleto
+        var id: String { rawValue }
+
+        var etiqueta: String {
+            switch self {
+            case .rachaServicios:       return L.t("Sin asistir seguido", "Consecutive absences")
+            case .diasSinAsistir:       return L.t("Sin venir hace tiempo", "Away for a while")
+            case .nuevoSeguimiento:     return L.t("Nuevo por acompañar", "New, needs follow-up")
+            case .expedienteIncompleto: return L.t("Expediente incompleto", "Incomplete record")
+            }
+        }
+
+        /// **Se usa la paleta como está, sin inventar un quinto estado.**
+        /// `pendiente` es "pide una acción tuya", y las dos de asistencia la
+        /// piden: hay que ir a ver a esa persona. Lo que las distingue es la
+        /// etiqueta, no el color; el color dice de qué clase es la cosa.
+        var estado: Paleta.Estado {
+            switch self {
+            case .rachaServicios, .diasSinAsistir: return .pendiente
+            case .nuevoSeguimiento:                return .informativo
+            case .expedienteIncompleto:            return .terminal
+            }
+        }
+    }
+
+    struct Alerta: Identifiable {
+        let miembro: Miembro
+        let tipo: TipoAlerta
+        /// El dato que la sostiene: la racha, la última visita, lo que falta.
+        let detalle: String
+        var id: String { "\(miembro.id)-\(tipo.rawValue)" }
+    }
+
+    /// **Cuántos servicios seguidos sin venir levantan una alerta.** El web lo
+    /// tiene configurable (`umbrales.rachaServicios`, por omisión 3); aquí es
+    /// fijo hasta que Ajustes tenga dónde ponerlo, y se nombra para que se vea
+    /// que es una decisión y no un 3 suelto en medio de un `filter`.
+    static let rachaQueAlerta = 3
+
+    /// **Las alertas pastorales, del padrón.** La pestaña anunciaba "(3)" con
+    /// un número escrito a mano y al entrar enseñaba "Próximamente": prometía
+    /// tres personas que atender y no daba ninguna.
+    ///
+    /// Solo se pastorea a quien está en el registro: las bajas no salen.
+    /// Una misma persona puede aparecer por dos motivos distintos —eso es
+    /// deliberado, son dos cosas que hacer— y por eso el `id` lleva el tipo.
+    var alertas: [Alerta] {
+        var salida: [Alerta] = []
+        for m in miembros where !m.estado.esBaja {
+            let racha = m.asistenciaResumen?.rachaSinAsistir ?? 0
+            if racha >= Self.rachaQueAlerta {
+                salida.append(Alerta(miembro: m, tipo: .rachaServicios,
+                                     detalle: L.t("\(racha) servicios seguidos",
+                                                  "\(racha) services in a row")))
+            } else if let ultima = m.asistenciaResumen?.ultimaVisita, !ultima.isEmpty {
+                // Sin racha pero sin venir hace tiempo: el web lo mide en días
+                // y en servicios, lo que ocurra primero.
+                if let d = Fechas.desdeTexto(ultima),
+                   Calendar.current.dateComponents([.day], from: d, to: Date()).day ?? 0 >= 30 {
+                    salida.append(Alerta(miembro: m, tipo: .diasSinAsistir,
+                                         detalle: L.t("desde \(Fechas.diaLegible(ultima))",
+                                                      "since \(Fechas.diaLegible(ultima))")))
+                }
+            }
+            if m.esNuevo(en: añoSeleccionado) && !m.expedienteCompleto {
+                salida.append(Alerta(miembro: m, tipo: .nuevoSeguimiento,
+                                     // `fechaIngreso`, la de verdad: `miembroDesde`
+                                     // es "Ingresó 2026" y salía "desde Ingresó 2026".
+                                     detalle: m.fechaIngreso.isEmpty
+                                        ? m.miembroDesde
+                                        : L.t("desde \(Fechas.diaLegible(m.fechaIngreso))",
+                                              "since \(Fechas.diaLegible(m.fechaIngreso))")))
+            }
+            if !m.expedienteCompleto {
+                let faltan = m.expediente.filter { !$0.completo }.count
+                salida.append(Alerta(miembro: m, tipo: .expedienteIncompleto,
+                                     detalle: L.t("faltan \(faltan) datos", "\(faltan) fields missing")))
+            }
+        }
+        // Lo que más corre prisa, arriba.
+        let orden = TipoAlerta.allCases
+        return salida.sorted {
+            let a = orden.firstIndex(of: $0.tipo) ?? 0, b = orden.firstIndex(of: $1.tipo) ?? 0
+            return a == b ? $0.miembro.nombre < $1.miembro.nombre : a < b
+        }
+    }
+
     // MARK: - Resumen según periodo activo
 
+    /// **El General SE CALCULA del padrón, ya no son constantes.**
+    ///
+    /// Eran cinco `InformeResumen` escritos a mano, uno por periodo, y el de
+    /// Año decía 262 miembros y 248 activos mientras el hub decía lo real y el
+    /// informe de Miembros —el de al lado, mismo periodo— decía siete. Las
+    /// tres cifras se ven a la vez, y era la misma trampa que ya costó una
+    /// vuelta al hacer Miembros y Asistencia: **si dos números tienen que
+    /// cuadrar, se calculan del MISMO array.**
+    ///
+    /// Mientras el padrón no ha bajado se devuelven ceros y no la maqueta: un
+    /// informe vacío durante medio segundo se entiende; uno con 262 miembros
+    /// inventados no.
     var resumen: InformeResumen {
-        switch periodoTipo {
-        case .mes:       return Self.resumenMes(mes: mesSeleccionado, año: añoSeleccionado)
-        case .trimestre: return Self.resumenTrimestre(q: trimestreSeleccionado, año: añoSeleccionado)
-        case .anio:      return Self.resumenAnio(año: añoSeleccionado)
-        case .rango:     return Self.resumenRango
-        case .todo:      return Self.resumenTodo
+        let año = añoSeleccionado
+        let vivos = miembros.filter { !$0.estado.esBaja }
+
+        // Por estado, con los cuatro del registro. Solo se enseñan los que
+        // tienen a alguien: cuatro renglones en cero no informan de nada.
+        let porEstado = EstadoRegistro.allCases.compactMap { e -> (String, Int)? in
+            let n = vivos.filter { $0.estado.registro == e }.count
+            return n > 0 ? (e.etiqueta, n) : nil
         }
+        let bajas = miembros.filter { $0.estado.esBaja }.count
+
+        // Por ministerio, de los que sirven. Una persona en dos ministerios
+        // cuenta en los dos, que es lo que quiere saber quien los coordina.
+        var conteo: [String: Int] = [:]
+        for m in vivos {
+            for clave in m.ministerios { conteo[clave, default: 0] += 1 }
+        }
+        // En dos pasos y con tipos escritos: en una sola cadena el compilador
+        // se rinde ("unable to type-check this expression in reasonable time").
+        var porMinisterio: [(String, Int)] = conteo.map { clave, n in
+            (Padron.etiquetas([clave]), n)
+        }
+        porMinisterio.sort { a, b in
+            a.1 == b.1 ? a.0 < b.0 : a.1 > b.1
+        }
+
+        let completos = vivos.filter(\.expedienteCompleto).count
+
+        // Altas por mes del año elegido, de la fecha en que entraron.
+        let altas = (1...12).map { mes in
+            MesAlta(id: mes, mes: Self.nombreMes(mes),
+                    altas: miembros.filter { Self.entroEn(m: $0, mes: mes, año: año) }.count)
+        }
+
+        return InformeResumen(
+            totalMiembros: miembros.count,
+            periodo: etiquetaPeriodo,
+            porEstado: porEstado + (bajas > 0 ? [(L.t("Baja", "Removed"), bajas)] : []),
+            porMinisterio: porMinisterio,
+            expedienteCompleto: completos,
+            expedienteIncompleto: vivos.count - completos,
+            // Solo los meses con alguna alta: doce barras en cero no son una
+            // gráfica, son ruido.
+            altasPorMes: altas.contains { $0.altas > 0 } ? altas : [],
+            traslados: trasladosDelPeriodo)
+    }
+
+    /// Quien entró en ese mes y año. **`fechaIngreso` y no `miembroDesde`**:
+    /// lo segundo es texto para leer —"Ingresó 2026"— y compararlo con
+    /// "2026-08" no acierta nunca, así que las altas por mes salían todas en
+    /// cero. Se compara por prefijo: parsear para volver a comparar solo añade
+    /// un sitio donde perder un día por el huso.
+    private static func entroEn(m: Miembro, mes: Int, año: Int) -> Bool {
+        m.fechaIngreso.hasPrefix(String(format: "%04d-%02d", año, mes))
+    }
+
+    /// Los traslados del padrón: quien se fue con motivo "traslado" y quien
+    /// llegó recibido. Salen de las fichas, no de una lista aparte.
+    private var trasladosDelPeriodo: [MovimientoTraslado] {
+        let año = añoSeleccionado
+        let salidas = miembros.filter {
+            $0.estado.baja?.motivo == "traslado"
+            && ($0.estado.baja?.fecha.hasPrefix(String(año)) ?? false)
+        }.map {
+            MovimientoTraslado(id: abs($0.id.hashValue), folio: "", 
+                               tipoTraslado: L.t("Salida", "Outgoing"),
+                               persona: $0.nombre, iglesia: "",
+                               fecha: Fechas.diaLegible($0.estado.baja?.fecha ?? ""),
+                               estado: L.t("Completado", "Completed"))
+        }
+        let entradas = miembros.filter { $0.esRecibido && $0.esNuevo(en: año) }.map {
+            MovimientoTraslado(id: abs($0.id.hashValue) &+ 1, folio: "",
+                               tipoTraslado: L.t("Entrada", "Incoming"),
+                               persona: $0.nombre, iglesia: "",
+                               fecha: Fechas.diaLegible($0.fechaIngreso),
+                               estado: L.t("Completado", "Completed"))
+        }
+        return salidas + entradas
     }
 
     // MARK: - Helpers de nombre

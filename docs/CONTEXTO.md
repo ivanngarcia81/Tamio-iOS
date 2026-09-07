@@ -1135,9 +1135,17 @@ Secretaría, ya no bloquea" y en el §5 de Tesorería.
 
 ### Lo que queda de Secretaría, ya no bloquea
 
-- **El informe General son constantes** —dice 262 miembros donde el hub dice lo
-  real— y **Seguimiento anuncia tres alertas y enseña "Próximamente"**. El web
-  lo tiene resuelto en `services/informes/membresia.ts`.
+- ~~El informe General son constantes y Seguimiento enseña "Próximamente".~~
+  **— HECHO el 7 de septiembre.** El General se calcula del padrón, como ya
+  hacían Miembros y Asistencia; Seguimiento refleja `alertasSeguimiento` del
+  web, con sus cuatro tipos de alerta, y el badge cuenta las de verdad.
+
+  **`miembroDesde` NO es una fecha.** Es texto para leer —"Ingresó 2026"—; la
+  fecha es `fechaIngreso`, "YYYY-MM-DD". Usar la primera hacía que las altas
+  por mes salieran todas en cero y que una alerta dijera "desde Ingresó 2026".
+  Lo mismo pasa con `Acta.fechaLegible` y `Apunte.texto`: en este código hay
+  pares de campo-guardado y campo-para-leer, y el que se compara es el
+  primero.
 - **"Próximos" en Servicios incluye cultos pasados**: la cabecera es un `Text`
   fijo sobre la lista entera, sin filtrar por fecha.
 - **El selector de "Tipo de carta" ofrece quince** y cinco no existen en el
