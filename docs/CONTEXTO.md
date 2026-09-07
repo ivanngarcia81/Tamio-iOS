@@ -5,11 +5,78 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **6 de septiembre de 2026**, segunda vuelta.
+Última actualización: **7 de septiembre de 2026**, con los sucesos de Tesorería.
 
 ---
 
-## 0. Secretaría, cerrada · 6 y 7 de septiembre
+## 0. Los cinco sucesos de Tesorería · 7 de septiembre
+
+Lo que el §6 llevaba marcado como "lo de más valor que queda en toda la app":
+**el registro ya anota los cinco sucesos de Tesorería.** Con esto quedan los
+diez del web, no cuatro.
+
+| Suceso | Dónde se anota | Cuándo, exactamente |
+|---|---|---|
+| `movEliminado` | `OfflineMovimientosRepository.eliminar` | al pasar a borrado; nunca dos veces |
+| `corteEntregado` | `OfflineDepositosRepository.agregarAlCorte` | la PRIMERA vez que el corte deja de estar vacío |
+| `corteDepositado` | `registrarDeposito` | al pasar a depositado |
+| `segundaFirma` | `firmar` | cuando la firma CAMBIA |
+| `descuadre` | `firmar` | sin nombre y con un conteo distinto al anterior |
+
+**`corteEntregado` no va donde va en el web, y es a propósito.** Allí el corte
+nace ya con sus movimientos dentro (`crearCorte` recibe los `txIds`), así que el
+apunte cabe en la creación. Aquí un corte nace VACÍO y el tesorero le va echando
+sobres: anotarlo al crearlo daría "con 0 movimiento(s)", que no dice nada. El
+momento en que el dinero sale de la caja es la primera vez que el corte deja de
+estar vacío, y ahí va.
+
+### Y algo que no se buscaba: las claves de `datos` no eran las del web
+
+La tabla `registro` guarda las PIEZAS y compone la frase al leer — esa es su
+razón de ser—, así que **las claves de `datos` son un contrato entre las dos
+apps**. Tres no coincidían, y el apunte escrito por una salía con guiones en la
+otra:
+
+- `cartaEmitida` escribía `nombre`; el web lee `destinatario`.
+- `segundaFirma` leía `quien`; el web escribe `firmante` (y un `modo` que iOS
+  ni miraba).
+- `movEliminado` no tenía `concepto`, y `actaCerrada` no tenía `titulo`.
+
+Ahora se escribe con las claves del web y **se leen las dos**: los apuntes que
+iOS ya dejó en la base de la iglesia siguen legibles. Un `d("firmante", "quien")`
+en `Apunte.texto` es exactamente eso.
+
+**Y `datos` no siempre son cadenas.** El web guarda `movimientos` como número
+—`txIds.length`—, y `JSONDecoder().decode([String: String])` no falla en esa
+clave: falla en el objeto entero y devuelve vacío. Un `corteEntregado` hecho
+desde el web se leía en el teléfono como "Salió de la caja el corte «—», con —
+movimiento(s)". Se lee suelto con `JSONSerialization` y cada valor se pasa a
+texto.
+
+### Lo que se probó, y con qué
+
+**Dieciocho pruebas unitarias, todas en verde**, contra la base de verdad del
+contenedor (`SucesosTesoreriaTests`, en la copia del §3 — no en el repo, §5).
+Por cada suceso: que anota al hacer la cosa, con sus piezas, y que **no vuelve a
+anotar si la cosa se repite**. Ese segundo caso es el que importa: un registro
+que anota de más deja de servir igual que uno que no anota.
+
+Dos cosas que solo salieron por correrlas:
+
+- **El folio de un movimiento del teléfono es provisional.** `crear` le pone el
+  suyo local ("P-3") y el definitivo lo da el contador del servidor. El apunte
+  guarda el que la persona tiene delante, no el del objeto.
+- **`esAlerta` es verdadero para DOS sucesos**, y la pastilla roja del detalle
+  decía "No cuadró" para los dos. Un movimiento dado de baja no es un conteo que
+  no cuadró: ahora la etiqueta la da `TipoSuceso.etiquetaAlerta`.
+
+**Lo que NO se verificó:** verlos aparecer en la pantalla de Registro con la
+cuenta real. El código de pantalla no se tocó salvo esa pastilla, y las frases
+sí están probadas, pero mirarlo un domingo es lo que lo cierra.
+
+---
+
+## 0.1 Secretaría, cerrada · 6 y 7 de septiembre
 
 Una sesión larga que cruzó la medianoche. Empezó con una pregunta de Iván
 —"¿cuáles son las páginas que faltan por arreglar?"— y la respuesta correcta no
@@ -125,7 +192,7 @@ ahí escrita desde el 5 de septiembre: se pasa `-prefs.idioma espanol`.
 
 ---
 
-## 0.1 Antes, ese mismo día: las salidas y los informes
+## 0.2 Antes, ese mismo día: las salidas y los informes
 
 **Esto es la sesión ANTERIOR, se conserva por el detalle de sus decisiones.**
 Su lista de "lo que queda" está desfasada: la de verdad es el §6, y varias de
@@ -1137,18 +1204,13 @@ aparato.
 
 ### LO SIGUIENTE, en orden
 
-**1. Los cinco sucesos de Tesorería.** Es lo de más valor que queda en toda la
-app. `movEliminado`, `corteEntregado`, `corteDepositado`, `segundaFirma` y
-`descuadre`; el primero es, en palabras del web, "el único que hace desaparecer
-dinero de las cuentas", y hoy no deja rastro ninguno.
+**1.** ~~Los cinco sucesos de Tesorería.~~ **— HECHO el 7 de septiembre.** Los
+diez sucesos del web se anotan ya en iOS. Dónde va cada uno y por qué
+`corteEntregado` no va donde va en el web: §0. Dieciocho pruebas unitarias, cada
+suceso con la suya de que anota **solo al cruzar el umbral**.
 
-La mitad del trabajo ya está hecha: `anotarSuceso(_:_:)` existe, la tabla y la
-sincronización del registro funcionan, y `TipoSuceso` ya tiene los cinco casos
-con su área. Falta llamarlo desde donde se hace la cosa —
-`OfflineMovimientosRepository` al dar de baja, `OfflineDepositosRepository` y
-el corte al entregar, depositar, dar la segunda firma y detectar el descuadre—
-y una prueba por cada uno de que anota **solo al cruzar el umbral**, como las
-de `SucesosTests`.
+De paso: las claves de `datos` de tres sucesos no eran las que lee el web, y un
+`datos` con un número dentro dejaba el apunte entero en guiones. También en §0.
 
 **2. Enchufar lo que quede de Tesorería.** Mismo trabajo que Secretaría y misma
 receta (§5, "Las cinco pantallas de Secretaría, enchufadas"). Antes de empezar
@@ -1206,11 +1268,9 @@ Por orden de lo que más se nota usando la app un domingo:
    van en los repositorios y no en las pantallas, como en el web, y solo al
    CRUZAR el umbral: guardar dos veces una carta ya emitida no anota dos veces.
 
-   **Faltan los cinco de Tesorería** —`movEliminado`, `corteEntregado`,
-   `corteDepositado`, `segundaFirma`, `descuadre`—, que son los de más valor:
-   el primero es "el único que hace desaparecer dinero de las cuentas". Van en
-   `OfflineMovimientosRepository`, `OfflineDepositosRepository` y el corte, con
-   el mismo `anotarSuceso(_:_:)`.
+   ~~Faltan los cinco de Tesorería.~~ **— HECHO el 7 de septiembre**, con el
+   mismo `anotarSuceso(_:_:)` en `OfflineMovimientosRepository` y
+   `OfflineDepositosRepository`. Ver §0.
 4. ~~Las plantillas de carta viven en el `enum`.~~ **— HECHO el 7 de
    septiembre.** Tabla `plantilla` (v22) y `repositorioPlantillas()`. Bajan las
    once de la iglesia con su nombre y su texto, y elegir una rellena asunto,
