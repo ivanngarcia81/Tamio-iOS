@@ -227,11 +227,19 @@ final class MovimientosViewModel {
         }
     }
 
+    /// `"HOY · DOMINGO 7 SEP"`. **Con el mes**, que era invisible en el
+    /// teléfono: el selector de mes solo se dibuja en el iPad, así que una
+    /// lista de agosto y una de septiembre se veían exactamente igual —"VIERNES
+    /// 29" y nada más— y con "Todos los meses" puesto se mezclaban sin que nada
+    /// lo dijera. El sitio donde ponerlo es este, que es donde el ojo ya está;
+    /// en el botón de filtros no cabía y el sistema se lo comía.
     private func encabezado(_ dia: Date) -> String {
         let f = DateFormatter()
         f.locale = L.locale
-        f.dateFormat = "EEEE d"
-        let s = f.string(from: dia).uppercased()
+        f.dateFormat = "EEEE d MMM"
+        // El formateador mete un punto en los meses abreviados de algunos
+        // idiomas ("7 sept."), y en mayúsculas queda como una errata.
+        let s = f.string(from: dia).replacingOccurrences(of: ".", with: "").uppercased()
         return Calendar.current.isDateInToday(dia) ? L.t("HOY · ", "TODAY · ") + s : s
     }
 }

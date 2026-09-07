@@ -532,11 +532,24 @@ struct MovimientosView: View {
 
     // MARK: - Filtros
 
-    /// El mes no cuenta como filtro: tiene chip propio y siempre hay uno
-    /// puesto, así que el globito marcaría "1" permanentemente.
+    /// **El mes cuenta solo cuando NO es el de hoy.** No contaba nunca, con el
+    /// argumento de que siempre hay uno puesto y el globito marcaría "1" para
+    /// siempre. Cierto para el mes en curso, falso para agosto: mirar un mes
+    /// que no es el actual SÍ es un filtro, y en el teléfono no había forma de
+    /// saberlo —el selector de mes solo se dibuja en el iPad, así que una lista
+    /// de tres filas en septiembre y una lista de tres filas de agosto se ven
+    /// exactamente igual—. Una lista corta no se explica sola.
     private var filtrosActivos: Int {
-        (vm.filtroCategoria != nil ? 1 : 0)
+        (mesDistintoDelActual ? 1 : 0)
+        + (vm.filtroCategoria != nil ? 1 : 0)
         + ((vm.tipo == .ingreso ? vm.soloSinDepositar : vm.soloPendientes) ? 1 : 0)
+    }
+
+    /// "Todos los meses" también cuenta: tampoco es lo que la pantalla enseña
+    /// por omisión.
+    private var mesDistintoDelActual: Bool {
+        guard let mes = vm.mes else { return true }
+        return mes != Fechas.inicioDeMes(Date())
     }
 
     /// Botón de filtros. La cápsula, el borde y la sombra las pone `.glass`;
@@ -556,6 +569,12 @@ struct MovimientosView: View {
             HStack(spacing: 5) {
                 Image(systemName: "line.3.horizontal.decrease")
                 if !compacto { Text(L.t("Filtros", "Filters")) }
+                // **Aquí NO va el mes.** Se probó a escribirlo al lado del
+                // icono cuando no es el de hoy, y el sistema se comió el texto
+                // sin avisar: el grupo comparte cápsula con el `+` y no hay
+                // ancho. El mes va en el encabezado de cada día de la lista,
+                // que es donde el ojo ya está mirando; aquí queda el contador,
+                // que ahora sí lo cuenta.
                 if filtrosActivos > 0 { contador(filtrosActivos) }
             }
             .font(.subheadline.weight(.medium))

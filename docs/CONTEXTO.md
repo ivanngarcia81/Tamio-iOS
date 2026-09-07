@@ -1520,11 +1520,14 @@ va a fallar.
 
 ### El resto
 
-1. **El mes es invisible en Ingresos.** Al quitar el pie, el mes solo se lee
-   abriendo la hoja de filtros: en agosto las cabeceras dicen "VIERNES 29" y el
-   mes no aparece en ninguna parte. Y `filtrosActivos` **no cuenta el periodo**,
-   así que el botón no se tiñe al mirar un mes que no es el actual — una lista
-   corta no se explica sola. Se arregla sumando el mes al contador.
+1. ~~El mes es invisible en Ingresos.~~ **— HECHO el 7 de septiembre**, y no
+   como decía este pendiente. Lo del contador se hizo —el periodo cuenta cuando
+   NO es el mes en curso, incluido "todos los meses"—, pero teñir el botón dice
+   que hay algo puesto y no QUÉ. Escribir el mes al lado del icono **no cabe**:
+   el grupo comparte cápsula con el `+` y el sistema se comió el texto sin
+   avisar, medido con la app corriendo. El mes va ahora en el encabezado de cada
+   día —"DOMINGO 6 SEP", "LUNES 31 AGO"—, que es donde el ojo ya está y donde
+   además se ve la mezcla con "todos los meses" puesto.
 2. **El total de Movimientos en iPad** ya solo vive en la hoja de filtros. Allí
    el pie no causaba ninguno de los tres problemas del teléfono.
 3. **Verificar los recurrentes en aparato** (§5). **Es el riesgo real que
