@@ -14,6 +14,25 @@ protocol AportantesCatalogo {
     func activos() async throws -> [AportanteBreve]
 }
 
+/// **El padrón que ya está en el teléfono.** Es el mismo del que salen los tres
+/// selectores de Secretaría (`padronParaSelector()`), y por eso da los mismos
+/// nombres que la pantalla de Membresía.
+///
+/// Sustituye a `SupabaseAportantesCatalogo`, que preguntaba a la red cada vez
+/// que se abría la hoja de captura: sin señal el menú de aportante salía vacío
+/// y el diezmo se quedaba sin persona, que es justo lo que esta app existe para
+/// evitar —"el tesorero captura el sobre en el templo, con señal o sin ella"—.
+/// El padrón ya baja y se guarda; no hacía falta ir a buscarlo otra vez.
+struct OfflineAportantesCatalogo: AportantesCatalogo {
+    func activos() async throws -> [AportanteBreve] {
+        await padronParaSelector().map { AportanteBreve(id: $0.id, nombre: $0.nombre) }
+    }
+}
+
+/// El catálogo contra la red. **Ya no lo usa nadie**: se conserva porque es el
+/// único sitio donde está escrita la consulta a `members` para un selector, y
+/// borrarlo obligaría a reescribirla el día que haga falta buscar en el padrón
+/// de otra iglesia.
 struct SupabaseAportantesCatalogo: AportantesCatalogo {
     func activos() async throws -> [AportanteBreve] {
         struct Fila: Decodable { let uid: String; let nombre: String? }
@@ -43,5 +62,5 @@ struct MockAportantesCatalogo: AportantesCatalogo {
 }
 
 func catalogoAportantes() -> AportantesCatalogo {
-    ModoRevision.sinLogin ? MockAportantesCatalogo() : SupabaseAportantesCatalogo()
+    ModoRevision.sinLogin ? MockAportantesCatalogo() : OfflineAportantesCatalogo()
 }

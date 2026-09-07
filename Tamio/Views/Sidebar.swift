@@ -70,6 +70,17 @@ struct Sidebar: View {
     /// El mismo ViewModel que el badge del tab del iPhone: el conteo de la
     /// bandeja se calcula UNA vez y lo leen todos.
     @State private var revisarVM = RevisarViewModel.compartido
+    /// **Los otros dos badges también se CARGAN.** Iban como
+    /// `MockMiembrosRepository.activosCount` y `MockAgendaRepository.pendientesCount`,
+    /// leídos de la maqueta directamente y saltándose las fábricas, así que con
+    /// la cuenta real la sidebar seguía anunciando los aportantes y los
+    /// compromisos de la iglesia inventada. Es el mismo arreglo que ya tiene el
+    /// hub del iPhone (`IPhoneSecretariaView`).
+    ///
+    /// `nil` mientras cargan, y entonces el badge no sale: un hueco se entiende,
+    /// un número que no es de esta iglesia no.
+    @State private var aportantesActivos: Int?
+    @State private var agenda: ResumenAgenda?
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     private let motor = MotorSincronizacion.compartido
     private var iglesia: ConfiguracionIglesia { cfg.config }
@@ -112,6 +123,10 @@ struct Sidebar: View {
         .background(.clear)
         .task { await cfg.cargar() }
         .task { await revisarVM.cargar() }
+        .task {
+            aportantesActivos = (try? await repositorioMiembros().lista(filtro: .activos))?.count
+            agenda = await repositorioAgenda().resumen()
+        }
     }
 
     private func grupo(_ items: [(String, String, String, Int?, Bool)]) -> some View {
@@ -140,7 +155,7 @@ struct Sidebar: View {
             ("ingresos", L.t("Ingresos", "Income"), "arrow.down", nil, false),
             ("gastos", L.t("Gastos", "Expenses"), "arrow.up", nil, false),
             ("miembros", L.t("Aportantes", "Contributors"), "person.2",
-             MockMiembrosRepository.activosCount, false),
+             aportantesActivos, false),
             ("reportes", L.t("Reportes", "Reports"), "chart.bar", nil, false),
             ("depositos", L.t("Depósitos", "Deposits"), "building.columns", nil, false),
             ("porRevisar", L.t("Por revisar", "To review"), "tray",
@@ -162,7 +177,7 @@ struct Sidebar: View {
             ("cartas", L.t("Cartas y traslados", "Letters & transfers"), "envelope", nil, false),
             ("informes", L.t("Informes de membresía", "Membership reports"), "doc.plaintext", nil, false),
             ("agenda", L.t("Agenda", "Calendar"), "calendar",
-             MockAgendaRepository.pendientesCount, false),
+             agenda?.pendientes, false),
         ]
     }
 
