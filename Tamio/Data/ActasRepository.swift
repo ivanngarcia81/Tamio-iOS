@@ -173,7 +173,8 @@ struct OfflineActasRepository: ActasRepository {
              resumen: f.resumen,
              mociones: Self.mociones(f.mociones),
              confidencial: f.confidencial,
-             firmas: Self.firmas(f.firmas))
+             firmas: Self.firmas(f.firmas),
+             actualizadoEn: f.actualizadoEn)
     }
 
     static func aFila(_ a: Acta, previa: ActaFila?) -> ActaFila {

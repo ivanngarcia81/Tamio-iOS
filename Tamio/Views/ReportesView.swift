@@ -226,9 +226,23 @@ struct ReportesView: View {
             estadoFinanciero(e, titulo: titulo)
         } else if t.id == "anual", let a = vm.anual {
             reporteAnual(a, titulo: titulo)
+        } else if vm.cargando {
+            // **Aquí ponía "Próximamente · Este reporte llega en un próximo
+            // slice".** Los tipos de reporte son dos, "estado" y "anual", y los
+            // dos están hechos: a esta rama solo se llega mientras las cifras
+            // se cargan, o cuando el año elegido no tiene ninguna. O sea que la
+            // pantalla anunciaba una función que no falta, durante el segundo
+            // en que lo único que pasaba era que estaba trabajando.
+            ProgressView()
+                .controlSize(.large)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ContentUnavailableView(L.t("Próximamente", "Coming soon"), systemImage: "doc.text.magnifyingglass",
-                                   description: Text(L.t("Este reporte llega en un próximo slice.", "This report is coming in a later slice.")))
+            let cuando = t.id == "anual" ? vm.anioSel : vm.periodoEtiqueta
+            ContentUnavailableView(
+                L.t("Sin datos para \(cuando)", "No data for \(cuando)"),
+                systemImage: "chart.bar.doc.horizontal",
+                description: Text(L.t("Elige otro periodo en el selector de arriba.",
+                                      "Pick another period in the selector above.")))
         }
     }
 

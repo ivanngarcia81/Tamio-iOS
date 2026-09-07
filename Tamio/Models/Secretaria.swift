@@ -149,10 +149,37 @@ struct Acta: Identifiable, Hashable {
     /// llevaba tiempo viajando vacía.
     var firmas: [FirmaActa] = []
 
+    /// **Cuándo se guardó, en ISO.** La pantalla decía "Guardado hace 2
+    /// minutos" escrito a mano bajo cada borrador: lo decía de un acta recién
+    /// tecleada y de una de hace tres meses, con las mismas cuatro palabras.
+    /// El dato estaba en `acta.actualizadoEn` de la base y no llegaba hasta
+    /// aquí. `nil` mientras no se haya guardado nunca.
+    var actualizadoEn: String? = nil
+
     /// **Se cuentan, no se guardan.** Iba como un `Int` propio al lado de
     /// `items`: dos números sobre lo mismo que podían discrepar, que es
     /// exactamente lo que ya pasó en los informes de membresía.
     var acuerdos: Int { items.count }
+
+    /// "Guardado hace 5 min" · "Guardado el 21 ago 2026". **Relativo mientras
+    /// es reciente y con fecha cuando ya no lo es**: "hace 94 días" no dice
+    /// nada que "el 5 de junio" no diga mejor.
+    var guardadoLegible: String? {
+        guard let actualizadoEn,
+              let fecha = ISO8601DateFormatter().date(from: actualizadoEn) else { return nil }
+        let minutos = Int(Date().timeIntervalSince(fecha) / 60)
+        if minutos < 1  { return L.t("Guardado hace un momento", "Saved just now") }
+        if minutos < 60 { return L.t("Guardado hace \(minutos) min", "Saved \(minutos) min ago") }
+        let horas = minutos / 60
+        if horas < 24 {
+            return horas == 1 ? L.t("Guardado hace 1 hora", "Saved 1 hour ago")
+                              : L.t("Guardado hace \(horas) horas", "Saved \(horas) hours ago")
+        }
+        let f = DateFormatter()
+        f.locale = L.locale
+        f.dateStyle = .medium
+        return L.t("Guardado el \(f.string(from: fecha))", "Saved \(f.string(from: fecha))")
+    }
 
     var titulo: String {
         if let t = tituloPersonalizado, !t.isEmpty { return t }

@@ -15,6 +15,27 @@ final class ActasViewModel {
     var seleccion: Acta? { lista.first { $0.id == seleccionId } }
     var proximoId: String { UUID().uuidString }
 
+    /// **El subtítulo de la pantalla, contado.** Iba escrito a mano —"Acta
+    /// 2026-08 en borrador"— y por eso nombraba esa acta con las que hubiera y
+    /// en el estado que estuvieran: una iglesia sin ninguna en borrador leía
+    /// que tenía una, y con el folio de otro año.
+    ///
+    /// Un borrador manda sobre el recuento porque es lo accionable: si hay algo
+    /// a medias, eso es lo que hay que saber al abrir la pantalla.
+    var subtitulo: String {
+        let borradores = lista.filter { $0.estado == .borrador }
+        if borradores.count == 1, let a = borradores.first {
+            return L.t("Acta \(a.folio) en borrador", "Minutes \(a.folio) in draft")
+        }
+        if borradores.count > 1 {
+            return L.t("\(borradores.count) actas en borrador",
+                       "\(borradores.count) minutes in draft")
+        }
+        if lista.isEmpty { return L.t("Todavía no hay ninguna", "None yet") }
+        return lista.count == 1 ? L.t("1 acta", "1 minutes")
+                                : L.t("\(lista.count) actas", "\(lista.count) minutes")
+    }
+
     /// **Las tres escriben y recargan.** Antes solo tocaban el array: un acta
     /// nueva se veía hasta salir de la pantalla, y firmarla o cerrarla se
     /// deshacía solo al volver a entrar, porque `cargar()` volvía a pedirle la

@@ -45,7 +45,7 @@ struct ActasView: View {
                     }
             }
         }
-        .encabezadoNav(L.t("Actas", "Minutes"), L.t("Acta 2026-08 en borrador", "Minutes 2026-08 in draft"))
+        .encabezadoNav(L.t("Actas", "Minutes"), vm.subtitulo)
         // **El título grande no cabe con una barra de cristal.** Con
         // `safeAreaBar` el contenido corre por debajo de la barra, y el título
         // grande vive justo en esa franja: quedaba detrás del desvanecido,
@@ -182,8 +182,11 @@ struct ActasView: View {
     @ViewBuilder
     private func estadoActa(_ acta: Acta) -> some View {
         Pill(texto: acta.estado.etiqueta, color: acta.estado.color)
-        if acta.estado == .borrador {
-            Text(L.t("Guardado hace 2 minutos", "Saved 2 minutes ago"))
+        // La hora a la que se guardó de verdad, no "hace 2 minutos" para
+        // todas. Si el acta no se ha guardado nunca no se dice nada: un hueco
+        // es más honesto que una hora inventada.
+        if acta.estado == .borrador, let guardado = acta.guardadoLegible {
+            Text(guardado)
                 .font(.caption).foregroundStyle(.secondary)
                 .lineLimit(1)
         }

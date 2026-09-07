@@ -47,6 +47,9 @@ sin trabajo pendiente**: lo que resta son dos decisiones de Iván.
     datos en el aparato. Y se fueron 154 líneas de maqueta muerta. Ver §0.0.f.
 15. **La restauración de un respaldo**, que llevaba desde siempre en
     "Próximamente" y tenía apagados otros dos botones. Ver §0.0.g.
+16. **Tres frases de pantalla que decían algo sin haberlo mirado**: el
+    subtítulo de Actas, el "guardado hace 2 minutos" y un "Próximamente" de
+    Reportes que era en realidad la carga. Ver §0.0.h.
 
 ### Las tres lecciones de esta vuelta
 
@@ -380,6 +383,37 @@ Lo que la medición deja visto, y que decide el paso siguiente:
 del Registro se purga —es la constancia de qué pasó, yo la dejaría fuera— y si
 se purga todo lo marcado o solo lo de más de X días, que es lo que da margen a
 notar un borrado equivocado desde otro aparato antes de que sea irreversible.
+
+### 0.0.h Tres frases que decían algo sin haberlo mirado
+
+Las tres son del mismo tipo —texto escrito a mano donde tenía que haber un
+dato— y por eso se cerraron juntas.
+
+- **El subtítulo de Actas** decía "Acta 2026-08 en borrador" hubiera las actas
+  que hubiera y en el estado que estuvieran: una iglesia sin ninguna a medias
+  leía que tenía una, con el folio de otro año. Ahora lo cuenta
+  `ActasViewModel.subtitulo`, y un borrador manda sobre el recuento porque es lo
+  accionable.
+- **"Guardado hace 2 minutos"** iba bajo cada borrador, tanto en uno recién
+  tecleado como en uno de hace tres meses. El dato estaba en
+  `acta.actualizadoEn` de la base y no llegaba al modelo. Ahora sube y se
+  enseña relativo mientras es reciente y con fecha cuando ya no lo es: "hace 94
+  días" no dice nada que "el 5 de junio" no diga mejor. **Sin fecha no se dice
+  nada**, que es más honesto que una hora inventada.
+- **El "Próximamente" de Reportes** anunciaba que "este reporte llega en un
+  próximo slice" en una rama a la que solo se llega **mientras las cifras
+  cargan** —los tipos son dos y los dos están hechos—, o cuando el año elegido
+  no tiene datos. Ahora es un indicador de carga, y para el año vacío un "Sin
+  datos para 2024" que dice dónde cambiarlo.
+
+**La trampa al verificar el primero**, que vale para la próxima vez: el texto
+calculado sale IDÉNTICO al que estaba escrito a mano —"Minutes 2026-08 in
+draft"— porque el acta de ejemplo es justo la que le dio nombre. La pantalla se
+ve igual antes y después, así que mirarla no prueba nada; lo que lo prueba son
+las tres unitarias con listas distintas. La prueba de interfaz quedó apuntando a
+lo único que sí se ve: que bajo el borrador ya no aparece la hora inventada.
+
+Verificado con cinco pruebas nuevas y las **88 unitarias en verde**.
 
 ### 0.0.a Los cinco sucesos de Tesorería
 
