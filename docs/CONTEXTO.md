@@ -38,6 +38,8 @@ sin trabajo pendiente**: lo que resta son dos decisiones de Iván.
    reflejado (v23), con su pastilla.
 9. **Se podía firmar y emitir una carta sin escribir nada** (§4).
 10. **El folio de los documentos que se firman, al servidor** (§4 y §6).
+11. **Las ocho secciones de Ajustes se pintaban para todos los roles**, aunque
+    el web ya escondiera dos. Ver §0.0.c.
 
 ### Las tres lecciones de esta vuelta
 
@@ -75,6 +77,49 @@ necesitan la sesión.
   corre Iván: `git -C ~/Desktop/Tamio-iOS push origin HEAD:main` (§1).
 
 ---
+
+### 0.0.c Ajustes no filtraba por rol, y de ahí salían los CSV
+
+El app web lleva las dos reglas escritas en su tabla `ZONAS`: Categorías con
+`visible: verTesoreria` y la zona delicada con `visible: esAdmin`. En iOS no
+estaban, ni en el teléfono ni en el iPad: las ocho filas se pintaban para
+cualquiera.
+
+**No era cosmética.** Los dos botones destructivos de la Zona de riesgo están
+apagados hasta que exista la restauración, sí, pero la pantalla EXPORTA: de ahí
+salen "Exportar movimientos (CSV)" y "Exportar aportantes (CSV)". Una secretaria
+—a quien `Permisos.ve(.tesoreria)` le cierra Tesorería entera— se llevaba la
+tesorería completa desde Ajustes, y un tesorero sin `tesoreroVePadron` se
+llevaba el padrón que no puede ni abrir. Es el mismo agujero que ya cierra
+`areasDelRegistro`, y con el mismo argumento escrito allí: lo que la navegación
+cierra por delante no puede quedar abierto por detrás.
+
+La regla vive en `Permisos.veAjuste(_:)` y no en las vistas, porque la pregunta
+la hacen dos pantallas y tienen que contestar igual — que es exactamente lo que
+no pasaba cuando cada una tenía su propia enumeración de secciones (§ el
+comentario de `SeccionAjustes`).
+
+**Dos detalles que solo se ven corriendo la app:**
+
+- El número de versión vivía al pie de la ÚLTIMA sección de la lista del
+  teléfono, que era la Zona de riesgo. Al esconderla, la versión se iba con
+  ella. Ahora el pie salta al grupo "General" cuando la Zona no está.
+- En el índice del iPad, la Zona de riesgo va detrás de un `Divider`. Esconder
+  solo el botón dejaba el separador y su hueco. Se esconde el bloque entero.
+
+Verificado con seis pruebas unitarias (`pruebas/SeccionesDeAjustesTests.swift`)
+y corriendo la app en los dos aparatos con el perfil de ejemplo parcheado al rol
+(`pruebas/AjustesPorRolUITests.swift` explica cómo).
+
+**Lo que NO se tocó, a propósito:** Cuenta y Preferencias las ve todo el mundo
+—cerrar sesión, el candado y el idioma no son de un rol—, y las cuatro del grupo
+Iglesia siguen abiertas: el membrete y las firmas los usan los documentos de las
+dos áreas, y Acceso ya se reserva por dentro con `administraPermisos`.
+
+**Y una promesa que sigue en falso:** `SeccionAjustes.descripcion` de Iglesia
+dice "Nombre, ubicación, **logo** y datos fiscales". No hay logo en iOS ni en el
+web —`grep -i logo` no da nada en ninguno de los dos—. O se quita la palabra o
+se hace el logo; no se decidió.
 
 ### 0.0.a Los cinco sucesos de Tesorería
 

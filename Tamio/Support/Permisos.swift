@@ -79,8 +79,8 @@ struct Permisos {
     /// arranca en Secretaría.
     ///
     /// Ajustes lo ve todo el mundo: hay que poder cerrar sesión, poner el
-    /// candado y cambiar el idioma. Lo delicado de dentro —permisos,
-    /// invitaciones— ya está reservado al administrador por su cuenta.
+    /// candado y cambiar el idioma. Pero no todas sus secciones —eso lo
+    /// reparte `veAjuste(_:)`, aquí abajo.
     enum Area: CaseIterable {
         case inicio, tesoreria, reportes, secretaria, padron, registro, ajustes
     }
@@ -101,6 +101,34 @@ struct Permisos {
             case .secretaria, .padron, .reportes, .registro, .ajustes: return true
             case .inicio, .tesoreria: return false
             }
+        }
+    }
+
+    /// **Qué secciones de Ajustes ve cada rol.** Son las dos reglas que el app
+    /// web ya tenía en `ZONAS` (`visible: verTesoreria` y `visible: esAdmin`) y
+    /// que aquí faltaban: las ocho filas se pintaban para todo el mundo.
+    ///
+    /// No es cosmética. La Zona de riesgo no borra nada —esos dos botones están
+    /// apagados hasta que exista la restauración—, pero **exporta**: de ahí
+    /// salen los CSV de movimientos y de aportantes, con la tesorería y el
+    /// padrón enteros. Una secretaria, a quien la navegación le cierra
+    /// Tesorería, se los llevaba desde Ajustes; y un tesorero sin
+    /// `tesoreroVePadron` se llevaba el padrón que no puede ni abrir. Es el
+    /// mismo agujero que ya cierra `areasDelRegistro`: **lo que la navegación
+    /// cierra por delante no puede quedar abierto por detrás.**
+    ///
+    /// Categorías va con `ve(.tesoreria)` y no con el rol suelto porque son las
+    /// categorías de ingresos y gastos: contenido de Tesorería viviendo en una
+    /// pantalla que ve todo el mundo.
+    ///
+    /// Cuenta y Preferencias no se tocan a propósito: cerrar sesión, el candado
+    /// y el idioma tienen que estar para cualquiera.
+    func veAjuste(_ seccion: SeccionAjustes) -> Bool {
+        switch seccion {
+        case .categorias: return ve(.tesoreria)
+        case .zona:       return rol == .administrador
+        case .cuenta, .iglesia, .institucion, .tesorero, .acceso, .preferencias:
+            return true
         }
     }
 

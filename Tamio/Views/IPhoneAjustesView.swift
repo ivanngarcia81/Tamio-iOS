@@ -41,32 +41,39 @@ struct IPhoneAjustesView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                filaNav(.categorias)
+                // Las categorías son las de ingresos y gastos: no las ve quien
+                // no entra a Tesorería.
+                if permisos.veAjuste(.categorias) { filaNav(.categorias) }
                 filaNav(.preferencias)
             } header: {
                 Text(L.t("General", "General")).textCase(nil)
+            } footer: {
+                // Para quien no ve la Zona de riesgo, la última sección de la
+                // lista es esta, y la versión tiene que seguir estando: es lo
+                // primero que se pregunta cuando algo va mal.
+                if !permisos.veAjuste(.zona) { pieVersion }
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
-            Section {
-                // Era la única fila sin icono de toda la pantalla, y encima la
-                // que más conviene reconocer de un vistazo.
-                filaNav(.zona, destacada: true)
-            } footer: {
-                // La versión va aquí, al pie de la última sección, y no
-                // flotando sobre la lista con `safeAreaInset`. Con el borde
-                // suave de iOS 26 el contenido corre por debajo de la barra de
-                // pestañas, así que ese texto acababa impreso encima de la
-                // fila de Preferencias.
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(L.t("Respaldos, restauración y borrado de datos. Los cambios aquí no se pueden deshacer.",
-                             "Backups, restoration, and data deletion. Changes here cannot be undone."))
-                    Text(VersionApp.pie)
-                        .foregroundStyle(.tertiary)
-                        .frame(maxWidth: .infinity, alignment: .center)
+            if permisos.veAjuste(.zona) {
+                Section {
+                    // Era la única fila sin icono de toda la pantalla, y encima
+                    // la que más conviene reconocer de un vistazo.
+                    filaNav(.zona, destacada: true)
+                } footer: {
+                    // La versión va aquí, al pie de la última sección, y no
+                    // flotando sobre la lista con `safeAreaInset`. Con el borde
+                    // suave de iOS 26 el contenido corre por debajo de la barra
+                    // de pestañas, así que ese texto acababa impreso encima de
+                    // la fila de Preferencias.
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(L.t("Respaldos, restauración y borrado de datos. Los cambios aquí no se pueden deshacer.",
+                                 "Backups, restoration, and data deletion. Changes here cannot be undone."))
+                        pieVersion
+                    }
                 }
+                .listRowBackground(Color(.secondarySystemGroupedBackground))
             }
-            .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
         .scrollEdgeEffectStyle(.soft, for: .all)
@@ -75,6 +82,20 @@ struct IPhoneAjustesView: View {
         .navigationDestination(for: AjustesRuta.self) { ruta in destino(ruta) }
         .task { await cfg.cargar() }
         .onDisappear { Task { await cfg.guardarYa() } }
+    }
+
+    /// Los de la sesión y los de la iglesia. La cuenta la hace `Permisos`, no
+    /// esta vista: el iPad pregunta lo mismo y tiene que contestar igual.
+    private var permisos: Permisos {
+        Permisos(rol: sesion?.perfil.rol ?? .administrador, iglesia: cfg.config)
+    }
+
+    /// El número de versión, que va al pie de la ÚLTIMA sección de la lista —y
+    /// cuál es la última depende del rol.
+    private var pieVersion: some View {
+        Text(VersionApp.pie)
+            .foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity, alignment: .center)
     }
 
     // MARK: - Fila perfil (compacta, índice)

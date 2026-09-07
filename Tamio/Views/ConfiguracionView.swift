@@ -134,7 +134,20 @@ private struct FilaEditable: View {
 
 struct ConfiguracionView: View {
     @Environment(\.horizontalSizeClass) private var hSizeClass
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
     @State private var seccion: SeccionConfig = .cuenta
+
+    /// Quién ve qué sección. La misma pregunta que hace el teléfono y la misma
+    /// respuesta: las ocho filas se pintaban aquí para todo el mundo.
+    private var permisos: Permisos {
+        Permisos(rol: sesion?.perfil.rol ?? .administrador, iglesia: cfg.config)
+    }
+
+    /// Las secciones de un grupo que este rol puede ver.
+    private func visibles(_ items: [SeccionConfig]) -> [SeccionConfig] {
+        items.filter { permisos.veAjuste($0) }
+    }
 
     var body: some View {
         Group {
@@ -209,39 +222,41 @@ struct ConfiguracionView: View {
                         .padding(.bottom, 20)
 
                     grupoSidebar(titulo: L.t("GENERAL", "GENERAL"),
-                                 items: [.categorias, .preferencias])
+                                 items: visibles([.categorias, .preferencias]))
                 }
                 .padding(.bottom, 12)
             }
 
-            Divider()
+            if permisos.veAjuste(.zona) {
+                Divider()
 
-            // Zona de riesgo
-            Button { seccion = .zona } label: {
-                HStack(spacing: 11) {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(SeccionConfig.zona.color)
-                        .frame(width: 28, height: 28)
-                        .overlay(
-                            Image(systemName: SeccionConfig.zona.icono)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.white)
-                        )
-                    Text(L.t("Zona de riesgo", "Danger zone"))
-                        .font(.system(size: 15.5, weight: seccion == .zona ? .semibold : .medium))
-                        .foregroundStyle(seccion == .zona ? SeccionConfig.zona.color : .primary)
-                    Spacer()
+                // Zona de riesgo
+                Button { seccion = .zona } label: {
+                    HStack(spacing: 11) {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(SeccionConfig.zona.color)
+                            .frame(width: 28, height: 28)
+                            .overlay(
+                                Image(systemName: SeccionConfig.zona.icono)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.white)
+                            )
+                        Text(L.t("Zona de riesgo", "Danger zone"))
+                            .font(.system(size: 15.5, weight: seccion == .zona ? .semibold : .medium))
+                            .foregroundStyle(seccion == .zona ? SeccionConfig.zona.color : .primary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, Esp.chip)
+                    .frame(minHeight: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(seccion == .zona ? SeccionConfig.zona.color.opacity(0.10) : .clear)
+                    )
                 }
-                .padding(.horizontal, Esp.chip)
-                .frame(minHeight: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(seccion == .zona ? SeccionConfig.zona.color.opacity(0.10) : .clear)
-                )
+                .buttonStyle(.plain)
+                .padding(.horizontal, Esp.pantalla)
+                .padding(.vertical, 10)
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, Esp.pantalla)
-            .padding(.vertical, 10)
         }
     }
 
@@ -304,7 +319,7 @@ struct ConfiguracionView: View {
     private var listaCompacta: some View {
         ScrollView {
             VStack(spacing: 2) {
-                ForEach(SeccionConfig.allCases) { s in
+                ForEach(visibles(SeccionConfig.allCases)) { s in
                     HStack(spacing: 12) {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(s.color)
