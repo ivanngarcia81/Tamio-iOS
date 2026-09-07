@@ -301,14 +301,14 @@ struct RevisarView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    // **Dentro de la ley de badges.** Iba pintado a mano: verde
-                    // sólido con el texto en blanco, los mismos ~2.4:1 en oscuro
-                    // que se quitaron del resto de la app, y además fuera de los
-                    // cuatro roles de `Paleta.Estado`. Es `informativo`: dice de
-                    // qué clase es el asunto, no reclama nada — lo que reclama
-                    // ya lo dicen los badges naranjas de al lado. Y usa `Pill`,
-                    // que es el componente con el que se dibujan los demás.
-                    Pill(texto: a.tipo.etiquetaCorta, color: Paleta.Estado.informativo.color)
+                    // **El color lo dice el tipo, no la pantalla.** Estuvo en
+                    // cian informativo con el argumento de que lo que reclama
+                    // algo ya lo dicen los badges naranjas de al lado — pero en
+                    // esta fila no hay más badges: este es el único, y el mismo
+                    // asunto salía azul aquí y naranja al abrirlo. `RevisionTipo`
+                    // ya trae su color (naranja lo que espera algo de ti, gris
+                    // lo archivado), así que lo usan la lista y el detalle.
+                    Pill(texto: a.tipo.etiquetaCorta, color: a.tipo.color)
                 }
                 .padding(.horizontal, Esp.tarjeta).padding(.top, 14).padding(.bottom, 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -349,7 +349,7 @@ struct RevisarView: View {
                 // era el título hasta ahora. Naranja y en formato normal, como
                 // los chips de las listas: el rojo queda para lo que resta
                 // dinero o borra.
-                Pill(texto: a.tipo.etiqueta, color: a.archivado ? .secondary : Paleta.aviso)
+                Pill(texto: a.tipo.etiqueta, color: a.tipo.color)
 
                 Text(a.concepto).font(.title.weight(.bold))
                 Text(a.descripcion).font(.subheadline).foregroundStyle(.secondary)
