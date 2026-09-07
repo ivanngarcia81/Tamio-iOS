@@ -91,8 +91,9 @@ El app web lleva las dos reglas escritas en su tabla `ZONAS`: Categorías con
 estaban, ni en el teléfono ni en el iPad: las ocho filas se pintaban para
 cualquiera.
 
-**No era cosmética.** Los dos botones destructivos de la Zona de riesgo están
-apagados hasta que exista la restauración, sí, pero la pantalla EXPORTA: de ahí
+**No era cosmética.** Los dos botones destructivos de la Zona de riesgo estaban
+apagados esa mañana —dejaron de estarlo por la tarde, §0.0.g—, pero la pantalla
+EXPORTA desde siempre: de ahí
 salen "Exportar movimientos (CSV)" y "Exportar aportantes (CSV)". Una secretaria
 —a quien `Permisos.ve(.tesoreria)` le cierra Tesorería entera— se llevaba la
 tesorería completa desde Ajustes, y un tesorero sin `tesoreroVePadron` se
@@ -1111,6 +1112,12 @@ exista restaurar**. Faltan dos medidas antes de decidir: la clase de
 protección real de `tamio.sqlite` **en el iPad** (el simulador no implementa
 Data Protection) y qué protección le queda al respaldo en iCloud Drive.
 
+**Atención al cambio de estado (7-sep-2026):** la condición de la opción B —"que
+exista restaurar"— **se cumplió esta tarde** (§0.0.g). Lo que bloquea ahora no
+es la restauración: son las dos medidas, y las dos piden un iPad de verdad.
+Conviene releer la recomendación con eso delante antes de decidir, porque fue
+escrita cuando restaurar era la parte imposible.
+
 ---
 
 ### `safeAreaBar`, no `safeAreaInset` — 5 de septiembre
@@ -1943,7 +1950,9 @@ va a fallar.
 3. ~~Verificar los recurrentes en aparato.~~ **— PROBADOS por Iván el 7 de
    septiembre y salen bien.** Era el riesgo real que quedaba: código escrito
    entero, que crea movimientos solo, y que nunca había corrido fuera del Mac.
-4. **Las dos medidas del cifrado** (§5).
+4. **Las dos medidas del cifrado** (§5). Siguen pendientes y piden un iPad; lo
+   que ya NO las bloquea es la restauración, que existe desde el 7 de
+   septiembre por la tarde.
 5. ~~Probar la sincronización con la cuenta real.~~ **— HECHO el 6 y el 7 de
    septiembre**, en las dos direcciones y con las entidades nuevas. Ver §5, "La
    subida SÍ funciona", y el §0.
