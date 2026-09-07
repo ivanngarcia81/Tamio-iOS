@@ -25,7 +25,7 @@ struct ReportesView: View {
         GeometryReader { geo in
             if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
-                    listaColumna.frame(width: Esp.columnaMaestra).background(.regularMaterial)
+                    listaColumna.frame(width: Esp.columnaMaestra).background(Color(.secondarySystemGroupedBackground))
                     Divider()
                     preview
                 }

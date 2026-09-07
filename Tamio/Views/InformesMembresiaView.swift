@@ -23,7 +23,6 @@ struct InformesMembresiaView: View {
 
     var body: some View {
         contenidoPrincipal
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar { barra }
             .task { await vm.cargarPadron() }
             .sincronizable { await vm.cargarPadron() }
@@ -39,12 +38,17 @@ struct InformesMembresiaView: View {
     private var contenidoPrincipal: some View {
         if compacto {
             cuerpo
+                .navigationBarTitleDisplayMode(.inline)
         } else {
             HStack(spacing: 0) {
                 sidebarInformes
                 Divider()
                 cuerpo
             }
+            .encabezadoNav(L.t("Informes de membresía", "Membership reports"),
+                           L.t("Panorama, seguimiento e informes del padrón",
+                               "Overview, follow-up & roster reports"))
+            .navigationBarTitleDisplayMode(.large)
         }
     }
 
@@ -111,7 +115,7 @@ struct InformesMembresiaView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color(.secondarySystemGroupedBackground))
-        .frame(width: 220)
+        .frame(width: Esp.columnaMaestra)
     }
 
     /// El informe activo, que es estado y por eso vive en el título y no en el

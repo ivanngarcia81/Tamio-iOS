@@ -41,7 +41,7 @@ struct ServiciosView: View {
                 HStack(spacing: 0) {
                     listaColumna
                         .frame(width: Esp.columnaMaestra)
-                        .background(.regularMaterial)
+                        .background(Color(.secondarySystemGroupedBackground))
                     Divider()
                     if let s = vm.seleccion {
                         detalleServicio(s)
