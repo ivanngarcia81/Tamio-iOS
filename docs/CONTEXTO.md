@@ -250,7 +250,8 @@ un parche gris, y la fecha de Servicios que decía "SAT 5" junto a "Sep 6".
    fila de "Nuevo miembro". Medido antes y después con la app corriendo:
    `Secretary · Search · Members (8) · More filters` pasa a `Secretary ·
    Members (8) · More filters · New`. Cuatro cápsulas las dos veces: no se cayó
-   ninguna.
+   ninguna. **Y probado por Iván en el aparato**, que es donde cuenta: tirando
+   hacia abajo sale la lupa.
 4. **El resumen de la maqueta miente.** `MockMembresiaRepository.resumen()`
    devuelve 248/236/21 escritos a mano sobre una `lista()` de siete. El hub y la
    cabecera de Membresía lo leen. Arreglarlo cambia lo que enseñan las capturas.
