@@ -497,7 +497,7 @@ private struct SeccionIglesia: View {
                 // Logo
                 GrupoConf(nota: L.t("El logo se guarda para toda la iglesia: sale en los documentos que genere cualquier aparato. Las firmas, en cambio, se quedan en el aparato donde se dibujan.",
                                     "The logo is saved for the whole church: it appears on documents generated from any device. Signatures, on the other hand, stay on the device where they're drawn.")) {
-                    SelectorLogo(ruta: $cfg.config.logoPath, enLista: false)
+                    SelectorLogo(enLista: false)
                 }
 
                 // Información

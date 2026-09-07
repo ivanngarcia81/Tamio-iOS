@@ -113,3 +113,59 @@ final class MigracionV25Tests: XCTestCase {
         XCTAssertEqual(logo, "", "### la columna nueva no trajo su valor por omisión")
     }
 }
+
+/// **Lo que el aparato encontró el 7 de septiembre de 2026 y el simulador no.**
+///
+/// El logo aparecía y se borraba solo a los pocos segundos, o al cambiar de
+/// pantalla. Y cada cambio dejaba en el bucket un archivo de 1,6 MB que ya no
+/// reclamaba nadie.
+@MainActor
+final class LogoEnElAparatoTests: XCTestCase {
+
+    private func imagenOpaca(_ lado: Int) -> UIImage {
+        let f = UIGraphicsImageRendererFormat.default()
+        f.scale = 1
+        f.opaque = true
+        return UIGraphicsImageRenderer(size: CGSize(width: lado, height: lado), format: f).image { ctx in
+            UIColor.systemGreen.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: lado, height: lado))
+        }
+    }
+
+    /// **Se pasa por PNG a propósito.** Una imagen recién salida de
+    /// `UIGraphicsImageRenderer` puede volver con el canal alfa descartado
+    /// aunque se pinte medio lienzo, y entonces la prueba no probaría lo que
+    /// dice. Codificarla y volver a leerla es lo que hace el carrete con un
+    /// logo recortado, que es el caso de verdad.
+    private func imagenConAlfa(_ lado: Int) throws -> UIImage {
+        let f = UIGraphicsImageRendererFormat.default()
+        f.scale = 1
+        f.opaque = false
+        let pintada = UIGraphicsImageRenderer(size: CGSize(width: lado, height: lado),
+                                              format: f).image { ctx in
+            UIColor.systemGreen.setFill()
+            // Medio lienzo pintado: la otra mitad queda transparente.
+            ctx.fill(CGRect(x: 0, y: 0, width: lado / 2, height: lado))
+        }
+        return try XCTUnwrap(UIImage(data: try XCTUnwrap(pintada.pngData())))
+    }
+
+    /// **Una foto opaca va en JPEG.** En PNG salieron 1,6 MB por logo, y ese
+    /// archivo se lo baja cada aparato de la iglesia.
+    func testUnaFotoOpacaNoSeGuardaEnPNG() throws {
+        let (datos, extension_, tipo) = try XCTUnwrap(
+            LogoIglesia.codificada(LogoIglesia.preparada(imagenOpaca(1500))))
+        XCTAssertEqual(extension_, "jpg", "### una foto opaca en PNG pesa megabytes")
+        XCTAssertEqual(tipo, "image/jpeg")
+        XCTAssertLessThan(datos.count, 400_000, "### \(datos.count) bytes es demasiado para un logo")
+    }
+
+    /// **Un logo recortado conserva su transparencia.** En JPEG el fondo se
+    /// rellena de blanco, y encima del membrete eso es un rectángulo.
+    func testUnLogoConTransparenciaSigueEnPNG() throws {
+        let (_, extension_, tipo) = try XCTUnwrap(
+            LogoIglesia.codificada(LogoIglesia.preparada(try imagenConAlfa(600))))
+        XCTAssertEqual(extension_, "png", "### se perdería la transparencia")
+        XCTAssertEqual(tipo, "image/png")
+    }
+}

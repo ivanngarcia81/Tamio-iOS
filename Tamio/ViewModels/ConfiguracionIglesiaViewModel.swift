@@ -96,6 +96,21 @@ final class ConfiguracionIglesiaViewModel {
         return nil
     }
 
+    /// **La ruta del logo se guarda YA, sin esperar al temporizador.**
+    ///
+    /// El resto de la configuración se guarda sola 800 ms después de dejar de
+    /// escribir, que para treinta campos de texto es lo correcto. El logo no es
+    /// un campo que se teclea letra a letra: es un suceso único, y esos 800 ms
+    /// eran una ventana con la ruta puesta en pantalla y no en la base. Si
+    /// dentro de esa ventana entraba una sincronización —o el usuario cambiaba
+    /// de pantalla—, la configuración se releía sin la ruta y el logo recién
+    /// puesto se borraba solo. Visto en el aparato el 7 de septiembre de 2026.
+    @MainActor
+    func fijarLogo(_ ruta: String) async {
+        config.logoPath = ruta
+        await guardarYa()
+    }
+
     /// Fuerza el guardado al salir de la pantalla, sin esperar al temporizador.
     @MainActor
     func guardarYa() async {

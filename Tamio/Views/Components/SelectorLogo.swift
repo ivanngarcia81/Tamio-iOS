@@ -10,23 +10,24 @@ import SwiftUI
 /// pasado con el hueco de "Próximamente", que en el iPad prometía una pantalla
 /// que no existía y en el teléfono no.
 ///
-/// La ruta es un `Binding` a `ConfiguracionIglesia.logoPath` para que quien
-/// escriba ese campo siga siendo su dueño —el guardado automático se dispara
-/// solo al cambiarlo—, mientras que los BYTES los administra `LogoIglesia`.
+/// **La ruta no viaja por un `Binding`.** Lo hizo, y ese fue el fallo que se
+/// vio en el aparato: escribir el campo dejaba el guardado en manos del
+/// temporizador de 800 ms de la configuración, y en esa ventana el logo se
+/// borraba solo. Ahora se le pide al modelo que lo fije y lo guarde en el acto
+/// (`fijarLogo`), que es lo que corresponde a un suceso único frente a treinta
+/// campos que se teclean.
 struct SelectorLogo: View {
-    @Binding var ruta: String
     /// El teléfono lo pinta dentro de una `List` con su propio fondo; el iPad,
     /// dentro de un `GrupoConf`. Solo cambia el relleno.
     var enLista = true
 
     @State private var logo = LogoIglesia.compartido
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
     @State private var seleccion: PhotosPickerItem?
     @State private var error: String?
     @State private var confirmarQuitar = false
 
-    private var iniciales: String {
-        ConfiguracionIglesiaViewModel.compartido.config.iniciales
-    }
+    private var iniciales: String { cfg.config.iniciales }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -120,15 +121,17 @@ struct SelectorLogo: View {
         do {
             // La ruta se escribe DESPUÉS de que la subida salga bien: guardarla
             // antes dejaría a los demás aparatos buscando un archivo que no
-            // llegó a existir, y ellos no tienen forma de saberlo.
-            ruta = try await logo.poner(imagen)
+            // llegó a existir, y ellos no tienen forma de saberlo. Y el
+            // anterior se va con ella, para no dejar basura en el bucket.
+            let nueva = try await logo.poner(imagen, reemplazando: cfg.config.logoPath)
+            await cfg.fijarLogo(nueva)
         } catch {
             self.error = error.localizedDescription
         }
     }
 
     private func quitar() async {
-        await logo.quitar(rutaAnterior: ruta)
-        ruta = ""
+        await logo.quitar(rutaAnterior: cfg.config.logoPath)
+        await cfg.fijarLogo("")
     }
 }

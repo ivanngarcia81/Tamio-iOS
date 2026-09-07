@@ -1,3 +1,4 @@
+import GRDB
 import Observation
 import Supabase
 import SwiftUI
@@ -71,7 +72,8 @@ final class LogoIglesia {
         guard let dir = carpeta,
               let archivos = try? FileManager.default.contentsOfDirectory(
                   at: dir, includingPropertiesForKeys: nil) else { return nil }
-        return archivos.first { $0.pathExtension == "png" }
+        // `png` o `jpg`: el formato lo decide la imagen (ver `codificada`).
+        return archivos.first { ["png", "jpg"].contains($0.pathExtension) }
     }
 
     private static func nombre(deRuta ruta: String) -> String {
@@ -87,16 +89,16 @@ final class LogoIglesia {
     /// Guarda en disco ANTES de subir. Si la subida falla —el avión, un túnel—
     /// la iglesia se queda con su logo puesto en este aparato y el error se
     /// enseña; al revés se vería un hueco sin explicación.
-    func poner(_ original: UIImage) async throws -> String {
+    func poner(_ original: UIImage, reemplazando anterior: String = "") async throws -> String {
         trabajando = true
         defer { trabajando = false }
 
         let preparada = Self.preparada(original)
-        guard let datos = preparada.pngData() else {
+        guard let (datos, extension_, tipo) = Self.codificada(preparada) else {
             throw Fallo(texto: L.t("No se pudo preparar la imagen.",
                                    "The image could not be prepared."))
         }
-        let ruta = "\(churchIdActivo)/logo/\(UUID().uuidString).png"
+        let ruta = "\(churchIdActivo)/logo/\(UUID().uuidString).\(extension_)"
 
         Self.limpiarCarpeta()
         if let dir = Self.carpeta {
@@ -105,7 +107,15 @@ final class LogoIglesia {
         }
         imagen = preparada
 
-        try await almacen.subir(datos, a: ruta)
+        try await almacen.subir(datos, a: tipo, ruta)
+
+        // **El anterior, fuera.** Estaba escrito en el comentario de `quitar`
+        // —"sin ella quedaría ocupando el bucket para siempre"— y no se hacía
+        // aquí: en el aparato, dos cambios de logo dejaron dos archivos de 1,6
+        // MB huérfanos en el bucket, y así hasta el infinito. Se borra DESPUÉS
+        // de que el nuevo esté arriba, y si falla no se dice nada: es basura,
+        // no un dato de nadie.
+        if !anterior.isEmpty, anterior != ruta { try? await almacen.borrar(anterior) }
         return ruta
     }
 
@@ -140,7 +150,22 @@ final class LogoIglesia {
         let local = Self.archivoLocal()
 
         if ruta.isEmpty {
-            if local != nil { Self.limpiarCarpeta(); imagen = nil }
+            // **Una ruta vacía no siempre significa "no hay logo".** También
+            // significa "todavía no se ha guardado la que acabo de poner", y
+            // esa ventana existe de verdad: el 7 de septiembre de 2026, en el
+            // aparato, el logo aparecía y se borraba solo a los pocos segundos.
+            // Pasaba esto — la configuración se relee tras sincronizar, la
+            // ruta nueva aún no estaba en la base, y este `if` borraba el
+            // archivo recién puesto.
+            //
+            // Se distingue mirando la cola: si la iglesia tiene algo pendiente
+            // de subir, lo que hay en la base local todavía no es la última
+            // palabra y no se toca nada. Es la misma guarda que usa
+            // `bajarIglesia` antes de pisar el espejo local, y por lo mismo.
+            if local != nil, await Self.sinCambiosPendientes() {
+                Self.limpiarCarpeta()
+                imagen = nil
+            }
             return
         }
         if local?.lastPathComponent == Self.nombre(deRuta: ruta), imagen != nil { return }
@@ -156,6 +181,17 @@ final class LogoIglesia {
                              options: .atomic)
         }
         imagen = bajada
+    }
+
+    /// ¿La iglesia tiene algo esperando a subir? Si lo tiene, lo que hay en la
+    /// base local todavía puede estar a medias y no se puede concluir nada de
+    /// una ruta vacía.
+    private static func sinCambiosPendientes() async -> Bool {
+        let base = BaseLocal.compartida
+        let pendientes = (try? await base.cola.read { db in
+            try OperacionPendiente.filter(Column("entidad") == "iglesia").fetchCount(db)
+        }) ?? 0
+        return pendientes == 0
     }
 
     /// Se vacía la carpeta entera en vez de borrar un archivo concreto: si por
@@ -176,9 +212,54 @@ final class LogoIglesia {
     /// varios MB que trae una foto del carrete.
     private static let ladoMaximo: CGFloat = 1024
 
-    /// **PNG y no JPEG, igual que las firmas**: un logo recortado suele traer
-    /// fondo transparente, y en JPEG la transparencia se rellena de blanco. Un
-    /// rectángulo blanco encima del membrete se nota justo en el papel.
+    /// **El formato lo decide la imagen, no una regla fija.**
+    ///
+    /// Aquí había un `pngData()` a secas, con este motivo escrito: un logo
+    /// recortado trae fondo transparente y en JPEG la transparencia se rellena
+    /// de blanco, que encima del membrete se nota. Es cierto — para un logo
+    /// recortado. Para una FOTO del carrete, que es lo que se elige la primera
+    /// vez, el PNG no comprime nada: en el aparato salieron **1,6 MB por
+    /// logo**, y ese archivo se lo descarga cada teléfono de la iglesia.
+    ///
+    /// Así que se mira si la imagen tiene canal alfa: con transparencia, PNG;
+    /// sin ella, JPEG al 90 %, que para la misma imagen baja de megabytes a
+    /// unos cientos de kB sin diferencia visible en el papel.
+    static func codificada(_ imagen: UIImage) -> (Data, String, String)? {
+        if tieneTransparencia(imagen), let png = imagen.pngData() {
+            return (png, "png", "image/png")
+        }
+        if let jpeg = imagen.jpegData(compressionQuality: 0.9) {
+            return (jpeg, "jpg", "image/jpeg")
+        }
+        return imagen.pngData().map { ($0, "png", "image/png") }
+    }
+
+    /// Alfa de verdad, no "el formato admite alfa": una foto del carrete puede
+    /// venir en un contenedor con canal alfa y estar opaca entera.
+    private static func tieneTransparencia(_ imagen: UIImage) -> Bool {
+        guard let cg = imagen.cgImage else { return true }
+        switch cg.alphaInfo {
+        case .none, .noneSkipFirst, .noneSkipLast: return false
+        default: break
+        }
+        // Se miran los píxeles: basta con encontrar uno que no sea opaco.
+        let ancho = cg.width, alto = cg.height
+        guard ancho > 0, alto > 0 else { return false }
+        // **El lienzo arranca en CERO**, no en 255. Se dibuja con mezcla normal
+        // sobre lo que haya: partiendo de opaco, un píxel transparente deja el
+        // destino intacto y la transparencia no se ve por ninguna parte —así
+        // pasó la primera vez, y un logo recortado se habría guardado en JPEG
+        // con el fondo relleno de blanco—. Partiendo de cero, cada píxel acaba
+        // valiendo su propio alfa. Es lo que ya hacía `FirmasLocales`.
+        var alfa = [UInt8](repeating: 0, count: ancho * alto)
+        guard let ctx = CGContext(data: &alfa, width: ancho, height: alto,
+                                  bitsPerComponent: 8, bytesPerRow: ancho,
+                                  space: CGColorSpaceCreateDeviceGray(),
+                                  bitmapInfo: CGImageAlphaInfo.alphaOnly.rawValue) else { return true }
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: ancho, height: alto))
+        return alfa.contains { $0 < 250 }
+    }
+
     static func preparada(_ imagen: UIImage) -> UIImage {
         let lado = max(imagen.size.width, imagen.size.height)
         guard lado > ladoMaximo, lado > 0 else { return imagen }
@@ -207,7 +288,9 @@ final class LogoIglesia {
 /// Lo que el logo necesita de Storage y `ComprobantesStorage` no da: bajar los
 /// bytes —el PDF se arma sin red— y borrar el anterior al reemplazarlo.
 protocol LogoStorage: Sendable {
-    func subir(_ datos: Data, a ruta: String) async throws
+    /// El tipo va aparte porque ya no siempre es PNG: el bucket rechaza la
+    /// subida si el `contentType` no coincide con lo que se manda.
+    func subir(_ datos: Data, a tipo: String, _ ruta: String) async throws
     func descargar(_ ruta: String) async throws -> Data
     func borrar(_ ruta: String) async throws
 }
@@ -215,10 +298,10 @@ protocol LogoStorage: Sendable {
 struct SupabaseLogoStorage: LogoStorage {
     private var bucket: String { SupabaseComprobantesStorage.bucket }
 
-    func subir(_ datos: Data, a ruta: String) async throws {
+    func subir(_ datos: Data, a tipo: String, _ ruta: String) async throws {
         try await supabase.storage
             .from(bucket)
-            .upload(ruta, data: datos, options: FileOptions(contentType: "image/png"))
+            .upload(ruta, data: datos, options: FileOptions(contentType: tipo))
     }
 
     func descargar(_ ruta: String) async throws -> Data {
@@ -234,7 +317,7 @@ struct SupabaseLogoStorage: LogoStorage {
 /// guarda igual en el aparato, así que el logo se ve y la pantalla se puede
 /// recorrer entera; lo único que no ocurre es el viaje al servidor.
 struct MockLogoStorage: LogoStorage {
-    func subir(_ datos: Data, a ruta: String) async throws {
+    func subir(_ datos: Data, a tipo: String, _ ruta: String) async throws {
         try? await Task.sleep(nanoseconds: 300_000_000)
     }
     func descargar(_ ruta: String) async throws -> Data {
