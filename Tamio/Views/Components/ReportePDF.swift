@@ -3,6 +3,26 @@ import SwiftUI
 /// Página imprimible del "Estado financiero". Blanco y negro con verde de marca
 /// solo en las cifras, según la ley de color. Es lo que se renderiza al PDF y lo
 /// que se ve en la vista previa. Ancho fijo tamaño carta (lo envuelve PDFExport).
+/// La columna de porcentaje de una tabla de categorías, ya en texto y en el
+/// orden de las filas. La comparten las dos hojas —la del reporte mensual y la
+/// del anual—, que es por lo que vive fuera de las dos.
+///
+/// Con `base` puesta la columna **no** es un reparto: son los gastos del
+/// periodo medidos contra el ingreso del periodo, y no suman 100 a propósito.
+/// Sin `base`, las filas son el total y el porcentaje se reparte para que
+/// cierre en el 100 % que escribe la fila de total (ver `Money.reparto`). Esa
+/// es la razón de que el reparto no pueda vivir dentro del cálculo de un
+/// porcentaje suelto, que sirve a los dos casos.
+private func columnaPct(_ filas: [CategoriaMonto],
+                        total: Centavos, base: Centavos?) -> [String] {
+    if let base {
+        guard base > 0 else { return filas.map { _ in "—" } }
+        return filas.map { "\(Int((Double($0.monto) / Double(base) * 100).rounded()))%" }
+    }
+    guard total > 0 else { return filas.map { _ in "—" } }
+    return Money.reparto(filas.map(\.monto), total: total).map { "\($0)%" }
+}
+
 struct ReporteHojaPDF: View {
     let e: EstadoFinanciero
     /// El periodo sale del propio reporte. Venía por parámetro y era la clave
@@ -174,6 +194,7 @@ struct ReporteHojaPDF: View {
     private func tablaCategorias(_ titulo: String, _ filas: [CategoriaMonto],
                                  total: Centavos, color: Color,
                                  base: Centavos? = nil, vacia: String) -> some View {
+        let porcentajes = columnaPct(filas, total: total, base: base)
         Text(titulo).font(.headline)
         VStack(spacing: 0) {
             if filas.isEmpty {
@@ -183,11 +204,11 @@ struct ReporteHojaPDF: View {
                 }
                 .padding(.vertical, 7)
             }
-            ForEach(filas) { c in
+            ForEach(Array(filas.enumerated()), id: \.element.id) { i, c in
                 HStack {
                     Text(c.nombre).frame(maxWidth: .infinity, alignment: .leading)
                     Text(Money.fmt(c.monto)).foregroundStyle(color).frame(width: 120, alignment: .trailing)
-                    Text(pct(c.monto, de: base ?? total)).foregroundStyle(.secondary)
+                    Text(porcentajes[i]).foregroundStyle(.secondary)
                         .frame(width: 60, alignment: .trailing)
                 }
                 .font(.subheadline).monospacedDigit()
@@ -205,11 +226,6 @@ struct ReporteHojaPDF: View {
             }
             .font(.subheadline).padding(.vertical, 7)
         }
-    }
-
-    private func pct(_ parte: Centavos, de total: Centavos) -> String {
-        guard total > 0 else { return "—" }
-        return "\(Int((Double(parte) / Double(total) * 100).rounded()))%"
     }
 
     private func filaSaldo(_ label: String, _ monto: Centavos,
@@ -486,6 +502,9 @@ struct ReporteAnualHojaPDF: View {
     @ViewBuilder
     private func tabla(_ titulo: String, _ filas: [CategoriaMonto],
                        total: Centavos, color: Color) -> some View {
+        // El anual mide cada lado contra sí mismo, así que la columna es un
+        // reparto y cierra en el 100 % que ya escribe la fila de total.
+        let porcentajes = columnaPct(filas, total: total, base: nil)
         Text(titulo).font(.headline)
         VStack(spacing: 0) {
             if filas.isEmpty {
@@ -496,11 +515,11 @@ struct ReporteAnualHojaPDF: View {
                 }
                 .padding(.vertical, 7)
             }
-            ForEach(filas) { c in
+            ForEach(Array(filas.enumerated()), id: \.element.id) { i, c in
                 HStack {
                     Text(c.nombre).frame(maxWidth: .infinity, alignment: .leading)
                     Text(Money.fmt(c.monto)).foregroundStyle(color).frame(width: 120, alignment: .trailing)
-                    Text(total > 0 ? "\(Int((Double(c.monto) / Double(total) * 100).rounded()))%" : "—")
+                    Text(porcentajes[i])
                         .foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
                 }
                 .font(.subheadline).monospacedDigit()

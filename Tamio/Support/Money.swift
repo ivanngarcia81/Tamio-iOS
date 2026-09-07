@@ -62,6 +62,49 @@ enum Money {
 }
 
 extension Money {
+    /// **El reparto de un total en porcentajes que suman 100.**
+    ///
+    /// Redondear cada parte por su cuenta no cierra: 62.5 y 37.5 salen 63 y
+    /// 38, y la leyenda de la dona decía "Donation 63 % · Tithe 38 %". Aquí se
+    /// reparten los puntos que faltan entre las partes con el resto decimal
+    /// más grande, que es el método que menos mueve cada cifra respecto de su
+    /// valor exacto.
+    ///
+    /// **Solo vale cuando las partes SON el total.** En la app hay
+    /// porcentajes que a propósito no suman 100 —los gastos del mes se miden
+    /// contra el ingreso del mes, no contra el gasto— y ahí forzar el 100
+    /// sería romper el dato, no arreglarlo. Por eso la comprobación no es una
+    /// condición del que llama sino de la propia función: si las partes no
+    /// suman el total, cada una se redondea por su cuenta y no se reparte
+    /// nada.
+    ///
+    /// - Returns: un porcentaje entero por parte, en el mismo orden.
+    static func reparto(_ partes: [Centavos], total: Centavos) -> [Int] {
+        guard total > 0 else { return Array(repeating: 0, count: partes.count) }
+        let exactos = partes.map { Double($0) / Double(total) * 100 }
+        guard partes.reduce(0, +) == total else { return exactos.map { Int($0.rounded()) } }
+
+        var enteros = exactos.map { Int($0.rounded(.down)) }
+        var faltan = 100 - enteros.reduce(0, +)
+        guard faltan > 0, !enteros.isEmpty else { return enteros }
+
+        // Los puntos sueltos van a quien más cerca estaba de subir. A igualdad
+        // de resto manda el orden de la lista, para que la misma dona no
+        // reparta distinto entre dos aperturas.
+        let porResto = exactos.indices.sorted {
+            let a = exactos[$0] - Double(enteros[$0])
+            let b = exactos[$1] - Double(enteros[$1])
+            return a == b ? $0 < $1 : a > b
+        }
+        var i = 0
+        while faltan > 0 {
+            enteros[porResto[i % porResto.count]] += 1
+            faltan -= 1
+            i += 1
+        }
+        return enteros
+    }
+
     /// Lee un importe escrito por una persona o exportado por otro programa.
     ///
     /// Hay que aguantar los dos mundos: "1.960,00" (español) y "1,960.00"

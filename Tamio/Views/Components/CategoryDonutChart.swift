@@ -10,9 +10,9 @@ struct CategoryDonutChart: View {
 
     private var total: Centavos { categorias.reduce(0) { $0 + $1.monto } }
     private func color(_ i: Int) -> Color { Paleta.donut[min(i, Paleta.donut.count - 1)] }
-    private func pct(_ m: Centavos) -> Int {
-        total > 0 ? Int((Double(m) / Double(total) * 100).rounded()) : 0
-    }
+    /// Los porcentajes de la leyenda, en el orden de las categorías. Es un
+    /// reparto del total, así que suman 100: ver `Money.reparto`.
+    private var pcts: [Int] { Money.reparto(categorias.map(\.monto), total: total) }
 
     /// El centro de la dona: "$48.3k" (miles con un decimal), como el diseño.
     private var centroTexto: String {
@@ -54,7 +54,7 @@ struct CategoryDonutChart: View {
                             Circle().fill(color(i)).frame(width: 9, height: 9)
                             Text(cat.nombre).font(.subheadline).lineLimit(1).minimumScaleFactor(0.6)
                             Spacer(minLength: 6)
-                            Text("\(pct(cat.monto))%")
+                            Text("\(pcts[i])%")
                                 .font(.subheadline.weight(.medium))
                                 .monospacedDigit()
                                 .foregroundStyle(.secondary)

@@ -549,7 +549,12 @@ struct ReportesView: View {
     }
 
     private func tablaCategorias(_ titulo: String, _ filas: [CategoriaMonto], total: Centavos) -> some View {
-        Tarjeta {
+        // Aquí las filas SON el total —ingresos contra el ingreso del año,
+        // gastos contra el gasto del año— así que el porcentaje se reparte y
+        // la columna suma 100. No es el caso de `tarjetaGastos`, que mide el
+        // gasto del mes contra el ingreso del mes a propósito.
+        let repartidos = Money.reparto(filas.map(\.monto), total: total)
+        return Tarjeta {
             VStack(alignment: .leading, spacing: 10) {
                 TituloSeccion(texto: titulo)
                 AmountText(cents: total, size: 26)
@@ -557,12 +562,12 @@ struct ReportesView: View {
                     Text(L.t("Sin movimientos en el año", "No activity this year"))
                         .font(.subheadline).foregroundStyle(.secondary)
                 }
-                ForEach(filas) { c in
+                ForEach(Array(filas.enumerated()), id: \.element.id) { i, c in
                     HStack {
                         Text(c.nombre).font(.subheadline).lineLimit(1)
                         Spacer()
                         Text(Money.fmt(c.monto)).font(.subheadline).monospacedDigit()
-                        Text(porcentaje(c.monto, de: total))
+                        Text(total > 0 ? "\(repartidos[i])%" : "—")
                             .font(.caption).foregroundStyle(.secondary).monospacedDigit()
                             .frame(width: 44, alignment: .trailing)
                     }
