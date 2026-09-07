@@ -272,12 +272,13 @@ la app en modo revisión, que es justo donde los datos son inventados. Un
 
 Rama viva: **`liquid-glass`**, sincronizada con `origin/liquid-glass`.
 
-**`main` se quedó atrás en `4a571ff`**, a cinco commits. El 5 y el 6 de
-septiembre se adelantó por avance rápido (`git push origin liquid-glass:main`)
-y conviene repetirlo para que combinarlas no se convierta en un problema, pero
-la segunda vuelta del 6 NO se adelantó a propósito: trae cuatro migraciones
-nuevas (v18–v21) y cuatro entidades de sincronización que nunca han tocado la
-red. Adelantarla después de probar contra la cuenta real, no antes.
+**`main` está al día en `3ffc483`**, adelantada por avance rápido el 7 de
+septiembre (`git push origin liquid-glass:main`). Se había quedado atrás en
+`4a571ff` a propósito mientras las cuatro migraciones nuevas (v18–v21) y las
+cuatro entidades de sincronización estaban sin probar contra la red; se probaron
+con la cuenta real, así que el motivo se acabó. **Repetirlo cuando lo de
+`liquid-glass` esté probado**, no antes: es lo que evita que combinarlas se
+convierta en un problema.
 
 Ramas viejas ya absorbidas aquí, no hace falta volver a ellas:
 `arreglos-interfaz`, `arreglos-revision-iphone`, `revision-y-motor-offline`.
@@ -1217,9 +1218,8 @@ receta (§5, "Las cinco pantallas de Secretaría, enchufadas"). Antes de empezar
 ninguna: mirar cómo guarda el web esa misma cosa, que es donde estaban todas
 las respuestas.
 
-**3. Adelantar `main`.** Se quedó en `4a571ff` a propósito mientras la
-sincronización estaba sin probar. Ya está probada, así que el motivo se acabó:
-`git push origin liquid-glass:main`.
+**3.** ~~Adelantar `main`.~~ **— HECHO el 7 de septiembre**, por avance rápido
+hasta `3ffc483` (§1).
 
 **4. Los cuatro de acabado de Secretaría**, que no impiden usarla:
 
