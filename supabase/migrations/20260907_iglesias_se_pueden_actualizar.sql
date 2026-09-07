@@ -1,3 +1,5 @@
+-- Aplicada el 2026-09-07 por Iván desde el SQL Editor.
+--
 -- **`iglesias` tenía RLS activo y UNA sola política: leer.**
 --
 -- Sin política de UPDATE, un `update` desde el cliente NO da error: afecta a
