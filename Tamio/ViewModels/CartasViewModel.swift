@@ -66,7 +66,7 @@ final class CartasViewModel {
         guard !carta.aportante.isEmpty else { return }
         let nueva = CartaEmitida(
             id: UUID().uuidString,
-            folio: folioSiguiente(),
+            folio: await repo.siguienteFolio(fecha: carta.fechaEmision),
             tipo: carta.tipo,
             fechaEmision: Fechas.claveDia(carta.fechaEmision),
             lugarEmision: carta.lugarEmision,
@@ -96,17 +96,6 @@ final class CartasViewModel {
         carta.miembroDesde = ""
     }
 
-    /// **El folio se cuenta de las emitidas del año**, no de la posición en la
-    /// lista. Un folio que se repite es un documento que no se puede citar.
-    /// Se queda corto si dos aparatos emiten a la vez sin sincronizar; el
-    /// contador de Postgres que ya usan los movimientos es lo que lo resuelve
-    /// de verdad, y todavía no cubre cartas.
-    private func folioSiguiente() -> String {
-        let año = Calendar.current.component(.year, from: Date())
-        let prefijo = "\(año)-"
-        let usados = emitidas
-            .filter { $0.folio.hasPrefix(prefijo) }
-            .compactMap { Int($0.folio.dropFirst(prefijo.count)) }
-        return String(format: "%d-%03d", año, (usados.max() ?? 0) + 1)
-    }
+    // El folio ya no se calcula aquí: lo da el repositorio, que cuenta contra
+    // la base entera y con el formato del web. Ver `CartasRepository`.
 }

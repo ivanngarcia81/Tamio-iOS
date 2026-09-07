@@ -7,6 +7,46 @@ protocol CartasRepository {
     /// emitir una carta solo la metía en un array del view model.
     func guardar(_ c: CartaEmitida) async throws
     func eliminar(id: String) async throws
+    /// **El folio lo decide el repositorio, no la pantalla.** Estaba en el
+    /// ViewModel, contando de la lista que tuviera cargada y con OTRO formato
+    /// —"2026-014" frente al `CAR-2026-0014` del web—, así que la misma iglesia
+    /// llevaba dos series de folios y la del teléfono no veía las cartas
+    /// emitidas desde el escritorio: contaba solo las suyas.
+    ///
+    /// Es la misma razón por la que el registro se anota aquí: emitir una carta
+    /// desde otro sitio tiene que numerarla igual.
+    func siguienteFolio(fecha: Date) async -> String
+}
+
+/// `CAR-2026-0007`. **El formato es el del web** (`nextFolio` en su `db.ts`):
+/// prefijo, año de la fecha de emisión y cuatro dígitos.
+enum FolioCarta {
+    static let prefijo = "CAR"
+
+    static func texto(anio: String, seq: Int) -> String {
+        "\(prefijo)-\(anio)-\(String(format: "%04d", seq))"
+    }
+
+    /// El número de un folio de ese año, o `nil` si no lo es. Con esto, contar
+    /// mira TODAS las cartas de la iglesia —las que subió el escritorio
+    /// incluidas—, que es lo que evita repetir número.
+    static func seq(de folio: String, anio: String) -> Int? {
+        let esperado = "\(prefijo)-\(anio)-"
+        guard folio.hasPrefix(esperado) else { return nil }
+        return Int(folio.dropFirst(esperado.count))
+    }
+}
+
+extension CartasRepository {
+    /// El siguiente libre del año, contado de las cartas que ya existen. La
+    /// cuenta es idéntica a la del web —`MAX(seq) + 1` del año— y por eso vive
+    /// en la extensión del protocolo: no es algo que cada implementación deba
+    /// repetir a su manera.
+    func siguienteFolio(_ emitidas: [CartaEmitida], fecha: Date) -> String {
+        let anio = String(Fechas.claveDia(fecha).prefix(4))
+        let maximo = emitidas.compactMap { FolioCarta.seq(de: $0.folio, anio: anio) }.max() ?? 0
+        return FolioCarta.texto(anio: anio, seq: maximo + 1)
+    }
 }
 
 struct MockCartasRepository: CartasRepository {
@@ -21,6 +61,10 @@ struct MockCartasRepository: CartasRepository {
         Self.añadidas.append(c)
     }
 
+    func siguienteFolio(fecha: Date) async -> String {
+        siguienteFolio((try? await emitidas()) ?? [], fecha: fecha)
+    }
+
     func eliminar(id: String) async throws {
         Self.añadidas.removeAll { $0.id == id }
     }
@@ -32,14 +76,14 @@ struct MockCartasRepository: CartasRepository {
     private static var semilla: [CartaEmitida] {
         let año = Calendar.current.component(.year, from: Date())
         return [
-            CartaEmitida(id: "1", folio: "\(año)-001", tipo: .traslado,
+            CartaEmitida(id: "1", folio: FolioCarta.texto(anio: String(año), seq: 1), tipo: .traslado,
                          fechaEmision: "\(año)-08-20",
                          lugarEmision: "Monterrey, Nuevo León",
                          destinatarioTipo: "iglesia",
                          destinatarioNombre: "Javier Medina Cruz",
                          asunto: L.t("Carta de traslado", "Transfer letter"),
                          estado: "emitida"),
-            CartaEmitida(id: "2", folio: "\(año)-002", tipo: .certificadoMiembro,
+            CartaEmitida(id: "2", folio: FolioCarta.texto(anio: String(año), seq: 2), tipo: .certificadoMiembro,
                          fechaEmision: "\(año)-08-28",
                          lugarEmision: "Monterrey, Nuevo León",
                          destinatarioTipo: "miembro",
@@ -83,6 +127,20 @@ struct OfflineCartasRepository: CartasRepository {
             await anotarSuceso(.cartaEmitida, ["folio": c.folio,
                                                "destinatario": c.destinatarioNombre])
         }
+    }
+
+    /// **Contra la base entera, no contra lo cargado en pantalla.** La lista
+    /// puede estar filtrada o a medio cargar, y de ahí no sale un número de
+    /// documento. Se cuentan también las borradas: su folio se emitió y está
+    /// citado en algún papel, así que ese número no se reutiliza.
+    func siguienteFolio(fecha: Date) async -> String {
+        let anio = String(Fechas.claveDia(fecha).prefix(4))
+        let maximo = (try? await cola.read { db in
+            try String.fetchAll(db, sql: "select folio from carta")
+                .compactMap { FolioCarta.seq(de: $0, anio: anio) }
+                .max()
+        }) ?? nil
+        return FolioCarta.texto(anio: anio, seq: (maximo ?? 0) + 1)
     }
 
     func eliminar(id: String) async throws {

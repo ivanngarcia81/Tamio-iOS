@@ -433,6 +433,25 @@ Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.
 
 ## 4. Cosas ya medidas · no volver a discutirlas
 
+- **El folio de un documento lo da el repositorio, no la pantalla.** El de las
+  cartas se calculaba en `CartasViewModel`, contando de la lista que tuviera
+  cargada —que puede estar filtrada o a medio cargar— y con OTRO formato:
+  escribía `2026-014` mientras el escritorio emitía `CAR-2026-0014`. La misma
+  iglesia llevaba dos series de folios, y la del teléfono no veía las cartas del
+  escritorio, así que contaba solo las suyas.
+
+  Ahora es el formato del web (`nextFolio` en su `db.ts`: prefijo, año y cuatro
+  dígitos) y se cuenta contra la base entera, **borradas incluidas** —ese número
+  se emitió y está citado en algún papel—. Comprobado sobre los datos de la
+  iglesia: con `CAR-2026-0001…0005` dentro, el siguiente sale `CAR-2026-0006`.
+
+  **Lo que sigue sin resolverse, y es del web también:** dos aparatos sin
+  conexión pueden calcular el mismo número. El web lo repara al sincronizar
+  (`repararFoliosDuplicados`, que renumera el más nuevo); iOS no repara, a
+  propósito, porque dos reparadores con criterios distintos —el del web ordena
+  por su `id` autoincremental, que aquí no existe— se pisarían. Una iglesia que
+  solo use teléfonos no tiene quien repare.
+
 - **Un formulario no nace con datos dentro.** `CartaEnEdicion` traía cuatro
   valores de maqueta escritos —"Javier Medina Cruz", "Iglesia El Buen Pastor",
   "2018", "Pastor Abel Ramos"— y son exactamente los que cuenta
