@@ -598,13 +598,29 @@ struct CartaEmitida: Identifiable {
     }
 }
 
+/// **Nace VACÍA.** Traía cuatro valores de maqueta escritos dentro —"Javier
+/// Medina Cruz", "Iglesia El Buen Pastor", "2018", "Pastor Abel Ramos"—, y esos
+/// cuatro son exactamente los tres que cuenta `camposCompletos` más la firma:
+/// con ellos puestos, la comprobación de "faltan campos por completar" se
+/// cumplía sola y se podía firmar y emitir una carta **sin haber escrito
+/// nada**, a nombre de una persona que no existe y firmada por un pastor que
+/// tampoco.
+///
+/// No es teoría: el 7 de septiembre aparecieron en el registro de la iglesia
+/// tres cartas emitidas a Javier Medina Cruz con veinte minutos de diferencia,
+/// y no hay ninguna persona con ese nombre en el padrón. Iván lo confirmó —"las
+/// tres cartas son maquetas"— y de ahí salió esto.
+///
+/// La firma la propone la iglesia de Ajustes, que es de donde salen el membrete
+/// y los cargos: proponer un dato de la iglesia es ayudar, inventarlo es otra
+/// cosa.
 struct CartaEnEdicion {
     // Campos existentes (usados por el editor de detalle)
     var tipo: TipoPlantilla = .traslado
-    var aportante: String = "Javier Medina Cruz"
-    var iglesiaDestino: String = "Iglesia El Buen Pastor"
-    var miembroDesde: String = "2018"
-    var firma: String = "Pastor Abel Ramos"
+    var aportante: String = ""
+    var iglesiaDestino: String = ""
+    var miembroDesde: String = ""
+    var firma: String = ConfiguracionIglesiaViewModel.compartido.config.pastorNombre
 
     var camposCompletos: Int {
         [aportante, iglesiaDestino, miembroDesde].filter { !$0.isEmpty }.count

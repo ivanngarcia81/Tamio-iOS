@@ -433,6 +433,18 @@ Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.
 
 ## 4. Cosas ya medidas · no volver a discutirlas
 
+- **Un formulario no nace con datos dentro.** `CartaEnEdicion` traía cuatro
+  valores de maqueta escritos —"Javier Medina Cruz", "Iglesia El Buen Pastor",
+  "2018", "Pastor Abel Ramos"— y son exactamente los que cuenta
+  `camposCompletos`: la comprobación de "faltan campos por completar" se cumplía
+  sola y se podía **firmar y emitir una carta sin escribir nada**, a nombre de
+  alguien que no existe. Pasó tres veces en la iglesia de verdad el 7 de
+  septiembre, y se destapó mirando el Registro.
+
+  **Cómo se encuentra el siguiente:** un apunte con un nombre que no está en el
+  padrón. Y la regla: proponer un dato de la IGLESIA (el pastor de Ajustes) es
+  ayudar; inventar una persona es otra cosa.
+
 - **El teléfono no gira: solo vertical.** En apaisado, un iPhone grande pasa a
   clase de tamaño **regular**, y toda la app decide su forma con
   `sizeClass == .compact`: girar el teléfono daba las dos columnas y la sidebar,
