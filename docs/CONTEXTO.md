@@ -1082,9 +1082,21 @@ sincronización, escuchando `ultimaSincronizacion`, que ya se publicaba.
 saber cómo se llaman las cosas, y una marca en el log + `simctl io screenshot`
 desde el shell para fotografiar un estado transitorio (§3).
 
-**Sin verificar:** el selector de aportante con el aparato en avión —el camino
-no toca la red, pero no se ejercitó—, y los cinco sucesos de Tesorería vistos en
-la pantalla de Registro: para eso hay que borrar un movimiento de verdad.
+**Y el rastro, de punta a punta.** Con permiso de Iván se capturó un ingreso de
+$1.00 y se dio de baja deslizando en la lista: el Registro lo anotó solo, en
+rojo y bajo el filtro de Tesorería —*"Transaction «PRUEBA Claude · borrar» for
+$1.00 MXN was deleted (folio 6)"*, con su autor y su hora—. **La frase salió en
+inglés** porque el aparato está en inglés, que es la razón de ser de esta tabla:
+se guardan las piezas y se compone al leer.
+
+Dos cosas que solo se ven ahí: el folio del apunte es el DEFINITIVO ("folio 6")
+y no el provisional que enseñaba la lista, porque el movimiento ya había subido
+antes de borrarlo; y las cartas emitidas hace unas horas —escritas con la clave
+vieja `nombre`— **se leen enteras**, que es justo para lo que se dejó la lectura
+con dos claves.
+
+**Sin verificar:** el selector de aportante con el aparato en avión. El camino no
+toca la red y la prueba unitaria lo cubre, pero no se ejercitó sin señal.
 
 ---
 
