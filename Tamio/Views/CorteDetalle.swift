@@ -427,12 +427,16 @@ struct CorteDetalle: View {
         return L.t("Revisó el registro · \(cuando)", "Checked the record · \(cuando)")
     }
 
+    /// `.glass` por lo mismo que "Nuevo corte": eran los dos `.bordered` con
+    /// tinte gris que quedaban en la app, y este está justo debajo de un aviso
+    /// naranja que dice que falta la firma — un botón que hay que pulsar no
+    /// puede leerse apagado.
     private var botonFirmar: some View {
         Button { mostrarFirma = true } label: {
             Label(L.t("Segunda firma", "Second signature"),
                   systemImage: "signature").font(.subheadline)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.glass)
         .tint(Color.secondary)
     }
 
