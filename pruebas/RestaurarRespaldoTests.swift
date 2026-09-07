@@ -189,3 +189,100 @@ final class BorradoMasivoTests: XCTestCase {
         XCTAssertTrue(encolado, "### se borró en el teléfono y nadie va a contárselo al servidor")
     }
 }
+
+/// **La medición de la Zona de riesgo.**
+///
+/// La fila decía "La base ya está compacta" siempre, sin haber mirado nada.
+/// Estas pruebas cuidan que lo que diga ahora sea lo que hay: si el número no
+/// se puede confiar, la frase de antes era igual de útil y más corta.
+@MainActor
+final class CompactacionTests: XCTestCase {
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        try XCTSkipIf(BaseLocal.compartida.enMemoria, "sin base de disco no hay nada que medir")
+    }
+
+    private func sembrarMovimiento(id: String, borrado: Bool) async throws {
+        try await BaseLocal.compartida.cola.write { db in
+            let obligatorias = try Row.fetchAll(db, sql: "select * from pragma_table_info('movimiento')")
+                .filter { ($0["notnull"] as Int? ?? 0) == 1 && $0["dflt_value"] == nil }
+                .compactMap { $0["name"] as String? }
+            let valores = obligatorias.map { c -> String in
+                switch c {
+                case "id":      return "'\(id)'"
+                case "monto":   return "100"
+                case "borrado": return borrado ? "1" : "0"
+                default:        return "'x'"
+                }
+            }
+            var columnas = obligatorias
+            var vals = valores
+            if !columnas.contains("borrado") {
+                columnas.append("borrado")
+                vals.append(borrado ? "1" : "0")
+            }
+            try db.execute(sql: """
+                insert or replace into movimiento (\(columnas.joined(separator: ", ")))
+                values (\(vals.joined(separator: ", ")))
+                """)
+        }
+    }
+
+    func testCuentaLosRegistrosBorradosQueSiguenGuardados() async throws {
+        try await BaseLocal.compartida.cola.write { db in
+            try db.execute(sql: "delete from movimiento")
+            try db.execute(sql: "delete from outbox")
+        }
+        let medidoAntes = await Compactacion.medir()
+        let antes = try XCTUnwrap(medidoAntes)
+
+        try await sembrarMovimiento(id: "c-borrado", borrado: true)
+        try await sembrarMovimiento(id: "c-vivo", borrado: false)
+        let medidoDespues = await Compactacion.medir()
+        let despues = try XCTUnwrap(medidoDespues)
+
+        XCTAssertEqual(despues.filasBorradas, antes.filasBorradas + 1,
+                       "### no contó la fila marcada como borrada")
+        XCTAssertEqual(despues.filasPurgables, antes.filasPurgables + 1,
+                       "### sin nada en la outbox, esa fila ya se puede quitar")
+    }
+
+    /// La distinción que hace segura la purga: una baja que aún no ha subido no
+    /// se puede tocar, porque si se borra el servidor no se entera nunca.
+    func testUnaBajaSinSubirNoCuentaComoPurgable() async throws {
+        try await BaseLocal.compartida.cola.write { db in
+            try db.execute(sql: "delete from movimiento")
+            try db.execute(sql: "delete from outbox")
+        }
+        try await sembrarMovimiento(id: "c-pendiente", borrado: true)
+        try await BaseLocal.compartida.cola.write { db in
+            var op = OperacionPendiente(id: nil, entidad: "movimiento",
+                                        registroId: "c-pendiente",
+                                        operacion: OperacionPendiente.Operacion.eliminar.rawValue,
+                                        creadoEn: Date().timeIntervalSince1970,
+                                        intentos: 0, ultimoError: nil)
+            try op.insert(db)
+        }
+        let medido = await Compactacion.medir()
+        let e = try XCTUnwrap(medido)
+        XCTAssertEqual(e.filasBorradas, 1)
+        XCTAssertEqual(e.filasPurgables, 0,
+                       "### purgarla dejaría al servidor sin enterarse de la baja")
+    }
+
+    /// El resumen es lo que se lee en pantalla: no puede prometer una limpieza
+    /// que todavía no existe.
+    func testElResumenNoPrometeLimpiar() async throws {
+        let medido = await Compactacion.medir()
+        let e = try XCTUnwrap(medido)
+        let texto = e.resumen.lowercased()
+        for promesa in ["recuperar", "se pueden quitar", "reclaim", "can be removed"] {
+            XCTAssertFalse(texto.contains(promesa), "\(promesa) → \(texto)")
+        }
+        // En los dos idiomas: el simulador corre en inglés y la prueba no
+        // puede depender de en cuál esté.
+        XCTAssertTrue(texto.contains("la base ocupa") || texto.contains("the database takes"),
+                      texto)
+    }
+}

@@ -1310,6 +1310,7 @@ private struct SeccionZona: View {
     @State private var confirmarReinicio = false
     @State private var porRestaurar: (url: URL, manifiesto: Respaldo.Manifiesto)?
     @State private var hecho: String?
+    @State private var estadoBase: Compactacion.Estado?
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
 
     var body: some View {
@@ -1372,8 +1373,9 @@ private struct SeccionZona: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(L.t("Compactar base de datos", "Compact database"))
                             .font(.system(size: 16))
-                        Text(L.t("La base ya está compacta", "The database is already compact"))
+                        Text(estadoBase?.resumen ?? L.t("Midiendo…", "Measuring…"))
                             .font(.system(size: 13.5)).foregroundStyle(.tertiary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
@@ -1425,6 +1427,7 @@ private struct SeccionZona: View {
         }
         .background(Color(.systemGroupedBackground))
         .scrollEdgeEffectStyle(.soft, for: .all)
+        .task { estadoBase = await Compactacion.medir() }
         .sheet(item: $paquete) { CompartirArchivo(url: $0) }
         .sheet(item: $csvMovimientos) { CompartirArchivo(url: $0) }
         .sheet(item: $csvAportantes) { CompartirArchivo(url: $0) }
@@ -1477,6 +1480,7 @@ private struct SeccionZona: View {
                         "Restored the backup from \(m.iglesia).")
         } catch { self.error = error.localizedDescription }
         trabajando = false
+        estadoBase = await Compactacion.medir()
     }
 
     private func reiniciar() async {

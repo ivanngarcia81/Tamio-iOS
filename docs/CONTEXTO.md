@@ -353,8 +353,32 @@ que borrar da de baja Y encola. Y la pantalla, con las tres acciones vivas.
 paquete guardado de verdad —la prueba pasa la URL directamente— y la propagación
 del borrado contra Supabase. Las dos piden un aparato con sesión.
 
-**Sigue siendo texto muerto** en esa pantalla: "Compactar base de datos", que
-dice "la base ya está compacta" siempre y no compacta nada.
+**Y "Compactar base de datos" dejó de mentir** (`Compactacion.medir`). Decía
+"La base ya está compacta" siempre, sin haber mirado. Ahora dice lo medido: lo
+que ocupa la base —con su `-wal` y su `-shm`, que también son la base—, cuántos
+registros borrados siguen guardados, cuántos recibos no reclama ningún depósito
+y cuánto espacio tiene SQLite ya libre dentro del archivo.
+
+**Solo mide, y la frase no promete limpiar**: hay una prueba que comprueba justo
+eso, que el resumen no diga "recuperar" ni "se pueden quitar", porque cambiar una
+frase falsa por otra no habría sido ganar nada.
+
+Lo que la medición deja visto, y que decide el paso siguiente:
+
+- **Nadie purga nunca.** No hay un solo borrado físico en la app, y la bajada
+  guarda además las filas que el SERVIDOR marca como borradas: la base acumula
+  lo que ya no existe aunque desde este aparato no se borre nada.
+- **Purgar es seguro**, porque la bajada es incremental por cursor `updated_at`:
+  lo purgado no vuelve salvo que cambie en el servidor.
+- **La condición que lo hace seguro** ya está medida aparte (`filasPurgables`):
+  solo se puede purgar lo que no tenga nada pendiente en la `outbox`. Borrar
+  físicamente una baja que aún no ha viajado es la forma de que el servidor no
+  se entere nunca.
+
+**Las dos preguntas que faltan por contestar, y son de Iván**: si la bitácora
+del Registro se purga —es la constancia de qué pasó, yo la dejaría fuera— y si
+se purga todo lo marcado o solo lo de más de X días, que es lo que da margen a
+notar un borrado equivocado desde otro aparato antes de que sea irreversible.
 
 ### 0.0.a Los cinco sucesos de Tesorería
 

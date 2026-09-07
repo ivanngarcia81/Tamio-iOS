@@ -1165,6 +1165,7 @@ private struct AjustesZonaView: View {
     /// Se lee al aparecer y se refresca al terminar: `Respaldo.ultimo` vive en
     /// `UserDefaults` y no es observable.
     @State private var ultimo = Respaldo.ultimoLegible
+    @State private var estadoBase: Compactacion.Estado?
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
 
     var body: some View {
@@ -1225,7 +1226,10 @@ private struct AjustesZonaView: View {
             Section {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L.t("Compactar base de datos", "Compact database")).font(.subheadline.weight(.medium))
-                    Text(L.t("La base ya está compacta.", "The database is already compact."))
+                    // Antes decía "La base ya está compacta" — siempre, sin
+                    // haber mirado. Ahora dice lo que se midió, y si no hay
+                    // nada guardado de más lo dice habiéndolo comprobado.
+                    Text(estadoBase?.resumen ?? L.t("Midiendo…", "Measuring…"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
@@ -1305,6 +1309,7 @@ private struct AjustesZonaView: View {
         .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Zona de riesgo", "Danger zone"))
         .navigationBarTitleDisplayMode(.inline)
+        .task { estadoBase = await Compactacion.medir() }
         // Una hoja por archivo: `ShareLink` necesita el item al construirse y
         // aquí no existe hasta que el trabajo termina.
         .sheet(item: $paquete) { CompartirArchivo(url: $0) }
@@ -1361,6 +1366,7 @@ private struct AjustesZonaView: View {
         do { porRestaurar = (url, try await Respaldo.inspeccionar(url)) }
         catch { self.error = error.localizedDescription }
         trabajando = false
+        estadoBase = await Compactacion.medir()
     }
 
     private func restaurar(_ url: URL) async {
@@ -1375,6 +1381,7 @@ private struct AjustesZonaView: View {
             self.error = error.localizedDescription
         }
         trabajando = false
+        estadoBase = await Compactacion.medir()
     }
 
     private func borrarRegistros() async {
