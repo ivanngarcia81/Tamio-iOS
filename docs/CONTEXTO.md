@@ -5,11 +5,78 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **7 de septiembre de 2026**, con los sucesos de Tesorería.
+Última actualización: **7 de septiembre de 2026**, al cerrar el §6.
 
 ---
 
-## 0. Los cinco sucesos de Tesorería · 7 de septiembre
+## 0. La sesión del 7 de septiembre, entera
+
+**Empezó por el §6 —los cinco sucesos de Tesorería— y acabó en el contador de
+folios de Postgres.** Diecisiete commits en iOS (`deae12c`…`5849caa`), dos en el
+web (`790a95f`, `b9f1ba5`) y una migración aplicada en Supabase. **El §6 quedó
+sin trabajo pendiente**: lo que resta son dos decisiones de Iván.
+
+### Lo que se cerró, por orden
+
+1. **Los cinco sucesos de Tesorería** se anotan (§0.0.a). Con eso, los diez del
+   web.
+2. **Las claves de `datos` del registro no eran las del web** en tres sucesos, y
+   un `datos` con un número dentro dejaba el apunte entero en guiones.
+3. **Lo que quedaba de Tesorería** no era enchufar pantallas —ya lo estaban—:
+   era **Inicio**, que era la maqueta entera con la cuenta real abierta, el
+   selector de aportante, que iba a la red, y dos badges del iPad (§0.0.b).
+4. **La recarga al terminar la sincronización** (`sincronizable`), que solo se
+   ve corriendo la app.
+5. **Los cuatro de acabado de Secretaría**, de los que dos no eran lo que el
+   pendiente decía (§6, punto 4).
+6. **El año de un aporte se leía en local sobre una fecha guardada en UTC**: el
+   1 de enero contaba en el año anterior y su importe se iba de la constancia.
+7. **El `+` de Membresía volvió a la barra** y la lupa al cajón, y **el iPhone
+   dejó de girar** (§4).
+8. **El mes, visible** en el encabezado de cada día de Ingresos. **La ficha del
+   culto** enseña lo que se capturaba y no se veía. **`traslados_salida`**
+   reflejado (v23), con su pastilla.
+9. **Se podía firmar y emitir una carta sin escribir nada** (§4).
+10. **El folio de los documentos que se firman, al servidor** (§4 y §6).
+
+### Las tres lecciones de esta vuelta
+
+**Un pendiente escrito no es un hecho.** De los diez que se tocaron, **cuatro
+decían algo falso**: "enchufar Tesorería" ya estaba enchufado, "cinco tipos de
+carta" eran dos, "Próximos incluye el pasado" era un rótulo equivocado y no un
+filtro, y el responsable de una actividad no solo se guardaba mal —una actividad
+creada en el web llegaba al teléfono SIN responsable—. Comprobar la premisa
+cuesta un `grep` o un `select`.
+
+**Y una premisa mía también.** Propuse renumerar tres actas con folio repetido;
+al mirarlas antes de tocar, **cuatro de las cinco estaban borradas** y no había
+duplicado vivo. La causa tampoco era la que dije: el `count(*)` del web hacía
+que al borrar un acta la siguiente volviera a nacer 001. Un aparato solo bastaba.
+
+**Correr la app encuentra lo que 55 pruebas no.** El fallo de la recarga —Inicio
+en ceros según quién terminara antes— solo aparece con la base vacía y la
+sincronización a medias. Y el mes escrito en el botón de filtros lo descartó el
+simulador, no el razonamiento: no cabía y el sistema se lo comía sin avisar.
+
+### Cómo se verifica ahora
+
+**55 pruebas unitarias** en `pruebas/`, que ya no viven solo en el temporal. La
+copia lleva **bundle id propio** (`church.tamio.pruebas`): con el de la app real
+compartían contenedor y SESIÓN, y el anfitrión sincronizaba en mitad de una
+prueba (§3). Para las pruebas de INTERFAZ hay que ponerle el id real, porque
+necesitan la sesión.
+
+### Lo que queda, y es decisión de Iván
+
+- **El cifrado local** (§5): faltan dos medidas antes de decidir.
+- **No soltar la tabla `mensajes`** hasta que todos los aparatos actualicen.
+- **Adelantar `main`**, que se quedó en `3ffc483` y lleva quince commits de
+  retraso. El push a `main` lo bloquea el clasificador del asistente, así que lo
+  corre Iván: `git -C ~/Desktop/Tamio-iOS push origin HEAD:main` (§1).
+
+---
+
+### 0.0.a Los cinco sucesos de Tesorería
 
 Lo que el §6 llevaba marcado como "lo de más valor que queda en toda la app":
 **el registro ya anota los cinco sucesos de Tesorería.** Con esto quedan los
@@ -74,7 +141,7 @@ Dos cosas que solo salieron por correrlas:
 cuenta real. El código de pantalla no se tocó salvo esa pastilla, y las frases
 sí están probadas, pero mirarlo un domingo es lo que lo cierra.
 
-### Y después, lo que quedaba de Tesorería
+### 0.0.b Y después, lo que quedaba de Tesorería
 
 El §6 lo llamaba "enchufar lo que quede", y **no era eso**: las seis pantallas
 ya tenían repositorio y sincronización. Lo que quedaba era **Inicio**, que era
@@ -296,6 +363,10 @@ cuatro entidades de sincronización estaban sin probar contra la red; se probaro
 con la cuenta real, así que el motivo se acabó. **Repetirlo cuando lo de
 `liquid-glass` esté probado**, no antes: es lo que evita que combinarlas se
 convierta en un problema.
+
+**El push a `main` lo tiene que correr Iván**: el clasificador de modo
+automático del asistente lo bloquea. Con `git push origin HEAD:main` desde el
+repo, o `! ...` desde la sesión.
 
 Ramas viejas ya absorbidas aquí, no hace falta volver a ellas:
 `arreglos-interfaz`, `arreglos-revision-iphone`, `revision-y-motor-offline`.
