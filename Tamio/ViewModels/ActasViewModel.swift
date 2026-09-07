@@ -31,9 +31,16 @@ final class ActasViewModel {
         await cambiarEstado(id: id, a: .cerrada)
     }
 
+    /// **Guarda quién firmó, no solo que se firmó.** Recibía únicamente el id
+    /// y ponía el estado en "Firmada": el acta lo decía y no constaba nadie.
     @MainActor
-    func firmarActa(id: String) async {
-        await cambiarEstado(id: id, a: .firmada)
+    func firmarActa(id: String, firmas: [FirmaActa]) async {
+        guard var acta = lista.first(where: { $0.id == id }) else { return }
+        acta.firmas = firmas
+        acta.estado = .firmada
+        try? await repo.guardar(acta)
+        await cargar()
+        seleccionId = id
     }
 
     @MainActor

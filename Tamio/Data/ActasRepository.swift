@@ -164,7 +164,8 @@ struct OfflineActasRepository: ActasRepository {
              agenda: f.agenda,
              resumen: f.resumen,
              mociones: Self.mociones(f.mociones),
-             confidencial: f.confidencial)
+             confidencial: f.confidencial,
+             firmas: Self.firmas(f.firmas))
     }
 
     static func aFila(_ a: Acta, previa: ActaFila?) -> ActaFila {
@@ -190,7 +191,11 @@ struct OfflineActasRepository: ActasRepository {
                  estado: a.estado.rawValue,
                  confidencial: a.confidencial,
                  fechaAprobacion: previa?.fechaAprobacion,
-                 firmas: previa?.firmas ?? "[]",
+                 // **Las firmas solo se pisan si el acta trae unas.** El
+                 // formulario de alta no las recoge, así que guardar una
+                 // corrección desde ahí no puede borrar las que ya había.
+                 firmas: a.firmas.isEmpty ? (previa?.firmas ?? "[]")
+                                          : Self.jsonFirmas(a.firmas),
                  actualizadoEn: previa?.actualizadoEn,
                  borrado: false)
     }
@@ -235,6 +240,28 @@ struct OfflineActasRepository: ActasRepository {
 
     static func jsonMociones(_ textos: [String]) -> String {
         let v = textos.map { MocionJSON(texto: $0) }
+        guard let d = try? JSONEncoder().encode(v),
+              let s = String(data: d, encoding: .utf8) else { return "[]" }
+        return s
+    }
+
+    /// La firma del web: `rol`, `firmado` y `fecha`. Ver `ActaFirma`.
+    private struct FirmaJSON: Codable {
+        var rol: String
+        var firmado: Bool
+        var fecha: String?
+    }
+
+    static func firmas(_ json: String) -> [FirmaActa] {
+        guard let d = json.data(using: .utf8),
+              let v = try? JSONDecoder().decode([FirmaJSON].self, from: d) else { return [] }
+        return v.map { FirmaActa(rol: RolFirmaActa(clave: $0.rol),
+                                 firmado: $0.firmado, fecha: $0.fecha) }
+    }
+
+    static func jsonFirmas(_ firmas: [FirmaActa]) -> String {
+        let v = firmas.map { FirmaJSON(rol: $0.rol.rawValue, firmado: $0.firmado,
+                                       fecha: $0.fecha) }
         guard let d = try? JSONEncoder().encode(v),
               let s = String(data: d, encoding: .utf8) else { return "[]" }
         return s

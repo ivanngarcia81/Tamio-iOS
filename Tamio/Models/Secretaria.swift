@@ -67,6 +67,35 @@ enum EstadoActa: String {
     }
 }
 
+/// **Los tres renglones de firma de un acta**, en el orden en que se imprimen.
+/// Las claves son las del web (`ROLES_FIRMA_ACTA` en `src/db.ts`).
+enum RolFirmaActa: String, CaseIterable, Identifiable {
+    case preside, secretario, testigo
+    var id: String { rawValue }
+
+    var etiqueta: String {
+        switch self {
+        case .preside:    return L.t("Preside", "Chair")
+        case .secretario: return L.t("Secretario de actas", "Recording secretary")
+        case .testigo:    return L.t("Testigo", "Witness")
+        }
+    }
+
+    init(clave: String) { self = RolFirmaActa(rawValue: clave) ?? .testigo }
+}
+
+/// Quién ha firmado un acta. **No es la imagen de una firma** —eso es
+/// `FirmasLocales`, que a propósito no se sincroniza—: es la casilla de que
+/// esa persona ya firmó, y el día. Igual que `ActaFirma` en el web.
+struct FirmaActa: Identifiable, Hashable {
+    let rol: RolFirmaActa
+    var firmado: Bool
+    /// `"YYYY-MM-DD"`, el día en que firmó. Nulo mientras no haya firmado.
+    var fecha: String?
+
+    var id: String { rol.rawValue }
+}
+
 struct AcuerdoActa: Identifiable {
     let id: Int
     let texto: String
@@ -114,6 +143,11 @@ struct Acta: Identifiable, Hashable {
     var resumen: String = ""
     var mociones: [String] = []
     var confidencial: Bool = false
+    /// **Quién ha firmado.** La hoja de firmas las recogía en un `Set` en
+    /// memoria y al terminar solo cambiaba el estado a "Firmada": el acta
+    /// decía que estaba firmada y no constaba nadie. La columna del web
+    /// llevaba tiempo viajando vacía.
+    var firmas: [FirmaActa] = []
 
     /// **Se cuentan, no se guardan.** Iba como un `Int` propio al lado de
     /// `items`: dos números sobre lo mismo que podían discrepar, que es
@@ -161,12 +195,12 @@ struct Acta: Identifiable, Hashable {
         var partes: [String] = []
         partes.append(L.t(
             """
-            En \(fechaLarga)\(horaTxt), se reunió el \(tipo.etiqueta.lowercased())\(donde).\(cierreTxt)
+            El \(fechaLarga)\(horaTxt) se celebró \(tipo.fraseEnActa)\(donde).\(cierreTxt)
             Presidió: \(preside.isEmpty ? "—" : preside). Secretaria de actas: \(secretario.isEmpty ? "—" : secretario).
             Miembros presentes: \(pres).
             """,
             """
-            On \(fechaLarga)\(horaTxt), the \(tipo.etiqueta.lowercased()) convened\(donde).\(cierreTxt)
+            On \(fechaLarga)\(horaTxt), \(tipo.fraseEnActa) was held\(donde).\(cierreTxt)
             Presided by: \(preside.isEmpty ? "—" : preside). Recording secretary: \(secretario.isEmpty ? "—" : secretario).
             Members present: \(pres).
             """
@@ -216,6 +250,30 @@ enum TipoActa: String, CaseIterable {
         case .presupuesto:    return L.t("Presupuesto", "Budget")
         case .disciplina:     return L.t("Disciplina", "Discipline")
         case .otra:           return L.t("Extraordinaria", "Extraordinary")
+        }
+    }
+
+    /// **El tipo dicho dentro de la frase del acta, con su artículo.**
+    ///
+    /// El cuerpo decía "se reunió el \(tipo.lowercased())", que funcionaba
+    /// cuando los tipos eran "Consejo" o "Directiva". Con el catálogo del web
+    /// —administrativa, pastoral, elección— salió "se reunió el
+    /// administrativa": el artículo no concuerda y varias etiquetas son
+    /// adjetivos, no sustantivos. Se dice entero aquí en vez de pegar un
+    /// artículo fijo a una etiqueta que no se sabe cómo es.
+    var fraseEnActa: String {
+        switch self {
+        case .administrativa: return L.t("la reunión administrativa", "the administrative meeting")
+        case .lideres:        return L.t("el consejo", "the council")
+        case .asamblea:       return L.t("la asamblea", "the assembly")
+        case .pastoral:       return L.t("la reunión pastoral", "the pastoral meeting")
+        case .eleccion:       return L.t("la elección", "the election")
+        case .nombramiento:   return L.t("el nombramiento", "the appointment")
+        case .recepcion:      return L.t("la recepción de miembros", "the reception of members")
+        case .compraventa:    return L.t("la sesión de compraventa", "the purchase or sale session")
+        case .presupuesto:    return L.t("la reunión de presupuesto", "the budget meeting")
+        case .disciplina:     return L.t("la sesión de disciplina", "the discipline session")
+        case .otra:           return L.t("la sesión extraordinaria", "the extraordinary session")
         }
     }
 

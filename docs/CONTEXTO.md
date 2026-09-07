@@ -1096,9 +1096,16 @@ Por orden de lo que más se nota usando la app un domingo:
    septiembre.** Los tres selectores leen `padronParaSelector()`. Comprobado
    en la app con la cuenta real: la hoja de asistencia y el responsable de una
    actividad enseñan las mismas siete personas del padrón.
-2. **Firmar un acta no guarda quién firmó.** `FirmasSheet` junta los nombres en
-   un `Set` en memoria y al terminar solo cambia el estado; la columna `firmas`
-   —que ya viaja y ya se respeta al reeditar— se queda vacía.
+2. ~~Firmar un acta no guarda quién firmó.~~ **— HECHO el 7 de septiembre.**
+   `Acta.firmas` lleva los tres renglones con las claves del web —`preside`,
+   `secretario`, `testigo`—, con su día. La hoja precarga lo ya firmado, y
+   corregir el acta después no las borra: solo se pisan si el acta trae unas.
+
+   De paso salieron dos cosas que solo se ven mirando la pantalla: el cuerpo
+   decía **"se reunió el administrativa"** —el artículo se pegaba a una
+   etiqueta que a veces es adjetivo, roto al pasar al catálogo del web— y el
+   encabezado decía **"ACTA DE REUNIÓN DEL CONSEJO" para todas**. Ver
+   `TipoActa.fraseEnActa`.
 3. **El registro no anota nada automático.** Cero llamadas desde el resto de la
    app: emitir una carta o cerrar un acta no deja rastro, y la bitácora solo
    tiene lo que alguien escriba a mano. En el web esto "lo llaman las funciones

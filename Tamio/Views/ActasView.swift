@@ -77,7 +77,9 @@ struct ActasView: View {
         }
         .sheet(isPresented: $mostrarFirmas) {
             if let acta = vm.seleccion {
-                FirmasSheet(acta: acta) { Task { await vm.firmarActa(id: acta.id) } }
+                FirmasSheet(acta: acta) { firmas in
+                    Task { await vm.firmarActa(id: acta.id, firmas: firmas) }
+                }
             }
         }
         .alert(L.t("Cerrar acta", "Close minutes"), isPresented: $mostrarCerrarAlert) {
@@ -217,7 +219,12 @@ struct ActasView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         // Encabezado
                         VStack(alignment: .center, spacing: 4) {
-                            Text(L.t("ACTA DE REUNIÓN DEL CONSEJO", "COUNCIL MEETING MINUTES"))
+                            // **El encabezado dice de qué acta es.** Estaba
+                            // escrito "ACTA DE REUNIÓN DEL CONSEJO" para
+                            // todas, así que un acta administrativa o una
+                            // asamblea se encabezaban como consejo.
+                            Text(L.t("ACTA · \(acta.tipo.etiqueta.uppercased())",
+                                     "MINUTES · \(acta.tipo.etiqueta.uppercased())"))
                                 .font(.subheadline.weight(.bold))
                                 .multilineTextAlignment(.center)
                             Text(L.t("\(iglesia.nombre) · Acta \(acta.folio)",
@@ -620,18 +627,31 @@ private struct NuevaActaSheet: View {
 
 private struct FirmasSheet: View {
     let acta: Acta
-    let onFirmado: () -> Void
+    /// **Devuelve QUIÉN firmó, no solo que se firmó.** Antes era `() -> Void`:
+    /// la hoja juntaba los nombres en un `Set` que moría con ella y el acta
+    /// pasaba a "Firmada" sin que constara nadie.
+    let onFirmado: ([FirmaActa]) -> Void
 
-    @State private var firmados: Set<String> = []
+    @State private var firmados: Set<RolFirmaActa> = []
     @Environment(\.dismiss) private var dismiss
 
-    private let firmantes = [
-        L.t("Pastor", "Pastor"),
-        L.t("Secretaria", "Secretary"),
-        L.t("Testigo", "Witness"),
-    ]
+    /// Los tres renglones que se imprimen, en su orden. Se llamaban "Pastor",
+    /// "Secretaria" y "Testigo"; los dos primeros son en realidad quien
+    /// preside y quien levanta el acta, que es como los nombra el acta misma
+    /// —y el web— y no siempre es el pastor.
+    private let firmantes = RolFirmaActa.allCases
 
     private var todasFirmadas: Bool { firmantes.allSatisfy { firmados.contains($0) } }
+
+    /// Quién ocupa cada renglón, si el acta lo dice. Un renglón con nombre se
+    /// firma con más criterio que uno que dice "Preside".
+    private func nombreDe(_ rol: RolFirmaActa) -> String? {
+        switch rol {
+        case .preside:    return acta.preside.isEmpty ? nil : acta.preside
+        case .secretario: return acta.secretario.isEmpty ? nil : acta.secretario
+        case .testigo:    return nil
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -644,7 +664,7 @@ private struct FirmasSheet: View {
                             Text(acta.titulo)
                                 .font(.subheadline.weight(.semibold))
                                 .multilineTextAlignment(.center)
-                            Text(acta.fecha)
+                            Text(acta.fechaLegible)
                                 .font(.caption).foregroundStyle(.secondary)
                             Pill(texto: "\(firmados.count) \(L.t("de", "of")) \(firmantes.count) \(L.t("firmas", "signatures"))",
                                  color: todasFirmadas ? Paleta.brand : Paleta.aviso)
@@ -658,7 +678,7 @@ private struct FirmasSheet: View {
                         VStack(alignment: .leading, spacing: 0) {
                             TituloSeccion(texto: L.t("FIRMAS REQUERIDAS", "REQUIRED SIGNATURES"))
                                 .padding(.bottom, 10)
-                            ForEach(firmantes, id: \.self) { firmante in
+                            ForEach(firmantes) { firmante in
                                 firmaFila(firmante)
                                 if firmante != firmantes.last { Divider() }
                             }
@@ -668,7 +688,15 @@ private struct FirmasSheet: View {
                     // Botón de confirmar
                     if todasFirmadas {
                         Button {
-                            onFirmado()
+                            // El día en que se firma se guarda por firma, como
+                            // en el web: un acta puede recoger la tercera firma
+                            // semanas después de las dos primeras.
+                            let hoy = Fechas.claveDia()
+                            onFirmado(firmantes.map { rol in
+                                let yaEstaba = acta.firmas.first { $0.rol == rol }
+                                return FirmaActa(rol: rol, firmado: true,
+                                                 fecha: yaEstaba?.fecha ?? hoy)
+                            })
                             dismiss()
                         } label: {
                             HStack(spacing: 8) {
@@ -700,13 +728,17 @@ private struct FirmasSheet: View {
                 }
             }
         }
+        // **Lo ya firmado viene marcado.** Sin esto, recoger la tercera firma
+        // obligaba a volver a marcar las dos que ya estaban.
+        .task { firmados = Set(acta.firmas.filter(\.firmado).map(\.rol)) }
         .hojaFormulario()
     }
 
-    private func firmaFila(_ nombre: String) -> some View {
-        let firmado = firmados.contains(nombre)
+    private func firmaFila(_ rol: RolFirmaActa) -> some View {
+        let firmado = firmados.contains(rol)
+        let nombre = nombreDe(rol) ?? rol.etiqueta
         return Button {
-            if firmado { firmados.remove(nombre) } else { firmados.insert(nombre) }
+            if firmado { firmados.remove(rol) } else { firmados.insert(rol) }
         } label: {
             HStack(spacing: 14) {
                 Image(systemName: firmado ? "checkmark.circle.fill" : "circle")
