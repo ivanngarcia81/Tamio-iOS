@@ -465,7 +465,9 @@ struct DashboardView: View {
     // MARK: - iPad lists (mantienen ALL CAPS según handoff iPad)
 
     private func listaMovimientos(_ d: DashboardData) -> some View {
-        tarjetaLista(titulo: L.t("ÚLTIMOS MOVIMIENTOS", "RECENT ACTIVITY")) {
+        tarjetaLista(titulo: L.t("ÚLTIMOS MOVIMIENTOS", "RECENT ACTIVITY"),
+                     vacia: L.t("Sin movimientos todavía", "No activity yet"),
+                     estaVacia: d.recientes.isEmpty) {
             Button { nav?.seccion = "ingresos" } label: {
                 textoEnlace(L.t("Ver todos", "See all"))
             }
@@ -479,7 +481,9 @@ struct DashboardView: View {
     }
 
     private func listaSemana(_ d: DashboardData) -> some View {
-        tarjetaLista(titulo: L.t("ESTA SEMANA", "THIS WEEK")) {
+        tarjetaLista(titulo: L.t("ESTA SEMANA", "THIS WEEK"),
+                     vacia: L.t("Sin compromisos esta semana", "No commitments this week"),
+                     estaVacia: d.semana.isEmpty) {
             Button { nav?.seccion = "agenda" } label: {
                 textoEnlace(L.t("Agenda", "Calendar"))
             }
@@ -492,8 +496,17 @@ struct DashboardView: View {
         }
     }
 
+    /// Las dos tarjetas de lista de la mitad de abajo del iPad.
+    ///
+    /// **La tarjeta vacía dice que está vacía.** Sin `vacia` se dibujaba con
+    /// su borde, su fondo y nada dentro: una manchita gris de ocho puntos bajo
+    /// el rótulo, que parece un fallo de render y deja media pantalla muerta.
+    /// Le pasa a "Esta semana" en una iglesia que no tenga agenda, y a
+    /// "Últimos movimientos" en una que acabe de empezar.
     private func tarjetaLista<E: View, Contenido: View>(
         titulo: String,
+        vacia: String,
+        estaVacia: Bool,
         @ViewBuilder enlace: () -> E,
         @ViewBuilder contenido: () -> Contenido
     ) -> some View {
@@ -505,7 +518,19 @@ struct DashboardView: View {
                 Spacer()
                 enlace()
             }
-            VStack(spacing: 0) { contenido() }
+            VStack(spacing: 0) {
+                if estaVacia {
+                    HStack {
+                        Text(vacia).font(.subheadline).foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    // El alto de una fila de las de verdad, para que la
+                    // tarjeta no cambie de tamaño al llegar el primer dato.
+                    .padding(.vertical, 16)
+                } else {
+                    contenido()
+                }
+            }
                 .padding(.horizontal, Esp.tarjeta)
                 .padding(.vertical, 4)
                 .background(Color(.secondarySystemGroupedBackground),
