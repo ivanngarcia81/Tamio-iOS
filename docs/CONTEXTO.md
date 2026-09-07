@@ -670,6 +670,25 @@ el servidor conserva las filas con su `deleted` puesto, así que un update las
 resucita, mientras que un alta le pediría al contador de Postgres un folio nuevo
 y cada movimiento recuperado cambiaría de número.
 
+**Y el último, que fue una palabra:** `TransaccionInsert` no llevaba la columna
+`deleted`. El update de un movimiento mandaba sus veinte columnas menos esa, así
+que una fila marcada de baja en el servidor seguía marcada después de
+actualizarla. Se vio al recuperar: los aportantes, las actas, las cartas, los
+servicios, los depósitos y los apuntes volvieron —sus escrituras sí mandan la
+bandera— y los 66 movimientos se quedaron de baja. Un movimiento que se crea o
+se corrige está vivo por definición; dar de baja es `eliminar`, que manda
+`deleted: true` por su cuenta.
+
+**El ciclo, cerrado y comprobado contra el servidor**: respaldar → borrar (87
+registros, diez tablas a cero) → restaurar → sincronizar → las nueve tablas con
+sus filas vivas otra vez, `transactions` incluida.
+
+**Y de paso se explicó un desajuste que llevaba semanas**: el teléfono contaba 28
+movimientos y el servidor 27. No faltaba ninguna fila —las 66 estaban en los dos
+lados—: ese movimiento estaba marcado de baja en el servidor y vivo en el
+teléfono, porque su update nunca le había quitado la marca. Al recuperarlo,
+volvió a cuadrar.
+
 **Lo que sí salió bien a la primera:** la migración v25 corrió sobre la base real
 de un aparato con datos y no se llevó nada —la fila "Espacio en este aparato"
 midió 336 KB y 76 registros borrados, y de haber caído a memoria se habría
