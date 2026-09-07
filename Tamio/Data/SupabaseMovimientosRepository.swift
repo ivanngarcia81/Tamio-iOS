@@ -50,6 +50,20 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
     // MARK: - DTO de escritura
 
     private struct TransaccionInsert: Encodable {
+        /// **Siempre `false`, y por eso está aquí.**
+        ///
+        /// Faltaba, y el update mandaba todas las columnas menos esta. Un
+        /// movimiento que se crea o se corrige está vivo por definición —dar
+        /// de baja es `eliminar`, que manda `deleted: true`—, así que omitirla
+        /// solo servía para una cosa: que una fila marcada de baja en el
+        /// servidor siguiera marcada después de actualizarla.
+        ///
+        /// Se vio recuperando un respaldo con el aparato delante: los
+        /// aportantes, las actas, las cartas, los servicios y los depósitos
+        /// volvieron —sus escrituras sí mandan la bandera— y los 66 movimientos
+        /// se quedaron de baja en el servidor.
+        let deleted = false
+
         let uid: String
         let churchId: String
         let memberUid: String?
@@ -75,7 +89,7 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
         let recurrenteUid: String?
 
         enum CodingKeys: String, CodingKey {
-            case uid
+            case uid, deleted
             case churchId         = "church_id"
             case memberUid        = "member_uid"
             case tipo, categoria, subcategoria, concepto, fecha, monto, estado, notas, folio
