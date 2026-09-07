@@ -50,6 +50,7 @@
 		AB25LOG0000000000000001 /* LogoIglesia.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA25LOG0000000000000001 /* LogoIglesia.swift */; };
 		AB25LOG0000000000000002 /* SelectorLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA25LOG0000000000000002 /* SelectorLogo.swift */; };
 		AB25LOG0000000000000003 /* LogoMembrete.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA25LOG0000000000000003 /* LogoMembrete.swift */; };
+		AB26SEC0000000000000001 /* SecretariaPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA26SEC0000000000000001 /* SecretariaPDF.swift */; };
 		AB16FIR0000000000000016 /* FirmasLocales.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA16FIR0000000000000016 /* FirmasLocales.swift */; };
 		AB17HFI0000000000000017 /* HojaFirma.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA17HFI0000000000000017 /* HojaFirma.swift */; };
 		109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A2 /* OfflineDepositosRepository.swift */; };
@@ -245,6 +246,7 @@
 		AA25LOG0000000000000001 /* LogoIglesia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoIglesia.swift; sourceTree = "<group>"; };
 		AA25LOG0000000000000002 /* SelectorLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectorLogo.swift; sourceTree = "<group>"; };
 		AA25LOG0000000000000003 /* LogoMembrete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoMembrete.swift; sourceTree = "<group>"; };
+		AA26SEC0000000000000001 /* SecretariaPDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretariaPDF.swift; sourceTree = "<group>"; };
 		AA16FIR0000000000000016 /* FirmasLocales.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirmasLocales.swift; sourceTree = "<group>"; };
 		AA17HFI0000000000000017 /* HojaFirma.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HojaFirma.swift; sourceTree = "<group>"; };
 		9D80DC3340868CDE97F34571 /* DepositosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosRepository.swift; sourceTree = "<group>"; };
@@ -350,6 +352,7 @@
 				BC33051936AF83903AD7CA7D /* ReportePDF.swift */,
 				109DD5F030497B0000E781A1 /* AportantePDF.swift */,
 				109DD60430497B0000E781A1 /* CompartirArchivo.swift */,
+				AA26SEC0000000000000001 /* SecretariaPDF.swift */,
 				AA25LOG0000000000000003 /* LogoMembrete.swift */,
 				AA25LOG0000000000000002 /* SelectorLogo.swift */,
 				48352BAF0D74F3834F2460BC /* TransactionRow.swift */,
@@ -634,6 +637,7 @@
 				AB25LOG0000000000000001 /* LogoIglesia.swift in Sources */,
 				AB25LOG0000000000000002 /* SelectorLogo.swift in Sources */,
 				AB25LOG0000000000000003 /* LogoMembrete.swift in Sources */,
+				AB26SEC0000000000000001 /* SecretariaPDF.swift in Sources */,
 				AB16FIR0000000000000016 /* FirmasLocales.swift in Sources */,
 				AB17HFI0000000000000017 /* HojaFirma.swift in Sources */,
 				109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */,

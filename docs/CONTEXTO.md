@@ -42,6 +42,7 @@ sin trabajo pendiente**: lo que resta son dos decisiones de Iván.
     el web ya escondiera dos. Ver §0.0.c.
 12. **El logo de la iglesia**, que la pantalla llevaba prometiendo como
     "Próximamente". Ver §0.0.d.
+13. **Secretaría no producía ningún PDF**: ni cartas ni actas. Ver §0.0.e.
 
 ### Las tres lecciones de esta vuelta
 
@@ -178,6 +179,57 @@ primero que hay que mirar en la próxima sesión con credenciales.
 **El web no lo lleva todavía** (decisión de Iván, 7-sep): el esquema queda
 puesto y lo adopta cuando toque. Mientras, un documento generado desde el web
 sale sin logo.
+
+### 0.0.e El PDF de las cartas y las actas
+
+Salió de preguntar "¿qué más falta?" y mirar el código en vez de la lista de
+pendientes. `PDFExport.render` se llamaba en cuatro sitios y **ninguno era de
+Secretaría**: el botón de compartir de una carta era literalmente
+`// Compartir — placeholder (requiere UIActivityViewController)`, habilitado en
+cuanto la carta estaba completa, y el pie del formulario del acta prometía que
+"el PDF incluye espacio de firma para la secretaria y el directivo". Se llenaba
+una carta, se firmaba, se emitía con su folio del servidor — y no salía del
+teléfono. Es lo más gordo que quedaba en el área que el §6 daba por cerrada.
+
+**Lo que se hizo**, en `Tamio/Views/Components/SecretariaPDF.swift`:
+`CartaHojaPDF`, `ActaHojaPDF`, `FirmaEnLinea` —la raya con la rúbrica encima,
+que ahora comparten tres documentos— y `DocumentoPDFSheet`, la previa con el
+botón de compartir. `ReportePDFSheet` y `ReporteAnualPDFSheet` son dos copias de
+esa misma hoja escritas aparte; los nuevos no son la tercera y la cuarta.
+
+**La previa de la carta ES ahora la hoja que se imprime.** Antes era una tarjeta
+propia, con su membrete y su fecha: dos documentos distintos llamados igual, y
+el que se veía no era el que se iba a entregar.
+
+**Tres cosas que solo dijo verlo impreso:**
+
+1. **La hoja salía estrecha y con TODO el texto cortado en "…".** Faltaba
+   `.frame(width: PDFExport.anchoCarta)` en la raíz de cada hoja: es el contrato
+   que documenta `HojaCartaEscalada` —"las hojas de los documentos llevan…"— y
+   que cumplen las otras cuatro. Sin nadie que proponga un ancho, cada `Text` se
+   mide a UNA línea. Y aun con el ancho puesto, los textos largos necesitan
+   `.fixedSize(horizontal: false, vertical: true)` para envolver.
+2. **El acta imprimía dos veces la lista de asistentes.** Se le había añadido
+   una tabla con lugar, hora, quién preside, presentes y ausentes sin ver que
+   `Acta.cuerpo` ya narra todo eso. Quedó una sola línea, la del quórum, que es
+   lo único que el cuerpo no dice.
+3. Lo primero que se probó —mover la marca de agua de `ZStack` a `overlay`— **no
+   era la causa** de nada. Se dejó igualmente, porque una marca de agua no debe
+   empujar el layout de la hoja, pero conviene saberlo: el fallo era el ancho.
+
+**De paso, la fecha de la carta.** Estaba escrita a mano —`Text("20 de agosto de
+2026")`— en la previa del detalle, y calculada como "hoy" en la hoja larga.
+Ninguna de las dos es la que la carta dice llevar: el formulario recoge
+`fechaEmision`. Ahora las dos usan `Fechas.diaLegibleLargo`, que nació aquí.
+
+**Verificado** con tres pruebas unitarias (`pruebas/DocumentosPDFTests.swift`:
+que el archivo se genera y pesa) y corriendo la app: el acta con su hoja
+completa, la carta a medias con "BORRADOR" y SIN botón de compartir, y la carta
+llena con el botón puesto.
+
+**Lo que este trabajo deja al descubierto:** el logo que se metió en el membrete
+de carta y acta (§0.0.d) hasta ahora solo se veía en pantalla, porque esos dos
+documentos no llegaban a imprimirse. Ahora sale en los seis de verdad.
 
 ### 0.0.a Los cinco sucesos de Tesorería
 

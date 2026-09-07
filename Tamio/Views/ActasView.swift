@@ -6,6 +6,10 @@ struct ActasView: View {
     @State private var mostrarNueva = false
     @State private var mostrarFirmas = false
     @State private var mostrarCerrarAlert = false
+    /// El acta que se está viendo como documento. Se guarda el acta y no un
+    /// `Bool` porque en iPad la hoja se abre sobre la seleccionada y en el
+    /// teléfono sobre la que está en pantalla.
+    @State private var actaEnPDF: Acta?
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     /// Mismo criterio que Membresía, Ingresos, Aportantes y Depósitos: en el
@@ -74,6 +78,14 @@ struct ActasView: View {
             NuevaActaSheet(proximoId: vm.proximoId,
                            proximoNumeroProvisional: vm.lista.count + 1) { acta in
                 Task { await vm.agregarActa(acta) }
+            }
+        }
+        .sheet(item: $actaEnPDF) { acta in
+            DocumentoPDFSheet(titulo: L.t("Vista previa PDF", "PDF preview"),
+                              // El folio, que es como se cita un acta y como se
+                              // ordenan en una carpeta.
+                              nombreArchivo: "Acta-\(acta.folio)") {
+                ActaHojaPDF(acta: acta, iglesia: iglesia)
             }
         }
         .sheet(isPresented: $mostrarFirmas) {
@@ -179,6 +191,16 @@ struct ActasView: View {
 
     @ViewBuilder
     private func accionesActa(_ acta: Acta) -> some View {
+        // **Fuera del `if`, a propósito.** El resto de acciones son de un acta
+        // que aún se trabaja; el documento es justo al revés — el acta que más
+        // falta hace entregar es la aprobada—, y hasta hoy no había forma
+        // ninguna de sacar un acta del teléfono.
+        Button { actaEnPDF = acta } label: {
+            Label(L.t("PDF", "PDF"), systemImage: "doc.text")
+                .font(.subheadline.weight(.medium)).lineLimit(1)
+        }
+        .buttonStyle(.glass).tint(Color.secondary).fixedSize()
+
         if acta.estado == .borrador || acta.estado == .pendienteAprobacion {
             // Pintados a mano: el primario iba con `Paleta.brand` de fondo y el
             // texto en blanco, los mismos ~2.4:1 en oscuro que se quitaron del

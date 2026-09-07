@@ -281,6 +281,18 @@ enum Fechas {
         return f.string(from: d)
     }
 
+    /// La fecha de un DOCUMENTO, escrita entera: "7 de septiembre de 2026" ·
+    /// "September 7, 2026". Es la que encabeza una carta.
+    ///
+    /// Toma una `Date` y no un texto porque el formulario de la carta guarda
+    /// `fechaEmision` como `Date`. **Sin fijar UTC**, al contrario que
+    /// `diaLegible`: aquí no hay una fecha de día parseada a medianoche UTC
+    /// que corregir, hay un instante elegido en el aparato, y forzarle UTC lo
+    /// correría un día en el sentido contrario.
+    static func diaLegibleLargo(_ fecha: Date) -> String {
+        L.formateador(L.t("d 'de' MMMM 'de' yyyy", "MMMM d, yyyy")).string(from: fecha)
+    }
+
     /// `"DOM"` · `"SUN"`. **En UTC, como `diaLegible`**, y por la misma razón
     /// que su comentario: las fechas de la app se PARSEAN en UTC, así que
     /// leerlas con el calendario del aparato las corre un día hacia atrás en

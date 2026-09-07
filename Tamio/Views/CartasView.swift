@@ -205,7 +205,12 @@ struct CartasView: View {
                                 .font(.subheadline.weight(.bold))
                             Text(iglesia.ubicacionLegible)
                                 .font(.caption).foregroundStyle(.secondary)
-                            Text("20 de agosto de 2026")
+                            // **La fecha de emisión de ESTA carta.** Estaba
+                            // escrita a mano —"20 de agosto de 2026"—, así que
+                            // la previa del detalle fechaba en agosto una carta
+                            // de cualquier día. Es la misma fecha que imprime
+                            // `CartaHojaPDF`: la del formulario, no la de hoy.
+                            Text(Fechas.diaLegibleLargo(vm.carta.fechaEmision))
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity)
@@ -626,97 +631,39 @@ private struct VistaPreviaSheet: View {
     let tipo: TipoPlantilla
     let cuerpo: String
 
-    @Environment(\.dismiss) private var dismiss
     /// Mismo origen que la lista: el membrete no puede depender de por dónde
     /// se haya abierto la carta.
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
-    private var iglesia: ConfiguracionIglesia { cfg.config }
-
-    private let hoy: String = {
-        let f = DateFormatter()
-        f.dateFormat = L.t("d 'de' MMMM 'de' yyyy", "MMMM d, yyyy")
-        f.locale = L.locale
-        return f.string(from: Date())
-    }()
 
     private var completa: Bool { carta.camposCompletos == carta.camposTotales }
 
+    /// El nombre con el que el archivo llega a Mail o a Archivos. Lleva a quién
+    /// se refiere: "Carta.pdf" en la bandeja de alguien no dice nada, y de
+    /// estas se mandan varias el mismo día.
+    private var nombreArchivo: String {
+        let quien = carta.aportante.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: " ", with: "-")
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        let fecha = f.string(from: carta.fechaEmision)
+        return quien.isEmpty ? "Carta-\(fecha)" : "Carta-\(quien)-\(fecha)"
+    }
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                ZStack {
-                    // Documento de la carta
-                    VStack(alignment: .leading, spacing: 0) {
-
-                        // Encabezado de la iglesia
-                        VStack(alignment: .center, spacing: 4) {
-                            LogoMembrete(alto: 60)
-                            Text(iglesia.nombre)
-                                .font(.headline.weight(.bold))
-                            Text(iglesia.ubicacionLegible)
-                                .font(.caption).foregroundStyle(.secondary)
-                            Text(hoy).font(.caption).foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.bottom, 20)
-
-                        Divider().padding(.bottom, 20)
-
-                        // Tipo de carta
-                        Text(tipo.titulo.uppercased())
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.secondary)
-                            .padding(.bottom, 12)
-
-                        // Cuerpo
-                        Text(cuerpo)
-                            .font(.subheadline)
-                            .lineSpacing(6)
-                            .padding(.bottom, 32)
-
-                        // Firma
-                        VStack(alignment: .leading, spacing: 6) {
-                            Rectangle().fill(Color(.separator)).frame(height: 0.5).frame(width: 160)
-                            Text(carta.firma.isEmpty ? "___________________" : carta.firma)
-                                .font(.subheadline.weight(.medium))
-                            Text(L.t("Pastor", "Pastor"))
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(Esp.panel)
-                    .background(.regularMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .shadow(color: .black.opacity(0.07), radius: 8, y: 3)
-
-                    // Marca de agua BORRADOR
-                    if !completa {
-                        Text(L.t("BORRADOR", "DRAFT"))
-                            .font(.system(size: 64, weight: .black, design: .rounded))
-                            .foregroundStyle(Color(.tertiaryLabel))
-                            .rotationEffect(.degrees(-30))
-                            .allowsHitTesting(false)
-                    }
-                }
-                .padding(Esp.panel)
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle(L.t("Vista previa", "Preview"))
-            .navigationBarTitleDisplayMode(.inline)
-            .task { await cfg.cargar() }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L.t("Cerrar", "Close")) { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        // Compartir — placeholder (requiere UIActivityViewController)
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    .disabled(!completa)
-                }
-            }
+        // **La previa ES la hoja que se imprime**, escalada. Antes era una
+        // tarjeta aparte, con su propio membrete y la fecha "20 de agosto de
+        // 2026" escrita a mano: dos documentos distintos llamados igual, y el
+        // que se veía no era el que se iba a entregar. Ahora hay uno.
+        DocumentoPDFSheet(titulo: L.t("Vista previa", "Preview"),
+                          nombreArchivo: nombreArchivo,
+                          // Una carta a medias se mira, no se entrega. El botón
+                          // ya estaba bloqueado; lo que faltaba era que hubiera
+                          // algo detrás del botón.
+                          marcaDeAgua: completa ? nil : L.t("BORRADOR", "DRAFT"),
+                          puedeCompartir: completa) {
+            CartaHojaPDF(carta: carta, tipo: tipo, cuerpo: cuerpo, iglesia: cfg.config)
         }
-        .hojaDocumento()
+        .task { await cfg.cargar() }
     }
 }
