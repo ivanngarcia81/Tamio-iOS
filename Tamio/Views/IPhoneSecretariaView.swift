@@ -30,6 +30,19 @@ struct IPhoneSecretariaView: View {
                 kpiPadron
             }
 
+            // **Lo que hay que hacer va antes que lo que hay dónde mirar.**
+            // Estaba al final, debajo de las siete filas de navegación, así
+            // que había que bajar hasta el fondo para ver si algo vencía hoy
+            // —y en el teléfono ni siquiera cabía sin desplazar—. Lo pidió
+            // Iván señalando la pantalla.
+            //
+            // Va debajo del KPI y no encima: el número del padrón es el que
+            // encabeza la sección y da el contexto; los compromisos son la
+            // primera acción.
+            Section(L.t("PRÓXIMOS COMPROMISOS", "UPCOMING")) {
+                proximosCompromisos
+            }
+
             // **Las seis tienen su botón de volver.** Todas colgaban del hub
             // con `sinBotonVolver()`, cuya razón escrita era que el chevron
             // gasta una cápsula y que la pestaña de Secretaría lleva al mismo
@@ -125,10 +138,6 @@ struct IPhoneSecretariaView: View {
                                               "What has happened at the church"))
                     }
                 }
-            }
-
-            Section(L.t("PRÓXIMOS COMPROMISOS", "UPCOMING")) {
-                proximosCompromisos
             }
         }
         .listStyle(.insetGrouped)
