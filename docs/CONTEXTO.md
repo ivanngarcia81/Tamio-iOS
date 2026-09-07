@@ -12,16 +12,31 @@ visuales del iPad (§0.0).
 
 ## 0.0 Los arreglos visuales del iPad · rama `arreglos-ipad`
 
-**Diecisiete commits en una rama aparte**, salida de `liquid-glass` en
-`87441d6` y sin fusionar todavía. Se trabajó en un `git worktree` propio
-(`~/Desktop/Tamio-iOS-ipad`) porque otra sesión tenía el árbol de
-`~/Desktop/Tamio-iOS` ocupado con cambios sin commitear en `ActasView`,
-`CartasView` y un `SecretariaPDF.swift` nuevo. **Al fusionar, mirar el
-`.pbxproj`**: si ese trabajo añadió archivos, ahí habrá conflicto.
+**Quince arreglos —diecisiete commits con los dos de este archivo— en una rama
+aparte**, ya reposada sobre `liquid-glass` (`24e046f`) y lista para fusionar por
+avance rápido. Se trabajó en un `git
+worktree` propio (`~/Desktop/Tamio-iOS-ipad`) porque otra sesión tenía el árbol
+de `~/Desktop/Tamio-iOS` ocupado a la vez.
 
 Origen: una revisión de doce capturas del iPad en apaisado y en inglés, con la
 cuenta real. El encargo venía escrito contra `0c8a914`; la rama estaba dos
 commits más adelante y se partió del extremo.
+
+**Dos de los diecisiete arreglos se cayeron al reposar la rama, y conviene
+saber por qué**: la otra sesión los había hecho mientras tanto, y mejor.
+
+- **A6, la fecha de la carta**, lo resolvió `af89086` de raíz: la vista previa
+  ya no es una tarjeta aparte con su propio membrete, es **la hoja que se
+  imprime**. Mi versión solo cambiaba la fecha de las dos tarjetas.
+- **B7, el folio del informe**, lo resolvió `fb91edb` — y mi conclusión era
+  falsa. Yo miré `TrasladoEnCurso` y la lectura del repositorio, vi que
+  filtraba por `enCurso`, y deduje que el folio de un traslado cerrado **no
+  existe**; propuse quitar las dos columnas y así se decidió. Lo que pasaba es
+  que el dato **sí está en la base del aparato** y ese filtro lo tiraba al
+  leer. Quitar la columna habría escondido un dato que estaba a un `guard` de
+  distancia. La lección no es nueva y está tres líneas más abajo: comprobar la
+  premisa, también cuando la premisa es tuya — y "no existe" hay que
+  perseguirlo hasta la consulta, no hasta el modelo.
 
 ### Lo que se cerró
 
@@ -34,8 +49,8 @@ Un commit por punto, y el título de cada uno cuenta el problema:
   lo pedían.
 - **Los dos meses de la dona** ("September" en Inicio, "september" en
   Reportes), unificados en `L.mesSuelto`.
-- **La fecha inventada de la carta** y **seis plantillas que decían "Iglesia
-  Getsemaní"** dentro del cuerpo. Más el typo "oficiant".
+- **Seis plantillas de carta que decían "Iglesia Getsemaní"** dentro del
+  cuerpo, con el nombre real de Ajustes. Más el typo "oficiant".
 - **`.disabled` sobre `.glass`** a 1.70:1, en los cuatro botones que lo tenían.
 - **El título de la ficha de aportante** pisaba el de la columna en iPad.
 - **El resumen mensual partía los importes** en dos y tres renglones.
@@ -43,7 +58,7 @@ Un commit por punto, y el título de cada uno cuenta el problema:
   **la píldora de la bandeja**, **los dos botones grises del corte**, **el ancho
   de la columna del calendario**, **el día vacío dicho dos veces** y **el
   detalle de un ingreso repetido**.
-- **A8 y B7**, que eran decisión de Iván y se decidieron en la sesión (abajo).
+- **A8**, que era decisión de Iván: el contador de la carta cuenta la firma.
 
 ### Lo que NO era lo que el pendiente decía
 
@@ -67,23 +82,22 @@ Esto es lo que ahorra tiempo a la próxima sesión:
 6. **A10 le pasa igual al teléfono** (`tarjetaListaIPhone` tiene el mismo
    hueco). No se tocó: taparlo cambia el alto de una pantalla que no entraba en
    esta pasada. Queda apuntado.
-7. **B7 no es un cableado que falte: es un hueco de esquema.** Un traslado ya
-   completado **no guarda folio en ninguna parte** —el folio vive en
-   `TrasladoEnCurso` y desaparece al cerrarse— y la baja del padrón no anota a
-   qué iglesia se fue. No hay nada que enchufar hasta que el web lo guarde.
+7. ~~**B7 es un hueco de esquema.**~~ **Era falso, ver arriba.** El folio de un
+   traslado cerrado sí está guardado; lo tiraba un filtro de la consulta. Lo
+   arregló `fb91edb`.
 8. **`Money.reparto` se comprueba a sí mismo.** Hay porcentajes que a propósito
    no suman 100 (los gastos del mes contra el ingreso del mes). La función mira
    si las partes SON el total y, si no lo son, redondea cada una por su cuenta:
    la regla no depende de que quien llama se acuerde.
 
-### Las dos decisiones de Iván
+### La decisión de Iván
 
 - **A8 · el contador de la carta cuenta la firma** (`0 de 4`). No era solo
   cuadrar el número: ese contador es lo que deja emitir, y hasta ahora una carta
   podía emitirse **sin ningún firmante**.
-- **B7 · fuera FOLIO y la columna de iglesia** del informe de movimientos,
-  mientras el dato no exista. Los campos siguen en el modelo y vuelven a la
-  tabla cuando el esquema guarde el folio de cierre.
+
+De B7 se decidió lo contrario de lo que acabó pasando —quitar las columnas—
+sobre un diagnóstico mío que era falso. No se llegó a fusionar; manda `fb91edb`.
 
 ### Dos cosas de la lista de "no tocar", ya resueltas mirándolas
 
@@ -113,9 +127,17 @@ La receta del §3 funciona; esto es lo que le faltaba para una revisión visual:
   repo.
 - **La comprobación del teléfono se hace con un diff de píxeles** entre la rama
   y su base, con el mismo recorrido de nueve pantallas en el 17e. Las nueve
-  salen idénticas — **pero hay que correr un control**: la cápsula de cristal
-  del botón "Nuevo" de Inicio cambia un 0.018 % **entre dos corridas del mismo
-  código**. Sin el control, ese ruido se lee como una regresión.
+  salen idénticas — **pero un diff solo vale con una corrida de control**, y
+  aquí hizo falta dos veces:
+  - La cápsula de cristal del botón "Nuevo" de Inicio cambia un 0.018 % **entre
+    dos corridas del mismo código**. Es ruido de render.
+  - Agenda salió una vez con los puntos de evento ausentes y "0 pending" en el
+    subtítulo: la captura llegó **antes de que cargara la agenda**. El
+    subtítulo es el testigo — si dice "0 pending", la foto es prematura y no
+    hay nada que investigar.
+
+  Las dos veces, la primera lectura era "hay una regresión" y la segunda
+  corrida la desmontó.
 - **El modo revisión (`Support/ModoRevision.swift`) se enciende en local para
   recorrer pantallas sin credenciales** y se apaga antes de commitear. Ninguno
   de los diecisiete commits lo lleva encendido.
@@ -2232,8 +2254,10 @@ Tres cosas, y ninguna es un arreglo pendiente: son decisiones.
   hueco que se tapó en el iPad: sin datos se dibuja el borde y nada dentro.
   Taparlo cambia el alto de una pantalla del teléfono, que quedaba fuera de esa
   pasada.
-- **El folio de un traslado cerrado.** Mientras el web no lo guarde, la columna
-  no vuelve al informe. Es decisión de esquema, no de iOS.
+- **El ancho de la tabla de movimientos de membresía.** Sus columnas son de
+  ancho fijo y suman 580 pt, así que en el teléfono la fecha y el estado se
+  quedan fuera de pantalla. Lo dejó apuntado `fb91edb` y sigue abierto: es
+  anterior a las dos pasadas.
 
 ---
 
