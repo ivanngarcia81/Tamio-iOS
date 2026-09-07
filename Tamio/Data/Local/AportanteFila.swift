@@ -334,6 +334,23 @@ struct ApunteFila: Codable, FetchableRecord, PersistableRecord {
     var borrado: Bool
 }
 
+/// Una plantilla de carta. Espejo de `public.plantillas`.
+struct PlantillaFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "plantilla"
+
+    var id: String
+    var nombre: String
+    var tipo: String
+    var asunto: String
+    var saludo: String
+    var cuerpoHtml: String
+    var despedida: String
+    var activa: Bool
+    var predeterminada: Bool
+    var actualizadoEn: String?
+    var borrado: Bool
+}
+
 /// Una carta emitida. Espejo de `public.cartas`.
 struct CartaFila: Codable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "carta"

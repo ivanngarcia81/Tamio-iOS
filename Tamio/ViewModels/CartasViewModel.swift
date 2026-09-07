@@ -3,6 +3,11 @@ import Foundation
 @Observable
 final class CartasViewModel {
     var emitidas: [CartaEmitida] = []
+    /// **Las plantillas de la iglesia.** La lista se dibujaba de
+    /// `TipoPlantilla.allCases` —quince casos de un `enum`— mientras la base
+    /// tenía las once de verdad: cambiar el texto de una en el web no llegaba
+    /// aquí, y cinco de las quince ni existen allá.
+    var plantillas: [Plantilla] = []
     var plantillaSeleccionada: TipoPlantilla = .traslado
     var carta = CartaEnEdicion()
     var cargando = false
@@ -16,12 +21,28 @@ final class CartasViewModel {
     func cargar() async {
         cargando = true
         emitidas = (try? await repo.emitidas()) ?? []
+        plantillas = await repositorioPlantillas().lista()
         cargando = false
     }
 
     func seleccionar(_ tipo: TipoPlantilla) {
         plantillaSeleccionada = tipo
         carta.tipo = tipo
+    }
+
+    /// **Elegir una plantilla rellena la carta con su texto.** Antes solo
+    /// cambiaba el tipo: el asunto, el saludo, el cuerpo y la despedida que la
+    /// iglesia había redactado en el web no se usaban para nada.
+    ///
+    /// No pisa lo ya escrito: quien lleva media carta redactada y toca otra
+    /// plantilla por error no la pierde.
+    func seleccionar(_ plantilla: Plantilla) {
+        plantillaSeleccionada = plantilla.tipo
+        carta.tipo = plantilla.tipo
+        if carta.asunto.isEmpty { carta.asunto = plantilla.asunto }
+        if carta.saludo.isEmpty { carta.saludo = plantilla.saludo }
+        if carta.cuerpoTexto.isEmpty { carta.cuerpoTexto = plantilla.cuerpoLlano }
+        if carta.cierre.isEmpty { carta.cierre = plantilla.despedida }
     }
 
     /// Inicia un nuevo borrador a partir de los datos del formulario de creación.

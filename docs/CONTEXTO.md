@@ -1117,8 +1117,37 @@ Por orden de lo que más se nota usando la app un domingo:
    el primero es "el único que hace desaparecer dinero de las cuentas". Van en
    `OfflineMovimientosRepository`, `OfflineDepositosRepository` y el corte, con
    el mismo `anotarSuceso(_:_:)`.
-4. **Las plantillas de carta viven en el `enum`** mientras `public.plantillas`
-   tiene esas once filas en la base: editarlas en el web no llega al iPhone.
+4. ~~Las plantillas de carta viven en el `enum`.~~ **— HECHO el 7 de
+   septiembre.** Tabla `plantilla` (v22) y `repositorioPlantillas()`. Bajan las
+   once de la iglesia con su nombre y su texto, y elegir una rellena asunto,
+   saludo, cuerpo y despedida.
+
+   **Solo BAJAN**: el iPhone no crea ni edita plantillas —eso se hace en el
+   web—, así que no hay `subirPlantilla` ni entidad en la cola. Código de
+   subida que nadie puede ejecutar es código que nadie prueba.
+
+   El cuerpo llega en HTML con variables `{{miembro_nombre}}`; `cuerpoLlano`
+   le quita las etiquetas y conserva las variables, porque el editor del
+   iPhone es de texto llano y las sustituye quien imprime.
+
+**Con esto, Secretaría queda cerrada.** Lo que sigue está en "Lo que queda de
+Secretaría, ya no bloquea" y en el §5 de Tesorería.
+
+### Lo que queda de Secretaría, ya no bloquea
+
+- **El informe General son constantes** —dice 262 miembros donde el hub dice lo
+  real— y **Seguimiento anuncia tres alertas y enseña "Próximamente"**. El web
+  lo tiene resuelto en `services/informes/membresia.ts`.
+- **"Próximos" en Servicios incluye cultos pasados**: la cabecera es un `Text`
+  fijo sobre la lista entera, sin filtrar por fecha.
+- **El selector de "Tipo de carta" ofrece quince** y cinco no existen en el
+  catálogo del web —`autorizacion`, `solicitud`, `reconocimiento`, `bautismo`,
+  `bienvenida`—: una carta de esos tipos sube un `tipo` que el web no sabe
+  dibujar. La lista de PLANTILLAS ya solo enseña las once reales.
+- **El responsable de una actividad se guarda como texto**, no como
+  `member_uid`. El selector ya lleva el id de cada persona: falta usarlo.
+- **En Actas y Servicios el estado sale dos veces** y por eso los títulos se
+  cortan.
 
 ### Lo que ya no bloquea
 

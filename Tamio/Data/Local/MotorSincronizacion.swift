@@ -99,6 +99,7 @@ final class MotorSincronizacion {
             try await bajarActas()
             try await bajarCartas()
             try await bajarRegistro()
+            try await bajarPlantillas()
             // Las tres hijas del culto, después de él y por la misma razón que
             // los parentescos van después de las personas.
             try await bajarAsistencia()
@@ -757,6 +758,53 @@ final class MotorSincronizacion {
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
         case .none:
             return
+        }
+    }
+
+    /// **Las plantillas solo BAJAN.** El iPhone no las crea ni las edita —se
+    /// hacen en el web—, así que no hay `subirPlantilla` ni entidad en la cola
+    /// de salida: código de subida que nadie puede ejecutar es código que
+    /// nadie prueba.
+    private func bajarPlantillas() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let nombre, tipo, asunto, saludo, cuerpoHtml, despedida: String?
+            let activa, predeterminada: Int?
+            let updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, nombre, tipo, asunto, saludo, despedida, activa, deleted
+                case cuerpoHtml     = "cuerpo_html"
+                case predeterminada = "predeterminada"
+                case updatedAt      = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'plantilla'")
+        }
+        var consulta = supabase.from("plantillas").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                try PlantillaFila(
+                    id: r.uid, nombre: r.nombre ?? "", tipo: r.tipo ?? "personalizada",
+                    asunto: r.asunto ?? "", saludo: r.saludo ?? "",
+                    cuerpoHtml: r.cuerpoHtml ?? "", despedida: r.despedida ?? "",
+                    activa: (r.activa ?? 1) != 0,
+                    predeterminada: (r.predeterminada ?? 0) != 0,
+                    actualizadoEn: r.updatedAt,
+                    borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('plantilla', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
         }
     }
 

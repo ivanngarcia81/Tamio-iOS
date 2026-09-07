@@ -96,8 +96,9 @@ struct CartasView: View {
     private var listaColumnaCore: some View {
         List {
             Section {
-                ForEach(TipoPlantilla.allCases) { tipo in
-                    filaTipo(tipo)
+                // Las de la iglesia, no los casos del `enum`.
+                ForEach(vm.plantillas) { plantilla in
+                    filaPlantilla(plantilla)
                 }
             } header: {
                 Text(L.t("Plantillas", "Templates"))
@@ -115,10 +116,15 @@ struct CartasView: View {
         }
     }
 
-    private func filaTipo(_ tipo: TipoPlantilla) -> some View {
+    /// **La fila enseña el nombre que la iglesia le puso**, no la etiqueta del
+    /// `enum`: si en el web la plantilla se llama "Carta de traslado a otra
+    /// congregación", eso es lo que tiene que decir aquí. El icono y el
+    /// subtítulo siguen saliendo del tipo, que es lo que los tiene.
+    private func filaPlantilla(_ plantilla: Plantilla) -> some View {
+        let tipo = plantilla.tipo
         let sel = tipo == vm.plantillaSeleccionada
         return Button {
-            vm.seleccionar(tipo)
+            vm.seleccionar(plantilla)
             panelAbierto = true
         } label: {
             HStack(spacing: 12) {
@@ -131,7 +137,7 @@ struct CartasView: View {
                         in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                     )
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(tipo.titulo)
+                    Text(plantilla.nombre.isEmpty ? tipo.titulo : plantilla.nombre)
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(sel ? Paleta.brand : .primary)
                         .lineLimit(1)
@@ -346,7 +352,8 @@ private struct NuevaCartaSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var datos = CartaEnEdicion()
-    @State private var templateSeleccionada: TipoPlantilla? = nil
+    @State private var templateSeleccionada: String? = nil
+    @State private var plantillas: [Plantilla] = []
 
     /// **El padrón de verdad.** Eran cuatro nombres a mano, y emitir una carta
     /// a quien no está en el padrón es emitirla a nadie.
@@ -404,8 +411,12 @@ private struct NuevaCartaSheet: View {
             .onAppear { aplicarAutoFill() }
             .onChange(of: datos.tipo) { _, _ in aplicarAutoFill() }
         }
-        // El padrón, al abrir la hoja: el selector de personas lo lee.
-        .task { if padron.isEmpty { padron = await padronParaSelector() } }
+        // El padrón y las plantillas, al abrir la hoja: los dos selectores
+        // los leen.
+        .task {
+            if padron.isEmpty { padron = await padronParaSelector() }
+            if plantillas.isEmpty { plantillas = await repositorioPlantillas().lista() }
+        }
         .hojaFormulario()
     }
 
@@ -471,15 +482,26 @@ private struct NuevaCartaSheet: View {
                           "Salutation · e.g. To whom it may concern"),
                       text: $datos.saludo)
                 .autocorrectionDisabled()
+            // **Las plantillas de la iglesia.** Ofrecía los quince casos del
+            // `enum` y rellenaba con `cuerpoTemplate`, un `switch` de textos
+            // escritos aquí: lo que la iglesia hubiera redactado en el web no
+            // se usaba. Ese `switch` se queda como respaldo para el modo
+            // revisión, donde no hay base de la que leerlas.
             Picker(L.t("Usar plantilla", "Use template"),
                    selection: $templateSeleccionada) {
-                Text(L.t("Elegir plantilla...", "Choose a template...")).tag(nil as TipoPlantilla?)
-                ForEach(TipoPlantilla.allCases) { tipo in
-                    Text(tipo.titulo).tag(tipo as TipoPlantilla?)
+                Text(L.t("Elegir plantilla...", "Choose a template...")).tag(nil as String?)
+                ForEach(plantillas) { p in
+                    Text(p.nombre.isEmpty ? p.tipo.titulo : p.nombre).tag(p.id as String?)
                 }
             }
             .onChange(of: templateSeleccionada) { _, nuevo in
-                if let t = nuevo { datos.cuerpoTexto = cuerpoTemplate(t) }
+                guard let id = nuevo, let p = plantillas.first(where: { $0.id == id }) else { return }
+                datos.tipo = p.tipo
+                let cuerpo = p.cuerpoLlano
+                datos.cuerpoTexto = cuerpo.isEmpty ? cuerpoTemplate(p.tipo) : cuerpo
+                if datos.asunto.isEmpty { datos.asunto = p.asunto }
+                if datos.saludo.isEmpty { datos.saludo = p.saludo }
+                if datos.cierre.isEmpty { datos.cierre = p.despedida }
             }
             TextField(L.t("Cuerpo de la carta", "Letter body"),
                       text: $datos.cuerpoTexto, axis: .vertical)

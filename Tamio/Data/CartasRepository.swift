@@ -183,6 +183,87 @@ struct OfflineCartasRepository: CartasRepository {
     }
 }
 
+// MARK: - Las plantillas
+
+/// Una plantilla de carta, como la guarda el web.
+struct Plantilla: Identifiable, Hashable {
+    let id: String
+    let nombre: String
+    let tipo: TipoPlantilla
+    var asunto: String = ""
+    var saludo: String = ""
+    /// **En HTML y con variables `{{miembro_nombre}}`**, tal como llega. No se
+    /// interpreta al guardar: el web lo escribe así y lo imprime así.
+    var cuerpoHtml: String = ""
+    var despedida: String = ""
+    var predeterminada: Bool = false
+
+    /// El cuerpo en texto llano, que es lo que el editor del iPhone sabe
+    /// enseñar. **Se pierde el formato a propósito**: meter HTML crudo en un
+    /// `TextField` sería peor que quitarlo, y un editor de texto con formato
+    /// es otra pantalla. Las variables se dejan como están —quien redacta las
+    /// reconoce— y las sustituye quien imprime.
+    var cuerpoLlano: String {
+        var t = cuerpoHtml
+        for (etiqueta, corte) in [("</p>", "\n\n"), ("<br>", "\n"), ("<br/>", "\n"),
+                                  ("<br />", "\n"), ("</div>", "\n")] {
+            t = t.replacingOccurrences(of: etiqueta, with: corte)
+        }
+        t = t.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        t = t.replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+        return t.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+protocol PlantillasRepository {
+    func lista() async -> [Plantilla]
+}
+
+/// La maqueta las deriva del `enum`, que es de donde salían antes: sin sesión
+/// no hay base de la que leerlas y la pantalla tiene que enseñar algo.
+struct MockPlantillasRepository: PlantillasRepository {
+    func lista() async -> [Plantilla] {
+        TipoPlantilla.allCases.map {
+            Plantilla(id: $0.rawValue, nombre: $0.titulo, tipo: $0)
+        }
+    }
+}
+
+/// **Las de la iglesia.** Solo bajan: el iPhone todavía no crea ni edita
+/// plantillas, así que no hay `subirPlantilla` —escribir código de subida para
+/// algo que nadie puede cambiar es código que nunca se ejecuta y que nadie
+/// prueba—. Se editan en el web y llegan aquí.
+struct OfflinePlantillasRepository: PlantillasRepository {
+
+    private var cola: DatabaseQueue { BaseLocal.compartida.cola }
+
+    func lista() async -> [Plantilla] {
+        (try? await cola.read { db in
+            try PlantillaFila
+                .filter(Column("borrado") == false && Column("activa") == true)
+                .order(Column("nombre").asc)
+                .fetchAll(db)
+                .map {
+                    Plantilla(id: $0.id, nombre: $0.nombre,
+                              tipo: TipoPlantilla(clave: $0.tipo),
+                              asunto: $0.asunto, saludo: $0.saludo,
+                              cuerpoHtml: $0.cuerpoHtml, despedida: $0.despedida,
+                              predeterminada: $0.predeterminada)
+                }
+        }) ?? []
+    }
+}
+
+/// Maqueta sin sesión, base con ella. **Y maqueta también si la base todavía
+/// no las ha bajado**: una pantalla de cartas sin ninguna plantilla no es
+/// utilizable, y la primera sincronización puede tardar.
+func repositorioPlantillas() -> PlantillasRepository {
+    ModoRevision.sinLogin ? MockPlantillasRepository() : OfflinePlantillasRepository()
+}
+
 /// Maqueta sin sesión, base con ella.
 func repositorioCartas() -> CartasRepository {
     ModoRevision.sinLogin ? MockCartasRepository() : OfflineCartasRepository()

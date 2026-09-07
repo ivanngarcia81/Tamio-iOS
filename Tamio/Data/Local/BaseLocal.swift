@@ -804,6 +804,31 @@ final class BaseLocal {
             }
         }
 
+        // **Las plantillas de carta, espejo de `public.plantillas`.** La última
+        // de Secretaría. La lista de plantillas se dibujaba de `TipoPlantilla.
+        // allCases` —quince casos escritos en un `enum`— mientras la iglesia
+        // tenía sus once en la base: cambiar el texto de una plantilla desde el
+        // web no llegaba al teléfono, y cinco de las quince ni existen allá.
+        //
+        // El cuerpo viene en HTML y con variables `{{miembro_nombre}}`. Se
+        // guarda tal cual: interpretarlo al bajar sería perder lo que el web
+        // sabe leer, y quien lo tenga que enseñar decide cómo.
+        m.registerMigration("v22_plantillas") { db in
+            try db.create(table: "plantilla") { t in
+                t.primaryKey("id", .text)
+                t.column("nombre", .text).notNull().defaults(to: "")
+                t.column("tipo", .text).notNull().defaults(to: "personalizada")
+                t.column("asunto", .text).notNull().defaults(to: "")
+                t.column("saludo", .text).notNull().defaults(to: "")
+                t.column("cuerpoHtml", .text).notNull().defaults(to: "")
+                t.column("despedida", .text).notNull().defaults(to: "")
+                t.column("activa", .boolean).notNull().defaults(to: true)
+                t.column("predeterminada", .boolean).notNull().defaults(to: false)
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return m
     }
 
