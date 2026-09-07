@@ -52,6 +52,7 @@ struct RevisarView: View {
             }
         }
         .task { await vm.cargar() }
+        .sincronizable { await vm.cargar() }
     }
 
     /// El subtítulo dice lo que hay, no solo cuántos: "movimientos esperan tu

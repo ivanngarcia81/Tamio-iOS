@@ -65,6 +65,7 @@ struct AgendaView: View {
             }
         }
         .task { await vm.cargar() }
+        .sincronizable { await vm.cargar() }
         .sheet(isPresented: $mostrarNuevo) {
             NuevoEventoSheet(
                 mesActual: vm.mesActual,

@@ -65,6 +65,7 @@ struct IPhoneTesoreriaView: View {
                        "\(L.mesEnCurso) · Banorte ••4821")
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.cargar() }
+        .sincronizable { await vm.cargar() }
         .task { await depositos.cargar() }
     }
 

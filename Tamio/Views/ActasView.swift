@@ -69,6 +69,7 @@ struct ActasView: View {
             }
         }
         .task { await vm.cargar(); await cfg.cargar() }
+        .sincronizable { await vm.cargar() }
         .sheet(isPresented: $mostrarNueva) {
             NuevaActaSheet(proximoId: vm.proximoId) { acta in
                 Task { await vm.agregarActa(acta) }

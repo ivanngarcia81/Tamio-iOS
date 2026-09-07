@@ -145,10 +145,15 @@ struct IPhoneSecretariaView: View {
                        L.t("Padrón, servicios y documentos", "Roster, services & documents"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await cfg.cargar() }
-        .task {
-            padron = await repositorioMembresia().resumen()
-            agenda = await repositorioAgenda().resumen()
-        }
+        .task { await cargarCifras() }
+        // El hub enseña dos resúmenes que dependen de lo que baje: el padrón
+        // activo y los próximos compromisos.
+        .sincronizable { await cargarCifras() }
+    }
+
+    private func cargarCifras() async {
+        padron = await repositorioMembresia().resumen()
+        agenda = await repositorioAgenda().resumen()
     }
 
     // MARK: - KPI Padrón

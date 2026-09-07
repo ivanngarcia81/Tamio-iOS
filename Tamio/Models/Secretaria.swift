@@ -385,9 +385,40 @@ enum TipoPlantilla: String, CaseIterable, Identifiable {
     case invitacion, agradecimiento, autorizacion, solicitud
     case nombramiento, reconocimiento, certificadoServicio
     case traslado, personalizada
+    /// **Del catálogo del web y no estaba aquí.** Lo destapó la primera
+    /// sincronización con la cuenta real: dos de las cinco cartas de la
+    /// iglesia son de tipo `certificacion` y salían como "Personalizada",
+    /// porque el `rawValue` no existía. Ver `clave`.
+    case certificacion
     // Legacy — kept for existing mock data
     case bautismo, bienvenida
     var id: String { rawValue }
+
+    /// **La clave del web** (`TIPOS_INICIALES` en
+    /// `services/cartas/plantillas.ts`), que no es el nombre del `case` en
+    /// tres de ellas: allá se llaman `constanciaActivo` y `constanciaServicio`
+    /// —aquí `certificadoMiembro` y `certificadoServicio`— y existe
+    /// `certificacion`, que aquí no existía.
+    ///
+    /// Sin esto, una carta bajada del web con cualquiera de esos tres tipos
+    /// se leía como `personalizada`: se veía bien en la lista porque la fila
+    /// enseña el nombre del destinatario, y el tipo equivocado solo salía al
+    /// abrirla. Los cinco que no están en su catálogo —autorizacion,
+    /// solicitud, reconocimiento, bautismo, bienvenida— viajan con su propio
+    /// nombre, que es lo que ya hacían.
+    var clave: String {
+        switch self {
+        case .certificadoMiembro:  return "constanciaActivo"
+        case .certificadoServicio: return "constanciaServicio"
+        default:                   return rawValue
+        }
+    }
+
+    /// Lo que no se reconoce vuelve como `personalizada`, que es como el web
+    /// llama a una carta que no sigue plantilla.
+    init(clave: String) {
+        self = TipoPlantilla.allCases.first { $0.clave == clave } ?? .personalizada
+    }
 
     var titulo: String {
         switch self {
@@ -403,6 +434,7 @@ enum TipoPlantilla: String, CaseIterable, Identifiable {
         case .reconocimiento:       return L.t("Reconocimiento", "Recognition")
         case .certificadoServicio:  return L.t("Constancia de servicio", "Certificate of service")
         case .traslado:             return L.t("Carta de traslado", "Transfer letter")
+        case .certificacion:        return L.t("Certificación", "Certification")
         case .personalizada:        return L.t("Personalizada", "Custom")
         case .bautismo:             return L.t("Constancia de bautismo", "Baptism certificate")
         case .bienvenida:           return L.t("Carta de bienvenida", "Welcome letter")
@@ -421,6 +453,7 @@ enum TipoPlantilla: String, CaseIterable, Identifiable {
         case .nombramiento:        return L.t("Cargo pastoral o ministerial", "Pastoral or ministerial role")
         case .reconocimiento:      return L.t("Años de servicio o logro", "Years of service or achievement")
         case .certificadoServicio: return L.t("Historial de participación", "Participation record")
+        case .certificacion:       return L.t("Certificación general", "General certification")
         case .traslado:            return L.t("Aportante que cambia de iglesia", "Member changing church")
         case .personalizada:       return L.t("Sin plantilla predefinida", "No predefined template")
         case .bautismo:            return L.t("Con fecha y oficiante", "With date and officiant")
@@ -444,6 +477,7 @@ enum TipoPlantilla: String, CaseIterable, Identifiable {
         case .nombramiento:        return "star.circle"
         case .reconocimiento:      return "star.fill"
         case .certificadoServicio: return "list.bullet.rectangle"
+        case .certificacion:       return "rosette"
         case .traslado:            return "arrow.right.doc.on.clipboard"
         case .personalizada:       return "doc.badge.plus"
         case .bautismo:            return "drop.circle"

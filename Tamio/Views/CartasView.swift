@@ -46,6 +46,7 @@ struct CartasView: View {
             }
         }
         .task { await vm.cargar(); await cfg.cargar() }
+        .sincronizable { await vm.cargar() }
         .sheet(isPresented: $mostrarNueva) {
             NuevaCartaSheet { datos in
                 vm.nuevaCarta(datos)
@@ -315,7 +316,7 @@ struct CartasView: View {
         case .traslado, .recomendacion, .buenaConducta, .presentacion,
              .invitacion, .agradecimiento, .autorizacion, .solicitud,
              .nombramiento, .reconocimiento, .certificadoServicio,
-             .certificadoMiembro, .personalizada:
+             .certificadoMiembro, .certificacion, .personalizada:
             return L.t("Nombre del miembro", "Member name")
         case .bautismo: return L.t("Nombre del bautizado", "Baptized name")
         case .bienvenida: return L.t("Nombre del nuevo miembro", "New member name")

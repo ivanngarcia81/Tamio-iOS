@@ -70,6 +70,7 @@ struct MiembrosView: View {
                 Text(errorImportacion ?? "")
             }
             .task { await vm.cargar() }
+            .sincronizable { await vm.cargar() }
     }
 
     /// Teléfono: buscador nativo y el título borrado, porque el segmentado que

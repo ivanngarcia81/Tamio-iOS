@@ -2,6 +2,36 @@ import SwiftUI
 import UIKit
 
 extension View {
+
+    /// **Tirar hacia abajo para sincronizar**, como el correo.
+    ///
+    /// Hasta ahora la app solo sincronizaba en dos momentos: al abrirla y al
+    /// volver del fondo (`TamioApp`). Quien la dejaba abierta en la mesa
+    /// mientras el pastor daba de alta a alguien desde el web no se enteraba
+    /// hasta cerrarla y volver, y no había forma de pedirlo: el único botón de
+    /// sincronizar a mano está enterrado en Ajustes. El gesto es el que todo
+    /// el mundo ya conoce y no gasta ni una cápsula de la barra.
+    ///
+    /// **Sincroniza Y RECARGA.** Solo lo primero deja la pantalla enseñando lo
+    /// de antes: se tira, algo baja, y no se ve nada distinto hasta salir y
+    /// entrar. Por eso `recargar` no tiene valor por omisión — cada pantalla
+    /// sabe qué tiene que volver a pedir, y olvidarlo sería el fallo que este
+    /// modificador existe para no cometer.
+    ///
+    /// En modo revisión no hay red que ejercitar —`sincronizar()` vuelve sin
+    /// hacer nada— pero la recarga sí corre, así que el gesto no miente: la
+    /// pantalla se refresca, simplemente no hay de dónde traer nada.
+    ///
+    /// Se pone sobre la `List` o el `ScrollView`, o sobre un ancestro suyo:
+    /// `refreshable` viaja por el entorno y lo recoge el primer contenedor
+    /// desplazable que lo encuentre.
+    func sincronizable(_ recargar: @escaping () async -> Void) -> some View {
+        refreshable {
+            await MotorSincronizacion.compartido.sincronizar()
+            await recargar()
+        }
+    }
+
     /// Título + subtítulo en la barra de navegación, de forma nativa, con
     /// `navigationSubtitle`: el sistema lo centra y lo espacia solo, sin tocar
     /// los bordes. Sustituye al `VStack` manual en el toolbar, que se apretaba

@@ -24,6 +24,7 @@ struct InformesMembresiaView: View {
             // El padrón del informe de Miembros. Esta pantalla no tenía
             // `.task` porque todo lo suyo era calculado de constantes.
             .task { await vm.cargarPadron() }
+            .sincronizable { await vm.cargarPadron() }
             .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
             .sheet(isPresented: $mostrarShareCSV) {
                 if let url = urlCSV { ShareSheet(items: [url]) }

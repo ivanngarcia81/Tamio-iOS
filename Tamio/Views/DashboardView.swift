@@ -43,6 +43,7 @@ struct DashboardView: View {
                 Text(errorGuardado ?? "")
             }
             .task { await vm.cargar() }
+            .sincronizable { await vm.cargar() }
     }
 
     /// **El segmentado ocupa el lugar del título.** "Inicio" es lo mismo que ya

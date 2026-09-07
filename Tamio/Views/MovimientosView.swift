@@ -94,6 +94,7 @@ struct MovimientosView: View {
             }
             .onChange(of: nav.seccion) { _, seccion in sincronizarConSidebar(seccion) }
             .task { await vm.cargar() }
+            .sincronizable { await vm.cargar() }
             .overlay(alignment: .top) { avisoError }
     }
 

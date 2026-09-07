@@ -991,6 +991,48 @@ en `.secondary` y 8.1:1 el elegido, holgado para AA, así que no hizo falta
 subirle el peso. Comprobado también con Aumentar contraste y Reducir
 transparencia encendidos: la pieza sigue leyéndose como grupo.
 
+### XCUITest NO sabe hacer un tirón de refresco — 6 de septiembre
+
+`.refreshable` no se puede comprobar con una prueba de interfaz. Se intentó de
+cuatro maneras —`swipeDown`, `swipeDown` doble, un arrastre lento sostenido con
+`press(forDuration:thenDragTo:withVelocity:thenHoldForDuration:)`, y buscar el
+indicador entre `activityIndicators` y `progressIndicators`— y **ninguna
+dispara el gesto ni lo detecta**: el control de recarga de SwiftUI no aparece
+en el árbol de accesibilidad, así que no encontrarlo no prueba ni desmiente
+nada.
+
+Lo que sí lo zanja, y es lo que se hizo:
+
+1. En la COPIA, meter dentro del cierre de `sincronizable` una escritura a
+   fichero (`Documents/tiron.txt` al entrar y `tironFin.txt` al salir).
+2. Instalar ese build, y **tirar con el dedo** en el simulador.
+3. Leer el fichero desde el shell: `find .../Data/Application -name "tiron*.txt"`.
+
+Salieron los dos con dos segundos de diferencia: el cierre corre, sincroniza
+contra la red y recarga. La instrumentación no llega al repo.
+
+**La moraleja no es sobre este gesto.** Es que una prueba que no encuentra algo
+solo vale si sabes que sabría encontrarlo. Aquí se estuvo a punto de dar por
+roto un gesto que funcionaba.
+
+### Las pruebas unitarias corren DENTRO del contenedor de la app
+
+Y por tanto sobre la MISMA base local. Mientras el contenedor estuvo en modo
+revisión eso era inofensivo. En cuanto se entró con la cuenta real, volver a
+correrlas escribió en la base de la iglesia: `testEscribirYLeerUnaNota` era la
+única de las cuatro que no borraba su fila al terminar, quedó en la cola de
+salida y **la siguiente sincronización la subió a `public.registro`**.
+
+Las de agenda, actas y cartas sí borran la suya, así que lo que mandaron fueron
+lápidas contra filas que allá no existen: cero efecto. Por eso solo se coló una.
+
+Dos reglas que salen de ahí:
+
+- **Toda prueba unitaria borra lo que escribe**, aunque parezca que da igual.
+- **No correr pruebas unitarias contra un contenedor con sesión.** Si hace
+  falta, desinstalar la app antes (`xcrun simctl uninstall <udid>
+  church.tamio.native`), que se lleva la base local con ella.
+
 ### El idioma de prueba NO se cambia con `-AppleLanguages`
 
 La app no tiene `es.lproj`, así que `Locale.current` cae a inglés y la app sigue

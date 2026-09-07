@@ -54,6 +54,7 @@ struct DepositosView: View {
             }
         }
         .task { await vm.cargar() }
+        .sincronizable { await vm.cargar() }
         // "Ir al corte" de la bandeja señala CUÁL: se abre ese, no la lista.
         .onChange(of: nav?.corteDestacado) { _, id in abrirDestacado(id) }
         .onAppear { abrirDestacado(nav?.corteDestacado) }

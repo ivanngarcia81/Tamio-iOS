@@ -71,6 +71,7 @@ struct RegistroView: View {
                                 iglesia: cfg.config).areasDelRegistro
             await vm.cargar()
         }
+        .sincronizable { await vm.cargar() }
     }
 
     // MARK: - Lista

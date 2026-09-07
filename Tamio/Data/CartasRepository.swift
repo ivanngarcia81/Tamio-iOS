@@ -88,10 +88,10 @@ struct OfflineCartasRepository: CartasRepository {
     static func aCarta(_ f: CartaFila) -> CartaEmitida {
         CartaEmitida(id: f.id,
                      folio: f.folio,
-                     // Lo que no está en el catálogo vuelve como
-                     // `personalizada`, que es lo que el web llama a una carta
-                     // que no sigue plantilla.
-                     tipo: TipoPlantilla(rawValue: f.tipo) ?? .personalizada,
+                     // Por la CLAVE del web, no por el nombre del `case`:
+                     // `constanciaActivo`, `constanciaServicio` y
+                     // `certificacion` no coinciden. Ver `TipoPlantilla.clave`.
+                     tipo: TipoPlantilla(clave: f.tipo),
                      fechaEmision: f.fechaEmision,
                      lugarEmision: f.lugarEmision,
                      destinatarioTipo: f.destinatarioTipo,
@@ -111,7 +111,7 @@ struct OfflineCartasRepository: CartasRepository {
     static func aFila(_ c: CartaEmitida, previa: CartaFila?) -> CartaFila {
         CartaFila(id: c.id,
                   folio: c.folio,
-                  tipo: c.tipo.rawValue,
+                  tipo: c.tipo.clave,
                   fechaEmision: c.fechaEmision,
                   lugarEmision: c.lugarEmision,
                   miembroId: previa?.miembroId,

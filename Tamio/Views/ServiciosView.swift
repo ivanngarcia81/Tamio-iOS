@@ -88,6 +88,7 @@ struct ServiciosView: View {
             }
         }
         .task { await vm.cargar() }
+        .sincronizable { await vm.cargar() }
         .sheet(item: $hoja) { cual in
             switch cual {
             case .nuevo:

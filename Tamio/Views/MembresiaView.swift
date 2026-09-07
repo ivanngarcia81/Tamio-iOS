@@ -26,6 +26,7 @@ struct MembresiaView: View {
         pantalla
             .toolbar { barra }
             .task { await vm.cargar() }
+            .sincronizable { await vm.cargar() }
             .onChange(of: subtab) { _, nuevo in
                 vm.sincronizarSeleccion(enSeguimiento: nuevo == 2)
             }
