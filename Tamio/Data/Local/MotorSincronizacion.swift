@@ -98,6 +98,7 @@ final class MotorSincronizacion {
             try await bajarAgenda()
             try await bajarActas()
             try await bajarCartas()
+            try await bajarRegistro()
             // Las tres hijas del culto, después de él y por la misma razón que
             // los parentescos van después de las personas.
             try await bajarAsistencia()
@@ -191,6 +192,10 @@ final class MotorSincronizacion {
         }
         if op.entidad == "carta" {
             try await subirCarta(op)
+            return
+        }
+        if op.entidad == "apunte" {
+            try await subirApunte(op)
             return
         }
         if op.entidad == "asistencia" {
@@ -706,6 +711,94 @@ final class MotorSincronizacion {
             if let ultimo = filas.last?.updatedAt {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('carta', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
+    // MARK: - El registro
+
+    /// **El registro no se edita ni se borra: solo se añade.** Es una
+    /// bitácora, y por eso solo hay `insert`. Las funciones que registran
+    /// tampoco pueden fallar por culpa del apunte —"la operación es lo
+    /// importante y el apunte es su sombra", como lo dice el web—, pero eso lo
+    /// resuelve la cola: un apunte que no sube se reintenta y no bloquea nada.
+    private struct ApunteEscritura: Encodable {
+        let uid, churchId, tipo, area, datos: String
+        let cuerpo, quien, creadoEn: String?
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, tipo, area, datos, cuerpo, quien, deleted
+            case churchId = "church_id"
+            case creadoEn = "creado_en"
+        }
+
+        init(_ f: ApunteFila, churchId: String, deleted: Bool) {
+            func o(_ s: String) -> String? { s.isEmpty ? nil : s }
+            uid = f.id; self.churchId = churchId
+            tipo = f.tipo; area = f.area; datos = f.datos
+            cuerpo = o(f.cuerpo); quien = o(f.quien); creadoEn = o(f.creadoEn)
+            self.deleted = deleted
+        }
+    }
+
+    private func subirApunte(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try ApunteFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+        let cuerpo = ApunteEscritura(fila, churchId: churchIdActivo, deleted: fila.borrado)
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("registro").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("registro").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+        case .none:
+            return
+        }
+    }
+
+    private func bajarRegistro() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let tipo, area, datos, cuerpo, quien, creadoEn, updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, tipo, area, datos, cuerpo, quien, deleted
+                case creadoEn  = "creado_en"
+                case updatedAt = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'apunte'")
+        }
+        var consulta = supabase.from("registro").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                let pendiente = try OperacionPendiente
+                    .filter(Column("entidad") == "apunte" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if pendiente { continue }
+                try ApunteFila(
+                    id: r.uid, tipo: r.tipo ?? "nota", area: r.area ?? "general",
+                    datos: r.datos ?? "{}", cuerpo: r.cuerpo ?? "",
+                    quien: r.quien ?? "",
+                    // Si el apunte llegara sin instante quedaría fuera de todo
+                    // orden; el `updated_at` de Postgres es lo más cercano.
+                    creadoEn: r.creadoEn ?? r.updatedAt ?? "",
+                    actualizadoEn: r.updatedAt,
+                    borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('apunte', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
                     """, arguments: [ultimo])
             }

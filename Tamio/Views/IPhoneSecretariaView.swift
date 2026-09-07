@@ -96,13 +96,35 @@ struct IPhoneSecretariaView: View {
                 }
             }
 
-            Section(L.t("EQUIPO", "TEAM")) {
-                // Mensajes: pantalla pendiente de construir.
-                HubRow(icono: "bubble.left.and.bubble.right.fill", color: Color(hex: 0x64748B),
-                       titulo: L.t("Mensajes", "Messages"),
-                       subtitulo: L.t("Secretaría, tesorería y pastor",
-                                      "Secretary, treasury & pastor"),
-                       badge: 2)
+            // **Aquí estaba Mensajes, y la sección EQUIPO con ella.** La fila
+            // no llevaba a ninguna parte —no había pantalla— y anunciaba dos
+            // sin leer con un badge escrito a mano.
+            //
+            // No estaba pendiente: estaba retirada. El web la sustituyó por
+            // `registro` y cerró el reemplazo el 26 de agosto de 2026
+            // (`supabase/retiro-msg1-mensajes.sql`, "cerrar el reemplazo de
+            // Mensajes y borrar"). Comprobado contra la base, no contra el
+            // archivo: `public.mensajes` tiene siete filas y las siete están
+            // marcadas como borradas. La tabla remota sigue existiendo vacía
+            // a propósito, para que un iPad con la 1.2.11 no rompa su
+            // sincronización, y se suelta cuando todos actualicen.
+            //
+            // Lo dijo Iván: "Mensaje no es necesario lo puedes eliminar".
+            //
+            // En su sitio va el Registro, que es lo que hace su trabajo. Y
+            // hacía falta una puerta: la pantalla existe desde hace tiempo,
+            // con su permiso propio, pero al único sitio desde el que se
+            // llegaba era la barra lateral del iPad. En el teléfono no había
+            // forma de abrirla.
+            if permisos.ve(.registro) {
+                Section(L.t("EQUIPO", "TEAM")) {
+                    NavigationLink { RegistroView() } label: {
+                        HubRow(icono: "list.bullet.rectangle", color: Color(hex: 0x64748B),
+                               titulo: L.t("Registro", "Log"),
+                               subtitulo: L.t("Lo que ha pasado en la iglesia",
+                                              "What has happened at the church"))
+                    }
+                }
             }
 
             Section(L.t("PRÓXIMOS COMPROMISOS", "UPCOMING")) {

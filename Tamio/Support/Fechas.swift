@@ -211,6 +211,38 @@ enum Fechas {
     /// al día anterior al oeste de Greenwich, y el 1 de octubre se convierte en
     /// el 30 de septiembre: la agenda de octubre salía vacía. Para ir en la
     /// otra dirección está `inicioDeMesDeClave`, que no pasa por UTC.
+    /// **Un instante, no un día.** ISO 8601 en UTC, que es como el web guarda
+    /// `creado_en` en el registro: ahí la hora importa —dos apuntes del mismo
+    /// día se ordenan entre sí— y una clave de día no la lleva.
+    ///
+    /// En `en_US_POSIX` y UTC a propósito: es un formato de datos, no una
+    /// preferencia. Ver el comentario de `locale`.
+    static func iso(_ d: Date = Date()) -> String {
+        isoFmt.string(from: d)
+    }
+
+    static func desdeISO(_ texto: String) -> Date? {
+        if let d = isoFmt.date(from: texto) { return d }
+        // Postgres devuelve microsegundos y un desplazamiento de zona; y una
+        // fila vieja puede traer solo el día.
+        if let d = isoFlexible.date(from: texto) { return d }
+        return desdeTexto(texto)
+    }
+
+    private static let isoFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "UTC")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        return f
+    }()
+
+    private static let isoFlexible: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
     static func claveMes(_ d: Date = Date()) -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")

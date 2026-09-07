@@ -22,7 +22,7 @@ final class RegistroViewModel {
     var filtro: FiltroRegistro = .todo
     var seleccionId: String?
 
-    init(repo: RegistroRepository = MockRegistroRepository()) {
+    init(repo: RegistroRepository = repositorioRegistro()) {
         self.repo = repo
     }
 
@@ -33,7 +33,9 @@ final class RegistroViewModel {
     }
 
     private func aplicarAreas() {
-        todos = sinFiltrar.filter { areas.contains($0.area) }
+        // `general` pasa siempre: es, literalmente, "lo que ve todo el mundo".
+        // Sin esto una nota sin área se quedaba fuera de su propia pestaña.
+        todos = sinFiltrar.filter { $0.area == .general || areas.contains($0.area) }
         // La selección puede haber quedado fuera: un detalle abierto de un
         // apunte que ya no se ve seguiría enseñándolo.
         if let id = seleccionId, !todos.contains(where: { $0.id == id }) {
@@ -89,17 +91,18 @@ final class RegistroViewModel {
     /// Escribe una nota a mano (aparece arriba, en HOY).
     @MainActor
     func escribirNota(texto: String, area: ApunteArea, autor: String) async {
+        // La fecha iba escrita a mano —"Hoy · 30 de agosto"—, así que una nota
+        // escrita hoy decía 30 de agosto. Ahora se guarda el instante y la
+        // pantalla compone el texto.
         let nuevo = Apunte(
             id: UUID().uuidString,
-            area: area,
-            texto: texto,
+            tipo: .nota,
+            cuerpo: texto,
             // De la sesión, no escrito a mano: un apunte del registro sin el
             // autor de verdad no vale como apunte.
             autor: autor,
-            hora: L.t("ahora", "now"),
-            grupo: L.t("HOY", "TODAY"),
-            fecha: L.t("Hoy · 30 de agosto", "Today · Aug 30"),
-            esNota: true
+            creadoEn: Date(),
+            area: area
         )
         await repo.escribirNota(nuevo)
         await cargar()

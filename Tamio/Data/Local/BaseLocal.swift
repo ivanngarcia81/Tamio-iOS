@@ -781,6 +781,29 @@ final class BaseLocal {
             }
         }
 
+        // **El registro, espejo de `public.registro`.** La quinta y última de
+        // Secretaría. Aquí estaba también la fila de Mensajes del hub: no
+        // estaba pendiente, estaba retirada —el web la sustituyó por esta
+        // tabla el 26 de agosto de 2026— y se quitó.
+        //
+        // `datos` guarda las piezas del texto en JSON y `cuerpo` solo lo usan
+        // las notas: la frase se compone al leer, que es la razón por la que
+        // esta tabla existe. Ver `TipoSuceso`.
+        m.registerMigration("v21_registro") { db in
+            try db.create(table: "registro") { t in
+                t.primaryKey("id", .text)
+                t.column("tipo", .text).notNull().defaults(to: "nota")
+                t.column("area", .text).notNull().defaults(to: "general")
+                t.column("datos", .text).notNull().defaults(to: "{}")
+                t.column("cuerpo", .text).notNull().defaults(to: "")
+                t.column("quien", .text).notNull().defaults(to: "")
+                // ISO 8601 con hora: aquí el instante importa, no solo el día.
+                t.column("creadoEn", .text).notNull().indexed()
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return m
     }
 
