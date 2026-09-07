@@ -149,12 +149,16 @@ struct OfflineAgendaRepository: AgendaRepository {
         // convertir nada y sin que un huso horario pueda correr el borde.
         let clave = Fechas.claveMes(mes)
         return try await cola.read { db in
-            try EventoAgendaFila
+            // Los nombres del padrón, para poner el de quien responde. Se leen
+            // de una vez y no uno por fila: son las mismas cinco personas
+            // repitiéndose en las actividades del mes.
+            let nombres = try Self.nombresDelPadron(db)
+            return try EventoAgendaFila
                 .filter(Column("borrado") == false)
                 .filter(Column("fecha").like("\(clave)%"))
                 .order(Column("fecha").asc, Column("horaInicio").asc)
                 .fetchAll(db)
-                .map(Self.aEvento)
+                .map { Self.aEvento($0, nombres: nombres) }
         }
     }
 
@@ -179,7 +183,17 @@ struct OfflineAgendaRepository: AgendaRepository {
 
     // MARK: - Traducción
 
-    static func aEvento(_ f: EventoAgendaFila) -> EventoAgenda {
+    /// `uid` → nombre, del padrón que ya vive en el teléfono.
+    static func nombresDelPadron(_ db: Database) throws -> [String: String] {
+        var mapa: [String: String] = [:]
+        let filas = try Row.fetchAll(db, sql: """
+            select id, nombre from aportante where borrado = 0
+            """)
+        for f in filas { mapa[f["id"]] = f["nombre"] }
+        return mapa
+    }
+
+    static func aEvento(_ f: EventoAgendaFila, nombres: [String: String] = [:]) -> EventoAgenda {
         EventoAgenda(
             id: f.id,
             fecha: f.fecha,
@@ -195,7 +209,13 @@ struct OfflineAgendaRepository: AgendaRepository {
             todoDia: f.diaCompleto,
             horaFin: f.horaFin,
             lugar: f.lugar,
-            responsable: f.responsablePersona,
+            // **Del padrón si lo hay, y si no el texto.** Son excluyentes,
+            // como en el web: una actividad cuyo responsable es miembro trae el
+            // id y el texto vacío, así que leer solo el texto la dejaba sin
+            // responsable. Si el id apunta a alguien que ya no está, queda el
+            // texto —normalmente vacío— antes que un id crudo en pantalla.
+            responsable: f.miembroId.flatMap { nombres[$0] } ?? f.responsablePersona,
+            responsableId: f.miembroId,
             ministerio: f.responsableMinisterio,
             notaPie: f.invitado,
             estadoEvento: f.estado,
@@ -215,8 +235,11 @@ struct OfflineAgendaRepository: AgendaRepository {
             diaCompleto: e.todoDia,
             lugar: e.lugar,
             descripcion: e.descripcion,
-            miembroId: nil,
-            responsablePersona: e.responsable,
+            miembroId: e.responsableId,
+            // Excluyentes, como en el web (`Agenda.tsx`): con id, el texto va
+            // vacío. Guardar los dos deja dos verdades que pueden separarse —el
+            // nombre se queda viejo en cuanto la persona cambie de apellido.
+            responsablePersona: e.responsableId == nil ? e.responsable : "",
             responsableMinisterio: e.ministerio,
             invitado: e.notaPie,
             contacto: "",

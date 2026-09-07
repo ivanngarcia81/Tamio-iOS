@@ -1,7 +1,15 @@
 import Foundation
 
 protocol ServiciosRepository {
-    func proximos() async throws -> [Servicio]
+    /// **La bitácora entera, del culto más reciente al más antiguo.** Se
+    /// llamaba `proximos()` y no devolvía los próximos: devolvía todo, con la
+    /// pantalla rotulándolo "Próximos" encima. Un culto de agosto no es un
+    /// compromiso que viene.
+    ///
+    /// El web la llama igual —"historial completo"— y tampoco la parte: un
+    /// registro de servicios es sobre todo un registro de lo que ya pasó, con
+    /// su asistencia y quién predicó.
+    func historial() async throws -> [Servicio]
     /// Alta o edición: la misma función, como en el padrón. Guarda el culto y
     /// sus dos hijas —puestos y orden— de una vez.
     func guardar(_ s: Servicio) async throws
@@ -10,7 +18,7 @@ protocol ServiciosRepository {
 struct MockServiciosRepository: ServiciosRepository {
     private static var almacen: [Servicio] = MockServiciosRepository.servicios
 
-    func proximos() async throws -> [Servicio] {
+    func historial() async throws -> [Servicio] {
         try? await Task.sleep(nanoseconds: 100_000_000)
         return Self.almacen
     }
@@ -85,7 +93,7 @@ struct OfflineServiciosRepository: ServiciosRepository {
 
     private var cola: DatabaseQueue { BaseLocal.compartida.cola }
 
-    func proximos() async throws -> [Servicio] {
+    func historial() async throws -> [Servicio] {
         try await cola.read { db in
             let filas = try ServicioFila
                 .filter(Column("borrado") == false)
@@ -451,7 +459,7 @@ struct MockAsistenciaRepository: AsistenciaRepository {
     /// en los dos sitios, o la lista se tomaría sobre un culto que la pantalla
     /// de Servicios no enseña.
     func cultos(desde: String, hasta: String) async throws -> [CultoConLista] {
-        let servicios = (try? await MockServiciosRepository().proximos()) ?? []
+        let servicios = (try? await MockServiciosRepository().historial()) ?? []
         return servicios
             .filter { $0.fecha >= desde && $0.fecha <= hasta }
             .map { s in

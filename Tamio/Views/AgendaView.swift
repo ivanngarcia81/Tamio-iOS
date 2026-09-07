@@ -676,9 +676,14 @@ private struct NuevoEventoSheet: View {
                 }
 
                 Section(L.t("RESPONSABILIDAD", "RESPONSIBILITY")) {
+                    // **La etiqueta se ve, pero lo que se elige es el id.**
+                    // Antes el `tag` era el nombre y eso era lo único que se
+                    // guardaba: el web no podía enlazar la actividad con nadie,
+                    // y el nombre se quedaba viejo en cuanto la persona
+                    // cambiara de apellido.
                     Picker(L.t("Responsable", "Person in charge"), selection: $responsable) {
                         Text(L.t("— Sin asignar —", "— Unassigned —")).tag("")
-                        ForEach(padron) { p in Text(p.nombre).tag(p.nombre) }
+                        ForEach(padron) { p in Text(p.nombre).tag(p.id) }
                         Text(L.t("— Otra persona (externa) —", "— Other person (external) —")).tag("__ext__")
                     }
                     TextField(L.t("Ministerio / departamento (opcional)", "Ministry / department (optional)"),
@@ -745,7 +750,12 @@ private struct NuevoEventoSheet: View {
     private func guardar() {
         let horaStr: String? = todoDia ? nil : Self.fmtHora.string(from: horaInicio)
         let horaFinStr: String? = todoDia ? nil : Self.fmtHora.string(from: horaFin)
-        let resp = responsable == "__ext__" ? L.t("Otra persona", "Other person") : responsable
+        // Lo que lleva el selector es un id del padrón, "" o "__ext__". Los
+        // dos campos son excluyentes, como en el web: quien está en el padrón
+        // viaja como id y quien no, como texto.
+        let delPadron = padron.first { $0.id == responsable }
+        let externo = responsable == "__ext__"
+        let resp = externo ? L.t("Otra persona", "Other person") : (delPadron?.nombre ?? "")
 
         let ev = EventoAgenda(
             id: proximoId,
@@ -761,6 +771,7 @@ private struct NuevoEventoSheet: View {
             horaFin: horaFinStr,
             lugar: lugar.trimmingCharacters(in: .whitespaces),
             responsable: resp,
+            responsableId: delPadron?.id,
             ministerio: ministerio.trimmingCharacters(in: .whitespaces),
             presupuesto: presupuesto.trimmingCharacters(in: .whitespaces),
             notaPie: notaPie.trimmingCharacters(in: .whitespaces),

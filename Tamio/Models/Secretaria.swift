@@ -159,9 +159,12 @@ struct Acta: Identifiable, Hashable {
         return L.t("Acta \(folio) · \(tipo.etiqueta)", "Minutes \(folio) · \(tipo.etiqueta)")
     }
 
+    /// **Sin el estado**: lo dice la pastilla de la fila, al lado, y repetirlo
+    /// cortaba el título —"Minutes 2026-07 · Asse…"—. Lo que queda es lo que la
+    /// pastilla NO dice: cuándo fue y cuántos acuerdos salieron.
     var subtitulo: String {
         let ac = acuerdos > 0 ? " · \(acuerdos) \(L.t("acuerdos", "agreements"))" : ""
-        return "\(fechaLegible)\(ac) · \(estado.etiqueta.lowercased())"
+        return "\(fechaLegible)\(ac)"
     }
 
     /// `"21 de agosto"` · `"August 21"`. En UTC como el resto de fechas
@@ -429,7 +432,11 @@ struct Servicio: Identifiable, Hashable {
         return asignados == puestos.count ? .completo : .parcial
     }
 
-    var subtitulo: String { "\(fechaLegible) · \(estadoRoster.etiqueta)" }
+    /// **Sin el estado del roster.** Lo dice la pastilla de la fila, a dos
+    /// centímetros, y repetirlo aquí gastaba el ancho que necesita el título:
+    /// "Culto dominical" se cortaba para dejar sitio a un dato que ya estaba
+    /// puesto al lado. La fecha sí, que la pastilla no la dice.
+    var subtitulo: String { fechaLegible }
 
     static func == (l: Servicio, r: Servicio) -> Bool { l.id == r.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
@@ -750,7 +757,18 @@ struct EventoAgenda: Identifiable {
     var todoDia: Bool = false
     var horaFin: String? = nil
     var lugar: String = ""
+    /// **El nombre de quien responde, para leer.** Cuando es alguien del
+    /// padrón lo rellena el repositorio a partir de `responsableId`, así que
+    /// una persona que se case y cambie de apellido no deja actividades
+    /// hablando de quien ya no se llama así.
     var responsable: String = ""
+    /// **Y su id, que es lo que se guarda.** El web tiene las dos columnas y
+    /// son EXCLUYENTES: si el responsable es del padrón guarda el id y deja el
+    /// nombre en nulo; si es de fuera, al revés. Aquí faltaba el id entero, así
+    /// que una actividad creada en el web con responsable del padrón llegaba al
+    /// teléfono sin responsable ninguno —el nombre venía vacío—, y una creada
+    /// aquí subía un texto que el web no podía enlazar con nadie.
+    var responsableId: String? = nil
     var ministerio: String = ""
     var presupuesto: String = ""
     var notaPie: String = ""
@@ -779,7 +797,8 @@ struct EventoAgenda: Identifiable {
     init(id: String, dia: Int, hora: String?, titulo: String, descripcion: String,
          tipo: TipoEvento, completado: Bool, en mes: Date = Date(),
          todoDia: Bool = false, horaFin: String? = nil, lugar: String = "",
-         responsable: String = "", ministerio: String = "", presupuesto: String = "",
+         responsable: String = "", responsableId: String? = nil,
+         ministerio: String = "", presupuesto: String = "",
          notaPie: String = "", repeticion: String = "", estadoEvento: String = "",
          esFechaImportante: Bool = false, recordatorios: [String] = []) {
         var comps = Calendar.current.dateComponents([.year, .month], from: mes)
@@ -788,7 +807,8 @@ struct EventoAgenda: Identifiable {
         self.init(id: id, fecha: Fechas.claveDia(fecha), hora: hora, titulo: titulo,
                   descripcion: descripcion, tipo: tipo, completado: completado,
                   todoDia: todoDia, horaFin: horaFin, lugar: lugar,
-                  responsable: responsable, ministerio: ministerio,
+                  responsable: responsable, responsableId: responsableId,
+                  ministerio: ministerio,
                   presupuesto: presupuesto, notaPie: notaPie, repeticion: repeticion,
                   estadoEvento: estadoEvento, esFechaImportante: esFechaImportante,
                   recordatorios: recordatorios)
@@ -797,14 +817,16 @@ struct EventoAgenda: Identifiable {
     init(id: String, fecha: String, hora: String?, titulo: String, descripcion: String,
          tipo: TipoEvento, completado: Bool,
          todoDia: Bool = false, horaFin: String? = nil, lugar: String = "",
-         responsable: String = "", ministerio: String = "", presupuesto: String = "",
+         responsable: String = "", responsableId: String? = nil,
+         ministerio: String = "", presupuesto: String = "",
          notaPie: String = "", repeticion: String = "", estadoEvento: String = "",
          esFechaImportante: Bool = false, recordatorios: [String] = []) {
         self.id = id; self.fecha = fecha; self.hora = hora
         self.titulo = titulo; self.descripcion = descripcion
         self.tipo = tipo; self.completado = completado
         self.todoDia = todoDia; self.horaFin = horaFin; self.lugar = lugar
-        self.responsable = responsable; self.ministerio = ministerio
+        self.responsable = responsable; self.responsableId = responsableId
+        self.ministerio = ministerio
         self.presupuesto = presupuesto; self.notaPie = notaPie
         self.repeticion = repeticion; self.estadoEvento = estadoEvento
         self.esFechaImportante = esFechaImportante; self.recordatorios = recordatorios

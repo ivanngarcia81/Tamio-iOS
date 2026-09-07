@@ -59,7 +59,7 @@ final class ServiciosViewModel {
 
     func cargar() async {
         cargando = true
-        lista = (try? await repo.proximos()) ?? []
+        lista = (try? await repo.historial()) ?? []
         if seleccionId == nil { seleccionId = lista.first?.id }
         cargando = false
     }

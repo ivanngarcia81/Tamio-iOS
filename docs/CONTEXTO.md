@@ -387,6 +387,14 @@ Detalles que hacen perder tiempo si no se saben:
 - El tipo de target de XcodeGen es `bundle.unit-test`, **no** `bundle.unit-testing`
   (ese es el de UI). Y hay que declarar un `schemes:` con los targets de test,
   o `xcodebuild` contesta que "isn't a member of the specified test plan".
+- **A la copia hay que cambiarle el `PRODUCT_BUNDLE_IDENTIFIER`**
+  (`church.tamio.pruebas`). Con el de la app real comparte contenedor con la app
+  instalada, o sea con SU SESIÓN: el anfitrión de las pruebas arranca la app,
+  esta sincroniza, y los datos de la iglesia aparecen en mitad de una prueba que
+  sembró los suyos —seis fallos el 7 de septiembre, todos por filas que nadie
+  había sembrado—. Es además la vía por la que ya subieron filas sin querer.
+  Con id propio, las pruebas no pueden tocar la base de la iglesia ni aunque se
+  equivoquen.
 
 ### Cómo probar una migración, que es lo que no puede fallar en silencio
 
@@ -1362,10 +1370,15 @@ quedaba de Tesorería, enchufado".
 **3.** ~~Adelantar `main`.~~ **— HECHO el 7 de septiembre**, por avance rápido
 hasta `3ffc483` (§1).
 
-**4. Los cuatro de acabado de Secretaría**, que no impiden usarla:
+**4.** ~~Los cuatro de acabado de Secretaría.~~ **— HECHOS el 7 de
+septiembre**, y uno de ellos resultó ser otra cosa (ver debajo de la lista):
 
-- **"Próximos" en Servicios incluye cultos pasados**: la cabecera es un `Text`
-  fijo sobre la lista entera, sin filtrar por fecha.
+- ~~"Próximos" en Servicios incluye cultos pasados.~~ **El rótulo era el
+  equivocado, no el filtro.** La lista es la bitácora entera del más reciente al
+  más antiguo, que es como la enseña el web —"historial completo"— y como debe
+  ser: un registro de servicios es sobre todo lo que YA pasó, con su asistencia
+  y quién predicó. Se rotula igual que allí, y el método del repositorio deja de
+  llamarse `proximos()`, que era el nombre que mentía.
 - **El selector de "Tipo de carta": SON DOS, no cinco.** Este pendiente estaba
   mal escrito y se comprobó contra el web el 7 de septiembre. Hay que mirar DOS
   listas distintas de `Tamio-app`, no una:
@@ -1381,11 +1394,23 @@ hasta `3ffc483` (§1).
   `TipoPlantilla`. Una carta de esos tipos se lee en el web como la clave cruda
   (`cartas.tipoDoc.bautismo`) y no sale en su selector. **Pendiente de decisión
   de Iván**: o se añaden al web, o se quitan de iOS.
-- **El responsable de una actividad se guarda como texto**, no como
-  `member_uid`. `padronParaSelector()` ya devuelve el id de cada persona:
-  falta usarlo al guardar.
-- **En Actas y Servicios el estado sale dos veces** —en el subtítulo y en la
-  pastilla— y por eso los títulos se cortan.
+- ~~El responsable de una actividad se guarda como texto.~~ **Y era peor de lo
+  escrito**: en el web las dos columnas son EXCLUYENTES —si el responsable es
+  del padrón guarda el id y deja el texto en nulo—, así que una actividad creada
+  en el escritorio llegaba al teléfono **sin responsable ninguno**. La columna
+  local `miembroId` y el `member_uid` de la sincronización ya existían: solo
+  faltaba que el formulario guardara el id y que la lectura resolviera el
+  nombre. Ahora el nombre se lee del padrón, así que quien cambie de apellido no
+  deja actividades hablando de quien ya no se llama así.
+- ~~En Actas y Servicios el estado sale dos veces.~~ Fuera del subtítulo, que
+  es donde sobraba: la pastilla lo dice a dos centímetros. Queda lo que la
+  pastilla NO dice —la fecha, y en un acta cuántos acuerdos salieron—.
+
+**Queda el quinto, que no estaba en la lista:** el selector de "Tipo de carta"
+ofrecía dos que el web no conocía (`bautismo`, `bienvenida`). **Se añadieron al
+web** el 7 de septiembre a petición de Iván (`Tamio-app`, `790a95f`), así que
+iOS no cambia. Sin plantilla sembrada: la siembra solo corre en una iglesia sin
+ninguna, y el texto de una constancia de bautismo lo escribe la iglesia.
 
 **Y lo que NO hay que hacer todavía:** soltar la tabla remota `mensajes`. Sigue
 existiendo vacía a propósito hasta que todos los aparatos actualicen (§5).

@@ -137,7 +137,11 @@ struct ServiciosView: View {
                         .onTapGesture { abrir(s) }
                 }
             } header: {
-                Text(L.t("Próximos", "Upcoming"))
+                // **No son "Próximos"**: la lista es la bitácora entera y va
+                // del culto más reciente al más antiguo, así que bajo ese
+                // rótulo aparecían cultos de hace meses. Se rotula como en el
+                // web, que enseña esta misma lista sin partirla.
+                Text(L.t("Historial completo", "Full history"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .textCase(nil)
