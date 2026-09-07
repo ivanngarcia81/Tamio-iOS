@@ -610,7 +610,7 @@ private let membreteItems: [(String, String)] = [
     (L.t("Teléfono", "Phone"),
      L.t("p. ej. 81 8340 1122", "e.g. 555-123-4567")),
     (L.t("Correo institucional", "Institutional email"),
-     "p. ej. contacto@iglesia.org"),
+     L.t("p. ej. contacto@iglesia.org", "e.g. info@church.org")),
     (L.t("Pie institucional (opcional)", "Footer (optional)"),
      L.t("p. ej. lema o registro legal", "e.g. motto or legal registration")),
     (L.t("Nombre de la secretaria", "Secretary name"),

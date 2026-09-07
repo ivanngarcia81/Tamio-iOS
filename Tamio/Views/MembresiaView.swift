@@ -1049,7 +1049,7 @@ private struct NuevoMiembroSheet: View {
                         Text(L.t("Correo", "Email")).foregroundStyle(.primary)
                         Text(L.t("(opcional)", "(optional)")).foregroundStyle(.secondary).font(.subheadline)
                         Spacer()
-                        TextField("correo@ejemplo.com", text: $m.correo)
+                        TextField(L.t("correo@ejemplo.com", "name@example.com"), text: $m.correo)
                             .keyboardType(.emailAddress)
                             .multilineTextAlignment(.trailing)
                             .autocorrectionDisabled()

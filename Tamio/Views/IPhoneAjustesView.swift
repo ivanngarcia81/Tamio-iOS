@@ -359,18 +359,30 @@ private struct AjustesIglesiaView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                campoF(L.t("Nombre de la iglesia", "Church name"), $nombre, "p. ej. Iglesia Nueva Vida")
-                campoF(L.t("Ciudad (opcional)", "City (optional)"), $ciudad, "p. ej. Monterrey")
-                campoF(L.t("Estado/Provincia (opcional)", "State/Province (optional)"), $estado, "p. ej. Nuevo León")
-                campoF(L.t("País (opcional)", "Country (optional)"), $pais, "p. ej. México")
-                campoF(L.t("Código postal (opcional)", "ZIP code (optional)"), $cp, "p. ej. 64000")
+                // Los ejemplos de los campos se TRADUCEN cambiándolos, no
+                // traduciéndolos: un formulario en inglés que sugiere "Nuevo
+                // León" o "Lucía Márquez" no está sugiriendo nada. Es el
+                // criterio que ya usaba el iPad, y de ahí salen los siete del
+                // membrete; los de aquí faltaban y salían en español con la app
+                // en inglés.
+                campoF(L.t("Nombre de la iglesia", "Church name"), $nombre,
+                       L.t("p. ej. Iglesia Nueva Vida", "e.g. New Life Church"))
+                campoF(L.t("Ciudad (opcional)", "City (optional)"), $ciudad,
+                       L.t("p. ej. Monterrey", "e.g. Newark"))
+                campoF(L.t("Estado/Provincia (opcional)", "State/Province (optional)"), $estado,
+                       L.t("p. ej. Nuevo León", "e.g. New Jersey"))
+                campoF(L.t("País (opcional)", "Country (optional)"), $pais,
+                       L.t("p. ej. México", "e.g. United States"))
+                campoF(L.t("Código postal (opcional)", "ZIP code (optional)"), $cp,
+                       L.t("p. ej. 64000", "e.g. 07102"))
             } header: {
                 Text(L.t("Información de la iglesia", "Church information")).textCase(nil)
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                campoF(L.t("EIN / identificación fiscal", "EIN / tax ID"), $ein, "p. ej. 12-3456789")
+                campoF(L.t("EIN / identificación fiscal", "EIN / tax ID"), $ein,
+                       L.t("p. ej. 12-3456789", "e.g. 12-3456789"))
                 HStack {
                     Text(L.t("Moneda", "Currency")).font(.subheadline).foregroundStyle(.secondary)
                     Spacer()
@@ -463,14 +475,20 @@ private struct AjustesInstitucionView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                campoF(L.t("Dirección de la iglesia", "Church address"), $dir, "p. ej. Av. Constitución 1420")
-                campoF(L.t("Estado / provincia", "State / province"), $estado2, "p. ej. Nuevo León")
-                campoF(L.t("Teléfono", "Phone"), $tel, "p. ej. 81 8340 1122")
-                campoF(L.t("Correo institucional", "Institutional email"), $correo, "p. ej. contacto@iglesia.org")
+                campoF(L.t("Dirección de la iglesia", "Church address"), $dir,
+                       L.t("p. ej. Av. Constitución 1420", "e.g. 1420 Main St."))
+                campoF(L.t("Estado / provincia", "State / province"), $estado2,
+                       L.t("p. ej. Nuevo León", "e.g. New Jersey"))
+                campoF(L.t("Teléfono", "Phone"), $tel,
+                       L.t("p. ej. 81 8340 1122", "e.g. 555-123-4567"))
+                campoF(L.t("Correo institucional", "Institutional email"), $correo,
+                       L.t("p. ej. contacto@iglesia.org", "e.g. info@church.org"))
                 campoF(L.t("Pie institucional (opcional)", "Footer (optional)"), $pie,
                        L.t("p. ej. lema o registro legal", "e.g. motto or legal reg."))
-                campoF(L.t("Nombre de la secretaria", "Secretary name"), $sec, "p. ej. Lucía Márquez")
-                campoF(L.t("Cargo", "Title"), $cargo, "p. ej. Secretaria de actas")
+                campoF(L.t("Nombre de la secretaria", "Secretary name"), $sec,
+                       L.t("p. ej. Lucía Márquez", "e.g. Jane Smith"))
+                campoF(L.t("Cargo", "Title"), $cargo,
+                       L.t("p. ej. Secretaria de actas", "e.g. Recording secretary"))
             } header: {
                 Text(L.t("Datos del membrete", "Letterhead data")).textCase(nil)
             } footer: {
@@ -532,7 +550,8 @@ private struct AjustesTesorerosView: View {
         List {
             Section {
                 campoF(L.t("Nombre del tesorero", "Treasurer name"),
-                       $cfg.config.tesoreroNombre, "p. ej. Iván García")
+                       $cfg.config.tesoreroNombre,
+                       L.t("p. ej. Iván García", "e.g. John Miller"))
                 pickerF(L.t("Cargo", "Title"), $cfg.config.tesoreroCargo,
                         Catalogos.Cargos.tesoreria)
                 // Correo y teléfono son NUEVOS aquí: el iPad los enseñaba
@@ -551,7 +570,8 @@ private struct AjustesTesorerosView: View {
 
             Section {
                 campoF(L.t("Nombre del pastor", "Pastor name"),
-                       $cfg.config.pastorNombre, "p. ej. Samuel Ríos")
+                       $cfg.config.pastorNombre,
+                       L.t("p. ej. Samuel Ríos", "e.g. David Brooks"))
                 pickerF(L.t("Cargo", "Title"), $cfg.config.pastorCargo,
                         Catalogos.Cargos.pastoral)
                 correoF($cfg.config.pastorCorreo)
@@ -627,7 +647,8 @@ private struct AjustesTesorerosView: View {
     /// Un correo se teclea en minúsculas y sin que nadie lo autocorrija: sin
     /// esto el teclado escribe "Correo@" y el corrector cambia el dominio.
     private func correoF(_ bind: Binding<String>) -> some View {
-        campoF(L.t("Correo (opcional)", "Email (optional)"), bind, "correo@ejemplo.com")
+        campoF(L.t("Correo (opcional)", "Email (optional)"), bind,
+               L.t("correo@ejemplo.com", "name@example.com"))
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
             .textInputAutocapitalization(.never)
@@ -707,7 +728,8 @@ private struct AjustesAccesoView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                campoF(L.t("Correo electrónico", "Email"), $invEmail, "tesorero@iglesia.org")
+                campoF(L.t("Correo electrónico", "Email"), $invEmail,
+                       L.t("tesorero@iglesia.org", "treasurer@church.org"))
                 campoF(L.t("Nombre", "Name"), $invNom, L.t("Opcional", "Optional"))
                 HStack {
                     Text(L.t("Rol", "Role")).font(.subheadline).foregroundStyle(.secondary)
