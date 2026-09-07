@@ -925,7 +925,12 @@ struct InformesMembresiaView: View {
                                                 .frame(height: 36 * CGFloat(m.altas) / CGFloat(maxAltas))
                                         }
                                         .frame(height: 36)
+                                        // Doce meses en el ancho del teléfono
+                                        // dan ~25 pt por columna, y "May",
+                                        // "Aug", "Nov" y "Dec" se partían en
+                                        // dos renglones: "Ma" sobre "y".
                                         Text(m.mes).font(.caption2).foregroundStyle(.secondary)
+                                            .lineLimit(1).minimumScaleFactor(0.7)
                                     }
                                     .frame(maxWidth: .infinity)
                                 }
