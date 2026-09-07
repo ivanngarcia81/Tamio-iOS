@@ -88,9 +88,17 @@ struct MovimientoDetalle: View {
             Text(m.titular).font(.title.weight(.bold))
             AmountText(cents: m.monto, size: 30, ingreso: m.esIngreso)
             // Quién lo registró ya lo dice el rastro de auditoría, más abajo.
-            Text("\(m.metodo) · \(m.hora)")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            //
+            // **Y en iPad esta línea sobra.** La tarjeta de abajo repite las
+            // dos cosas con más detalle —"Fecha y hora: 6 sep 2026, 21:43" y
+            // "Método: Efectivo"— y ahí se ve sin desplazar. En el teléfono no:
+            // la tarjeta cae por debajo del pliegue y esta línea es lo único
+            // que dice el método y la hora al abrir, así que ahí se queda.
+            if compacto {
+                Text("\(m.metodo) · \(m.hora)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
