@@ -74,6 +74,18 @@ Dos cosas que solo salieron por correrlas:
 cuenta real. El código de pantalla no se tocó salvo esa pastilla, y las frases
 sí están probadas, pero mirarlo un domingo es lo que lo cierra.
 
+### Y después, lo que quedaba de Tesorería
+
+El §6 lo llamaba "enchufar lo que quede", y **no era eso**: las seis pantallas
+ya tenían repositorio y sincronización. Lo que quedaba era **Inicio**, que era
+la maqueta entera —la primera pantalla de la app enseñaba la iglesia Getsemaní
+con la cuenta de la iglesia de verdad—, el **selector de aportante**, que iba a
+la red y sin señal salía vacío, y **dos badges de la sidebar del iPad**.
+
+El detalle está en §5, "Lo que quedaba de Tesorería, enchufado". La lección, en
+una línea: **una maqueta leída directamente no es el modo revisión, está clavada
+en el código** — y se encuentra con `grep -rn "Mock" Tamio/Views Tamio/ViewModels`.
+
 ---
 
 ## 0.1 Secretaría, cerrada · 6 y 7 de septiembre
@@ -1003,6 +1015,59 @@ quinto botón que sale al listar la barra no es un menú "More"**: es el
 duplicado interno del `Menu` del selector —mismo marco y `hittable=false`—, así
 que no hay nada escondido detrás.
 
+### Lo que quedaba de Tesorería, enchufado — 7 de septiembre, 2ª vuelta
+
+El §6 decía "enchufar lo que quede de Tesorería, mismo trabajo que Secretaría".
+**No lo era**: las seis pantallas ya tenían su repositorio `Offline*` y su
+sincronización. Lo que quedaba era otra cosa, y se encontró buscando quién
+seguía leyendo una maqueta con la sesión abierta.
+
+**1. Inicio, la primera pantalla de la app, era la maqueta entera.**
+`DashboardViewModel` traía `MockDashboardRepository()` como valor por omisión
+—sin mirar `ModoRevision` siquiera—, así que con la cuenta de la iglesia de
+verdad seguía enseñando la iglesia Getsemaní de Monterrey, seis meses de barras
+escritas a mano, cuatro movimientos inventados y una agenda de agosto. El hub
+de Tesorería del teléfono lee ese mismo ViewModel: su KPI de saldo en caja
+mentía igual.
+
+Ahora `DashboardCalculado` lee de los mismos repositorios que las pantallas de
+las que Inicio es resumen. Cuatro criterios que conviene no volver a discutir:
+
+- **Solo lo aprobado cuenta** en ingresos, gastos y saldo — la regla del web y
+  de los informes. Pero `movimientosTotal` y `sinDepositarCount` cuentan TODO:
+  son trabajo pendiente, no cifras contables.
+- **Seis barras siempre**, aunque estén vacías.
+- **Lo reciente no se filtra por periodo**: es "lo último que pasó", y por mes
+  estaría vacío cada día 1.
+- **"Esta semana" sale de `AgendaRepository.resumen()`**, que ya calcula los
+  próximos contra hoy.
+
+**2. El selector de aportante de la hoja de captura iba a la red.**
+`SupabaseAportantesCatalogo` consultaba `members` cada vez que se abría. Sin
+señal —en el templo, que es donde se captura el sobre— el menú salía vacío y el
+aporte se quedaba sin persona, y un aporte sin aportante no sale en su
+constancia anual. Lee ya el mismo `padronParaSelector()` que los tres de
+Secretaría.
+
+**3. Dos badges de la sidebar del iPad** salían de `MockMiembrosRepository` y
+`MockAgendaRepository` leídos a mano, saltándose las fábricas. Es exactamente el
+fallo que ya se había arreglado en el hub del iPhone en junio de código: **una
+maqueta leída directamente no es el modo revisión, está clavada en el código.**
+Si aparece otro número raro, ese es el patrón que hay que buscar:
+`grep -rn "Mock" Tamio/Views Tamio/ViewModels`.
+
+**Lo que NO se tocó, y por qué:** `agregarCuenta` guarda la cuenta bancaria en
+memoria y no en una tabla. **El web tampoco la tiene**: propone la cuenta del
+último depósito y ya. Una cuenta escrita a mano sobrevive en cuanto se usa en un
+corte, porque `cuentas()` las saca de los cortes guardados; solo se pierde la
+que se teclea y no se usa. Reflejar, no diseñar.
+
+**Probado:** diez pruebas nuevas (`InicioCalculadoTests`), 28 en total en verde.
+**Sin verificar:** verlo en el aparato con la cuenta real — Inicio con datos de
+verdad, y el selector de aportante en avión.
+
+---
+
 ### Tesorería y el Dashboard — 6 de septiembre
 
 Mismo criterio y misma forma de decidirlo: **contar la barra antes y después**
@@ -1213,10 +1278,10 @@ suceso con la suya de que anota **solo al cruzar el umbral**.
 De paso: las claves de `datos` de tres sucesos no eran las que lee el web, y un
 `datos` con un número dentro dejaba el apunte entero en guiones. También en §0.
 
-**2. Enchufar lo que quede de Tesorería.** Mismo trabajo que Secretaría y misma
-receta (§5, "Las cinco pantallas de Secretaría, enchufadas"). Antes de empezar
-ninguna: mirar cómo guarda el web esa misma cosa, que es donde estaban todas
-las respuestas.
+**2.** ~~Enchufar lo que quede de Tesorería.~~ **— HECHO el 7 de septiembre**, y
+no era lo que parecía: las pantallas ya estaban enchufadas y lo que quedaba era
+Inicio entero, el selector de aportante y dos badges del iPad. Ver §5, "Lo que
+quedaba de Tesorería, enchufado".
 
 **3.** ~~Adelantar `main`.~~ **— HECHO el 7 de septiembre**, por avance rápido
 hasta `3ffc483` (§1).
