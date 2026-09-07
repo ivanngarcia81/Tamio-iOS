@@ -594,11 +594,9 @@ private struct NuevoEventoSheet: View {
         return f
     }()
 
-    private static let miembrosMock = [
-        "Brenda Castillo", "Dennis Castillo", "Denys Castillo",
-        "Juan Martínez", "Pedro García", "Susana Ortiz",
-        "María López", "José Hernández"
-    ]
+    /// **El padrón de verdad.** Aquí había ocho nombres a mano que ni siquiera
+    /// coincidían con los doce de Servicios ni con los cuatro de Cartas.
+    @State private var padron: [PersonaDelPadron] = []
 
     private let opcionesRepeticion: [String]
     private let estadosEvento: [String]
@@ -680,7 +678,7 @@ private struct NuevoEventoSheet: View {
                 Section(L.t("RESPONSABILIDAD", "RESPONSIBILITY")) {
                     Picker(L.t("Responsable", "Person in charge"), selection: $responsable) {
                         Text(L.t("— Sin asignar —", "— Unassigned —")).tag("")
-                        ForEach(Self.miembrosMock, id: \.self) { m in Text(m).tag(m) }
+                        ForEach(padron) { p in Text(p.nombre).tag(p.nombre) }
                         Text(L.t("— Otra persona (externa) —", "— Other person (external) —")).tag("__ext__")
                     }
                     TextField(L.t("Ministerio / departamento (opcional)", "Ministry / department (optional)"),
@@ -739,6 +737,8 @@ private struct NuevoEventoSheet: View {
                 }
             }
         }
+        // El padrón, al abrir la hoja: el selector de personas lo lee.
+        .task { if padron.isEmpty { padron = await padronParaSelector() } }
         .hojaFormulario()
     }
 

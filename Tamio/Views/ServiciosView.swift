@@ -347,12 +347,11 @@ private struct NuevoServicioSheet: View {
     // SPECIAL EVENTS
     @State private var eventosEspeciales = ""
 
-    private static let miembrosMock = [
-        "Brenda Rosado", "Dennis Castillo", "Denys Castillo",
-        "Juan Martínez", "Pedro Salas", "Susana Orts",
-        "Pastor Abel Ramos", "Lucía Márquez", "Jorge Hernández",
-        "Carlos Rivas", "María Hernández Ríos", "Ana Lucía Torres",
-    ]
+    /// **El padrón de verdad.** Aquí había doce nombres escritos a mano, y
+    /// pasar lista —que es para lo que existe esta pantalla— se hacía sobre
+    /// personas inventadas mientras el padrón llevaba tiempo enchufado. Ver
+    /// `padronParaSelector`.
+    @State private var padron: [PersonaDelPadron] = []
 
     private let tipos = [
         L.t("Culto dominical",   "Sunday service"),
@@ -364,8 +363,9 @@ private struct NuevoServicioSheet: View {
     ]
 
     private var miembrosFiltrados: [String] {
-        busquedaMiembro.isEmpty ? Self.miembrosMock
-            : Self.miembrosMock.filter { $0.localizedCaseInsensitiveContains(busquedaMiembro) }
+        let nombres = padron.map(\.nombre)
+        return busquedaMiembro.isEmpty ? nombres
+            : nombres.filter { $0.localizedCaseInsensitiveContains(busquedaMiembro) }
     }
     private var presentesCount: Int { presenciaMap.values.filter { $0 }.count }
     private var ausentesCount: Int  { presenciaMap.count - presentesCount }
@@ -396,9 +396,15 @@ private struct NuevoServicioSheet: View {
                     .foregroundStyle(Paleta.brand)
                 }
             }
-            .onAppear {
-                guard presenciaMap.isEmpty else { return }
-                presenciaMap = Dictionary(uniqueKeysWithValues: Self.miembrosMock.map { ($0, false) })
+            // **El padrón antes de armar la lista**, y no en `onAppear`: si se
+            // cargara después, el primer dibujo saldría con cero personas y
+            // "Marcar todos" no marcaría a nadie.
+            .task {
+                if padron.isEmpty { padron = await padronParaSelector() }
+                if presenciaMap.isEmpty {
+                    presenciaMap = Dictionary(uniqueKeysWithValues:
+                        padron.map { ($0.nombre, false) })
+                }
             }
         }
         .hojaFormulario()
@@ -462,18 +468,18 @@ private struct NuevoServicioSheet: View {
                 }
                 Spacer(minLength: 0)
                 Button(L.t("Marcar todos", "Mark all")) {
-                    for n in Self.miembrosMock { presenciaMap[n] = true }
+                    for p in padron { presenciaMap[p.nombre] = true }
                 }
                 .font(.caption.weight(.medium)).foregroundStyle(Paleta.brand).buttonStyle(.plain)
                 Text("·").font(.caption).foregroundStyle(.tertiary)
                 Button(L.t("Desmarcar", "Unmark all")) {
-                    for n in Self.miembrosMock { presenciaMap[n] = false }
+                    for p in padron { presenciaMap[p.nombre] = false }
                 }
                 .font(.caption.weight(.medium)).foregroundStyle(.secondary).buttonStyle(.plain)
             }
             // Contadores
             HStack(spacing: 20) {
-                Label(L.t("Padrón: \(Self.miembrosMock.count)", "Roster: \(Self.miembrosMock.count)"),
+                Label(L.t("Padrón: \(padron.count)", "Roster: \(padron.count)"),
                       systemImage: "person.2")
                     .font(.caption).foregroundStyle(.secondary)
                 Label("\(presentesCount) \(L.t("presentes", "present"))",

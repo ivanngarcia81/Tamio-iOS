@@ -301,6 +301,36 @@ struct OfflineMembresiaRepository: MembresiaRepository {
     }
 }
 
+/// Una persona del padrón vista desde un selector: el id y el nombre.
+///
+/// El id importa aunque el selector solo enseñe el nombre: es lo que permite
+/// guardar el responsable de una actividad como `member_uid` —que es lo que
+/// guarda el web— en vez de como texto suelto, y lo que hace que la lista de
+/// un culto siga apuntando a la persona aunque se le corrija el nombre.
+struct PersonaDelPadron: Identifiable, Hashable {
+    let id: String
+    let nombre: String
+}
+
+/// **El padrón para los selectores, de una sola fuente.**
+///
+/// Servicios, Agenda y Cartas llevaban cada una su propia lista de nombres
+/// escrita a mano —doce, ocho y cuatro— y **no coincidían entre sí**: "Brenda
+/// Rosado" contra "Brenda Castillo", "Pedro Salas" contra "Pedro García",
+/// "Susana Orts" contra "Susana Ortiz". Pasar lista de un culto, que es para
+/// lo que existe esa pantalla, se hacía sobre doce personas inventadas
+/// mientras el padrón de verdad llevaba tiempo enchufado.
+///
+/// Las bajas quedan fuera: no se pasa lista a quien ya no está, ni se le
+/// asigna un puesto. Ordenadas por nombre, que es como se busca a alguien.
+func padronParaSelector() async -> [PersonaDelPadron] {
+    let lista = (try? await repositorioMembresia().lista()) ?? []
+    return lista
+        .filter { !$0.estado.esBaja }
+        .map { PersonaDelPadron(id: $0.id, nombre: $0.nombre) }
+        .sorted { $0.nombre.localizedCaseInsensitiveCompare($1.nombre) == .orderedAscending }
+}
+
 func repositorioMembresia() -> MembresiaRepository {
     ModoRevision.sinLogin ? MockMembresiaRepository() : OfflineMembresiaRepository()
 }

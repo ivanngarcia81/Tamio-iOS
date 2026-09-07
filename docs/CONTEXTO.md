@@ -1092,9 +1092,10 @@ código que falta.
 
 Por orden de lo que más se nota usando la app un domingo:
 
-1. **Pasar lista corre sobre nombres inventados.** Once usos de `miembrosMock`
-   en Servicios, Agenda y Cartas (§ Los tres selectores). Es el propósito del
-   registro de servicios.
+1. ~~Pasar lista corre sobre nombres inventados.~~ **— HECHO el 6 de
+   septiembre.** Los tres selectores leen `padronParaSelector()`. Comprobado
+   en la app con la cuenta real: la hoja de asistencia y el responsable de una
+   actividad enseñan las mismas siete personas del padrón.
 2. **Firmar un acta no guarda quién firmó.** `FirmasSheet` junta los nombres en
    un `Set` en memoria y al terminar solo cambia el estado; la columna `firmas`
    —que ya viaja y ya se respeta al reeditar— se queda vacía.
@@ -1117,16 +1118,23 @@ cuenta. Conviene hacerlo **antes de acumular la quinta**: cuatro sin estrenar a
 la vez es donde los errores se juntan y luego cuesta saber de cuál es cada uno.
 Las migraciones sí están probadas contra la base local.
 
-### Los tres selectores de personas que no leen el padrón
+### ~~Los tres selectores de personas~~ — HECHO el 6 de septiembre
 
-`ServiciosView.miembrosMock` (12 nombres), `AgendaView.miembrosMock` (8) y
-`CartasView.miembrosMock` (4), cada uno con su lista escrita a mano. **No
-coinciden entre sí**: "Brenda Rosado" vs "Brenda Castillo", "Pedro Salas" vs
-"Pedro García", "Susana Orts" vs "Susana Ortiz". Los tres deberían leer
-`repositorioMembresia()`, que lleva tiempo enchufado.
+Eran `ServiciosView.miembrosMock` (12 nombres), `AgendaView.miembrosMock` (8) y
+`CartasView.miembrosMock` (4), cada uno con su lista a mano y **sin coincidir
+entre sí**: "Brenda Rosado" vs "Brenda Castillo", "Pedro Salas" vs "Pedro
+García", "Susana Orts" vs "Susana Ortiz".
 
-Es lo que impide, de paso, guardar el responsable de una actividad como
-`member_uid` en vez de como texto.
+Los tres leen ahora `padronParaSelector()`, en `MembresiaRepository.swift`: id
+y nombre, sin bajas, ordenado. El id se lleva aunque el selector solo enseñe el
+nombre, que es lo que permitirá guardar el responsable de una actividad como
+`member_uid` —eso sigue pendiente, la vista guarda el nombre—.
+
+**Y las pruebas de interfaz ya no pueden mirar nombres.** `testMiembroDetalle`
+buscaba "María Hernández Ríos" y fallaba con la sesión puesta: la lista trae el
+padrón de verdad. Ahora toca la celda por posición. La suite se escribió contra
+la maqueta y con sesión corre contra datos reales; lo que mire un dato concreto
+va a fallar.
 
 ### El resto
 

@@ -348,10 +348,9 @@ private struct NuevaCartaSheet: View {
     @State private var datos = CartaEnEdicion()
     @State private var templateSeleccionada: TipoPlantilla? = nil
 
-    private let miembrosMock = [
-        "María Hernández Ríos", "Pedro Salas Aguirre",
-        "Ana Lucía Torres", "Javier Medina Cruz",
-    ]
+    /// **El padrón de verdad.** Eran cuatro nombres a mano, y emitir una carta
+    /// a quien no está en el padrón es emitirla a nadie.
+    @State private var padron: [PersonaDelPadron] = []
     private let tiposDestinatario = [
         L.t("Miembro registrado", "Registered member"),
         L.t("Iglesia", "Church"),
@@ -405,6 +404,8 @@ private struct NuevaCartaSheet: View {
             .onAppear { aplicarAutoFill() }
             .onChange(of: datos.tipo) { _, _ in aplicarAutoFill() }
         }
+        // El padrón, al abrir la hoja: el selector de personas lo lee.
+        .task { if padron.isEmpty { padron = await padronParaSelector() } }
         .hojaFormulario()
     }
 
@@ -442,7 +443,7 @@ private struct NuevaCartaSheet: View {
                 Picker(L.t("Miembro registrado", "Registered member"),
                        selection: $datos.miembroSeleccionado) {
                     Text(L.t("Elegir miembro...", "Choose a member...")).tag("")
-                    ForEach(miembrosMock, id: \.self) { Text($0).tag($0) }
+                    ForEach(padron) { p in Text(p.nombre).tag(p.nombre) }
                 }
                 .onChange(of: datos.miembroSeleccionado) { _, _ in
                     datos.asunto = asuntoAutoFill()
