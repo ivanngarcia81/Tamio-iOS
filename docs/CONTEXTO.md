@@ -12,9 +12,10 @@ visuales del iPad (§0.0).
 
 ## 0.0 Los arreglos visuales del iPad · rama `arreglos-ipad`
 
-**Quince arreglos —diecisiete commits con los dos de este archivo— en una rama
-aparte**, ya reposada sobre `liquid-glass` (`24e046f`) y lista para fusionar por
-avance rápido. Se trabajó en un `git
+**Diecinueve arreglos —veintidós commits con los de este archivo— en una rama
+aparte**, ya reposada sobre `liquid-glass` y lista para fusionar por avance
+rápido. Los quince primeros son la revisión del iPad; los cuatro últimos, los
+pendientes que esa pasada dejó abiertos y que se cerraron después. Se trabajó en un `git
 worktree` propio (`~/Desktop/Tamio-iOS-ipad`) porque otra sesión tenía el árbol
 de `~/Desktop/Tamio-iOS` ocupado a la vez.
 
@@ -59,6 +60,20 @@ Un commit por punto, y el título de cada uno cuenta el problema:
   de la columna del calendario**, **el día vacío dicho dos veces** y **el
   detalle de un ingreso repetido**.
 - **A8**, que era decisión de Iván: el contador de la carta cuenta la firma.
+
+Y después, los cuatro que la pasada había dejado abiertos —los tres del final de
+este archivo más uno que apareció al mirarlos—:
+
+- **La tabla de movimientos de membresía no cabía en el teléfono.** Cinco
+  columnas de ancho fijo que suman 580 pt en una pantalla de 390: el nombre se
+  cortaba a media palabra y la fecha y el estado quedaban fuera, dentro de un
+  scroll horizontal **sin indicadores**. En compacto pasa a filas; en iPad la
+  tabla no se toca.
+- **"May" se partía en "Ma" sobre "y"** en la gráfica de altas por mes. Doce
+  columnas en el ancho del teléfono dan 25 pt, y a `.caption2` cuatro meses no
+  caben. Apareció mirando lo anterior, en la misma pantalla.
+- **Las tarjetas vacías del teléfono**, que era el mismo hueco tapado en el iPad.
+- **B5, las tres píldoras en minúscula.**
 
 ### Lo que NO era lo que el pendiente decía
 
@@ -2239,25 +2254,19 @@ va a fallar.
    lista dice "16 movimientos". No es un error —una suma ingresos y gastos, la
    otra solo el tipo activo— pero se leen como el mismo número.
 
-### Lo que dejó abierto la pasada del iPad (§0.0)
+### Lo que dejó abierto la pasada del iPad (§0.0) — cerrado
 
-Tres cosas, y ninguna es un arreglo pendiente: son decisiones.
+Los tres se cerraron el mismo día, en la segunda tanda de commits (arriba). De
+uno de ellos vale la pena guardar cómo se resolvió:
 
-- **B5 · las mayúsculas de las píldoras.** "Not deposited", "Draft" y
-  "Duplicate" van capitalizadas; las tres de `EstadoRoster` van en minúscula
-  —"roster completo", "roster parcial", "sin asignar"—, y dentro de su familia
-  son coherentes. **No se tocó a propósito**: antes hay que decidir el criterio
-  para toda la app (o toda píldora empieza en mayúscula, o las que describen un
-  grado de cobertura van en minúscula), y entonces se cambian las tres juntas,
-  no una.
-- **Las tarjetas vacías del teléfono.** `tarjetaListaIPhone` tiene el mismo
-  hueco que se tapó en el iPad: sin datos se dibuja el borde y nada dentro.
-  Taparlo cambia el alto de una pantalla del teléfono, que quedaba fuera de esa
-  pasada.
-- **El ancho de la tabla de movimientos de membresía.** Sus columnas son de
-  ancho fijo y suman 580 pt, así que en el teléfono la fecha y el estado se
-  quedan fuera de pantalla. Lo dejó apuntado `fb91edb` y sigue abierto: es
-  anterior a las dos pasadas.
+**B5 no era una decisión, era un recuento.** El pendiente decía que antes de
+tocar las píldoras hacía falta decidir un criterio para toda la app, y planteaba
+dos posibles. Contarlas lo resolvió sin decidir nada: de las **veintiséis**
+píldoras, **veintitrés empiezan en mayúscula** y las tres únicas excepciones son
+las de `EstadoRoster`, sin nada que documente por qué y usadas en un solo sitio.
+El criterio ya estaba en la app; solo faltaba mirarlo. Cuando un pendiente pida
+"decidir un criterio", **contar primero**: puede que el criterio exista y lo que
+haya sea una excepción.
 
 ---
 
