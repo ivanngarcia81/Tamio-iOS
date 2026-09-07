@@ -526,10 +526,29 @@ Lo que la medición deja visto, y que decide el paso siguiente:
   físicamente una baja que aún no ha viajado es la forma de que el servidor no
   se entere nunca.
 
-**Las dos preguntas que faltan por contestar, y son de Iván**: si la bitácora
-del Registro se purga —es la constancia de qué pasó, yo la dejaría fuera— y si
-se purga todo lo marcado o solo lo de más de X días, que es lo que da margen a
-notar un borrado equivocado desde otro aparato antes de que sea irreversible.
+**Las dos preguntas las contestó Iván el 7 de septiembre** —después de haber
+descartado la purga y de volver sobre ella— y con eso quedó hecha:
+
+- **El Registro NO se purga nunca.** Es la constancia de qué pasó con cada cosa,
+  y sus apuntes son justo lo que hace falta cuando alguien pregunta meses
+  después por algo que ya no está.
+- **Solo lo borrado hace más de 30 días.** Es el margen para notar un borrado
+  equivocado —hecho desde otro aparato, o el martes por la tarde— y deshacerlo
+  mientras la fila todavía existe.
+
+`Compactacion.purgar` aplica **tres condiciones y las tres importan**: la fila
+está borrada, no tiene nada pendiente en la cola —purgar una baja sin subir es
+la forma de que el servidor no se entere nunca— y lleva más de ese plazo. Al
+final, un `VACUUM` fuera de transacción, que es lo único que devuelve el espacio
+al sistema en vez de dejar las páginas libres dentro del archivo.
+
+**La cuenta que se enseña es la que se borra**, y hay una prueba que lo sujeta:
+si `medir()` y `purgar()` usaran criterios distintos, el número de la pantalla
+sería una promesa incumplida. Por eso el resumen dice los dos —"132 registros
+borrados siguen guardados (87 ya se pueden quitar)"— cuando no coinciden.
+
+El botón solo aparece si hay algo que quitar. Con la base de revisión vacía no
+sale, comprobado en el simulador.
 
 ### 0.0.h Tres frases que decían algo sin haberlo mirado
 

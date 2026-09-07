@@ -59,14 +59,21 @@ enum Compactacion {
                 borradas += try Int.fetchOne(db, sql: """
                     select count(*) from "\(tabla)" where borrado = 1
                     """) ?? 0
-                // Se cruza por `registroId` y no por entidad: los identificadores
-                // son únicos entre tablas, y así la cuenta no depende de que el
-                // mapa de entidades esté al día.
+                // **Las mismas tres condiciones que aplica `purgar`**, ni una
+                // más ni una menos: si esta cuenta y aquel borrado no coinciden,
+                // el número de la pantalla es una promesa que no se cumple.
+                //
+                // Se cruza por `registroId` y no por entidad: los
+                // identificadores son únicos entre tablas, y así la cuenta no
+                // depende de que el mapa de entidades esté al día.
+                guard !nuncaSePurga.contains(tabla) else { continue }
                 purgables += try Int.fetchOne(db, sql: """
                     select count(*) from "\(tabla)" t
                     where t.borrado = 1
+                      and coalesce(t.actualizadoEn, '') <> ''
+                      and t.actualizadoEn < ?
                       and not exists (select 1 from outbox o where o.registroId = t.id)
-                    """) ?? 0
+                    """, arguments: [corteDePurga()]) ?? 0
             }
             let paginas = try Int.fetchOne(db, sql: "pragma freelist_count") ?? 0
             let tamanoPagina = try Int.fetchOne(db, sql: "pragma page_size") ?? 0
@@ -86,6 +93,12 @@ enum Compactacion {
                       proteccion: proteccionDeLaBase())
     }
 
+    /// La fecha a partir de la cual una fila borrada ya se puede purgar.
+    static func corteDePurga() -> String {
+        ISO8601DateFormatter().string(
+            from: Date().addingTimeInterval(-Double(diasParaPurgar) * 24 * 3600))
+    }
+
     /// La clase de protección REAL del archivo, preguntada al sistema.
     ///
     /// Es una de las dos medidas que el traspaso lleva pidiendo para poder
@@ -100,6 +113,86 @@ enum Compactacion {
                   atPath: carpeta.appendingPathComponent("tamio.sqlite").path)
         else { return nil }
         return atributos[.protectionKey] as? FileProtectionType
+    }
+
+    // MARK: - Purgar
+
+    /// **Cuánto tiene que llevar borrada una fila para poder irse de verdad.**
+    ///
+    /// Un mes, decidido por Iván el 7 de septiembre de 2026. Es el margen para
+    /// que alguien note un borrado equivocado —hecho desde otro aparato, o el
+    /// martes por la tarde— y lo deshaga mientras la fila todavía existe.
+    /// Purgar al instante recuperaría más espacio y quitaría esa red.
+    static let diasParaPurgar = 30
+
+    /// **La bitácora NO se purga nunca.**
+    ///
+    /// El Registro es la constancia de qué pasó con cada cosa: quién dio de
+    /// baja a quién y cuándo. Sus apuntes son justamente lo que hace falta
+    /// cuando alguien pregunta meses después por algo que ya no está, así que
+    /// borrarlos deja la pregunta sin respuesta posible. Decisión de Iván del
+    /// 7 de septiembre de 2026.
+    static let nuncaSePurga: Set<String> = ["registro"]
+
+    struct Purga {
+        let filas: Int
+        let bytesAntes: Int64
+        let bytesDespues: Int64
+        var bytesLiberados: Int64 { max(0, bytesAntes - bytesDespues) }
+    }
+
+    /// Borra de verdad lo que ya no hace falta, y devuelve el espacio al
+    /// sistema.
+    ///
+    /// **Las tres condiciones, y las tres importan:**
+    ///
+    /// 1. `borrado = 1` — lo vivo no se toca.
+    /// 2. **Nada pendiente en la cola.** Borrar físicamente una baja que aún no
+    ///    ha viajado es la forma de que el servidor no se entere nunca: la fila
+    ///    desaparece del teléfono y arriba sigue viva. Es la misma condición
+    ///    que ya contaba `medir()`.
+    /// 3. **Más de `diasParaPurgar`.** Se compara con `actualizadoEn`, que en
+    ///    una fila borrada es la fecha de la baja.
+    ///
+    /// Purgar es seguro respecto de la sincronización porque la bajada es
+    /// incremental por cursor `updated_at`: lo purgado no vuelve salvo que
+    /// cambie en el servidor, y si cambia es que alguien lo resucitó, que es
+    /// justo lo que se querría.
+    ///
+    /// El `VACUUM` va al final y FUERA de transacción: SQLite lo rechaza
+    /// dentro ("cannot VACUUM from within a transaction"), como ya documenta
+    /// `Respaldo`.
+    @discardableResult
+    static func purgar() async throws -> Purga {
+        let base = BaseLocal.compartida
+        guard !base.enMemoria else { throw Respaldo.Fallo.sinBase }
+
+        let antes = bytesDeLaBase()
+        let corte = corteDePurga()
+
+        let filas = try await base.cola.write { db -> Int in
+            var total = 0
+            for tabla in try BorradoMasivo.tablasConBorrado(db) {
+                guard !BorradoMasivo.seConserva.contains(tabla),
+                      !nuncaSePurga.contains(tabla) else { continue }
+                try db.execute(sql: """
+                    delete from "\(tabla)"
+                    where borrado = 1
+                      and coalesce(actualizadoEn, '') <> ''
+                      and actualizadoEn < ?
+                      and not exists (select 1 from outbox o where o.registroId = "\(tabla)".id)
+                    """, arguments: [corte])
+                total += db.changesCount
+            }
+            return total
+        }
+
+        // Y el espacio, de vuelta al sistema. Sin esto las páginas quedan
+        // libres DENTRO del archivo y el aparato no recupera ni un byte.
+        try await base.cola.writeWithoutTransaction { db in
+            try db.execute(sql: "vacuum")
+        }
+        return Purga(filas: filas, bytesAntes: antes, bytesDespues: bytesDeLaBase())
     }
 
     /// **Huérfano es el que NADIE reclama**, ni siquiera un depósito ya
@@ -177,11 +270,18 @@ extension Compactacion.Estado {
         }
         var partes: [String] = []
         if filasBorradas > 0 {
-            partes.append(filasBorradas == 1
+            // Se dicen los dos números cuando no coinciden: "132 borrados, 87
+            // ya se pueden quitar" explica por qué el botón no se lo lleva
+            // todo, sin que haya que abrir un manual para entenderlo.
+            let base = filasBorradas == 1
                 ? L.t("1 registro borrado sigue guardado",
                       "1 deleted record is still stored")
                 : L.t("\(filasBorradas) registros borrados siguen guardados",
-                      "\(filasBorradas) deleted records are still stored"))
+                      "\(filasBorradas) deleted records are still stored")
+            partes.append(filasPurgables == filasBorradas || filasPurgables == 0
+                ? base
+                : base + L.t(" (\(filasPurgables) ya se pueden quitar)",
+                             " (\(filasPurgables) can be removed)"))
         }
         if recibosHuerfanos > 0 {
             let peso = Compactacion.legible(bytesRecibosHuerfanos)

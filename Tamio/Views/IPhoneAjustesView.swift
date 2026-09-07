@@ -1160,6 +1160,7 @@ private struct AjustesPreferenciasView: View {
 private struct AjustesZonaView: View {
     @State private var confirmarBorrar = false
     @State private var confirmarReinicio = false
+    @State private var confirmarPurgar = false
     @State private var trabajando = false
     @State private var eligiendoRespaldo = false
     /// Lo que trae el paquete elegido, leído SIN tocar nada. La confirmación no
@@ -1246,6 +1247,21 @@ private struct AjustesZonaView: View {
                 }
                 .padding(.vertical, 4)
 
+                // El botón solo aparece cuando hay algo que quitar: uno que no
+                // hace nada al tocarlo enseña que la pantalla no mira.
+                if let e = estadoBase, e.filasPurgables > 0 {
+                    Button { confirmarPurgar = true } label: {
+                        HStack {
+                            Text(L.t("Liberar espacio", "Free up space"))
+                                .font(.subheadline).foregroundStyle(Paleta.brand)
+                            Spacer()
+                            if trabajando { ProgressView() }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(trabajando)
+                }
+
                 // **Cómo está protegido el archivo**, preguntado al sistema.
                 // Es una de las dos medidas que faltaban para decidir sobre el
                 // cifrado local, y solo se puede tomar en un aparato de verdad.
@@ -1263,8 +1279,8 @@ private struct AjustesZonaView: View {
                 // esa limpieza se descartó (7-sep-2026). Lo que queda es decir
                 // qué pasa de verdad con lo borrado, que no es poco: explica la
                 // cifra de arriba.
-                Text(L.t("Lo que se borra queda marcado y sigue ocupando sitio: es lo que permite que la baja se propague a los demás aparatos. Hoy no se limpia solo.",
-                         "Deleted items stay marked and keep taking space: that's what lets the deletion propagate to other devices. Nothing clears them automatically today."))
+                Text(L.t("Lo que se borra queda marcado y sigue ocupando sitio: es lo que permite que la baja se propague a los demás aparatos. Al liberar espacio se va de verdad lo que lleve más de \(Compactacion.diasParaPurgar) días borrado y ya haya subido. Los apuntes del Registro nunca se tocan.",
+                         "Deleted items stay marked and keep taking space: that's what lets the deletion propagate to other devices. Freeing space permanently removes what has been deleted for more than \(Compactacion.diasParaPurgar) days and has already been uploaded. Log entries are never touched."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
@@ -1360,6 +1376,15 @@ private struct AjustesZonaView: View {
         } message: {
             if let m = porRestaurar?.manifiesto { Text(ResumenRespaldo.frase(m)) }
         }
+        .alert(L.t("Liberar espacio", "Free up space"), isPresented: $confirmarPurgar) {
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
+            Button(L.t("Liberar", "Free up"), role: .destructive) {
+                Task { await purgar() }
+            }
+        } message: {
+            Text(L.t("Se van de verdad \(estadoBase?.filasPurgables ?? 0) registros que llevan más de \(Compactacion.diasParaPurgar) días borrados y ya subieron al servidor. Es lo único de esta pantalla que no deja rastro: no se pueden recuperar ni desde otro aparato.",
+                     "\(estadoBase?.filasPurgables ?? 0) records that have been deleted for more than \(Compactacion.diasParaPurgar) days and already uploaded will be permanently removed. This is the only thing on this screen that leaves no trace: they can't be recovered, not even from another device."))
+        }
         .alert(L.t("Borrar todos los registros", "Delete all records"),
                isPresented: $confirmarBorrar) {
             Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
@@ -1404,6 +1429,23 @@ private struct AjustesZonaView: View {
             let m = try await Respaldo.restaurar(url)
             hecho = L.t("Restaurado el respaldo de \(m.iglesia). Cierra y vuelve a abrir las pantallas para verlo.",
                         "Restored the backup from \(m.iglesia). Close and reopen screens to see it.")
+        } catch {
+            self.error = error.localizedDescription
+        }
+        trabajando = false
+        estadoBase = await Compactacion.medir()
+    }
+
+    private func purgar() async {
+        trabajando = true
+        error = nil
+        do {
+            let r = try await Compactacion.purgar()
+            hecho = r.bytesLiberados > 0
+                ? L.t("Se fueron \(r.filas) registros y se liberaron \(Compactacion.legible(r.bytesLiberados)).",
+                      "\(r.filas) records removed, \(Compactacion.legible(r.bytesLiberados)) freed.")
+                : L.t("Se fueron \(r.filas) registros. El archivo no encogió: SQLite reutilizará ese hueco.",
+                      "\(r.filas) records removed. The file didn't shrink: SQLite will reuse that space.")
         } catch {
             self.error = error.localizedDescription
         }

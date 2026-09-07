@@ -1300,6 +1300,7 @@ private struct SeccionZona: View {
     @State private var ultimo = Respaldo.ultimoLegible
     @State private var eligiendoRespaldo = false
     @State private var confirmarReinicio = false
+    @State private var confirmarPurgar = false
     @State private var porRestaurar: (url: URL, manifiesto: Respaldo.Manifiesto)?
     @State private var hecho: String?
     @State private var estadoBase: Compactacion.Estado?
@@ -1360,14 +1361,23 @@ private struct SeccionZona: View {
 
                 // Mantenimiento
                 GrupoConf(titulo: L.t("MANTENIMIENTO", "MAINTENANCE"),
-                          nota: L.t("Lo que se borra queda marcado y sigue ocupando sitio: es lo que permite que la baja se propague a los demás aparatos. Hoy no se limpia solo.",
-                                    "Deleted items stay marked and keep taking space: that's what lets the deletion propagate to other devices. Nothing clears them automatically today.")) {
+                          nota: L.t("Lo que se borra queda marcado y sigue ocupando sitio: es lo que permite que la baja se propague a los demás aparatos. Al liberar espacio se va de verdad lo que lleve más de \(Compactacion.diasParaPurgar) días borrado y ya haya subido. Los apuntes del Registro nunca se tocan.",
+                                    "Deleted items stay marked and keep taking space: that's what lets the deletion propagate to other devices. Freeing space permanently removes what has been deleted for more than \(Compactacion.diasParaPurgar) days and has already been uploaded. Log entries are never touched.")) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(L.t("Espacio en este aparato", "Storage on this device"))
                             .font(.system(size: 16))
                         Text(estadoBase?.resumen ?? L.t("Midiendo…", "Measuring…"))
                             .font(.system(size: 13.5)).foregroundStyle(.tertiary)
                             .fixedSize(horizontal: false, vertical: true)
+                        if let e = estadoBase, e.filasPurgables > 0 {
+                            Button { confirmarPurgar = true } label: {
+                                Text(L.t("Liberar espacio", "Free up space"))
+                                    .font(.system(size: 15)).foregroundStyle(Paleta.brand)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(trabajando)
+                            .padding(.top, 4)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Esp.pantalla).padding(.vertical, 14)
@@ -1438,6 +1448,15 @@ private struct SeccionZona: View {
         } message: {
             if let m = porRestaurar?.manifiesto { Text(ResumenRespaldo.frase(m)) }
         }
+        .alert(L.t("Liberar espacio", "Free up space"), isPresented: $confirmarPurgar) {
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
+            Button(L.t("Liberar", "Free up"), role: .destructive) {
+                Task { await purgar() }
+            }
+        } message: {
+            Text(L.t("Se van de verdad \(estadoBase?.filasPurgables ?? 0) registros que llevan más de \(Compactacion.diasParaPurgar) días borrados y ya subieron. No se pueden recuperar ni desde otro aparato.",
+                     "\(estadoBase?.filasPurgables ?? 0) records deleted for more than \(Compactacion.diasParaPurgar) days and already uploaded will be permanently removed. They can't be recovered, not even from another device."))
+        }
         .alert(L.t("Borrar datos de este iPad", "Erase data from this iPad"),
                isPresented: $confirmarReinicio) {
             Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
@@ -1470,6 +1489,20 @@ private struct SeccionZona: View {
             let m = try await Respaldo.restaurar(url)
             hecho = L.t("Restaurado el respaldo de \(m.iglesia).",
                         "Restored the backup from \(m.iglesia).")
+        } catch { self.error = error.localizedDescription }
+        trabajando = false
+        estadoBase = await Compactacion.medir()
+    }
+
+    private func purgar() async {
+        trabajando = true; error = nil
+        do {
+            let r = try await Compactacion.purgar()
+            hecho = r.bytesLiberados > 0
+                ? L.t("Se fueron \(r.filas) registros y se liberaron \(Compactacion.legible(r.bytesLiberados)).",
+                      "\(r.filas) records removed, \(Compactacion.legible(r.bytesLiberados)) freed.")
+                : L.t("Se fueron \(r.filas) registros. El archivo no encogió: SQLite reutilizará ese hueco.",
+                      "\(r.filas) records removed. The file didn't shrink: SQLite will reuse that space.")
         } catch { self.error = error.localizedDescription }
         trabajando = false
         estadoBase = await Compactacion.medir()

@@ -293,8 +293,13 @@ final class CompactacionTests: XCTestCase {
 
         XCTAssertEqual(despues.filasBorradas, antes.filasBorradas + 1,
                        "### no contó la fila marcada como borrada")
-        XCTAssertEqual(despues.filasPurgables, antes.filasPurgables + 1,
-                       "### sin nada en la outbox, esa fila ya se puede quitar")
+        // **Y NO cuenta como purgable**: se acaba de borrar. Desde que existe
+        // la purga, "purgable" son las tres condiciones juntas —borrada, ya
+        // subida y de más de `diasParaPurgar`—, y esta solo cumple dos. El mes
+        // de margen es lo que permite deshacer un borrado equivocado desde otro
+        // aparato.
+        XCTAssertEqual(despues.filasPurgables, antes.filasPurgables,
+                       "### una baja de hace un segundo no se puede purgar todavía")
     }
 
     /// La distinción que hace segura la purga: una baja que aún no ha subido no
@@ -333,5 +338,147 @@ final class CompactacionTests: XCTestCase {
         // puede depender de en cuál esté.
         XCTAssertTrue(texto.contains("la base ocupa") || texto.contains("the database takes"),
                       texto)
+    }
+}
+
+/// **La purga: lo único de la app que borra de verdad.**
+///
+/// Tres condiciones la hacen segura, y cada una tiene aquí su prueba. Se
+/// escriben porque el fallo de cualquiera de ellas es silencioso: no se ve al
+/// probarlo a mano, se ve semanas después cuando falta algo.
+@MainActor
+final class PurgaTests: XCTestCase {
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        try XCTSkipIf(BaseLocal.compartida.enMemoria, "sin base de disco no hay nada que purgar")
+    }
+
+    private func hace(_ dias: Int) -> String {
+        ISO8601DateFormatter().string(from: Date().addingTimeInterval(-Double(dias) * 24 * 3600))
+    }
+
+    /// Siembra un movimiento con el estado que se quiera probar.
+    private func sembrar(id: String, borrado: Bool, actualizado: String) async throws {
+        try await BaseLocal.compartida.cola.write { db in
+            let obligatorias = try Row.fetchAll(db, sql: "select * from pragma_table_info('movimiento')")
+                .filter { ($0["notnull"] as Int? ?? 0) == 1 && $0["dflt_value"] == nil }
+                .compactMap { $0["name"] as String? }
+            var columnas = obligatorias
+            var valores = obligatorias.map { c -> String in
+                switch c {
+                case "id":    return "'\(id)'"
+                case "monto": return "100"
+                default:      return "'x'"
+                }
+            }
+            for (col, val) in [("borrado", borrado ? "1" : "0"),
+                               ("actualizadoEn", "'\(actualizado)'")]
+            where !columnas.contains(col) {
+                columnas.append(col); valores.append(val)
+            }
+            try db.execute(sql: """
+                insert or replace into movimiento (\(columnas.joined(separator: ", ")))
+                values (\(valores.joined(separator: ", ")))
+                """)
+        }
+    }
+
+    private func existe(_ id: String) async throws -> Bool {
+        try await BaseLocal.compartida.cola.read { db in
+            try Bool.fetchOne(db, sql: "select count(*) > 0 from movimiento where id = ?",
+                              arguments: [id]) ?? false
+        }
+    }
+
+    private func limpiar() async throws {
+        try await BaseLocal.compartida.cola.write { db in
+            try db.execute(sql: "delete from movimiento")
+            try db.execute(sql: "delete from outbox")
+        }
+    }
+
+    /// Lo viejo y ya subido se va.
+    func testSeVaLoBorradoHaceMasDeUnMes() async throws {
+        try await limpiar()
+        try await sembrar(id: "p-viejo", borrado: true, actualizado: hace(40))
+        _ = try await Compactacion.purgar()
+        let sigue = try await existe("p-viejo")
+        XCTAssertFalse(sigue, "### debería haberse ido")
+    }
+
+    /// **Lo recién borrado se queda**: es el mes de margen para deshacer un
+    /// borrado equivocado desde otro aparato.
+    func testSeQuedaLoBorradoAyer() async throws {
+        try await limpiar()
+        try await sembrar(id: "p-nuevo", borrado: true, actualizado: hace(2))
+        _ = try await Compactacion.purgar()
+        let sigue = try await existe("p-nuevo")
+        XCTAssertTrue(sigue, "### se llevó por delante el margen para deshacer")
+    }
+
+    /// **Lo vivo no se toca**, por viejo que sea.
+    func testNoSeVaLoQueNoEstaBorrado() async throws {
+        try await limpiar()
+        try await sembrar(id: "p-vivo", borrado: false, actualizado: hace(500))
+        _ = try await Compactacion.purgar()
+        let sigue = try await existe("p-vivo")
+        XCTAssertTrue(sigue, "### borró una fila viva")
+    }
+
+    /// **Y lo que aún no ha subido tampoco**, aunque sea antiguo: borrarlo
+    /// aquí sería la forma de que el servidor no se entere nunca de la baja.
+    func testNoSeVaLoQueNoHaSubido() async throws {
+        try await limpiar()
+        try await sembrar(id: "p-pendiente", borrado: true, actualizado: hace(90))
+        try await BaseLocal.compartida.cola.write { db in
+            var op = OperacionPendiente(id: nil, entidad: "movimiento",
+                                        registroId: "p-pendiente",
+                                        operacion: OperacionPendiente.Operacion.eliminar.rawValue,
+                                        creadoEn: Date().timeIntervalSince1970,
+                                        intentos: 0, ultimoError: nil)
+            try op.insert(db)
+        }
+        _ = try await Compactacion.purgar()
+        let sigue = try await existe("p-pendiente")
+        XCTAssertTrue(sigue, "### el servidor no se habría enterado nunca de esa baja")
+    }
+
+    /// **El Registro no se purga jamás**: es la constancia de qué pasó con cada
+    /// cosa, y sus apuntes son justo lo que hace falta cuando alguien pregunta
+    /// meses después por algo que ya no está.
+    func testLaBitacoraNoSePurga() async throws {
+        // La fecha se calcula FUERA del bloque: dentro es un contexto sin
+        // actor y `hace` vive en el principal.
+        let hace400 = hace(400)
+        try await BaseLocal.compartida.cola.write { db in
+            try db.execute(sql: "delete from registro")
+            // `creadoEn` es obligatoria y no tiene valor por omisión.
+            try db.execute(sql: """
+                insert into registro (id, borrado, actualizadoEn, creadoEn)
+                values ('r-viejo', 1, ?, ?)
+                """, arguments: [hace400, hace400])
+        }
+        _ = try await Compactacion.purgar()
+        let sigue = try await BaseLocal.compartida.cola.read { db in
+            try Bool.fetchOne(db, sql: "select count(*) > 0 from registro where id = 'r-viejo'") ?? false
+        }
+        XCTAssertTrue(sigue, "### se borró un apunte de la bitácora")
+        XCTAssertTrue(Compactacion.nuncaSePurga.contains("registro"))
+    }
+
+    /// La cuenta que se enseña y lo que se borra tienen que ser lo mismo. Si
+    /// discrepan, el número de la pantalla es una promesa que no se cumple.
+    func testLoQueSeAnunciaEsLoQueSeVa() async throws {
+        try await limpiar()
+        try await sembrar(id: "p-1", borrado: true, actualizado: hace(40))
+        try await sembrar(id: "p-2", borrado: true, actualizado: hace(40))
+        try await sembrar(id: "p-3", borrado: true, actualizado: hace(2))
+
+        let medido = await Compactacion.medir()
+        let antes = try XCTUnwrap(medido)
+        let purga = try await Compactacion.purgar()
+        XCTAssertEqual(purga.filas, antes.filasPurgables,
+                       "### se anunciaron \(antes.filasPurgables) y se fueron \(purga.filas)")
     }
 }
