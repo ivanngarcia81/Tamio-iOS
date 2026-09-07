@@ -649,10 +649,19 @@ struct CartaEnEdicion {
     var miembroDesde: String = ""
     var firma: String = ConfiguracionIglesiaViewModel.compartido.config.pastorNombre
 
+    /// **La firma cuenta.** El formulario dibuja cuatro filas y el contador
+    /// decía "0 de 3": la firma se enseñaba como un campo más pero no se
+    /// contaba, así que el ojo veía cuatro y el número tres.
+    ///
+    /// Contarla no es solo cosmética: este contador es lo que deja emitir
+    /// —`camposCompletos < camposTotales` convierte "Firmar y enviar" en un
+    /// aviso de campos incompletos—, y hasta ahora una carta podía emitirse
+    /// sin ningún firmante. Sale por omisión del pastor de Ajustes, y si ahí
+    /// está en blanco se escribe en la fila, que es un campo de texto normal.
     var camposCompletos: Int {
-        [aportante, iglesiaDestino, miembroDesde].filter { !$0.isEmpty }.count
+        [aportante, iglesiaDestino, miembroDesde, firma].filter { !$0.isEmpty }.count
     }
-    var camposTotales: Int { 3 }
+    var camposTotales: Int { 4 }
 
     // Campos del formulario de creación
     var fechaEmision: Date = Date()
