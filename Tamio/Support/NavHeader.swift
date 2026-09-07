@@ -25,10 +25,21 @@ extension View {
     /// Se pone sobre la `List` o el `ScrollView`, o sobre un ancestro suyo:
     /// `refreshable` viaja por el entorno y lo recoge el primer contenedor
     /// desplazable que lo encuentre.
+    /// **Y también cuando la sincronización termina por su cuenta.** El arranque
+    /// lanza una: si la pantalla ya se dibujó antes de que bajaran los datos,
+    /// se queda enseñando lo que había —en un teléfono recién estrenado, todo
+    /// a cero— hasta que alguien tira hacia abajo. Pasó de verdad la primera
+    /// vez que Inicio dejó de ser una maqueta: con la base vacía y la
+    /// sincronización a medias, la primera pantalla de la app decía $0.00 con
+    /// la cuenta de la iglesia abierta. Que se vea o no dependía de quién
+    /// terminara antes, que es la peor clase de fallo.
     func sincronizable(_ recargar: @escaping () async -> Void) -> some View {
         refreshable {
             await MotorSincronizacion.compartido.sincronizar()
             await recargar()
+        }
+        .onChange(of: MotorSincronizacion.compartido.ultimaSincronizacion) {
+            Task { await recargar() }
         }
     }
 
