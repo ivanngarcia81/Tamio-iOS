@@ -1161,6 +1161,14 @@ private struct AjustesZonaView: View {
     @State private var confirmarBorrar = false
     @State private var confirmarReinicio = false
     @State private var confirmarPurgar = false
+    @State private var protegerRespaldo = false
+    @State private var contrasenaRespaldo = ""
+    /// El paquete elegido que pide contraseña, y la que se va escribiendo.
+    @State private var paqueteProtegido: URL?
+    @State private var contrasenaAbrir = ""
+    /// Se recuerda mientras dura la restauración: se pide al elegir el archivo
+    /// y hace falta otra vez al restaurarlo de verdad.
+    @State private var contrasenaEnUso: String?
     @State private var trabajando = false
     @State private var eligiendoRespaldo = false
     /// Lo que trae el paquete elegido, leído SIN tocar nada. La confirmación no
@@ -1188,6 +1196,23 @@ private struct AjustesZonaView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
+                // **La casilla, no un ajuste guardado.** Se decide en cada
+                // respaldo porque depende de a dónde va: el que se guarda en el
+                // Mac de casa no necesita contraseña y el que se manda por
+                // correo sí.
+                Toggle(isOn: $protegerRespaldo) {
+                    Text(L.t("Proteger con contraseña", "Protect with a password"))
+                        .font(.subheadline)
+                }
+                .tint(Paleta.brand)
+                if protegerRespaldo {
+                    SecureField(L.t("Contraseña", "Password"), text: $contrasenaRespaldo)
+                        .font(.subheadline)
+                        .textContentType(.newPassword)
+                    Text(L.t("Sin ella no se puede abrir ese respaldo, ni tú. Apúntala donde no se pierda.",
+                             "Without it nobody can open that backup, not even you. Write it down somewhere safe."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Button {
                     Task { await respaldar() }
                 } label: {
@@ -1200,7 +1225,7 @@ private struct AjustesZonaView: View {
                         if trabajando { ProgressView() }
                     }
                 }
-                .disabled(trabajando)
+                .disabled(trabajando || (protegerRespaldo && contrasenaRespaldo.isEmpty))
             } footer: {
                 if let error {
                     Text(error).foregroundStyle(Paleta.negativo)
@@ -1361,10 +1386,33 @@ private struct AjustesZonaView: View {
         // `.zip` a secas: el paquete lo arma `NSFileCoordinator` y ese es su
         // tipo. Aceptar cualquier archivo dejaría elegir un PDF para luego
         // decir que no sirve.
+        // `.data` además de `.zip`: un respaldo protegido ya no es un zip y el
+        // selector no lo dejaría elegir.
         .fileImporter(isPresented: $eligiendoRespaldo,
-                      allowedContentTypes: [.zip]) { resultado in
+                      allowedContentTypes: [.zip, .data]) { resultado in
             guard case .success(let url) = resultado else { return }
-            Task { await inspeccionar(url) }
+            if Respaldo.pideContrasena(url) {
+                contrasenaAbrir = ""
+                paqueteProtegido = url
+            } else {
+                Task { await inspeccionar(url) }
+            }
+        }
+        .alert(L.t("Este respaldo está protegido", "This backup is protected"),
+               isPresented: .init(get: { paqueteProtegido != nil },
+                                  set: { if !$0 { paqueteProtegido = nil } })) {
+            SecureField(L.t("Contraseña", "Password"), text: $contrasenaAbrir)
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) { paqueteProtegido = nil }
+            Button(L.t("Abrir", "Open")) {
+                if let url = paqueteProtegido {
+                    let clave = contrasenaAbrir
+                    paqueteProtegido = nil
+                    Task { await inspeccionar(url, contrasena: clave) }
+                }
+            }
+        } message: {
+            Text(L.t("Escribe la contraseña con la que se creó.",
+                     "Type the password it was created with."))
         }
         .alert(L.t("Restaurar este respaldo", "Restore this backup"),
                isPresented: .init(get: { porRestaurar != nil },
@@ -1412,11 +1460,15 @@ private struct AjustesZonaView: View {
         }
     }
 
-    private func inspeccionar(_ url: URL) async {
+    private func inspeccionar(_ url: URL, contrasena: String? = nil) async {
         trabajando = true
         error = nil
-        do { porRestaurar = (url, try await Respaldo.inspeccionar(url)) }
-        catch { self.error = error.localizedDescription }
+        do {
+            porRestaurar = (url, try await Respaldo.inspeccionar(url, contrasena: contrasena))
+            contrasenaEnUso = contrasena
+        } catch {
+            self.error = error.localizedDescription
+        }
         trabajando = false
         estadoBase = await Compactacion.medir()
     }
@@ -1426,7 +1478,7 @@ private struct AjustesZonaView: View {
         trabajando = true
         error = nil
         do {
-            let m = try await Respaldo.restaurar(url)
+            let m = try await Respaldo.restaurar(url, contrasena: contrasenaEnUso)
             hecho = L.t("Restaurado el respaldo de \(m.iglesia). Cierra y vuelve a abrir las pantallas para verlo.",
                         "Restored the backup from \(m.iglesia). Close and reopen screens to see it.")
         } catch {
@@ -1501,7 +1553,8 @@ private struct AjustesZonaView: View {
         trabajando = true
         error = nil
         do {
-            let url = try await Respaldo.crear()
+            let url = try await Respaldo.crear(
+                protegidoCon: protegerRespaldo ? contrasenaRespaldo : nil)
             Respaldo.anotarHecho()
             ultimo = Respaldo.ultimoLegible
             paquete = url

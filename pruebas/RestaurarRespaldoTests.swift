@@ -101,6 +101,37 @@ final class RestaurarRespaldoTests: XCTestCase {
                       "### se recuperó en el teléfono y nadie iba a contárselo al servidor")
     }
 
+    /// **El ciclo entero con contraseña**, que es lo que las pruebas de
+    /// `RespaldoCifrado` no cubren: allí se cifran bytes de mentira; aquí se
+    /// respalda la base de verdad, se estropea y se recupera.
+    func testUnRespaldoProtegidoSeCreaYSeRestaura() async throws {
+        try escribirIglesia("Con contraseña")
+        let paquete = try await Respaldo.crear(protegidoCon: "la de Iván")
+        defer { try? FileManager.default.removeItem(at: paquete) }
+
+        // Deja de ser un zip, y se nota en el nombre y en el contenido.
+        XCTAssertEqual(paquete.pathExtension, "tamiobk")
+        XCTAssertTrue(Respaldo.pideContrasena(paquete))
+
+        try escribirIglesia("Cambiada después")
+        _ = try await Respaldo.restaurar(paquete, contrasena: "la de Iván")
+        XCTAssertEqual(try nombreDeLaIglesia(), "Con contraseña")
+    }
+
+    /// Y sin la contraseña no se abre, ni siquiera para mirarlo.
+    func testSinLaContrasenaNoSeAbreElPaquete() async throws {
+        try escribirIglesia("Protegida")
+        let paquete = try await Respaldo.crear(protegidoCon: "correcta")
+        defer { try? FileManager.default.removeItem(at: paquete) }
+
+        do {
+            _ = try await Respaldo.inspeccionar(paquete, contrasena: "equivocada")
+            XCTFail("### abrió un respaldo protegido con otra contraseña")
+        } catch {
+            XCTAssertEqual(error as? RespaldoCifrado.Fallo, .contrasenaIncorrecta)
+        }
+    }
+
     /// Mirar el paquete no puede tocar nada: es lo que la hoja de confirmación
     /// enseña ANTES de decidir.
     func testInspeccionarNoModificaLaBase() async throws {
@@ -480,5 +511,77 @@ final class PurgaTests: XCTestCase {
         let purga = try await Compactacion.purgar()
         XCTAssertEqual(purga.filas, antes.filasPurgables,
                        "### se anunciaron \(antes.filasPurgables) y se fueron \(purga.filas)")
+    }
+}
+
+/// **El respaldo protegido con contraseña.**
+///
+/// Es lo único que sale del aparato —a Archivos, a iCloud, a un correo— y
+/// hasta hoy salía en claro con la contabilidad entera dentro.
+final class RespaldoCifradoTests: XCTestCase {
+
+    private let zipFalso = Data("PK\u{03}\u{04} esto hace de paquete".utf8)
+
+    func testLaIdaYLaVuelta() throws {
+        let cifrado = try RespaldoCifrado.cifrar(zipFalso, con: "una buena")
+        XCTAssertNotEqual(cifrado, zipFalso, "### salió en claro")
+        XCTAssertEqual(try RespaldoCifrado.descifrar(cifrado, con: "una buena"), zipFalso)
+    }
+
+    /// La contraseña equivocada se reconoce como tal, no como bytes raros:
+    /// AES-GCM comprueba su etiqueta antes de devolver nada.
+    func testLaContrasenaEquivocadaNoAbre() throws {
+        let cifrado = try RespaldoCifrado.cifrar(zipFalso, con: "la buena")
+        XCTAssertThrowsError(try RespaldoCifrado.descifrar(cifrado, con: "otra")) { error in
+            XCTAssertEqual(error as? RespaldoCifrado.Fallo, .contrasenaIncorrecta)
+        }
+    }
+
+    /// **Se reconoce por la marca, no por la extensión**: el nombre lo puede
+    /// cambiar cualquiera al guardarlo, y un respaldo protegido que llegue
+    /// llamándose `.zip` tiene que seguir pidiendo su contraseña.
+    func testSeReconoceUnPaqueteProtegido() throws {
+        XCTAssertFalse(RespaldoCifrado.estaCifrado(zipFalso))
+        XCTAssertTrue(RespaldoCifrado.estaCifrado(try RespaldoCifrado.cifrar(zipFalso, con: "x")))
+    }
+
+    /// Un paquete sin cifrar pasa de largo: los respaldos de antes se siguen
+    /// abriendo sin pedir nada.
+    func testUnPaqueteEnClaroSeDevuelveIgual() throws {
+        XCTAssertEqual(try RespaldoCifrado.descifrar(zipFalso, con: ""), zipFalso)
+    }
+
+    /// Dos respaldos de lo mismo con la misma contraseña no pueden salir
+    /// iguales: cada uno lleva su propia sal.
+    func testCadaRespaldoLlevaSuSal() throws {
+        let a = try RespaldoCifrado.cifrar(zipFalso, con: "igual")
+        let b = try RespaldoCifrado.cifrar(zipFalso, con: "igual")
+        XCTAssertNotEqual(a, b, "### con la misma sal, dos paquetes iguales se delatan")
+        XCTAssertEqual(try RespaldoCifrado.descifrar(a, con: "igual"), zipFalso)
+        XCTAssertEqual(try RespaldoCifrado.descifrar(b, con: "igual"), zipFalso)
+    }
+
+    func testSinContrasenaNoSeCifra() {
+        XCTAssertThrowsError(try RespaldoCifrado.cifrar(zipFalso, con: "")) { error in
+            XCTAssertEqual(error as? RespaldoCifrado.Fallo, .contrasenaVacia)
+        }
+    }
+}
+
+/// La clase de protección que la app pide para sus archivos.
+final class ProteccionArchivosTests: XCTestCase {
+
+    /// `completeUnlessOpen` y no `complete`: con esta última, al bloquearse el
+    /// teléfono un archivo YA abierto deja de poder leerse y la app se queda
+    /// escribiendo en el vacío. Y no `completeUntilFirstUserAuthentication`,
+    /// que es la de por omisión y la que se quería mejorar.
+    func testPideLaClaseCorrecta() {
+        XCTAssertEqual(ProteccionArchivos.clase, .completeUnlessOpen)
+    }
+
+    /// Aplicarla no puede reventar: en el simulador Data Protection no existe y
+    /// `setAttributes` falla en silencio, y aun así la app tiene que arrancar.
+    func testAplicarNoLanzaNiEnElSimulador() {
+        _ = ProteccionArchivos.aplicar()
     }
 }

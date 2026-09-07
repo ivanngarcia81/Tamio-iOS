@@ -69,7 +69,7 @@ enum Respaldo {
     /// Se hace fuera del hilo principal: `VACUUM INTO` y comprimir una carpeta
     /// con fotos tardan lo suyo, y bloquear la interfaz en el botón que dice
     /// "tarda unos segundos" sería quedarse corto.
-    static func crear() async throws -> URL {
+    static func crear(protegidoCon contrasena: String? = nil) async throws -> URL {
         let base = BaseLocal.compartida
         guard !base.enMemoria else { throw Fallo.sinBase }
 
@@ -137,7 +137,19 @@ enum Respaldo {
         try codificador.encode(manifiesto)
             .write(to: carpeta.appendingPathComponent("respaldo.json"))
 
-        return try comprimir(carpeta, nombre: nombre)
+        let zip = try comprimir(carpeta, nombre: nombre)
+        guard let contrasena, !contrasena.isEmpty else { return zip }
+
+        // **Con contraseña, el paquete deja de ser un zip.** Se cifra entero y
+        // se le cambia la extensión: un archivo que ya no se abre con doble
+        // clic no debe llamarse `.zip`, o el primer chasco lo llevará quien
+        // intente abrirlo justo el día que hace falta.
+        let cifrado = try RespaldoCifrado.cifrar(try Data(contentsOf: zip), con: contrasena)
+        let salida = zip.deletingPathExtension().appendingPathExtension("tamiobk")
+        try? FileManager.default.removeItem(at: salida)
+        try cifrado.write(to: salida, options: .atomic)
+        try? FileManager.default.removeItem(at: zip)
+        return salida
     }
 
     /// Comprime una carpeta en un `.zip` **sin librerías**.
@@ -173,8 +185,8 @@ enum Respaldo {
     /// Existe separado de `restaurar` a propósito, y es la razón por la que
     /// `crear` escribe un manifiesto: la app web descubrió que un "¿seguro?"
     /// genérico no deja ver que el archivo elegido es de otra congregación.
-    static func inspeccionar(_ paquete: URL) async throws -> Manifiesto {
-        let carpeta = try desempaquetar(paquete)
+    static func inspeccionar(_ paquete: URL, contrasena: String? = nil) async throws -> Manifiesto {
+        let carpeta = try desempaquetar(paquete, contrasena: contrasena)
         defer { try? FileManager.default.removeItem(at: carpeta) }
         return try leerManifiesto(carpeta)
     }
@@ -197,11 +209,11 @@ enum Respaldo {
     /// Al revés no vale: si el respaldo trae migraciones que esta app no
     /// conoce, se rechaza. Restaurar quitando columnas es perder datos sin
     /// decirlo.
-    static func restaurar(_ paquete: URL) async throws -> Manifiesto {
+    static func restaurar(_ paquete: URL, contrasena: String? = nil) async throws -> Manifiesto {
         let base = BaseLocal.compartida
         guard !base.enMemoria else { throw Fallo.sinBase }
 
-        let carpeta = try desempaquetar(paquete)
+        let carpeta = try desempaquetar(paquete, contrasena: contrasena)
         defer { try? FileManager.default.removeItem(at: carpeta) }
         let manifiesto = try leerManifiesto(carpeta)
 
@@ -273,17 +285,39 @@ enum Respaldo {
 
     // MARK: - Piezas de la restauración
 
-    private static func desempaquetar(_ paquete: URL) throws -> URL {
+    private static func desempaquetar(_ paquete: URL, contrasena: String? = nil) throws -> URL {
         // El selector de archivos entrega una URL fuera del sandbox; sin pedir
         // acceso explícito, la lectura falla. Es lo mismo que hace
         // `SupabaseComprobantesStorage.subir`.
         let concedido = paquete.startAccessingSecurityScopedResource()
         defer { if concedido { paquete.stopAccessingSecurityScopedResource() } }
 
-        let destino = FileManager.default.temporaryDirectory
+        let fm = FileManager.default
+        var origen = paquete
+        // **Se mira la MARCA del archivo, no su extensión**: el nombre lo puede
+        // cambiar cualquiera al guardarlo, y un respaldo protegido que llegue
+        // llamándose `.zip` tiene que seguir pidiendo su contraseña.
+        let crudo = try Data(contentsOf: paquete)
+        if RespaldoCifrado.estaCifrado(crudo) {
+            let claro = try RespaldoCifrado.descifrar(crudo, con: contrasena ?? "")
+            origen = fm.temporaryDirectory.appendingPathComponent("abierto-\(UUID().uuidString).zip")
+            try claro.write(to: origen, options: .atomic)
+        }
+
+        let destino = fm.temporaryDirectory
             .appendingPathComponent("restaurar-\(UUID().uuidString)", isDirectory: true)
-        try ZipLectura.extraer(paquete, a: destino)
+        defer { if origen != paquete { try? fm.removeItem(at: origen) } }
+        try ZipLectura.extraer(origen, a: destino)
         return raizDelPaquete(destino)
+    }
+
+    /// ¿Este paquete pide contraseña? Lo usa la pantalla para preguntarla antes
+    /// de intentar nada, en vez de fallar y volver a empezar.
+    static func pideContrasena(_ paquete: URL) -> Bool {
+        let concedido = paquete.startAccessingSecurityScopedResource()
+        defer { if concedido { paquete.stopAccessingSecurityScopedResource() } }
+        guard let datos = try? Data(contentsOf: paquete) else { return false }
+        return RespaldoCifrado.estaCifrado(datos)
     }
 
     /// **El zip envuelve todo en una carpeta con su propio nombre.** Es lo que

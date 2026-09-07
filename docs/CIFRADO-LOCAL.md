@@ -1,8 +1,56 @@
 # Cifrado de la base local — análisis
 
-**Estado: DECISIÓN PENDIENTE.** Escrito el 2026-09-04 a petición de Iván, que
-pidió analizarlo sin construir nada todavía. No se ha tocado ninguna
-dependencia ni ningún archivo de la app.
+**Estado: DECIDIDO Y HECHO — opción A, el 2026-09-07.** El análisis de abajo se
+conserva tal como se escribió el 2026-09-04, porque su razonamiento sigue
+siendo el que sostiene la decisión. Lo que cambió está en esta cabecera.
+
+## Qué se decidió, y con qué información
+
+Las dos medidas que el documento pedía antes de decidir:
+
+1. **Tomada.** `tamio.sqlite` estaba en `completeUntilFirstUserAuthentication`
+   —el punto de partida que este documento suponía, no peor—, medido en el
+   iPhone de Iván. La enseña la Zona de riesgo, así que ya no hace falta
+   volver a preguntárselo a nadie.
+2. **Contestada por el camino:** el respaldo, una vez sale a Archivos o a
+   iCloud, deja de estar bajo el control de la app. Por eso se cifra él.
+
+Y una condición del documento que se cumplió el mismo día: **restaurar ya
+existe**. Aun así se eligió A y no B, y conviene que conste el porqué: B exige
+forkear GRDB o migrar a CocoaPods sobre un `.pbxproj` editado a mano, y sobre
+todo, perder la clave del llavero sería perder la contabilidad — que es
+exactamente lo contrario de la línea del candado biométrico, donde *nadie se
+queda fuera de sus propios libros*.
+
+## Qué se construyó
+
+- **`ProteccionArchivos`**: la base, su `-wal` y su `-shm`, y las carpetas de
+  recibos, firmas y logo suben a `completeUnlessOpen`. También las carpetas, no
+  solo los archivos: lo que se cree dentro después hereda la clase, y sin eso el
+  `-wal` de la siguiente apertura volvería a nacer con la de por omisión.
+  Se puede hacer porque **la app no trabaja en segundo plano**: no declara
+  `UIBackgroundModes` ni usa `BGTaskScheduler`. Si algún día lo hace, esto es lo
+  primero que hay que revisar.
+- **`RespaldoCifrado`**: el paquete se puede proteger con contraseña, **con una
+  casilla y no siempre** (decisión de Iván). AES-GCM con clave derivada por
+  PBKDF2-SHA256 y 200.000 vueltas — no un hash a secas: una contraseña humana
+  necesita que derivarla cueste. Cifrado deja de llamarse `.zip` y pasa a
+  `.tamiobk`, porque un archivo que ya no se abre con doble clic no debe
+  aparentar que sí.
+- Al restaurar se **mira la marca del archivo, no su extensión**, y solo se pide
+  contraseña si hace falta. Los respaldos de antes se siguen abriendo sin nada.
+
+Nueve pruebas nuevas, incluido el ciclo entero: respaldar con contraseña,
+estropear la base y recuperarla.
+
+## Lo que sigue sin cubrir, y es a propósito
+
+Lo de §2 no ha cambiado: **A no protege del aparato comprometido y
+desbloqueado**. Eso solo lo daría B, con el precio que dice §4. Y los CSV siguen
+saliendo en claro porque son para abrirlos en Excel.
+
+---
+
 
 La pregunta era: *«SQLCipher se necesita para guardar local, en caso que no haya
 red»*. Este documento contesta qué haría falta, qué protege de verdad, y qué se

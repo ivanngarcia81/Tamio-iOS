@@ -227,7 +227,8 @@ necesitan la sesión.
 
 ### Lo que queda, y es decisión de Iván
 
-- **El cifrado local** (§5): faltan dos medidas antes de decidir.
+- ~~El cifrado local~~ **decidido y hecho el 7 de septiembre**: opción A. Ver
+  `docs/CIFRADO-LOCAL.md`, que ahora abre con lo que se decidió y por qué.
 - **No soltar la tabla `mensajes`** hasta que todos los aparatos actualicen.
 - ~~Adelantar `main`~~ **hecho el 7 de septiembre**: `3ffc483` → `46dd4fe`,
   veintinueve commits, y lo corrió la sesión (§1).

@@ -54,6 +54,8 @@
 		AB27ZIP0000000000000001 /* ZipLectura.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA27ZIP0000000000000001 /* ZipLectura.swift */; };
 		AB28BOR0000000000000001 /* BorradoMasivo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA28BOR0000000000000001 /* BorradoMasivo.swift */; };
 		AB29CMP0000000000000001 /* Compactacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA29CMP0000000000000001 /* Compactacion.swift */; };
+		AB30PRO0000000000000001 /* ProteccionArchivos.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA30PRO0000000000000001 /* ProteccionArchivos.swift */; };
+		AB31CIF0000000000000001 /* RespaldoCifrado.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA31CIF0000000000000001 /* RespaldoCifrado.swift */; };
 		AB16FIR0000000000000016 /* FirmasLocales.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA16FIR0000000000000016 /* FirmasLocales.swift */; };
 		AB17HFI0000000000000017 /* HojaFirma.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA17HFI0000000000000017 /* HojaFirma.swift */; };
 		109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109DD5C430497B0000E781A2 /* OfflineDepositosRepository.swift */; };
@@ -253,6 +255,8 @@
 		AA27ZIP0000000000000001 /* ZipLectura.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipLectura.swift; sourceTree = "<group>"; };
 		AA28BOR0000000000000001 /* BorradoMasivo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BorradoMasivo.swift; sourceTree = "<group>"; };
 		AA29CMP0000000000000001 /* Compactacion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Compactacion.swift; sourceTree = "<group>"; };
+		AA30PRO0000000000000001 /* ProteccionArchivos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProteccionArchivos.swift; sourceTree = "<group>"; };
+		AA31CIF0000000000000001 /* RespaldoCifrado.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RespaldoCifrado.swift; sourceTree = "<group>"; };
 		AA16FIR0000000000000016 /* FirmasLocales.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirmasLocales.swift; sourceTree = "<group>"; };
 		AA17HFI0000000000000017 /* HojaFirma.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HojaFirma.swift; sourceTree = "<group>"; };
 		9D80DC3340868CDE97F34571 /* DepositosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosRepository.swift; sourceTree = "<group>"; };
@@ -429,6 +433,8 @@
 				D3258F1AD72FB1E23580B3A1 /* DashboardRepository.swift */,
 				9D80DC3340868CDE97F34571 /* DepositosRepository.swift */,
 				AA16FIR0000000000000016 /* FirmasLocales.swift */,
+				AA31CIF0000000000000001 /* RespaldoCifrado.swift */,
+				AA30PRO0000000000000001 /* ProteccionArchivos.swift */,
 				AA29CMP0000000000000001 /* Compactacion.swift */,
 				AA28BOR0000000000000001 /* BorradoMasivo.swift */,
 				AA27ZIP0000000000000001 /* ZipLectura.swift */,
@@ -650,6 +656,8 @@
 				AB27ZIP0000000000000001 /* ZipLectura.swift in Sources */,
 				AB28BOR0000000000000001 /* BorradoMasivo.swift in Sources */,
 				AB29CMP0000000000000001 /* Compactacion.swift in Sources */,
+				AB30PRO0000000000000001 /* ProteccionArchivos.swift in Sources */,
+				AB31CIF0000000000000001 /* RespaldoCifrado.swift in Sources */,
 				AB16FIR0000000000000016 /* FirmasLocales.swift in Sources */,
 				AB17HFI0000000000000017 /* HojaFirma.swift in Sources */,
 				109DD5C530497B0000E781A2 /* OfflineDepositosRepository.swift in Sources */,

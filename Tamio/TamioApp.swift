@@ -69,6 +69,11 @@ struct TamioApp: App {
                     // cuentas a la vista y las tapa un segundo después no está
                     // protegida, y además ese parpadeo se fotografía.
                     bloqueo.alArrancar()
+                    // **La clase de protección de los archivos, antes de nada
+                    // más.** Es barato y no depende de la sesión; y si el
+                    // aparato se bloquea a media sincronización, lo que ya
+                    // estaba abierto sigue funcionando. Ver `ProteccionArchivos`.
+                    ProteccionArchivos.aplicar()
                     // La configuración de la iglesia, la primera: de ella salen
                     // el membrete, la moneda y los permisos, y hay pantallas
                     // —la sidebar, Ingresos— que los leen antes de que nadie
