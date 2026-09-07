@@ -502,6 +502,7 @@ struct CorteDetalle: View {
             Text(L.t("Marcar depositado", "Mark deposited"))
                 .fontWeight(.semibold)
                 .frame(maxWidth: .infinity)
+                .apagadoLegible(apagado)
         }
             .buttonStyle(.glass)
             .tint(Paleta.brand)

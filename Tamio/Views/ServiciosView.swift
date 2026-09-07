@@ -205,6 +205,7 @@ struct ServiciosView: View {
                     Button { if let c = vm.cultoDeLaSeleccion { hoja = .lista(c) } } label: {
                         Text(L.t("Tomar lista", "Take attendance"))
                             .font(.subheadline.weight(.medium))
+                            .apagadoLegible(vm.cultoDeLaSeleccion == nil)
                     }
                     .buttonStyle(.glass).tint(Color.secondary)
                     .disabled(vm.cultoDeLaSeleccion == nil)

@@ -253,3 +253,23 @@ enum Paleta {
     /// Puntos de color de la agenda ("Esta semana"), por familia de actividad.
     static let agenda: [Color] = [morado, brand, naranja, cian]
 }
+
+extension View {
+    /// **El texto de un botón apagado tiene que seguir leyéndose.**
+    ///
+    /// `.disabled` sobre `.buttonStyle(.glass)` deja la etiqueta en 1.70:1 de
+    /// contraste; el mínimo para texto normal es 4.5:1. El arreglo ya estaba
+    /// medido en `RevisarView` —`.primary` al 70 % da 8.4:1 en claro y 8.3:1
+    /// en oscuro, porque `.primary` cambia de lado con la apariencia— pero
+    /// vivía suelto en un solo sitio.
+    ///
+    /// Va **dentro** de la etiqueta del botón, no fuera: aplicado por encima
+    /// de `.buttonStyle` el estilo lo pisa con su propio tinte.
+    ///
+    /// Solo cambia el color, y solo cuando el botón está apagado: encendido no
+    /// toca nada, así que el tinte de cada botón sigue mandando.
+    @ViewBuilder
+    func apagadoLegible(_ apagado: Bool) -> some View {
+        if apagado { foregroundStyle(.primary.opacity(0.7)) } else { self }
+    }
+}

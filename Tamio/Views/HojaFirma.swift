@@ -68,7 +68,9 @@ struct HojaFirma: View {
                         lienzo.drawing = PKDrawing()
                         trazos += 1
                     } label: {
-                        Text(L.t("Borrar", "Clear")).frame(maxWidth: .infinity)
+                        Text(L.t("Borrar", "Clear"))
+                            .frame(maxWidth: .infinity)
+                            .apagadoLegible(vacio)
                     }
                     .buttonStyle(.glass)
                     .disabled(vacio)

@@ -142,6 +142,7 @@ struct MovimientoDetalle: View {
             etiquetaAccion(m.comprobante == nil ? L.t("Adjuntar comprobante", "Attach receipt")
                                                 : L.t("Ver comprobante", "View receipt"),
                            icono: m.comprobante == nil ? "paperclip" : "eye")
+                .apagadoLegible(abriendoComprobante)
         }
         .buttonStyle(.glass)
         .tint(Color.secondary)
