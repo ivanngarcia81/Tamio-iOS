@@ -990,6 +990,28 @@ la app en modo revisión, que es justo donde los datos son inventados. Un
 
 ---
 
+## 0.1 El reparto entre sesiones (7-sep-2026)
+
+**Esta sesión y las que sigan aquí van a lo de iOS.** El app web la lleva otra
+conversación en paralelo, y Iván lo dijo expresamente al final de la tarde del 7
+de septiembre.
+
+**Cuidado con esto**, que es lo que puede morder: antes de saberlo, esta sesión
+tocó el web y **empujó tres commits** a `claude/padron-secretaria` de
+`Tamio-app` (`bb9892e`, `d497bea`, `8e58c90`): la sincronización de la
+configuración de la iglesia, la migración local 52 —`churches.updated_at`— y la
+fusión del primer encuentro. Quien esté trabajando allí debería traerlos antes
+de seguir, o se encontrará una migración nueva y un `sync.ts` cambiado bajo los
+pies.
+
+Y al revés: **este repo también se mueve solo**. Mientras esta sesión trabajaba,
+aparecieron veintidós commits de otra en `liquid-glass`, uno de los cuales
+—`d13d775`, el contador de campos de la carta— dejó `CartaNaceVaciaTests` en
+rojo durante una hora sin que nadie se enterara. Conviene mirar `git log` antes
+de dar por bueno el estado de la rama.
+
+---
+
 ## 1. Dónde está el trabajo
 
 Rama viva: **`liquid-glass`**, sincronizada con `origin/liquid-glass`.
