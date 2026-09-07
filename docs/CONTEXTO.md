@@ -244,9 +244,13 @@ un parche gris, y la fecha de Servicios que decía "SAT 5" junto a "Sep 6".
    NUNCA ha tocado la red: el modo revisión no la ejercita. Ver §5 y §6.
 2. **El informe de Seguimiento**, el cuarto. El web lo tiene resuelto en
    `services/informes/membresia.ts`: `alertasSeguimiento` y sus `TipoAlerta`.
-3. **El `+` de Membresía podría volver a la barra.** Bajó a la lista cuando las
-   únicas salidas eran esa o quedarse sin chevron; el cajón de la lupa abre una
-   tercera. Sin tocar, porque la fila funciona y la decisión fue de Iván.
+3. ~~El `+` de Membresía podría volver a la barra.~~ **— HECHO el 7 de
+   septiembre, lo pidió Iván**: el `+` arriba a la derecha, donde estaba la
+   lupa, y la lupa al cajón, que se abre tirando hacia abajo, donde estaba la
+   fila de "Nuevo miembro". Medido antes y después con la app corriendo:
+   `Secretary · Search · Members (8) · More filters` pasa a `Secretary ·
+   Members (8) · More filters · New`. Cuatro cápsulas las dos veces: no se cayó
+   ninguna.
 4. **El resumen de la maqueta miente.** `MockMembresiaRepository.resumen()`
    devuelve 248/236/21 escritos a mano sobre una `lista()` de siete. El hub y la
    cabecera de Membresía lo leen. Arreglarlo cambia lo que enseñan las capturas.
@@ -375,6 +379,10 @@ Detalles que hacen perder tiempo si no se saben:
   `label BEGINSWITH`.
 - El iPhone más estrecho con iOS 26 disponible es el **17e** (390 pt). Probar
   ahí y **en inglés**, que es donde las etiquetas son más largas.
+- **`swipeDown()` sobre una fila se interpreta como un TOQUE** y abre la ficha,
+  así que no sirve para probar el cajón de la lupa. Hay que arrastrar por
+  coordenadas y despacio: `coordinate(...).press(forDuration: 0.2, thenDragTo:)`.
+  Ver `pruebas/BarraMembresiaUITests.swift`.
 - El tipo de target de XcodeGen es `bundle.unit-test`, **no** `bundle.unit-testing`
   (ese es el de UI). Y hay que declarar un `schemes:` con los targets de test,
   o `xcodebuild` contesta que "isn't a member of the specified test plan".
