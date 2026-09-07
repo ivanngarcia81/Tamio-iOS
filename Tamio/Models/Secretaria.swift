@@ -319,11 +319,21 @@ enum TipoActa: String, CaseIterable {
 enum EstadoRoster {
     case completo, parcial, sinAsignar
 
+    /// **En mayúscula, como las demás píldoras.** Estas tres eran la única
+    /// excepción de la app: las otras dos docenas —"Activo", "Baja",
+    /// "Borrador", "Sin depositar", "Traslado en curso", "Primera visita"…—
+    /// empiezan todas en mayúscula, y nada documentaba por qué estas no. Se
+    /// cambian las tres juntas: dentro de su familia sí eran coherentes, y
+    /// arreglar una sola habría roto eso también.
+    ///
+    /// Esta etiqueta solo se usa en la píldora de un servicio. Las frases de
+    /// la agenda que dicen "10:00 · roster completo" son otra cosa —texto
+    /// dentro de una oración— y siguen en minúscula, que es donde toca.
     var etiqueta: String {
         switch self {
-        case .completo:   return L.t("roster completo", "full roster")
-        case .parcial:    return L.t("roster parcial", "partial roster")
-        case .sinAsignar: return L.t("sin asignar", "unassigned")
+        case .completo:   return L.t("Roster completo", "Full roster")
+        case .parcial:    return L.t("Roster parcial", "Partial roster")
+        case .sinAsignar: return L.t("Sin asignar", "Unassigned")
         }
     }
     var estadoVisual: Paleta.Estado {
