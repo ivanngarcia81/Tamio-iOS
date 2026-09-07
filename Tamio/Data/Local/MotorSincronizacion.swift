@@ -97,6 +97,7 @@ final class MotorSincronizacion {
             try await bajarCultos()
             try await bajarAgenda()
             try await bajarActas()
+            try await bajarCartas()
             // Las tres hijas del culto, después de él y por la misma razón que
             // los parentescos van después de las personas.
             try await bajarAsistencia()
@@ -186,6 +187,10 @@ final class MotorSincronizacion {
         }
         if op.entidad == "acta" {
             try await subirActa(op)
+            return
+        }
+        if op.entidad == "carta" {
+            try await subirCarta(op)
             return
         }
         if op.entidad == "asistencia" {
@@ -574,6 +579,133 @@ final class MotorSincronizacion {
             if let ultimo = filas.last?.updatedAt {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('acta', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
+    // MARK: - Las cartas
+
+    private struct CartaEscritura: Encodable {
+        let uid, churchId: String
+        let memberUid, folio, tipo, fechaEmision, lugarEmision: String?
+        let destinatarioTipo, destinatarioNombre, destinatarioDireccion: String?
+        let asunto, saludo, despedida, observaciones: String?
+        let cuerpoHtml, firmas, estado, historialEstados: String
+        let entregadaA, fechaEntrega: String?
+        let deleted: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case uid, folio, tipo, asunto, saludo, despedida, firmas
+            case observaciones, estado, deleted
+            case churchId              = "church_id"
+            case memberUid             = "member_uid"
+            case fechaEmision          = "fecha_emision"
+            case lugarEmision          = "lugar_emision"
+            case destinatarioTipo      = "destinatario_tipo"
+            case destinatarioNombre    = "destinatario_nombre"
+            case destinatarioDireccion = "destinatario_direccion"
+            case cuerpoHtml            = "cuerpo_html"
+            case historialEstados      = "historial_estados"
+            case entregadaA            = "entregada_a"
+            case fechaEntrega          = "fecha_entrega"
+        }
+
+        init(_ f: CartaFila, churchId: String, deleted: Bool) {
+            func o(_ s: String) -> String? { s.isEmpty ? nil : s }
+            uid = f.id; self.churchId = churchId; memberUid = f.miembroId
+            folio = o(f.folio); tipo = o(f.tipo)
+            fechaEmision = o(f.fechaEmision); lugarEmision = o(f.lugarEmision)
+            destinatarioTipo = o(f.destinatarioTipo)
+            destinatarioNombre = o(f.destinatarioNombre)
+            destinatarioDireccion = o(f.destinatarioDireccion)
+            asunto = o(f.asunto); saludo = o(f.saludo)
+            despedida = o(f.despedida); observaciones = o(f.observaciones)
+            cuerpoHtml = f.cuerpoHtml; firmas = f.firmas
+            estado = f.estado; historialEstados = f.historialEstados
+            entregadaA = o(f.entregadaA); fechaEntrega = f.fechaEntrega
+            self.deleted = deleted
+        }
+    }
+
+    private func subirCarta(_ op: OperacionPendiente) async throws {
+        guard let fila = try await cola.read({ db in
+            try CartaFila.fetchOne(db, key: op.registroId)
+        }) else { return }
+        let cuerpo = CartaEscritura(
+            fila, churchId: churchIdActivo,
+            deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+        switch OperacionPendiente.Operacion(rawValue: op.operacion) {
+        case .crear:
+            try await supabase.from("cartas").insert(cuerpo).execute()
+        case .actualizar, .eliminar:
+            try await supabase.from("cartas").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+        case .none:
+            return
+        }
+    }
+
+    private func bajarCartas() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let memberUid, folio, tipo, fechaEmision, lugarEmision: String?
+            let destinatarioTipo, destinatarioNombre, destinatarioDireccion: String?
+            let asunto, saludo, cuerpoHtml, despedida, firmas: String?
+            let observaciones, estado, historialEstados: String?
+            let entregadaA, fechaEntrega, updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, folio, tipo, asunto, saludo, despedida, firmas
+                case observaciones, estado, deleted
+                case memberUid             = "member_uid"
+                case fechaEmision          = "fecha_emision"
+                case lugarEmision          = "lugar_emision"
+                case destinatarioTipo      = "destinatario_tipo"
+                case destinatarioNombre    = "destinatario_nombre"
+                case destinatarioDireccion = "destinatario_direccion"
+                case cuerpoHtml            = "cuerpo_html"
+                case historialEstados      = "historial_estados"
+                case entregadaA            = "entregada_a"
+                case fechaEntrega          = "fecha_entrega"
+                case updatedAt             = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'carta'")
+        }
+        var consulta = supabase.from("cartas").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                let pendiente = try OperacionPendiente
+                    .filter(Column("entidad") == "carta" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if pendiente { continue }
+                try CartaFila(
+                    id: r.uid, folio: r.folio ?? "", tipo: r.tipo ?? "personalizada",
+                    fechaEmision: r.fechaEmision ?? "", lugarEmision: r.lugarEmision ?? "",
+                    miembroId: r.memberUid,
+                    destinatarioTipo: r.destinatarioTipo ?? "",
+                    destinatarioNombre: r.destinatarioNombre ?? "",
+                    destinatarioDireccion: r.destinatarioDireccion ?? "",
+                    asunto: r.asunto ?? "", saludo: r.saludo ?? "",
+                    cuerpoHtml: r.cuerpoHtml ?? "", despedida: r.despedida ?? "",
+                    firmas: r.firmas ?? "[]", observaciones: r.observaciones ?? "",
+                    estado: r.estado ?? "borrador",
+                    historialEstados: r.historialEstados ?? "[]",
+                    entregadaA: r.entregadaA ?? "", fechaEntrega: r.fechaEntrega,
+                    actualizadoEn: r.updatedAt,
+                    borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('carta', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
                     """, arguments: [ultimo])
             }

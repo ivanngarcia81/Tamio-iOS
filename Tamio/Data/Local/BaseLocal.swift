@@ -748,6 +748,39 @@ final class BaseLocal {
             }
         }
 
+        // **Las cartas, espejo de `public.cartas`.** Igual que agenda y actas:
+        // la pantalla existía, la tabla del web también, y en medio no había
+        // nada. `emitirCarta()` metía una fila de cuatro campos en un array.
+        //
+        // `historialEstados` se guarda aunque el iOS todavía no lo enseñe, por
+        // lo mismo que `firmas` en las actas: bajar una carta con historial y
+        // volver a subirla sin él lo borraría.
+        m.registerMigration("v20_cartas") { db in
+            try db.create(table: "carta") { t in
+                t.primaryKey("id", .text)
+                t.column("folio", .text).notNull().defaults(to: "")
+                t.column("tipo", .text).notNull().defaults(to: "personalizada")
+                t.column("fechaEmision", .text).notNull().indexed()   // "YYYY-MM-DD"
+                t.column("lugarEmision", .text).notNull().defaults(to: "")
+                t.column("miembroId", .text)
+                t.column("destinatarioTipo", .text).notNull().defaults(to: "")
+                t.column("destinatarioNombre", .text).notNull().defaults(to: "")
+                t.column("destinatarioDireccion", .text).notNull().defaults(to: "")
+                t.column("asunto", .text).notNull().defaults(to: "")
+                t.column("saludo", .text).notNull().defaults(to: "")
+                t.column("cuerpoHtml", .text).notNull().defaults(to: "")
+                t.column("despedida", .text).notNull().defaults(to: "")
+                t.column("firmas", .text).notNull().defaults(to: "[]")
+                t.column("observaciones", .text).notNull().defaults(to: "")
+                t.column("estado", .text).notNull().defaults(to: "borrador")
+                t.column("historialEstados", .text).notNull().defaults(to: "[]")
+                t.column("entregadaA", .text).notNull().defaults(to: "")
+                t.column("fechaEntrega", .text)
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return m
     }
 

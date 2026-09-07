@@ -452,11 +452,51 @@ enum TipoPlantilla: String, CaseIterable, Identifiable {
     }
 }
 
+/// **Una carta emitida guarda la carta, no un renglón de lista.**
+///
+/// Tenía cuatro campos: id, iniciales, un texto "Javier Medina · traslado" y
+/// el tipo. El editor recogía la fecha y el lugar de emisión, el
+/// destinatario y su dirección, el asunto, el saludo, el cuerpo, la despedida,
+/// los firmantes y las notas internas, y `emitirCarta()` los tiraba todos para
+/// quedarse con el nombre. Emitir una carta no dejaba la carta en ninguna
+/// parte: dejaba una fila que decía que se había emitido.
+///
+/// Los campos son los de `public.cartas`. `iniciales` y `persona` se derivan,
+/// que es lo que siempre fueron.
 struct CartaEmitida: Identifiable {
     let id: String
-    let iniciales: String
-    let persona: String
+    let folio: String
     let tipo: TipoPlantilla
+    /// `"YYYY-MM-DD"`, como en el web.
+    let fechaEmision: String
+    var lugarEmision: String = ""
+    var destinatarioTipo: String = ""
+    var destinatarioNombre: String = ""
+    var destinatarioDireccion: String = ""
+    var asunto: String = ""
+    var saludo: String = ""
+    var cuerpo: String = ""
+    var despedida: String = ""
+    var firmas: [String] = []
+    var observaciones: String = ""
+    /// `borrador | emitida | entregada`, como allá.
+    var estado: String = "borrador"
+    var entregadaA: String = ""
+    var fechaEntrega: String? = nil
+
+    /// Lo que la fila enseña: "Javier Medina · traslado". Se armaba a mano al
+    /// emitir y se guardaba ya escrito, así que en inglés seguía diciendo
+    /// "traslado".
+    var persona: String {
+        destinatarioNombre.isEmpty
+            ? tipo.titulo
+            : "\(destinatarioNombre) · \(tipo.titulo.lowercased())"
+    }
+
+    var iniciales: String {
+        destinatarioNombre.split(separator: " ").prefix(2)
+            .compactMap(\.first).map(String.init).joined().uppercased()
+    }
 }
 
 struct CartaEnEdicion {

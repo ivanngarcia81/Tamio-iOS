@@ -319,6 +319,33 @@ struct EventoAgendaFila: Codable, FetchableRecord, PersistableRecord {
     var borrado: Bool
 }
 
+/// Una carta emitida. Espejo de `public.cartas`.
+struct CartaFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "carta"
+
+    var id: String
+    var folio: String
+    var tipo: String
+    var fechaEmision: String
+    var lugarEmision: String
+    var miembroId: String?
+    var destinatarioTipo: String
+    var destinatarioNombre: String
+    var destinatarioDireccion: String
+    var asunto: String
+    var saludo: String
+    var cuerpoHtml: String
+    var despedida: String
+    var firmas: String
+    var observaciones: String
+    var estado: String
+    var historialEstados: String
+    var entregadaA: String
+    var fechaEntrega: String?
+    var actualizadoEn: String?
+    var borrado: Bool
+}
+
 /// Un acta. Espejo de `public.actas`.
 struct ActaFila: Codable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "acta"

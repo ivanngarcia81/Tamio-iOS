@@ -61,7 +61,7 @@ struct CartasView: View {
                 Button(L.t("Aceptar", "OK"), role: .cancel) { }
             } else {
                 Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
-                Button(L.t("Firmar y emitir", "Sign & issue")) { vm.emitirCarta() }
+                Button(L.t("Firmar y emitir", "Sign & issue")) { Task { await vm.emitirCarta() } }
             }
         } message: {
             Text(firmaAlertMensaje)
