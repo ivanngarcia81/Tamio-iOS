@@ -57,6 +57,14 @@ final class DocumentosPDFTests: XCTestCase {
         XCTAssertGreaterThan(try pesa(url), 1000, "### el PDF salió vacío")
     }
 
+    /// El membrete a solas, que es lo que enseña Ajustes · Institución. La fila
+    /// llevaba desde siempre en "Próximamente" y no hacía falta inventar nada:
+    /// se arma con las mismas piezas que los documentos de verdad.
+    func testElMembreteGeneraUnPDF() throws {
+        let url = PDFExport.render(MembreteHojaPDF(iglesia: iglesia()), nombre: "prueba-membrete")
+        XCTAssertGreaterThan(try pesa(url), 1000, "### el PDF salió vacío")
+    }
+
     /// La fecha que encabeza una carta. Estaba escrita a mano en dos sitios
     /// —"20 de agosto de 2026" en la previa del detalle— y calculada como "hoy"
     /// en un tercero; ninguna de las tres era la que la carta dice llevar.

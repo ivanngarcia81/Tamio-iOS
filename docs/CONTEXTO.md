@@ -50,6 +50,9 @@ sin trabajo pendiente**: lo que resta son dos decisiones de Iván.
 16. **Tres frases de pantalla que decían algo sin haberlo mirado**: el
     subtítulo de Actas, el "guardado hace 2 minutos" y un "Próximamente" de
     Reportes que era en realidad la carga. Ver §0.0.h.
+17. **La última pasada de promesas**: la purga se descartó, Ayuda y Acerca de
+    se fueron, el membrete tiene su vista previa y los traslados se ven enteros
+    en el teléfono. Ver §0.0.i.
 
 ### Las tres lecciones de esta vuelta
 
@@ -414,6 +417,43 @@ las tres unitarias con listas distintas. La prueba de interfaz quedó apuntando 
 lo único que sí se ve: que bajo el borrador ya no aparece la hora inventada.
 
 Verificado con cinco pruebas nuevas y las **88 unitarias en verde**.
+
+### 0.0.i La última pasada: cuatro promesas, cuatro decisiones distintas
+
+Cuatro cosas del mismo tipo que se resolvieron de cuatro maneras, y esa es la
+parte que vale la pena recordar: **no toda promesa incumplida se arregla
+cumpliéndola.**
+
+- **La purga de compactar: descartada** (decisión de Iván, 7-sep). Con eso el
+  pie de la sección —"lo que se borra queda marcado hasta que se compacta"— pasó
+  a prometer algo que no va a llegar, así que ahora dice lo que de verdad pasa:
+  que lo borrado sigue ocupando sitio, **y por qué** — es lo que permite que la
+  baja se propague. Y el título dejó de ser "Compactar base de datos", que
+  nombraba un botón inexistente: la fila informa, así que se llama "Espacio en
+  este aparato".
+- **Ayuda y Acerca de: fuera.** No se rellenaron. Una ayuda necesita texto
+  escrito por alguien que conozca a las iglesias que la van a leer, y un
+  "Acerca de" no tiene nada que decir que no esté en la fila de la versión,
+  justo encima. Dos filas que llevan meses sin llevar a ninguna parte enseñan
+  que la pantalla no se mira, y eso contagia al resto.
+- **La vista previa del membrete: hecha**, y no hacía falta inventar nada. Los
+  documentos ya se arman con `LogoMembrete`, `FirmasPDF` y
+  `PieInstitucionalPDF`; `MembreteHojaPDF` los pone juntos, así que la previa es
+  literalmente lo que va a salir impreso. El cuerpo son cuatro rayas grises y no
+  un texto de ejemplo **a propósito**: lo que esa pantalla configura es el
+  marco, y una carta inventada invitaría a revisar la prosa en vez del membrete.
+- **Los traslados en el teléfono: rehechos.** Aquí el diagnóstico de la mañana
+  era impreciso: no es que la tabla se saliera de la pantalla, es que estaba
+  dentro de un `ScrollView(.horizontal, showsIndicators: false)`. La fecha y el
+  estado existían, pero fuera de la vista y sin nada que insinuara que se podía
+  arrastrar — que para un informe que se enseña en una junta es lo mismo que no
+  estar. En compacto ya no hay tabla: dos renglones por traslado con las cinco
+  cosas. **En iPad la tabla se queda**, que allí caben las 580 puntos de
+  columnas.
+
+Verificado con las **89 unitarias en verde** y las cuatro pantallas corriendo,
+iPad incluido — la cabecera FOLIO sigue existiendo allí, que es lo que dice que
+no se perdió la tabla.
 
 ### 0.0.a Los cinco sucesos de Tesorería
 

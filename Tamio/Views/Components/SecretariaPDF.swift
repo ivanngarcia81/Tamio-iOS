@@ -333,3 +333,61 @@ struct DocumentoPDFSheet<Hoja: View>: View {
         .hojaDocumento()
     }
 }
+
+
+// MARK: - El membrete, a solas
+
+/// **Cómo queda el membrete con lo que hay escrito en Ajustes.**
+///
+/// La fila "Vista previa del PDF" de Ajustes · Institución llevaba desde
+/// siempre en "Próximamente". No hacía falta inventar nada para cumplirla: los
+/// documentos ya se arman con estas mismas piezas —`LogoMembrete`, `FirmasPDF`,
+/// `PieInstitucionalPDF`—, así que la previa es literalmente lo que va a salir
+/// impreso, sin datos de ejemplo de por medio.
+///
+/// El cuerpo es una franja gris y no un texto falso: **lo que esta pantalla
+/// configura es el marco**, no lo que va dentro. Poner una carta inventada
+/// ahí invitaría a revisar la prosa en vez del membrete, que es lo que se está
+/// mirando.
+struct MembreteHojaPDF: View {
+    var iglesia: ConfiguracionIglesia = ConfiguracionIglesiaViewModel.compartido.config
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .center, spacing: 4) {
+                LogoMembrete(alto: 60)
+                if !iglesia.nombre.isEmpty {
+                    Text(iglesia.nombre).font(.system(.title3, design: .serif).weight(.bold))
+                }
+                if !iglesia.ubicacionLegible.isEmpty {
+                    Text(iglesia.ubicacionLegible).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 20)
+
+            Divider().padding(.bottom, 24)
+
+            // El hueco del documento. Cuatro rayas y no un párrafo de mentira:
+            // aquí se mira el marco.
+            // El ancho útil de la hoja: la página menos sus dos márgenes. Se
+            // calcula y no se escribe a mano para que las rayas sigan al papel
+            // si algún día cambia el margen.
+            let util = PDFExport.anchoCarta - 96
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach([1.0, 0.94, 0.97, 0.62], id: \.self) { proporcion in
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(.secondary.opacity(0.16))
+                        .frame(width: util * proporcion, height: 11)
+                }
+            }
+            .padding(.bottom, 36)
+
+            FirmasPDF(iglesia: iglesia)
+            Spacer(minLength: 24)
+            PieInstitucionalPDF(iglesia: iglesia)
+        }
+        .padding(48)
+        .frame(width: PDFExport.anchoCarta, alignment: .leading)
+    }
+}

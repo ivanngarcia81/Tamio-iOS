@@ -280,18 +280,14 @@ private struct AjustesCuentaView: View {
                     Spacer()
                     Text(VersionApp.completa).font(.subheadline).foregroundStyle(.secondary)
                 }
-                HStack {
-                    Text(L.t("Ayuda", "Help")).font(.subheadline)
-                    Spacer()
-                    Text(L.t("Próximamente", "Coming soon"))
-                        .font(.subheadline).foregroundStyle(.tertiary)
-                }
-                HStack {
-                    Text(L.t("Acerca de", "About")).font(.subheadline)
-                    Spacer()
-                    Text(L.t("Próximamente", "Coming soon"))
-                        .font(.subheadline).foregroundStyle(.tertiary)
-                }
+                // **Aquí estaban "Ayuda" y "Acerca de", las dos en
+                // "Próximamente".** Se quitaron el 7 de septiembre de 2026 en
+                // vez de rellenarlas: una ayuda necesita texto escrito por
+                // alguien que conozca a las iglesias que la van a leer, y un
+                // "Acerca de" no tiene nada que decir que no esté ya en la fila
+                // de arriba. Dos filas que llevan meses sin llevar a ninguna
+                // parte enseñan que la pantalla no se mira, y eso contagia al
+                // resto. Vuelven cuando haya qué poner dentro.
             } header: {
                 Text(L.t("Aplicación", "Application")).textCase(nil)
             }
@@ -445,6 +441,7 @@ private struct AjustesIglesiaView: View {
 // MARK: - Institución
 
 private struct AjustesInstitucionView: View {
+    @State private var verMembrete = false
     let nombreIglesia: String
     @Binding var dir: String
     @Binding var estado2: String
@@ -485,19 +482,33 @@ private struct AjustesInstitucionView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                // La flecha de "abrir fuera" prometía un visor que no existe.
-                HStack {
-                    Text(L.t("Vista previa del PDF", "PDF preview")).font(.subheadline)
-                    Spacer()
-                    Text(L.t("Próximamente", "Coming soon"))
-                        .font(.subheadline).foregroundStyle(.tertiary)
+                // Ya existe el visor: es el mismo `DocumentoPDFSheet` de las
+                // cartas y las actas, y la hoja se arma con las piezas con las
+                // que se arman los documentos de verdad.
+                Button { verMembrete = true } label: {
+                    HStack {
+                        Text(L.t("Ver cómo queda el membrete", "See how the letterhead looks"))
+                            .font(.subheadline).foregroundStyle(Paleta.brand)
+                        Spacer()
+                        Image(systemName: "doc.text").font(.subheadline).foregroundStyle(Paleta.brand)
+                    }
                 }
+                .buttonStyle(.plain)
+            } footer: {
+                Text(L.t("Es el encabezado y el pie que llevan las cartas, las actas y los reportes, con lo que hay escrito aquí.",
+                         "It's the header and footer used by letters, minutes, and reports, with what's written here."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
         .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Institución", "Institution"))
+        .sheet(isPresented: $verMembrete) {
+            DocumentoPDFSheet(titulo: L.t("Membrete", "Letterhead"),
+                              nombreArchivo: "Membrete") {
+                MembreteHojaPDF()
+            }
+        }
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -1225,10 +1236,13 @@ private struct AjustesZonaView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(L.t("Compactar base de datos", "Compact database")).font(.subheadline.weight(.medium))
-                    // Antes decía "La base ya está compacta" — siempre, sin
-                    // haber mirado. Ahora dice lo que se midió, y si no hay
-                    // nada guardado de más lo dice habiéndolo comprobado.
+                    // **"Compactar base de datos" era el título de una acción
+                    // que no existe.** Primero decía "La base ya está compacta"
+                    // sin haber mirado; luego pasó a decir lo medido, pero el
+                    // título seguía nombrando un botón que no hay. Esta fila
+                    // INFORMA, así que se llama por lo que hace.
+                    Text(L.t("Espacio en este aparato", "Storage on this device"))
+                        .font(.subheadline.weight(.medium))
                     Text(estadoBase?.resumen ?? L.t("Midiendo…", "Measuring…"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -1236,8 +1250,12 @@ private struct AjustesZonaView: View {
             } header: {
                 Text(L.t("Mantenimiento", "Maintenance")).textCase(nil)
             } footer: {
-                Text(L.t("Lo que se borra queda marcado hasta que se compacta. No toca nada de lo que se ve.",
-                         "Deleted items remain marked until compacted. Does not affect visible data."))
+                // El pie prometía la compactación —"hasta que se compacta"— y
+                // esa limpieza se descartó (7-sep-2026). Lo que queda es decir
+                // qué pasa de verdad con lo borrado, que no es poco: explica la
+                // cifra de arriba.
+                Text(L.t("Lo que se borra queda marcado y sigue ocupando sitio: es lo que permite que la baja se propague a los demás aparatos. Hoy no se limpia solo.",
+                         "Deleted items stay marked and keep taking space: that's what lets the deletion propagate to other devices. Nothing clears them automatically today."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 

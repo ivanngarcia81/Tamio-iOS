@@ -217,6 +217,32 @@ struct InformesMembresiaView: View {
         .disabled(vm.informeSeleccionado != 0)
     }
 
+    /// Un traslado en el teléfono: dos renglones y nada fuera de la pantalla.
+    ///
+    /// El folio va con la persona y no en su propia columna —es su
+    /// identificador, no una categoría— y la fecha y el estado se juntan en la
+    /// línea de abajo, que es donde caben. Se pierde la alineación en columnas;
+    /// se gana que las cinco cosas se vean.
+    private func filaTrasladoCompacta(_ t: MovimientoTraslado) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Pill(texto: t.tipoTraslado,
+                 color: t.sentido == .salida ? Paleta.aviso : Paleta.brand)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(t.persona).font(.subheadline.weight(.medium)).lineLimit(1)
+                if !t.iglesia.isEmpty {
+                    Text(t.iglesia).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Text([t.folioLegible, t.fecha, t.estado]
+                        .filter { !$0.isEmpty && $0 != "—" }
+                        .joined(separator: " · "))
+                    .font(.caption2).foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 8)
+    }
+
     // MARK: - Helpers de exportación
 
     private func imprimirInforme() {
@@ -932,7 +958,21 @@ struct InformesMembresiaView: View {
                             .buttonStyle(.plain)
                         }
 
-                        // Tabla con scroll horizontal — las columnas fijas suman más que un iPhone angosto
+                        // **En el teléfono no hay tabla.** Las cinco columnas
+                        // suman 580 puntos y aquí había un scroll horizontal
+                        // con `showsIndicators: false`: la fecha y el estado
+                        // existían, pero fuera de la pantalla y sin nada que
+                        // insinuara que se podía arrastrar. Un informe que se
+                        // enseña en una junta no puede esconder dos columnas
+                        // detrás de un gesto que nadie sabe que está.
+                        if compacto {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ForEach(r.traslados) { t in
+                                    filaTrasladoCompacta(t)
+                                    if t.id != r.traslados.last?.id { Divider() }
+                                }
+                            }
+                        } else {
                         ScrollView(.horizontal, showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 0) {
                                 // Cabecera
@@ -966,6 +1006,7 @@ struct InformesMembresiaView: View {
                                     if t.id != r.traslados.last?.id { Divider() }
                                 }
                             }
+                        }
                         }
                     }
                 }

@@ -413,18 +413,10 @@ private struct SeccionCuenta: View {
 
                 // Aplicación
                 GrupoConf(titulo: L.t("APLICACIÓN", "APPLICATION")) {
+                    // "Ayuda" y "Acerca de" estaban aquí, en "Próximamente"
+                    // desde siempre. Se quitaron el 7-sep-2026: ver el
+                    // comentario del teléfono, que es donde se explica.
                     FilaConf(label: L.t("Versión", "Version"), valor: VersionApp.completa)
-                    Divider()
-                    // Sin chevron ni acción: el chevron prometía dos
-                    // pantallas que no existen y la fila se hundía al tocarla
-                    // sin llevar a ningún sitio. En el teléfono ya eran texto.
-                    FilaConf(label: L.t("Ayuda", "Help"),
-                             valor: L.t("Próximamente", "Coming soon"),
-                             valorColor: Color(.tertiaryLabel))
-                    Divider()
-                    FilaConf(label: L.t("Acerca de", "About"),
-                             valor: L.t("Próximamente", "Coming soon"),
-                             valorColor: Color(.tertiaryLabel))
                 }
 
                 // Seguridad. El candado de ESTE aparato, que no es lo mismo
@@ -1368,10 +1360,10 @@ private struct SeccionZona: View {
 
                 // Mantenimiento
                 GrupoConf(titulo: L.t("MANTENIMIENTO", "MAINTENANCE"),
-                          nota: L.t("Lo que se borra queda marcado hasta que se compacta. No toca nada de lo que se ve.",
-                                    "Deleted items are marked until compacted. Nothing visible is affected.")) {
+                          nota: L.t("Lo que se borra queda marcado y sigue ocupando sitio: es lo que permite que la baja se propague a los demás aparatos. Hoy no se limpia solo.",
+                                    "Deleted items stay marked and keep taking space: that's what lets the deletion propagate to other devices. Nothing clears them automatically today.")) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(L.t("Compactar base de datos", "Compact database"))
+                        Text(L.t("Espacio en este aparato", "Storage on this device"))
                             .font(.system(size: 16))
                         Text(estadoBase?.resumen ?? L.t("Midiendo…", "Measuring…"))
                             .font(.system(size: 13.5)).foregroundStyle(.tertiary)
