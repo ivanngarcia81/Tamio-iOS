@@ -1015,6 +1015,28 @@ contra la red y recarga. La instrumentación no llega al repo.
 solo vale si sabes que sabría encontrarlo. Aquí se estuvo a punto de dar por
 roto un gesto que funcionaba.
 
+### La subida SÍ funciona — probada contra la cuenta el 6 de septiembre
+
+**Las cuatro entidades nuevas suben.** `subirEvento`, `subirActa`, `subirCarta`
+y `subirApunte` se ejercitaron contra `hkpbkpojeierxqtbmagh` con una fila
+marcada por entidad (`PRUEBA-SYNC-NO-USAR`): las cuatro llegaron y la cola de
+salida quedó vacía. Se enterraron después y la base quedó como estaba —agenda
+3, actas 1, cartas 1, registro 0—.
+
+Y la bajada también: la primera sincronización trajo 5 actividades, 5 actas y
+5 cartas reales, y las cuatro migraciones corrieron en disco.
+
+Dos cosas que salieron de hacerlo:
+
+- **El motor rebota si ya está sincronizando.** `sincronizar()` tiene un
+  guardia `estado != .sincronizando` y vuelve en el acto. El host de las
+  pruebas ES la app, así que su `.task` de arranque ya lanzó una: llamar encima
+  parece "no subió nada" cuando lo que pasó es que ni se intentó. Hay que
+  esperar y reintentar.
+- **`certificacion` no existía en el catálogo de cartas de iOS.** Dos de las
+  cinco cartas de la iglesia lo usan y se leían como "Personalizada". Con
+  datos de maqueta era invisible. Ver `TipoPlantilla.clave`.
+
 ### Las pruebas unitarias corren DENTRO del contenedor de la app
 
 Y por tanto sobre la MISMA base local. Mientras el contenedor estuvo en modo
@@ -1029,9 +1051,17 @@ lápidas contra filas que allá no existen: cero efecto. Por eso solo se coló u
 Dos reglas que salen de ahí:
 
 - **Toda prueba unitaria borra lo que escribe**, aunque parezca que da igual.
-- **No correr pruebas unitarias contra un contenedor con sesión.** Si hace
-  falta, desinstalar la app antes (`xcrun simctl uninstall <udid>
+- **No correr pruebas contra un contenedor con sesión.** Ni unitarias ni de
+  interfaz: `AgendaTests.testAltaPersiste` da de alta una actividad llamada
+  "Ensayo de prueba" desde el formulario, y con la sesión puesta subió dos a
+  la agenda de la iglesia sin que nadie lo pidiera. Si hace falta correrlas,
+  desinstalar la app antes (`xcrun simctl uninstall <udid>
   church.tamio.native`), que se lleva la base local con ella.
+- **Y mirar la tabla remota después, no solo la cola.** Las dos de "Ensayo de
+  prueba" no se vieron al revisar la cola de salida —ya estaba vacía porque ya
+  habían subido—; aparecieron al listar `public.agenda` entera. Lo que
+  demuestra que algo no subió es la cola vacía; lo que demuestra qué subió es
+  la tabla.
 
 ### El idioma de prueba NO se cambia con `-AppleLanguages`
 
@@ -1054,9 +1084,30 @@ aparato.
 
 ## 6. Pendientes concretos
 
-### El de arriba de todo, y ahora más grande
+### ~~El de arriba de todo~~ — HECHO el 6 de septiembre
 
-**Probar la sincronización con la cuenta real.** Ya no son solo el padrón y los
+**La sincronización se probó con la cuenta real, en las dos direcciones.** Ver
+§5, "La subida SÍ funciona". Lo que queda de Secretaría ya no es verificar: es
+código que falta.
+
+Por orden de lo que más se nota usando la app un domingo:
+
+1. **Pasar lista corre sobre nombres inventados.** Once usos de `miembrosMock`
+   en Servicios, Agenda y Cartas (§ Los tres selectores). Es el propósito del
+   registro de servicios.
+2. **Firmar un acta no guarda quién firmó.** `FirmasSheet` junta los nombres en
+   un `Set` en memoria y al terminar solo cambia el estado; la columna `firmas`
+   —que ya viaja y ya se respeta al reeditar— se queda vacía.
+3. **El registro no anota nada automático.** Cero llamadas desde el resto de la
+   app: emitir una carta o cerrar un acta no deja rastro, y la bitácora solo
+   tiene lo que alguien escriba a mano. En el web esto "lo llaman las funciones
+   que hacen la cosa", no la interfaz.
+4. **Las plantillas de carta viven en el `enum`** mientras `public.plantillas`
+   tiene esas once filas en la base: editarlas en el web no llega al iPhone.
+
+### Lo que ya no bloquea
+
+~~Probar la sincronización con la cuenta real.~~ Ya no son solo el padrón y los
 cultos: son **cuatro entidades nuevas** —`evento`, `acta`, `carta`, `apunte`—
 con su subida y su bajada escritas y jamás ejercitadas. El modo revisión no
 toca la red, así que arrancar la app no prueba nada de esto.
