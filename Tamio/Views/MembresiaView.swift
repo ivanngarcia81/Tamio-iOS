@@ -570,6 +570,12 @@ struct MembresiaView: View {
                         .font(.subheadline.weight(.semibold)).monospacedDigit()
                         .foregroundStyle(colorPct(m.asistenciaPct))
                 }
+                // **Dos pastillas cuando hay traslado abierto**, no una: el
+                // estado dice que sigue activa —que es verdad— y esta dice que
+                // está a medio irse. Quitar cualquiera de las dos miente.
+                if let t = m.trasladoEnCurso {
+                    Pill(texto: t.etiqueta, color: Paleta.aviso)
+                }
                 Pill(texto: m.estado.etiqueta, color: m.estado.color)
             }
         }

@@ -829,6 +829,25 @@ final class BaseLocal {
             }
         }
 
+        // **El traslado de salida, para saber quién está en curso.** No es la
+        // tabla entera del web —el expediente tiene veinte columnas, folio
+        // propio, carta enganchada e historial de estados— sino lo que el
+        // teléfono necesita para no mentir: de quién es, en qué punto va y a
+        // dónde. El expediente se lleva en el escritorio, que es donde se
+        // aprueba y se firma.
+        m.registerMigration("v23_traslados") { db in
+            try db.create(table: "trasladoSalida") { t in
+                t.primaryKey("id", .text)
+                t.column("miembroId", .text)
+                t.column("folio", .text).notNull().defaults(to: "")
+                t.column("fechaSolicitud", .text).notNull().defaults(to: "")
+                t.column("iglesiaDestino", .text).notNull().defaults(to: "")
+                t.column("estado", .text).notNull().defaults(to: "borrador")
+                t.column("actualizadoEn", .text)
+                t.column("borrado", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return m
     }
 

@@ -1579,11 +1579,22 @@ va a fallar.
    que YA estaba arriba, retransmitida, pasa limpia) y `sello_avanzo=t`. El
    `raise` final lo deshizo todo; comprobado después que no quedó ninguna fila
    con el rastro de la prueba.
-9. **Reflejar `traslados_salida`.** Hasta entonces la pastilla "traslado en
-   curso" no se ve: dejó de ser un estado de la persona y el expediente vive
-   en esa tabla. Las tablas `traslados_salida` y `traslados_entrada` existen en
-   Supabase y están vacías; Cartas ya sube a `public.cartas`, que es la mitad
-   del expediente.
+9. ~~Reflejar `traslados_salida`.~~ **— HECHO el 7 de septiembre.** Tabla
+   local `trasladoSalida` (**v23**), bajada en el motor y pastilla naranja
+   junto al estado, en la lista y en la ficha. **Solo BAJA**, como las
+   plantillas: el expediente se abre, se aprueba y se firma en el escritorio
+   —folio propio, carta enganchada, historial de estados—, y aquí sirve para
+   una sola cosa que no se decide en el teléfono.
+
+   La regla de "en curso" es la del web (`memberTieneTrasladoActivo`):
+   cualquier estado que no sea `completado` ni `cancelado`. Y la pastilla va
+   JUNTO al estado, no en su lugar: la persona sigue activa mientras dura.
+
+   **La v23 se probó sobre la base que ya existía** —la del simulador, con la
+   cuenta real y datos de v22—: la migración entró, la tabla se creó y no se
+   perdió una fila. `traslados_salida` sigue vacía en Supabase, así que la
+   pastilla se vio sembrando una fila LOCAL (esta entidad no sube, así que no
+   podía escaparse), y se borró después.
 
 11. ~~El informe General sigue escrito a mano.~~ **— HECHO el 7 de
    septiembre**: se calcula del padrón.

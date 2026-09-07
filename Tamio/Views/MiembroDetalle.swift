@@ -50,6 +50,12 @@ struct MiembroDetalle: View {
                     // encima con el color de baja, así que el color y la
                     // palabra se contradecían en la misma cápsula.
                     Pill(texto: miembro.estado.etiqueta, color: miembro.estado.color)
+                    // El traslado abierto va junto al estado y no lo sustituye:
+                    // la persona sigue activa hasta que el expediente se cierra
+                    // en el escritorio.
+                    if let t = miembro.trasladoEnCurso {
+                        Pill(texto: t.etiquetaConDestino, color: Paleta.aviso)
+                    }
                     Text(miembro.miembroDesde).font(.caption).foregroundStyle(.secondary)
                     Text("·").foregroundStyle(.secondary)
                     Text(miembro.area).font(.caption).foregroundStyle(.secondary).lineLimit(1)

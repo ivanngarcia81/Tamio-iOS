@@ -173,10 +173,40 @@ struct CambioEstado: Codable, Hashable {
 ///
 /// La asistencia sigue viniendo de fuera hasta la v16: son cadenas porque
 /// todavía no hay `servicios` de donde contarlas.
+/// Lo que el teléfono enseña de un traslado abierto. El expediente entero
+/// —motivo, pastor receptor, fechas de aprobación y entrega, historial— vive en
+/// el escritorio, que es donde se aprueba y se firma.
+struct TrasladoEnCurso: Hashable {
+    let folio: String
+    let iglesiaDestino: String
+    let estado: String
+
+    /// **En la lista, la palabra sola.** Con el destino dentro, la pastilla
+    /// parte en dos renglones y engorda la fila entera —visto en el
+    /// simulador—; en una lista lo que hay que saber es que hay uno abierto.
+    var etiqueta: String { L.t("Traslado en curso", "Transfer in progress") }
+
+    /// **En la ficha, a dónde va**, que ahí sí hay sitio y es la pregunta
+    /// siguiente. Sin destino, la misma palabra: una flecha a ninguna parte no
+    /// dice nada.
+    var etiquetaConDestino: String {
+        iglesiaDestino.isEmpty ? etiqueta
+                               : L.t("Traslado → \(iglesiaDestino)",
+                                     "Transfer → \(iglesiaDestino)")
+    }
+}
+
 struct Miembro: Identifiable, Hashable {
     let id: String
     var nombre: String
     var estado: EstadoMiembro = .activo
+    /// **Un traslado abierto no es un estado de la persona**: es un expediente
+    /// que vive en `traslados_salida`, con su folio y su carta, y mientras dura
+    /// la persona sigue activa. Pero hay que verlo en la ficha, porque cambia
+    /// lo que se puede hacer con ella —darla de baja a medias de un traslado es
+    /// justo lo que el expediente existe para ordenar—. Lo rellena el
+    /// repositorio; `nil` cuando no hay ninguno.
+    var trasladoEnCurso: TrasladoEnCurso? = nil
 
     // Compartido con Tesorería: la misma fila.
     var telefono = ""

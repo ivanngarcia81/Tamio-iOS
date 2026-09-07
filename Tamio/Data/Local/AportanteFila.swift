@@ -335,6 +335,32 @@ struct ApunteFila: Codable, FetchableRecord, PersistableRecord {
 }
 
 /// Una plantilla de carta. Espejo de `public.plantillas`.
+/// Un traslado de salida, reducido a lo que el teléfono enseña.
+///
+/// **Solo BAJA**, como las plantillas: el expediente se abre, se aprueba y se
+/// firma en el escritorio —lleva folio propio, carta enganchada e historial de
+/// estados—, y código de subida que nadie puede ejecutar es código que nadie
+/// prueba.
+struct TrasladoSalidaFila: Codable, FetchableRecord, PersistableRecord {
+    static let databaseTableName = "trasladoSalida"
+
+    var id: String
+    var miembroId: String?
+    var folio: String
+    var fechaSolicitud: String
+    var iglesiaDestino: String
+    var estado: String
+    var actualizadoEn: String?
+    var borrado: Bool
+
+    /// **En curso es todo lo que no ha terminado.** Es la misma regla del web
+    /// (`memberTieneTrasladoActivo`): cualquier estado que no sea completado ni
+    /// cancelado significa que hay un traslado abierto sobre esa persona.
+    static func enCurso(_ estado: String) -> Bool {
+        estado != "completado" && estado != "cancelado"
+    }
+}
+
 struct PlantillaFila: Codable, FetchableRecord, PersistableRecord {
     static let databaseTableName = "plantilla"
 

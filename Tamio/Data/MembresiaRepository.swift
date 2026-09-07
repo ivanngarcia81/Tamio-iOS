@@ -226,7 +226,23 @@ struct OfflineMembresiaRepository: MembresiaRepository {
                 Pariente(id: p.id, tipo: Parentescos.inverso[p.tipo] ?? p.tipo,
                          parienteId: p.miembroId, nombre: n2))
         }
-        return filas.map { $0.miembro(familia: familia[$0.id] ?? []) }
+        // **El traslado abierto, si lo hay.** Es un expediente aparte y no un
+        // estado de la persona —sigue activa mientras dura—, pero la ficha
+        // tiene que decirlo: dar de baja a alguien a mitad de un traslado es
+        // justo lo que ese expediente existe para ordenar.
+        var traslados: [String: TrasladoEnCurso] = [:]
+        for t in try TrasladoSalidaFila.filter(Column("borrado") == false).fetchAll(db) {
+            guard let id = t.miembroId, TrasladoSalidaFila.enCurso(t.estado) else { continue }
+            traslados[id] = TrasladoEnCurso(folio: t.folio,
+                                            iglesiaDestino: t.iglesiaDestino,
+                                            estado: t.estado)
+        }
+
+        return filas.map { f in
+            var m = f.miembro(familia: familia[f.id] ?? [])
+            m.trasladoEnCurso = traslados[f.id]
+            return m
+        }
     }
 
     func resumen() async -> MembresiaResumen {

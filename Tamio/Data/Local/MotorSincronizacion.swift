@@ -100,6 +100,9 @@ final class MotorSincronizacion {
             try await bajarCartas()
             try await bajarRegistro()
             try await bajarPlantillas()
+            // Después de los miembros: cada traslado apunta a una persona por
+            // uid, igual que los parentescos.
+            try await bajarTraslados()
             // Las tres hijas del culto, después de él y por la misma razón que
             // los parentescos van después de las personas.
             try await bajarAsistencia()
@@ -802,6 +805,52 @@ final class MotorSincronizacion {
             if let ultimo = filas.last?.updatedAt {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('plantilla', ?)
+                    on conflict(entidad) do update set cursor = excluded.cursor
+                    """, arguments: [ultimo])
+            }
+        }
+    }
+
+    /// Los traslados de salida. **Solo bajan**, como las plantillas: el
+    /// expediente se lleva en el escritorio. Aquí sirven para una sola cosa —
+    /// saber de quién hay un traslado abierto— y esa cosa no se decide en el
+    /// teléfono.
+    private func bajarTraslados() async throws {
+        struct FilaRemota: Decodable {
+            let uid: String
+            let memberUid, folio, fechaSolicitud, iglesiaDestino, estado: String?
+            let updatedAt: String?
+            let deleted: Bool?
+            enum CodingKeys: String, CodingKey {
+                case uid, folio, estado, deleted
+                case memberUid       = "member_uid"
+                case fechaSolicitud  = "fecha_solicitud"
+                case iglesiaDestino  = "iglesia_destino"
+                case updatedAt       = "updated_at"
+            }
+        }
+        let cursor = try await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'trasladoSalida'")
+        }
+        var consulta = supabase.from("traslados_salida").select().eq("church_id", value: churchIdActivo)
+        if let cursor { consulta = consulta.gt("updated_at", value: cursor) }
+        let filas: [FilaRemota] = try await consulta
+            .order("updated_at", ascending: true).limit(500).execute().value
+        guard !filas.isEmpty else { return }
+
+        try await cola.write { db in
+            for r in filas {
+                try TrasladoSalidaFila(
+                    id: r.uid, miembroId: r.memberUid, folio: r.folio ?? "",
+                    fechaSolicitud: r.fechaSolicitud ?? "",
+                    iglesiaDestino: r.iglesiaDestino ?? "",
+                    estado: r.estado ?? "borrador",
+                    actualizadoEn: r.updatedAt,
+                    borrado: r.deleted ?? false).save(db)
+            }
+            if let ultimo = filas.last?.updatedAt {
+                try db.execute(sql: """
+                    insert into syncEstado (entidad, cursor) values ('trasladoSalida', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
                     """, arguments: [ultimo])
             }
