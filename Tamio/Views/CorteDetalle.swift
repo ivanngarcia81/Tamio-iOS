@@ -97,10 +97,15 @@ struct CorteDetalle: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(corte.titulo).font(.title.weight(.bold))
                 Spacer()
+                // `.glass` como los demás botones de barra de la app: era el
+                // único `.bordered` con tinte gris, y encima queda justo sobre
+                // "Marcar depositado", que sí puede estar apagado — los dos se
+                // leían igual de muertos. Pesa menos que la acción principal
+                // por la tipografía y por no ocupar el ancho, no por el gris.
                 Button { onNuevoCorte?() } label: {
                     Label(L.t("Nuevo corte", "New cut"), systemImage: "plus").font(.subheadline)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
                 .tint(Color.secondary)
             }
             // El chip en línea con el H1 partía el título en dos renglones.
