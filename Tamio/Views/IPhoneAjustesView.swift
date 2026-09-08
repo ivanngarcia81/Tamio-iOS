@@ -208,6 +208,9 @@ private struct AjustesCuentaView: View {
     private let motor = MotorSincronizacion.compartido
     @State private var bloqueo = BloqueoBiometrico.compartido
     @State private var confirmarCierre = false
+    @State private var confirmarBorrado = false
+    @State private var borrando = false
+    @State private var errorBorrado: String?
 
     /// Lo que puede el aparato. Se pregunta una vez al construir la vista y no
     /// dentro del `body`: `canEvaluatePolicy` toca el sistema de seguridad y el
@@ -321,11 +324,83 @@ private struct AjustesCuentaView: View {
                          "Signing out doesn't erase anything: when you sign back in, everything will be there."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
+
+            // **Borrar la cuenta va AQUÍ y no en la Zona de riesgo.** La regla
+            // 5.1.1(v) de Apple pide que se pueda borrar la cuenta desde
+            // dentro de la app y que se encuentre; quien la busca la busca en
+            // "Cuenta", al lado de cerrar sesión, no en una zona que habla de
+            // respaldos y de datos.
+            Section {
+                Button(role: .destructive) { confirmarBorrado = true } label: {
+                    if borrando {
+                        ProgressView().frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Text(L.t("Borrar mi cuenta", "Delete my account"))
+                            .foregroundStyle(Paleta.negativo)
+                            .font(.subheadline).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(sesion == nil || borrando)
+                .confirmationDialog(L.t("¿Borrar tu cuenta?", "Delete your account?"),
+                                    isPresented: $confirmarBorrado,
+                                    titleVisibility: .visible) {
+                    Button(L.t("Sí, borrar mi cuenta", "Yes, delete my account"),
+                           role: .destructive) {
+                        Task { await borrarCuenta() }
+                    }
+                    Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
+                } message: {
+                    Text(avisoBorrado)
+                }
+                if let errorBorrado {
+                    Text(errorBorrado).font(.caption).foregroundStyle(Paleta.negativo)
+                }
+            } footer: {
+                Text(avisoBorrado)
+            }
+            .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
         .listStyle(.insetGrouped)
         .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(L.t("Cuenta", "Account"))
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// **El aviso dice la regla, no un caso.** El servidor borra la iglesia
+    /// entera SOLO si al irte no queda ningún otro perfil en ella; con más
+    /// gente dentro, la iglesia sigue y tú te vas. Y el aparato no puede saber
+    /// en cuál de los dos casos está: las políticas RLS de `perfiles` no dejan
+    /// a un aparato leer los perfiles de los demás, así que no hay forma de
+    /// contarlos. Por eso se enuncia la condición en vez de adivinarla.
+    ///
+    /// El web avisa siempre con el caso fuerte —"todos los datos de tu iglesia
+    /// en la nube"— sin la condición, así que exagera cuando quedan otros
+    /// miembros. Apuntado para el otro repo.
+    private var avisoBorrado: String {
+        L.t("Tu cuenta se elimina para siempre. Si eres la única persona con acceso a tu iglesia, se borran TAMBIÉN todos sus datos en la nube: movimientos, miembros, actas y cartas. Si hay más personas, la iglesia sigue y solo se va tu acceso. Esto no se puede deshacer.",
+            "Your account is permanently deleted. If you are the only person with access to your church, ALL of its cloud data goes too: transactions, members, minutes and letters. If there are other people, the church stays and only your access is removed. This cannot be undone.")
+    }
+
+    /// La parte de servidor la hace la Edge Function `borrar-cuenta`, que ya
+    /// existe y es la misma que usa el app web: identifica al usuario por su
+    /// JWT, borra su perfil, borra la iglesia si se queda sin nadie —el
+    /// `ON DELETE CASCADE` arrastra el resto— y elimina la cuenta de acceso.
+    ///
+    /// **El aparato se limpia solo si el servidor dijo que sí.** Al revés
+    /// —borrar primero aquí— dejaría a alguien sin sus datos locales y con la
+    /// cuenta viva si la llamada falla.
+    private func borrarCuenta() async {
+        borrando = true
+        errorBorrado = nil
+        do {
+            try await SesionSupabase.borrarCuentaEnElServidor()
+            try await BorradoMasivo.reinicioDeFabrica()
+            await sesion?.cerrarSesion()
+        } catch {
+            errorBorrado = error.localizedDescription
+        }
+        borrando = false
     }
 }
 

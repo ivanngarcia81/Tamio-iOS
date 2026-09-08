@@ -126,6 +126,41 @@ final class SesionSupabase {
         ocupada = false
     }
 
+    /// **Borra la cuenta en el servidor.** Requisito 5.1.1(v) de Apple.
+    ///
+    /// La hace la Edge Function `borrar-cuenta`, que YA existe y es la misma
+    /// que invoca el app web: no se duplica la regla en dos sitios, que es
+    /// justo donde se separan. Ella identifica al usuario por su JWT, borra su
+    /// perfil, borra la iglesia si se queda sin ningún perfil —el
+    /// `ON DELETE CASCADE` arrastra miembros, movimientos, cartas y el resto—
+    /// y elimina por último la cuenta de acceso.
+    ///
+    /// **Nunca desde el cliente.** Borrar una cuenta de Auth pide la clave de
+    /// servicio, y esa no puede vivir en una app que se descarga: la función
+    /// la tiene en el servidor y por eso el trabajo se hace allí.
+    ///
+    /// Lanza si el servidor no lo confirmó, para que quien llama NO limpie el
+    /// aparato: dejar a alguien sin sus datos locales y con la cuenta viva es
+    /// el peor de los dos fallos posibles.
+    static func borrarCuentaEnElServidor() async throws {
+        struct Respuesta: Decodable {
+            let ok: Bool?
+            let error: String?
+        }
+        let r: Respuesta = try await supabase.functions
+            .invoke("borrar-cuenta", options: FunctionInvokeOptions(body: [String: String]()))
+        if let mensaje = r.error, !mensaje.isEmpty {
+            throw NSError(domain: "Tamio.BorrarCuenta", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: mensaje])
+        }
+        guard r.ok == true else {
+            throw NSError(domain: "Tamio.BorrarCuenta", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey:
+                            L.t("El servidor no confirmó el borrado. No se ha tocado nada en este aparato.",
+                                "The server didn't confirm the deletion. Nothing on this device was touched.")])
+        }
+    }
+
     @MainActor
     func cerrarSesion() async {
         try? await supabase.auth.signOut()
