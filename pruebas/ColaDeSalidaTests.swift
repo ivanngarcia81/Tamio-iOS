@@ -174,4 +174,47 @@ final class ColaDeSalidaTests: XCTestCase {
         XCTAssertEqual(MotorSincronizacion.compartido.atascadas, 0)
         XCTAssertNil(MotorSincronizacion.compartido.ultimoErrorDeSubida)
     }
+
+    // MARK: - Hasta dónde puede llegar el cursor de una bajada
+
+    /// Sin huecos, el cursor llega hasta la última fila del lote, que es lo que
+    /// hacía siempre y sigue estando bien.
+    func testSinHuecosElCursorLlegaHastaElFinal() {
+        var a = MotorSincronizacion.AvanceCursor()
+        a.aplicada("2026-09-08T10:00:00Z")
+        a.aplicada("2026-09-08T11:00:00Z")
+        a.aplicada("2026-09-08T12:00:00Z")
+        XCTAssertEqual(a.cursor, "2026-09-08T12:00:00Z")
+    }
+
+    /// **Lo que estaba roto.** Una fila saltada por tener algo pendiente de
+    /// subir no se aplicaba y el cursor pasaba por encima igual, así que esa
+    /// versión del servidor no se volvía a pedir nunca —la consulta es `>`—.
+    /// Ahora el cursor se planta en el hueco.
+    func testElCursorSePlantaEnElPrimerHueco() {
+        var a = MotorSincronizacion.AvanceCursor()
+        a.aplicada("2026-09-08T10:00:00Z")
+        a.saltada()
+        a.aplicada("2026-09-08T12:00:00Z")
+        XCTAssertEqual(a.cursor, "2026-09-08T10:00:00Z",
+                       "lo de después del hueco se aplica, pero no se da por leído")
+    }
+
+    /// Si el hueco es la primera fila no hay nada nuevo que dar por leído, y el
+    /// cursor se queda como estaba: `nil` significa "no guardes ninguno".
+    func testUnHuecoEnLaPrimeraFilaNoMueveElCursor() {
+        var a = MotorSincronizacion.AvanceCursor()
+        a.saltada()
+        a.aplicada("2026-09-08T12:00:00Z")
+        XCTAssertNil(a.cursor)
+    }
+
+    /// Una fila sin `updated_at` no puede servir de marca: guardarla como
+    /// cursor sería guardar nulo y volver a bajarlo todo desde el principio.
+    func testUnaFilaSinMarcaNoMueveElCursor() {
+        var a = MotorSincronizacion.AvanceCursor()
+        a.aplicada("2026-09-08T10:00:00Z")
+        a.aplicada(nil)
+        XCTAssertEqual(a.cursor, "2026-09-08T10:00:00Z")
+    }
 }

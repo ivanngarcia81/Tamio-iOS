@@ -346,6 +346,47 @@ final class MotorSincronizacion {
         }
     }
 
+    // MARK: - Hasta dónde puede llegar el cursor
+
+    /// **Lleva la cuenta de hasta dónde puede avanzar el cursor de una bajada.**
+    ///
+    /// Las dieciséis bajadas piden lo cambiado desde una marca —`updated_at`
+    /// mayor que el cursor guardado—, aplican fila por fila y al terminar
+    /// guardan la marca de la ÚLTIMA fila del lote. El problema es lo que hay en
+    /// medio: una fila cuyo registro tiene algo pendiente de subir **no se
+    /// aplica**, para no pisar lo local. Y el cursor pasaba por encima igual.
+    ///
+    /// O sea que esa versión del servidor no se aplicaba y no se volvía a pedir
+    /// nunca: el cursor ya estaba más allá y la consulta es `>`. Como se sube
+    /// antes de bajar, quedar pendiente en ese momento significa que la subida
+    /// ACABA de fallar, así que las dos mitades se juntan en el peor sitio: lo
+    /// mío no salió, lo suyo se descartó, y las dos copias divergen en silencio.
+    ///
+    /// La regla es la de cualquier marca de agua: **avanza hasta el primer
+    /// hueco y ahí se planta**. Lo que viene después del hueco sí se aplica
+    /// —guardar dos veces la misma fila no hace daño, y no aplicarla sería
+    /// perder tiempo—, pero no se da por leído: la vuelta siguiente vuelve a
+    /// pedir desde el hueco y lo reintenta. En cuanto la operación pendiente
+    /// sale, el hueco se cierra y el cursor sigue.
+    struct AvanceCursor {
+        private var hasta: String?
+        private var hayHueco = false
+
+        /// Esta fila se aplicó. Solo mueve la marca si no ha habido huecos
+        /// antes: pasado uno, lo que venga detrás se aplica pero no cuenta.
+        mutating func aplicada(_ marca: String?) {
+            guard !hayHueco, let marca else { return }
+            hasta = marca
+        }
+
+        /// Esta fila se saltó. A partir de aquí el cursor ya no se mueve.
+        mutating func saltada() { hayHueco = true }
+
+        /// La marca que se puede guardar, o `nil` si el hueco estaba en la
+        /// primera fila y no hay nada nuevo que dar por leído.
+        var cursor: String? { hasta }
+    }
+
     // MARK: - Que el servidor conteste QUÉ tocó
 
     /// Una fila que el servidor devuelve para decir "esta la escribí yo".
@@ -701,11 +742,13 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 let pendiente = try OperacionPendiente
                     .filter(Column("entidad") == "acta" && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
-                if pendiente { continue }
+                if pendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 try ActaFila(
                     id: r.uid, folio: r.folio ?? "", tipo: r.tipo ?? "otra",
                     titulo: r.titulo ?? "", fecha: r.fecha ?? "",
@@ -725,7 +768,7 @@ final class MotorSincronizacion {
                     actualizadoEn: r.updatedAt,
                     borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('acta', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -885,11 +928,13 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 let pendiente = try OperacionPendiente
                     .filter(Column("entidad") == "carta" && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
-                if pendiente { continue }
+                if pendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 try CartaFila(
                     id: r.uid, folio: r.folio ?? "", tipo: r.tipo ?? "personalizada",
                     fechaEmision: r.fechaEmision ?? "", lugarEmision: r.lugarEmision ?? "",
@@ -906,7 +951,7 @@ final class MotorSincronizacion {
                     actualizadoEn: r.updatedAt,
                     borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('carta', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -991,7 +1036,11 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
+                // Solo BAJAN: no hay operación pendiente que las pueda
+                // dejar sin aplicar, así que ninguna fila es un hueco.
+                avance.aplicada(r.updatedAt)
                 try PlantillaFila(
                     id: r.uid, nombre: r.nombre ?? "", tipo: r.tipo ?? "personalizada",
                     asunto: r.asunto ?? "", saludo: r.saludo ?? "",
@@ -1001,7 +1050,7 @@ final class MotorSincronizacion {
                     actualizadoEn: r.updatedAt,
                     borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('plantilla', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -1038,7 +1087,11 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
+                // Solo BAJAN: no hay operación pendiente que las pueda
+                // dejar sin aplicar, así que ninguna fila es un hueco.
+                avance.aplicada(r.updatedAt)
                 try TrasladoSalidaFila(
                     id: r.uid, miembroId: r.memberUid, folio: r.folio ?? "",
                     fechaSolicitud: r.fechaSolicitud ?? "",
@@ -1047,7 +1100,7 @@ final class MotorSincronizacion {
                     actualizadoEn: r.updatedAt,
                     borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('trasladoSalida', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -1077,11 +1130,13 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 let pendiente = try OperacionPendiente
                     .filter(Column("entidad") == "apunte" && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
-                if pendiente { continue }
+                if pendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 try ApunteFila(
                     id: r.uid, tipo: r.tipo ?? "nota", area: r.area ?? "general",
                     datos: r.datos ?? "{}", cuerpo: r.cuerpo ?? "",
@@ -1092,7 +1147,7 @@ final class MotorSincronizacion {
                     actualizadoEn: r.updatedAt,
                     borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('apunte', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -1243,18 +1298,20 @@ final class MotorSincronizacion {
             .order("updated_at", ascending: true).limit(1000).execute().value
         guard !filas.isEmpty else { return }
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 guard let s = r.servicioUid, !s.isEmpty else { continue }
                 let pendiente = try OperacionPendiente
                     .filter(Column("entidad") == "puesto" && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
-                if pendiente { continue }
+                if pendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 try ServicioPuestoFila(id: r.uid, servicioId: s, puesto: r.puesto ?? "",
                                        nombre: r.nombre ?? "", miembroId: r.memberUid,
                                        actualizadoEn: r.updatedAt,
                                        borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('puesto', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -1285,18 +1342,20 @@ final class MotorSincronizacion {
             .order("updated_at", ascending: true).limit(1000).execute().value
         guard !filas.isEmpty else { return }
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 guard let s = r.servicioUid, !s.isEmpty else { continue }
                 let pendiente = try OperacionPendiente
                     .filter(Column("entidad") == "orden" && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
-                if pendiente { continue }
+                if pendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 try ServicioOrdenFila(id: r.uid, servicioId: s, posicion: r.posicion ?? 0,
                                       hora: r.hora ?? "", titulo: r.titulo ?? "",
                                       encargado: r.encargado ?? "", actualizadoEn: r.updatedAt,
                                       borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('orden', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -1335,11 +1394,13 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 let pendiente = try OperacionPendiente
                     .filter(Column("entidad") == "culto" && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
-                if pendiente { continue }
+                if pendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 try ServicioFila(id: r.uid, fecha: r.fecha ?? "", tipo: r.tipo ?? "dominical",
                                  dirige: r.dirige ?? "", predica: r.predica ?? "",
                                  tituloMensaje: r.tituloMensaje ?? "", textoBiblico: r.textoBiblico ?? "",
@@ -1351,7 +1412,7 @@ final class MotorSincronizacion {
                                  eventos: r.eventos ?? "", actualizadoEn: r.updatedAt,
                                  borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('culto', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -1396,6 +1457,7 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 // Lo que está en la cola de salida se respeta: lo de este
                 // aparato todavía no ha llegado allá, y pisarlo con lo de
@@ -1403,7 +1465,8 @@ final class MotorSincronizacion {
                 let pendiente = try OperacionPendiente
                     .filter(Column("entidad") == "evento" && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
-                if pendiente { continue }
+                if pendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 try EventoAgendaFila(
                     id: r.uid,
                     fecha: r.fecha ?? "",
@@ -1428,7 +1491,7 @@ final class MotorSincronizacion {
                     actualizadoEn: r.updatedAt,
                     borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('evento', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -1463,13 +1526,15 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 // Una marca sin culto o sin persona no se puede colocar.
                 guard let s = r.servicioUid, let m = r.memberUid, !s.isEmpty, !m.isEmpty else { continue }
                 let pendiente = try OperacionPendiente
                     .filter(Column("entidad") == "asistencia" && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
-                if pendiente { continue }
+                if pendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 try AsistenciaFila(id: r.uid, servicioId: s, miembroId: m,
                                    presente: (r.presente ?? 0) != 0,
                                    razon: r.razon ?? "", razonOtra: r.razonOtra ?? "",
@@ -1478,7 +1543,7 @@ final class MotorSincronizacion {
                                    actualizadoEn: r.updatedAt,
                                    borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('asistencia', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -1660,6 +1725,7 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 // Media relación no es una relación: sin los dos extremos no
                 // hay fila que guardar.
@@ -1667,11 +1733,12 @@ final class MotorSincronizacion {
                 let pendiente = try OperacionPendiente
                     .filter(Column("entidad") == "parentesco" && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
-                if pendiente { continue }
+                if pendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 try ParentescoFila(id: r.uid, miembroId: m, parienteId: p, tipo: r.tipo ?? "otro",
                                    actualizadoEn: r.updatedAt, borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('parentesco', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -1736,6 +1803,7 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 // Dos entidades escriben esta fila —Tesorería y el padrón—,
                 // y lo que cualquiera de las dos tenga pendiente de subir no
@@ -1744,7 +1812,8 @@ final class MotorSincronizacion {
                     .filter((Column("entidad") == "aportante" || Column("entidad") == "miembro")
                             && Column("registroId") == r.uid)
                     .fetchCount(db) > 0
-                if pendiente { continue }
+                if pendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
 
                 var a = Aportante(
                     id: r.uid, nombre: r.nombre ?? "",
@@ -1792,7 +1861,7 @@ final class MotorSincronizacion {
                 try MiembroFila(m, actualizadoEn: r.updatedAt,
                                 borrado: r.deleted ?? false).update(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('aportante', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -2043,13 +2112,15 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for remota in filas {
                 // Nunca se pisa un registro con cambios locales sin subir: los
                 // suyos van primero y ya bajará su versión en la próxima vuelta.
                 let tienePendiente = try OperacionPendiente
-                    .filter(Column("registroId") == remota.uid)
+                    .filter(Column("entidad") == "movimiento" && Column("registroId") == remota.uid)
                     .fetchCount(db) > 0
-                if tienePendiente { continue }
+                if tienePendiente { avance.saltada(); continue }
+                avance.aplicada(remota.updatedAt)
 
                 if remota.deleted == true {
                     try MovimientoFila.deleteOne(db, key: remota.uid)
@@ -2057,7 +2128,7 @@ final class MotorSincronizacion {
                     try remota.fila.save(db)
                 }
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('movimiento', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -2201,10 +2272,13 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 let tienePendiente = try OperacionPendiente
-                    .filter(Column("registroId") == r.uid).fetchCount(db) > 0
-                if tienePendiente { continue }
+                    .filter(Column("entidad") == "corte" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if tienePendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
 
                 if r.deleted == true {
                     try CorteFila.deleteOne(db, key: r.uid)
@@ -2233,7 +2307,7 @@ final class MotorSincronizacion {
                 fila.borrado = false
                 try fila.save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('corte', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -2269,10 +2343,13 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 let tienePendiente = try OperacionPendiente
-                    .filter(Column("registroId") == r.uid).fetchCount(db) > 0
-                if tienePendiente { continue }
+                    .filter(Column("entidad") == "corteMovimiento" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if tienePendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 guard let corteUid = r.corteUid, let txUid = r.txUid else { continue }
 
                 if r.deleted == true {
@@ -2294,7 +2371,7 @@ final class MotorSincronizacion {
                                         actualizadoEn: r.updatedAt,
                                         borrado: false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('corteMovimiento', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -2407,10 +2484,13 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 let tienePendiente = try OperacionPendiente
-                    .filter(Column("registroId") == r.uid).fetchCount(db) > 0
-                if tienePendiente { continue }
+                    .filter(Column("entidad") == "deposito" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if tienePendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 if r.deleted == true {
                     try DepositoFila.deleteOne(db, key: r.uid)
                     continue
@@ -2429,7 +2509,7 @@ final class MotorSincronizacion {
                 fila.borrado = false
                 try fila.save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('deposito', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -2492,10 +2572,13 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 let tienePendiente = try OperacionPendiente
-                    .filter(Column("registroId") == r.uid).fetchCount(db) > 0
-                if tienePendiente { continue }
+                    .filter(Column("entidad") == "categoriaCustom" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if tienePendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 if r.deleted == true {
                     // Se borra la fila local en vez de marcarla: nada apunta a
                     // una categoría por id —los movimientos guardan su nombre—,
@@ -2510,7 +2593,7 @@ final class MotorSincronizacion {
                                     color: r.color ?? ""),
                     actualizadoEn: r.updatedAt).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('categoriaCustom', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
@@ -2615,10 +2698,13 @@ final class MotorSincronizacion {
         guard !filas.isEmpty else { return }
 
         try await cola.write { db in
+            var avance = AvanceCursor()
             for r in filas {
                 let tienePendiente = try OperacionPendiente
-                    .filter(Column("registroId") == r.uid).fetchCount(db) > 0
-                if tienePendiente { continue }
+                    .filter(Column("entidad") == "movimientoRecurrente" && Column("registroId") == r.uid)
+                    .fetchCount(db) > 0
+                if tienePendiente { avance.saltada(); continue }
+                avance.aplicada(r.updatedAt)
                 // Borrado LÓGICO, al revés que las categorías: aquí sí hay
                 // quien apunte a la definición por id —los movimientos que
                 // generó— y borrar la fila dejaría ese vínculo colgando.
@@ -2640,7 +2726,7 @@ final class MotorSincronizacion {
                 try MovimientoRecurrenteFila(def, actualizadoEn: r.updatedAt,
                                              borrado: r.deleted ?? false).save(db)
             }
-            if let ultimo = filas.last?.updatedAt {
+            if let ultimo = avance.cursor {
                 try db.execute(sql: """
                     insert into syncEstado (entidad, cursor) values ('movimientoRecurrente', ?)
                     on conflict(entidad) do update set cursor = excluded.cursor
