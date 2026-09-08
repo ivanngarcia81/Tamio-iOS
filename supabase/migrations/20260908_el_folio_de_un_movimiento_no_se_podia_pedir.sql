@@ -1,5 +1,9 @@
 -- **Desde el 7 de septiembre a las 15:21 UTC, ningún ingreso ni gasto podía
--- subir desde el teléfono.** SIN APLICAR todavía.
+-- subir desde el teléfono.** APLICADA el 8 de septiembre de 2026, y verificada
+-- ANTES de que ningún aparato la usara, con el bloque que se deshace solo del
+-- final de este archivo: el contador de `gasto` estaba en 2, `siguiente_folio`
+-- devolvió **3**, y el `raise` lo dejó otra vez en 2 con su marca de tiempo
+-- intacta. Antes de esto, esa misma llamada levantaba 42P10.
 --
 -- Lo destapó Iván el 8 de septiembre: capturó dos gastos de prueba, la
 -- definición del recurrente subió y el movimiento no. Ajustes decía
@@ -102,7 +106,12 @@ $function$;
 --     rollback;
 --
 -- Antes de esta migración eso levanta `42P10`. Después devuelve el número
--- siguiente y el `rollback` lo deja como estaba.
+-- siguiente y el `rollback` lo deja como estaba. **Así se comprobó**, con un
+-- `do $$ ... $$` que se hace pasar por un miembro —`set_config` de
+-- `request.jwt.claims` con el uid de un perfil de la iglesia, que desde el
+-- editor no hay `auth.uid()`— y termina en un `raise` que deshace el bloque
+-- entero. El `raise` es la forma de que la prueba te CUENTE el número y no lo
+-- gaste.
 --
 -- Desde el editor de SQL no hay `auth.uid()`, así que ahí la comprobación de
 -- pertenencia rebota antes de llegar al `insert`. Para probarlo de verdad se
