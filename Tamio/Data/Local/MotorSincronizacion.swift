@@ -269,6 +269,42 @@ final class MotorSincronizacion {
         }
     }
 
+    // MARK: - Que el servidor conteste QUÉ tocó
+
+    /// Una fila que el servidor devuelve para decir "esta la escribí yo".
+    ///
+    /// Solo se pide `uid`: el cuerpo entero no se usa para nada y en `members`
+    /// son cuarenta columnas por cada persona de una bajada de quinientas.
+    struct FilaTocada: Decodable { let uid: String }
+
+    /// **Un `update` que no toca ninguna fila NO es un error para PostgREST.**
+    ///
+    /// Devuelve 204 y se va tan tranquilo. Eso ya costó todo lo que se escribía
+    /// en Ajustes · Iglesia —la moneda volvía a MXN en cada arranque, el logo
+    /// desaparecía— sin un solo error por ninguna parte: la operación se
+    /// borraba de la cola como si hubiera salido bien y la siguiente bajada
+    /// traía los valores viejos encima. `subirIglesia` se blindó entonces
+    /// (`nadieRecibioLaIglesia`) y las otras once subidas se quedaron como
+    /// estaban; esto es aquello, extraído para que valga en todas.
+    ///
+    /// Pasa siempre que el servidor decide no escribir sin quejarse: una
+    /// política de RLS que filtra a este rol, o un `uid` que allí no existe.
+    ///
+    /// **El borrado es la excepción**: que no haya nada que borrar es el final
+    /// que se buscaba, no un fallo. Se llega ahí de una forma corriente —crear
+    /// algo sin red y darlo de baja antes de que llegue a salir: `encolar` deja
+    /// un solo `eliminar`, porque el colapso solo cubre `crear` + `actualizar`,
+    /// y la cola acaba pidiendo borrar una fila que allá no se creó nunca—.
+    /// Exigirle al servidor que confirme haber tocado algo la dejaría atascada
+    /// para siempre.
+    private func exigir(_ tocadas: [FilaTocada], tabla: String,
+                        _ op: OperacionPendiente) throws {
+        guard op.operacion != OperacionPendiente.Operacion.eliminar.rawValue else { return }
+        guard !tocadas.isEmpty else {
+            throw FalloDeSubida.nadieRecibio(tabla: tabla, id: op.registroId)
+        }
+    }
+
     // MARK: - Aportantes
 
     private struct AportanteEscritura: Encodable {
@@ -329,10 +365,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("members").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("members").update(cuerpo)
-                .eq("uid", value: fila.id)
-                .eq("church_id", value: churchIdActivo)
-                .execute()
+            let tocadas: [FilaTocada] = try await supabase.from("members").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "members", op)
         case .none:
             return
         }
@@ -387,8 +423,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("servicios").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("servicios").update(cuerpo)
-                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("servicios").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "servicios", op)
         case .none:
             return
         }
@@ -456,8 +494,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("agenda").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("agenda").update(cuerpo)
-                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("agenda").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "agenda", op)
         case .none:
             return
         }
@@ -532,8 +572,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("actas").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("actas").update(cuerpo)
-                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("actas").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "actas", op)
         case .none:
             return
         }
@@ -707,8 +749,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("cartas").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("cartas").update(cuerpo)
-                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("cartas").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "cartas", op)
         case .none:
             return
         }
@@ -815,8 +859,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("registro").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("registro").update(cuerpo)
-                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("registro").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "registro", op)
         case .none:
             return
         }
@@ -999,8 +1045,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("servicio_asistencia").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("servicio_asistencia").update(cuerpo)
-                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("servicio_asistencia").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "servicio_asistencia", op)
         case .none:
             return
         }
@@ -1030,8 +1078,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("servicio_puestos").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("servicio_puestos").update(cuerpo)
-                .eq("uid", value: f.id).eq("church_id", value: churchIdActivo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("servicio_puestos").update(cuerpo)
+                .eq("uid", value: f.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "servicio_puestos", op)
         case .none: return
         }
     }
@@ -1059,8 +1109,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("servicio_orden").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("servicio_orden").update(cuerpo)
-                .eq("uid", value: f.id).eq("church_id", value: churchIdActivo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("servicio_orden").update(cuerpo)
+                .eq("uid", value: f.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "servicio_orden", op)
         case .none: return
         }
     }
@@ -1426,10 +1478,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("members").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("members").update(cuerpo)
-                .eq("uid", value: fila.id)
-                .eq("church_id", value: churchIdActivo)
-                .execute()
+            let tocadas: [FilaTocada] = try await supabase.from("members").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "members", op)
         case .none:
             return
         }
@@ -1462,10 +1514,10 @@ final class MotorSincronizacion {
         case .crear:
             try await supabase.from("parentescos").insert(cuerpo).execute()
         case .actualizar, .eliminar:
-            try await supabase.from("parentescos").update(cuerpo)
-                .eq("uid", value: fila.id)
-                .eq("church_id", value: churchIdActivo)
-                .execute()
+            let tocadas: [FilaTocada] = try await supabase.from("parentescos").update(cuerpo)
+                .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "parentescos", op)
         case .none:
             return
         }
@@ -1642,12 +1694,19 @@ final class MotorSincronizacion {
     /// Lo que el servidor acepta sin decir nada y no hay que dar por hecho.
     enum FalloDeSubida: LocalizedError {
         case nadieRecibioLaIglesia
+        /// El servidor contestó que sí y no tocó ninguna fila. `tabla` es la
+        /// remota, que es la que sale en el mensaje de error del servidor y por
+        /// tanto la que sirve para buscar.
+        case nadieRecibio(tabla: String, id: String)
 
         var errorDescription: String? {
             switch self {
             case .nadieRecibioLaIglesia:
                 return L.t("El servidor no aceptó los datos de la iglesia. Se reintentará.",
                            "The server didn't accept the church data. It will be retried.")
+            case .nadieRecibio(let tabla, let id):
+                return L.t("El servidor no aceptó el cambio en \(tabla) (\(id)). Se reintentará.",
+                           "The server didn't accept the change to \(tabla) (\(id)). It will be retried.")
             }
         }
     }
@@ -1720,10 +1779,10 @@ final class MotorSincronizacion {
         // pero esto se queda: si mañana otra regla del servidor vuelve a
         // filtrar una subida en silencio, la operación tiene que quedarse en la
         // cola y decirlo, no desaparecer como si hubiera salido bien.
-        struct FilaTocada: Decodable { let id: String }
+        struct IglesiaTocada: Decodable { let id: String }
 
         let c = fila.configuracion
-        let tocadas: [FilaTocada] = try await supabase
+        let tocadas: [IglesiaTocada] = try await supabase
             .from("iglesias")
             .update(IglesiaUpdate(
                 nombre: c.nombre, direccion: c.direccion, ciudad: c.ciudad,
