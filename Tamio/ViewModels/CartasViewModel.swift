@@ -18,10 +18,32 @@ final class CartasViewModel {
         self.repo = repo
     }
 
+    /// **Las dos listas se calculan primero y se asignan JUNTAS**, sin ningún
+    /// `await` entre las dos asignaciones. No es estilo: publicarlas por
+    /// separado dejaba la sección "Plantillas" **vacía para siempre** una de
+    /// cada cinco veces que se abría Cartas —cabecera dibujada y ni una fila
+    /// debajo, mientras "Emitidas este mes" salía entera—.
+    ///
+    /// Lo que pasaba: entre las dos asignaciones hay un `await`, y si la vista
+    /// evalúa su cuerpo justo en ese hueco, la observación de `plantillas` que
+    /// ese cuerpo en vuelo estaba registrando se pierde. El dato estaba bien
+    /// —instrumentado con `NSLog`, `plantillas` valía 16 también en las
+    /// corridas malas—: lo que no llegaba era el aviso a la vista.
+    ///
+    /// Medido con `pruebas/PlantillasDeCartaUITests.swift`, veinte aperturas
+    /// por corrida y dos corridas de cada: **8 de 40 vacías antes, 0 de 40
+    /// después**. Se descartaron antes, con el mismo instrumento, esconder la
+    /// sección cuando está vacía (2 de 20) y un `Task.yield()` al entrar
+    /// (2 de 20).
+    ///
+    /// **Si se añade una tercera lista aquí, va con las otras dos**, después
+    /// del último `await`.
     func cargar() async {
         cargando = true
-        emitidas = (try? await repo.emitidas()) ?? []
-        plantillas = await repositorioPlantillas().lista()
+        let nuevasEmitidas = (try? await repo.emitidas()) ?? []
+        let nuevasPlantillas = await repositorioPlantillas().lista()
+        emitidas = nuevasEmitidas
+        plantillas = nuevasPlantillas
         cargando = false
     }
 
