@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Los idiomas que la app habla, declarados a mano.
+
+	     No hay `en.lproj` ni `es.lproj`: la app no usa `Localizable.strings`,
+	     traduce con `L.t` en el código. Sin esta clave el paquete no declara
+	     NINGUNA localización, así que App Store la listaría como app solo en
+	     inglés aunque el español esté dentro entero.
+
+	     No se puede poner como `INFOPLIST_KEY_CFBundleLocalizations`: ese
+	     prefijo solo vale para una lista cerrada de claves y esta no está —
+	     probado, no llega al plist compilado. Este archivo se MEZCLA con el
+	     Info.plist generado (`GENERATE_INFOPLIST_FILE` sigue en YES), así que
+	     el bundle id, la versión, la pantalla de arranque y las orientaciones
+	     se siguen poniendo desde los ajustes de compilación. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>es</string>
+	</array>
+</dict>
+</plist>

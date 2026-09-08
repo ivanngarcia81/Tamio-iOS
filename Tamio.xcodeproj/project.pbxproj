@@ -740,9 +740,10 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 4N9XEU7F4P;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Para fotografiar el recibo del banco al registrar un dep\u00f3sito.";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para desbloquear Tamio con tu cara, en vez de escribir la contrase\u00f1a cada vez.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para adjuntar la foto del recibo del banco a un dep\u00f3sito.";
+				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Para fotografiar el recibo del banco al registrar un depósito.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para desbloquear Tamio con tu cara, en vez de escribir la contraseña cada vez.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para adjuntar la foto del recibo del banco a un depósito.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -764,9 +765,10 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 4N9XEU7F4P;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Para fotografiar el recibo del banco al registrar un dep\u00f3sito.";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para desbloquear Tamio con tu cara, en vez de escribir la contrase\u00f1a cada vez.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para adjuntar la foto del recibo del banco a un dep\u00f3sito.";
+				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Para fotografiar el recibo del banco al registrar un depósito.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para desbloquear Tamio con tu cara, en vez de escribir la contraseña cada vez.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para adjuntar la foto del recibo del banco a un depósito.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

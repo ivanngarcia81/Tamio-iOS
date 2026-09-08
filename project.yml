@@ -27,6 +27,9 @@ targets:
         # de App Store se cambiará aquí (ver conversación de arranque).
         PRODUCT_BUNDLE_IDENTIFIER: church.tamio.native
         GENERATE_INFOPLIST_FILE: YES
+        # Se MEZCLA con el plist generado. Solo lleva `CFBundleLocalizations`,
+        # que no tiene ajuste `INFOPLIST_KEY_` y no hay otra forma de poner.
+        INFOPLIST_FILE: Config/Info.plist
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         # **El teléfono, solo en vertical.** En apaisado el iPhone grande pasa
         # a clase de tamaño regular y la app se dibuja como en iPad —lista y

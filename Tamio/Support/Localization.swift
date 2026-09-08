@@ -17,7 +17,21 @@ enum L {
         case .espanol: return true
         case .ingles:  return false
         case .automatico:
-            return Locale.current.language.languageCode?.identifier != "en"
+            // **`preferredLanguages` y no `Locale.current`.** El rótulo de
+            // abajo del selector promete "el idioma del sistema operativo", y
+            // con `Locale.current` no lo cumplía NUNCA: esa propiedad devuelve
+            // el idioma en el que iOS ha resuelto ESTA app, y la app declara
+            // el inglés como región de desarrollo, así que un iPhone entero en
+            // español abría Tamio en inglés y "Automático" no automatizaba
+            // nada. Medido en el 17e con `-AppleLanguages (es-MX)`.
+            //
+            // `preferredLanguages` es la lista del APARATO, que es la pregunta
+            // que hace el rótulo. Se compara por prefijo porque ahí no viene
+            // "es" a secas sino "es-MX", "es-419", "es-ES".
+            //
+            // Solo hay dos idiomas: lo que no sea español cae en inglés, que
+            // es el principal.
+            return (Locale.preferredLanguages.first ?? "en").hasPrefix("es")
         }
     }
 
