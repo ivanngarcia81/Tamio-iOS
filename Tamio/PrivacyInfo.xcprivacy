@@ -56,14 +56,26 @@
 	</array>
 
 	<!--
-	  BORRADOR · esto lo tiene que confirmar Iván antes de subir.
+	  **Confirmado por Iván el 8 de septiembre de 2026.** Estuvo como borrador
+	  desde el día anterior.
 
 	  Todo lo de aquí sale de mirar qué viaja a Supabase: dieciocho tablas y el
 	  bucket de comprobantes. Nada se usa para seguimiento ni para publicidad,
-	  y por eso `NSPrivacyCollectedDataTypeTracking` es falso en todas.
+	  y por eso `NSPrivacyCollectedDataTypeTracking` es falso en todas y
+	  `NSPrivacyTracking` es falso arriba.
 
 	  `Linked` es TRUE porque la fila lleva `church_id` y el usuario está
 	  autenticado: se puede llegar de la persona al dato.
+
+	  **Lo que se comprobó para cerrarlo**, y que evita volver a revisarlo:
+
+	  - **No hay contactos, ubicación, salud ni identificadores de anuncios.**
+	    Ni `Contacts`, ni `CoreLocation`, ni `HealthKit`, ni `AdSupport`, ni
+	    `AppTrackingTransparency` se importan en ninguna parte.
+	  - **Ninguna dependencia recoge datos.** Las ocho son de base de datos,
+	    red o criptografía: GRDB, supabase-swift, swift-crypto, swift-asn1,
+	    swift-http-types y las tres de pointfree. Ni una de analítica o
+	    publicidad.
 
 	  **La declaración de aquí y las respuestas del cuestionario de App Store
 	  Connect tienen que decir lo mismo.** Si se cambia una, se cambia la otra.
@@ -144,7 +156,7 @@
 			<array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
 		</dict>
 
-		<!-- **La delicada, y por la que esto es un borrador.** "Sensitive Info"
+		<!-- **La delicada, y confirmada a conciencia.** "Sensitive Info"
 		     de Apple incluye expresamente las creencias religiosas, y un padrón
 		     de iglesia guarda fecha de bautismo en agua y en espíritu, estado
 		     de membresía y ministerios. Eso ES afiliación religiosa de personas
