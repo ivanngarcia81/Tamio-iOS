@@ -13,6 +13,10 @@ struct TamioApp: App {
     @State private var prefs = PreferenciasApp.compartidas
     /// El candado de este aparato. Vive aquí porque tapa la app entera.
     @State private var bloqueo = BloqueoBiometrico.compartido
+    /// Se lee de `UserDefaults` al arrancar y se guarda al terminar el
+    /// recorrido. Es `@State` para que la raíz se redibuje al cambiarla: la
+    /// propiedad estática sola no es observable.
+    @State private var bienvenidaVista = PreferenciasApp.bienvenidaVista
     @Environment(\.scenePhase) private var fase
 
     var body: some Scene {
@@ -54,7 +58,19 @@ struct TamioApp: App {
                 ProgressView()
                     .task { await sesion.restaurar() }
             case .sinSesion:
-                AccesoView(sesion: sesion)
+                // **La bienvenida ANTES de las credenciales.** Pedirle la
+                // contraseña a alguien que todavía no sabe qué es esto es
+                // pedirle que confíe a ciegas; y sin sesión no se puede
+                // enseñar nada más, porque RLS exige `auth.uid()`.
+                if bienvenidaVista {
+                    AccesoView(sesion: sesion)
+                } else {
+                    BienvenidaView {
+                        PreferenciasApp.bienvenidaVista = true
+                        bienvenidaVista = true
+                    }
+                        .transition(.opacity)
+                }
             case .autenticada:
                 VStack(spacing: 0) {
                     RootView.avisoRevision

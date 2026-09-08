@@ -1229,12 +1229,34 @@ Detalles que hacen perder tiempo si no se saben:
   o `xcodebuild` contesta que "isn't a member of the specified test plan".
 - **A la copia hay que cambiarle el `PRODUCT_BUNDLE_IDENTIFIER`**
   (`church.tamio.pruebas`). Con el de la app real comparte contenedor con la app
-  instalada, o sea con SU SESIÓN: el anfitrión de las pruebas arranca la app,
-  esta sincroniza, y los datos de la iglesia aparecen en mitad de una prueba que
-  sembró los suyos —seis fallos el 7 de septiembre, todos por filas que nadie
-  había sembrado—. Es además la vía por la que ya subieron filas sin querer.
-  Con id propio, las pruebas no pueden tocar la base de la iglesia ni aunque se
-  equivoquen.
+  instalada: el anfitrión de las pruebas arranca la app, esta sincroniza, y los
+  datos de la iglesia aparecen en mitad de una prueba que sembró los suyos
+  —seis fallos el 7 de septiembre, todos por filas que nadie había sembrado—.
+
+- **PERO el id propio NO aísla la sesión.** Aquí decía que "con id propio, las
+  pruebas no pueden tocar la base de la iglesia ni aunque se equivoquen", y es
+  **falso**. Comprobado el 7 de septiembre por la noche: la app de la copia
+  arrancó **autenticada y con los datos reales de la iglesia** —28 movimientos,
+  27 aportantes— sin que nadie escribiera una contraseña.
+
+  El motivo es que `supabase-swift` guarda la sesión en el **Keychain**
+  (`KeychainLocalStorage`, servicio `supabase.gotrue.swift`, sin grupo de
+  acceso), y **en el simulador el llavero es común a todas las apps**. El
+  bundle id separa el CONTENEDOR —la base local, `UserDefaults`— pero no el
+  llavero. Así que la copia hereda la sesión que dejó la app real.
+
+  Lo que eso provocó: correr la suite unitaria con el modo revisión APAGADO
+  dejó dos operaciones en la cola de salida intentando subir miembros de
+  maqueta (`m1` "María Hernández", `m2` "Ana Torres") a `members` de verdad.
+  Fallaron con `duplicate key value violates unique constraint "members_pkey"`,
+  o sea que no crearon nada — **pero fallaron porque esos ids YA ESTÁN en la
+  base de la iglesia**, puestos por alguna corrida anterior.
+
+  **La regla, entonces:** las pruebas de la copia se corren con el **modo
+  revisión ENCENDIDO**, o en un **simulador propio y limpio** creado para eso
+  (`xcrun simctl create`). Un simulador que alguna vez tuvo sesión de la app
+  real la sigue teniendo aunque se desinstale la app: el llavero no se va con
+  el contenedor.
 
 ### Cómo probar una migración, que es lo que no puede fallar en silencio
 

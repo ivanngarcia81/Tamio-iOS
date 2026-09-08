@@ -104,12 +104,13 @@ final class PreferenciasApp {
     private static let claveTema   = "prefs.tema"
     private static let claveIdioma = "prefs.idioma"
     private static let claveTamano = "prefs.tamano"
+    private static let claveBienvenida = "prefs.bienvenidaVista"
 
     /// Todas las de este aparato, en un sitio. Las usa el reinicio de fábrica:
     /// vaciar el dominio entero de `UserDefaults` se llevaría por delante lo
     /// que guardan las SDK de Apple y de Supabase, y borrar por una lista
     /// escrita en otro archivo es cómo se olvida la siguiente.
-    static var claves: [String] { [claveTema, claveIdioma, claveTamano] }
+    static var claves: [String] { [claveTema, claveIdioma, claveTamano, claveBienvenida] }
 
     private init() {
         let d = UserDefaults.standard
@@ -120,6 +121,18 @@ final class PreferenciasApp {
 
     private func guardar(_ valor: String, en clave: String) {
         UserDefaults.standard.set(valor, forKey: clave)
+    }
+
+    /// **Si ya se vio el recorrido de bienvenida en este aparato.**
+    ///
+    /// Del APARATO y no de la iglesia: explica qué es Tamio, y eso se lee una
+    /// vez por persona. El segundo aparato de la misma tesorera es otra
+    /// persona sentada delante de otra pantalla. Va en la lista de arriba, así
+    /// que el reinicio de fábrica lo borra y la app vuelve a presentarse, que
+    /// es lo que debe pasar si el aparato cambia de manos.
+    static var bienvenidaVista: Bool {
+        get { UserDefaults.standard.bool(forKey: claveBienvenida) }
+        set { UserDefaults.standard.set(newValue, forKey: claveBienvenida) }
     }
 
     /// El idioma elegido, leído sin pasar por el objeto observable.
