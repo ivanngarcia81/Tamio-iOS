@@ -54,9 +54,13 @@ struct ConfiguracionIglesia: Equatable {
     var saldoInicial: Centavos = 0
 
     var pastorNombre: String = ""
-    var pastorCargo: String = "Pastor"
+    /// **Vacío por omisión, como en el web.** Aquí decía "Pastor",
+    /// "Tesorero" y "Secretario", y esos tres literales subían tal cual a
+    /// `iglesias.pastor_cargo` y compañía. El porqué de la regla y cómo se
+    /// enseña un cargo vacío: `Catalogos.Cargos.omision`.
+    var pastorCargo: String = ""
     var tesoreroNombre: String = ""
-    var tesoreroCargo: String = "Tesorero"
+    var tesoreroCargo: String = ""
 
     /// **El contacto de la PERSONA**, no el de la iglesia.
     ///
@@ -70,7 +74,7 @@ struct ConfiguracionIglesia: Equatable {
     var pastorCorreo: String = ""
     var pastorTelefono: String = ""
     var secretarioNombre: String = ""
-    var secretarioCargo: String = "Secretario"
+    var secretarioCargo: String = ""
     var imprimirFirmas: Bool = true
 
     // MARK: - Permisos del rol Tesorería
@@ -165,9 +169,9 @@ struct ConfiguracionIglesia: Equatable {
     /// `imprimirFirmas`, que es una preferencia de los PDF, y la segunda firma
     /// de un corte es un control interno que no depende de cómo se imprima.
     var personas: [(nombre: String, cargo: String)] {
-        [(pastorNombre, pastorCargo),
-         (tesoreroNombre, tesoreroCargo),
-         (secretarioNombre, secretarioCargo)]
+        [(pastorNombre, Catalogos.Cargos.cargo(pastorCargo, o: .pastor)),
+         (tesoreroNombre, Catalogos.Cargos.cargo(tesoreroCargo, o: .tesorero)),
+         (secretarioNombre, Catalogos.Cargos.cargo(secretarioCargo, o: .secretaria))]
             .filter { !$0.0.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
@@ -175,9 +179,9 @@ struct ConfiguracionIglesia: Equatable {
     /// nombre: una línea de firma en blanco no vale para nada.
     var firmantes: [(nombre: String, cargo: String)] {
         guard imprimirFirmas else { return [] }
-        return [(pastorNombre, pastorCargo),
-                (tesoreroNombre, tesoreroCargo),
-                (secretarioNombre, secretarioCargo)]
+        return [(pastorNombre, Catalogos.Cargos.cargo(pastorCargo, o: .pastor)),
+                (tesoreroNombre, Catalogos.Cargos.cargo(tesoreroCargo, o: .tesorero)),
+                (secretarioNombre, Catalogos.Cargos.cargo(secretarioCargo, o: .secretaria))]
             .filter { !$0.0.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 

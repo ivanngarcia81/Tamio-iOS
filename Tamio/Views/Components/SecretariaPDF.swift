@@ -134,7 +134,7 @@ struct CartaHojaPDF: View {
             // folio: una raya de 612 puntos de ancho no parece un renglón de
             // firma, parece un separador.
             FirmaEnLinea(nombre: carta.firma,
-                         cargo: iglesia.pastorCargo,
+                         cargo: Catalogos.Cargos.cargo(iglesia.pastorCargo, o: .pastor),
                          imagen: imagenFirma)
                 .frame(width: 220)
 

@@ -552,7 +552,8 @@ private struct AjustesTesorerosView: View {
                 campoF(L.t("Nombre del tesorero", "Treasurer name"),
                        $cfg.config.tesoreroNombre,
                        L.t("p. ej. Iván García", "e.g. John Miller"))
-                pickerF(L.t("Cargo", "Title"), $cfg.config.tesoreroCargo,
+                pickerF(L.t("Cargo", "Title"),
+                        cargoB($cfg.config.tesoreroCargo, .tesorero),
                         Catalogos.Cargos.tesoreria)
                 // Correo y teléfono son NUEVOS aquí: el iPad los enseñaba
                 // desde el principio —como texto fijo, sin dónde guardarlos— y
@@ -572,7 +573,8 @@ private struct AjustesTesorerosView: View {
                 campoF(L.t("Nombre del pastor", "Pastor name"),
                        $cfg.config.pastorNombre,
                        L.t("p. ej. Samuel Ríos", "e.g. David Brooks"))
-                pickerF(L.t("Cargo", "Title"), $cfg.config.pastorCargo,
+                pickerF(L.t("Cargo", "Title"),
+                        cargoB($cfg.config.pastorCargo, .pastor),
                         Catalogos.Cargos.pastoral)
                 correoF($cfg.config.pastorCorreo)
                 telefonoF($cfg.config.pastorTelefono)
@@ -660,6 +662,15 @@ private struct AjustesTesorerosView: View {
                L.t("Número de teléfono", "Phone number"))
             .textContentType(.telephoneNumber)
             .keyboardType(.phonePad)
+    }
+
+    /// **Enseña la omisión traducida, pero no la escribe.** El Picker
+    /// necesita un valor entre sus opciones o sale en blanco; guardarlo al
+    /// pasar por la pantalla es justo lo que hacía que iOS pisara la
+    /// traducción del web. Solo se escribe si alguien ELIGE.
+    private func cargoB(_ b: Binding<String>, _ p: Catalogos.Cargos.Puesto) -> Binding<String> {
+        Binding(get: { Catalogos.Cargos.cargo(b.wrappedValue, o: p) },
+                set: { b.wrappedValue = $0 })
     }
 
     private func pickerF(_ label: String, _ bind: Binding<String>, _ opts: [String]) -> some View {

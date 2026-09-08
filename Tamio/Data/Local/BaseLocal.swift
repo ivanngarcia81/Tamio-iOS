@@ -880,6 +880,32 @@ final class BaseLocal {
             }
         }
 
+        m.registerMigration("v26_cargosSinSembrar") { db in
+            // Los tres cargos venían sembrados en español desde el modelo,
+            // desde la propia columna y desde la bajada, y de ahí subían a
+            // `iglesias.pastor_cargo` y compañía. El web los deja NULOS y los
+            // traduce al imprimir; iOS los escribía, así que un aparato en
+            // inglés enseñaba "Tesorero" —con su Picker ofreciendo
+            // "Treasurer"— y, peor, le apagaba al web su traducción.
+            //
+            // Se vacía SOLO lo que es exactamente la semilla. No hay forma de
+            // distinguirla de un "Tesorero" tecleado a mano, y no hace falta:
+            // vacío se imprime igual "Tesorero" en español y "Treasurer" en
+            // inglés, que es lo que esa iglesia quiere en los dos casos. Un
+            // cargo que NO sea la semilla —"Tesorera", "Pastor asociado"— no
+            // se toca.
+            //
+            // La columna se queda `notNull`: aquí "sin cargo" es la cadena
+            // vacía, como en los demás campos de la tabla. El nulo es cosa de
+            // Supabase y lo pone la subida.
+            for (columna, semilla) in [("pastorCargo", "Pastor"),
+                                       ("tesoreroCargo", "Tesorero"),
+                                       ("secretarioCargo", "Secretario")] {
+                try db.execute(sql: "UPDATE iglesia SET \(columna) = '' WHERE \(columna) = ?",
+                               arguments: [semilla])
+            }
+        }
+
         return m
     }
 

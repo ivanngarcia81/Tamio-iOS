@@ -726,7 +726,7 @@ private struct SeccionTesorero: View {
                         firmante: .tesorero,
                         cargos: Catalogos.Cargos.tesoreria,
                         nombre: $cfg.config.tesoreroNombre,
-                        cargo: $cfg.config.tesoreroCargo,
+                        cargo: cargoB($cfg.config.tesoreroCargo, .tesorero),
                         correo: $cfg.config.tesoreroCorreo,
                         telefono: $cfg.config.tesoreroTelefono)
 
@@ -734,7 +734,7 @@ private struct SeccionTesorero: View {
                         firmante: .pastor,
                         cargos: Catalogos.Cargos.pastoral,
                         nombre: $cfg.config.pastorNombre,
-                        cargo: $cfg.config.pastorCargo,
+                        cargo: cargoB($cfg.config.pastorCargo, .pastor),
                         correo: $cfg.config.pastorCorreo,
                         telefono: $cfg.config.pastorTelefono)
 
@@ -764,6 +764,13 @@ private struct SeccionTesorero: View {
         .task { await cfg.cargar() }
         .onDisappear { Task { await cfg.guardarYa() } }
         .sheet(item: $firmando) { HojaFirma(firmante: $0) }
+    }
+
+    /// Igual que en el teléfono: la omisión se ENSEÑA traducida y solo se
+    /// escribe si alguien elige. Ver `Catalogos.Cargos.omision`.
+    private func cargoB(_ b: Binding<String>, _ p: Catalogos.Cargos.Puesto) -> Binding<String> {
+        Binding(get: { Catalogos.Cargos.cargo(b.wrappedValue, o: p) },
+                set: { b.wrappedValue = $0 })
     }
 
     private func persona(titulo: String, firmante f: FirmasLocales.Firmante, cargos: [String],

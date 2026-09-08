@@ -1654,6 +1654,13 @@ final class MotorSincronizacion {
 
     // MARK: - Configuración de la iglesia
 
+    /// Vacío es NULO al subir. Un `""` no es "sin cargo" para el web: su
+    /// respaldo traducido solo salta con nulo.
+    private func oNulo(_ s: String) -> String? {
+        let v = s.trimmingCharacters(in: .whitespaces)
+        return v.isEmpty ? nil : v
+    }
+
     private func subirIglesia(_ id: String) async throws {
         guard let fila = try await cola.read({ db in
             try IglesiaFila.fetchOne(db, key: id)
@@ -1665,12 +1672,18 @@ final class MotorSincronizacion {
             let pieInstitucional: String
             let logoPath: String
             let saldoInicial: Int
-            let pastorNombre, pastorCargo: String
-            let tesoreroNombre, tesoreroCargo: String
+            let pastorNombre: String
+            let tesoreroNombre: String
             let tesoreroEmail, tesoreroTelefono: String
             let pastorEmail, pastorTelefono: String
-            let secretarioNombre, secretarioCargo: String
+            let secretarioNombre: String
             let imprimirFirmas: Bool
+            /// **Los tres cargos suben NULOS si están vacíos**, no "". El web
+            /// resuelve el cargo con `?? t("cartas.rolSecretaria")`, que solo
+            /// salta con nulo: una cadena vacía le dejaría el pie de la carta
+            /// sin cargo en vez de traducido. Es lo mismo que hace su propio
+            /// formulario (`.trim() || null`).
+            let pastorCargo, tesoreroCargo, secretarioCargo: String?
             enum CodingKeys: String, CodingKey {
                 case nombre, direccion, ciudad, estado, pais, telefono, correo, moneda
                 case codigoPostal      = "codigo_postal"
@@ -1719,12 +1732,15 @@ final class MotorSincronizacion {
                 moneda: c.moneda, pieInstitucional: c.pieInstitucional,
                 logoPath: c.logoPath,
                 saldoInicial: c.saldoInicial,
-                pastorNombre: c.pastorNombre, pastorCargo: c.pastorCargo,
-                tesoreroNombre: c.tesoreroNombre, tesoreroCargo: c.tesoreroCargo,
+                pastorNombre: c.pastorNombre,
+                tesoreroNombre: c.tesoreroNombre,
                 tesoreroEmail: c.tesoreroCorreo, tesoreroTelefono: c.tesoreroTelefono,
                 pastorEmail: c.pastorCorreo, pastorTelefono: c.pastorTelefono,
-                secretarioNombre: c.secretarioNombre, secretarioCargo: c.secretarioCargo,
-                imprimirFirmas: c.imprimirFirmas))
+                secretarioNombre: c.secretarioNombre,
+                imprimirFirmas: c.imprimirFirmas,
+                pastorCargo: oNulo(c.pastorCargo),
+                tesoreroCargo: oNulo(c.tesoreroCargo),
+                secretarioCargo: oNulo(c.secretarioCargo)))
             .eq("id", value: id)
             .select("id")
             .execute()
@@ -1811,15 +1827,15 @@ final class MotorSincronizacion {
         c.logoPath = r.logoPath ?? ""
         c.saldoInicial = r.saldoInicial ?? 0
         c.pastorNombre = r.pastorNombre ?? ""
-        c.pastorCargo = r.pastorCargo ?? "Pastor"
+        c.pastorCargo = Catalogos.Cargos.sinSemilla(r.pastorCargo)
         c.tesoreroNombre = r.tesoreroNombre ?? ""
-        c.tesoreroCargo = r.tesoreroCargo ?? "Tesorero"
+        c.tesoreroCargo = Catalogos.Cargos.sinSemilla(r.tesoreroCargo)
         c.tesoreroCorreo = r.tesoreroEmail ?? ""
         c.tesoreroTelefono = r.tesoreroTelefono ?? ""
         c.pastorCorreo = r.pastorEmail ?? ""
         c.pastorTelefono = r.pastorTelefono ?? ""
         c.secretarioNombre = r.secretarioNombre ?? ""
-        c.secretarioCargo = r.secretarioCargo ?? "Secretario"
+        c.secretarioCargo = Catalogos.Cargos.sinSemilla(r.secretarioCargo)
         c.imprimirFirmas = r.imprimirFirmas ?? true
         c.tesoreroVePadron = r.tesoreroVePadron ?? false
         c.tesoreroPuedeEliminar = r.tesoreroPuedeEliminar ?? true

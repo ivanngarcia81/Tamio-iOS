@@ -247,6 +247,56 @@ enum Catalogos {
              L.t("Pastor", "Pastor"),
              L.t("Administrador", "Administrator")]
         }
+
+        enum Puesto { case pastor, tesorero, secretaria }
+
+        /// **El cargo cuando la iglesia no ha escrito ninguno.** No es un
+        /// valor guardado: es lo que se enseña y se imprime mientras la
+        /// columna esté vacía, y se traduce con la app.
+        ///
+        /// Es la regla del app web, que la resuelve al imprimir
+        /// (`church.secretaria_cargo ?? t("cartas.rolSecretaria")`) y deja la
+        /// columna NULA. iOS hacía lo contrario: la omisión era un literal
+        /// español dentro del modelo y otro dentro de la bajada, así que el
+        /// primer aparato que guardara Ajustes escribía "Secretario" en la
+        /// columna COMPARTIDA y le apagaba al web su traducción para siempre.
+        /// De paso, la fila de Cargo enseñaba "Tesorero" con la app en inglés
+        /// mientras su propio Picker ofrecía "Treasurer".
+        static func omision(_ p: Puesto) -> String {
+            switch p {
+            case .pastor:     return L.t("Pastor", "Pastor")
+            case .tesorero:   return L.t("Tesorero", "Treasurer")
+            // "Secretaria" y no "Secretario": es lo que dice el web
+            // (`cartas.rolSecretaria`) y lo que dice el rótulo del campo de
+            // al lado, "Nombre de la secretaria".
+            case .secretaria: return L.t("Secretaria", "Secretary")
+            }
+        }
+
+        /// El cargo escrito si lo hay; si no, la omisión traducida.
+        static func cargo(_ escrito: String, o p: Puesto) -> String {
+            let s = escrito.trimmingCharacters(in: .whitespaces)
+            return s.isEmpty ? omision(p) : s
+        }
+
+        /// **Lo que baja del servidor, sin la semilla vieja.**
+        ///
+        /// Vaciar la columna en el aparato no bastaba: la siguiente bajada
+        /// traía "Secretario" otra vez, porque el servidor lo tiene escrito
+        /// desde que alguna versión anterior lo subió. Aquí se reconoce esa
+        /// semilla exacta y se trata como lo que era, un hueco.
+        ///
+        /// No hay forma de distinguirla de un "Tesorero" tecleado a mano, y no
+        /// hace falta: vacío se imprime igual "Tesorero" en español y
+        /// "Treasurer" en inglés, que es lo que esa iglesia quiere en los dos
+        /// casos. Un cargo que NO sea la semilla —"Tesorera", "Pastor
+        /// asociado"— no se toca nunca.
+        static func sinSemilla(_ s: String?) -> String {
+            let v = (s ?? "").trimmingCharacters(in: .whitespaces)
+            return semillasViejas.contains(v) ? "" : v
+        }
+
+        static let semillasViejas: Set<String> = ["Pastor", "Tesorero", "Secretario"]
     }
 
     static var metodos: [String] {
