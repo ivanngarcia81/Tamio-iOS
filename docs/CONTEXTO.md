@@ -2867,6 +2867,47 @@ tiempo. Va aparte del §6 justamente para no mezclarla con lo que sí se program
 
 Cada punto dice **qué hacer**, **qué mirar** y **cómo saber que salió bien**.
 
+### A.0 Cómo se pone la app en un aparato de verdad
+
+Anotado el 8 de septiembre después de tropezar cuatro veces. No es difícil,
+pero ninguno de los pasos es el que parece:
+
+- **`xcodebuild install` NO instala en el aparato.** Es la acción `install` de
+  Xcode: copia el producto a un DSTROOT y se queda tan ancha. Se pierde un
+  rato entero mirando cómo compila algo que no va a ninguna parte.
+- Lo que sí instala es **`devicectl`**, con el `.app` ya compilado:
+
+      xcodebuild -scheme Tamio -destination 'generic/platform=iOS' \
+                 -configuration Debug -allowProvisioningUpdates build
+      xcrun devicectl device install app --device <id> \
+            ~/Library/Developer/Xcode/DerivedData/Tamio-*/Build/Products/Debug-iphoneos/Tamio.app
+
+- **El `--device` es el identificador de `devicectl list devices`**, no el UDID
+  de hardware que enseña `xctrace`. Y al revés: el `-destination` de
+  `xcodebuild` quiere el de hardware. Son dos identificadores distintos para el
+  mismo aparato y no se pueden intercambiar; con el equivocado sale "Unable to
+  find a destination matching the provided destination specifier".
+- **Casi siempre hace falta un SEGUNDO intento.** El primero llega a decir
+  "Acquired tunnel connection to device" y luego falla montando la imagen de
+  desarrollo (`CoreDeviceError 12040`). El segundo pasa. Con el aparato
+  desbloqueado va a la primera.
+- **Por Wi-Fi, y en la misma red que el Mac.** Un aparato con datos móviles
+  sale `unavailable` aunque esté emparejado desde siempre — se detectó porque
+  la barra de estado de las capturas decía `5G` y no Wi-Fi. El cable también
+  vale.
+- Comprobar qué quedó puesto:
+
+      xcrun devicectl device info apps --device <id> | grep -i tamio
+
+  Debe salir `church.tamio.native 1.0.0` **y** `com.tesoreria.app 1.3.5`: la
+  nativa y la publicada conviven, que es justo lo que el bundle id propio
+  compra (§0.-2).
+
+**Al 8 de septiembre: instalada en el iPad Pro.** El iPhone quedó pendiente
+—estaba con datos móviles— y lo pone Iván al llegar a casa.
+
+---
+
 ### A. Entrar con la cuenta y usar la app un rato — LO MÁS IMPORTANTE
 
 Es lo primero de todo, y no por costumbre: el 8 de septiembre se reescribieron
