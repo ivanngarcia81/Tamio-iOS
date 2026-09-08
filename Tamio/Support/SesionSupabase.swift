@@ -126,6 +126,60 @@ final class SesionSupabase {
         ocupada = false
     }
 
+    // MARK: - Recuperar la contraseña
+
+    /// **Paso 1: que Supabase mande un código de seis cifras al correo.**
+    ///
+    /// Es el mismo `resetPasswordForEmail` del web (`Login.tsx`), y **sin URL
+    /// de redirección a propósito**: aquí no se abre ningún enlace, se teclea
+    /// el código en el paso 2. Un enlace de recuperación abriría el navegador
+    /// y dejaría la sesión iniciada FUERA de la app, que es justo lo contrario
+    /// de lo que quiere alguien que está mirando la pantalla de acceso.
+    ///
+    /// Devuelve el mensaje de error, o `nil` si salió.
+    @MainActor
+    func enviarCodigoDeRecuperacion(correo: String) async -> String? {
+        do {
+            try await supabase.auth.resetPasswordForEmail(correo)
+            return nil
+        } catch {
+            if Self.esFalloDeRed(error) { return Self.mensajeSinConexion }
+            return L.t("No se pudo enviar el correo. Intenta de nuevo.",
+                       "Couldn't send the email. Please try again.")
+        }
+    }
+
+    /// **Paso 2: canjear el código y poner la contraseña nueva.**
+    ///
+    /// `verifyOTP` con `.recovery` **deja la sesión iniciada**, así que al
+    /// terminar se entra directo y no se le pide la contraseña recién puesta a
+    /// quien acaba de escribirla. Es el mismo camino que el web.
+    ///
+    /// Los dos errores se distinguen —código malo y contraseña rechazada—
+    /// porque el remedio no es el mismo: uno se arregla pidiendo otro código y
+    /// el otro escribiendo algo más largo.
+    @MainActor
+    func cambiarContrasena(correo: String, codigo: String, nueva: String) async -> String? {
+        guard !ocupada else { return nil }
+        ocupada = true
+        defer { ocupada = false }
+        do {
+            _ = try await supabase.auth.verifyOTP(email: correo, token: codigo, type: .recovery)
+        } catch {
+            if Self.esFalloDeRed(error) { return Self.mensajeSinConexion }
+            return L.t("Código inválido o vencido.", "Invalid or expired code.")
+        }
+        do {
+            let usuario = try await supabase.auth.update(user: UserAttributes(password: nueva))
+            await adoptar(uid: usuario.id.uuidString,
+                          correo: usuario.email ?? correo, permitirCache: false)
+            return nil
+        } catch {
+            if Self.esFalloDeRed(error) { return Self.mensajeSinConexion }
+            return L.t("No se pudo cambiar la contraseña.", "Couldn't change the password.")
+        }
+    }
+
     /// **Borra la cuenta en el servidor.** Requisito 5.1.1(v) de Apple.
     ///
     /// La hace la Edge Function `borrar-cuenta`, que YA existe y es la misma
