@@ -50,6 +50,16 @@ targets:
         # Se MEZCLA con el plist generado. Solo lleva `CFBundleLocalizations`,
         # que no tiene ajuste `INFOPLIST_KEY_` y no hay otra forma de poner.
         INFOPLIST_FILE: Config/Info.plist
+        # **Los tres permisos van en INGLÉS aquí**, que es la región de
+        # desarrollo del proyecto: son el valor BASE, el que se usa cuando el
+        # idioma del aparato no es ninguno de los dos. El español vive en
+        # `Tamio/es.lproj/InfoPlist.strings`.
+        #
+        # Estaban solo en el `.pbxproj` y solo en español, así que un usuario
+        # en inglés veía tres diálogos del sistema en español.
+        INFOPLIST_KEY_NSCameraUsageDescription: "To photograph the bank receipt when recording a deposit."
+        INFOPLIST_KEY_NSFaceIDUsageDescription: "To unlock Tamio with your face instead of typing your password every time."
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "To attach a photo of the bank receipt to a deposit."
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         # **El teléfono, solo en vertical.** En apaisado el iPhone grande pasa
         # a clase de tamaño regular y la app se dibuja como en iPad —lista y

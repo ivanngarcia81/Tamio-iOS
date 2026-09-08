@@ -130,6 +130,7 @@
 		BC1AFDA08D32D431C8636A4C /* TamioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB8A95AD4951F784685174A /* TamioApp.swift */; };
 		C10D7EC23F4FDFE27435DC81 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 12E0985809A88DD8A5848115 /* Assets.xcassets */; };
 		F395252D068CC31266C4D32B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D7A28102D6F004494EE8FCFA /* PrivacyInfo.xcprivacy */; };
+		6EFCFB236B175DE2FAE05B34 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = E00A7D27D9CCECDEE73AF2BA /* InfoPlist.strings */; };
 		C317B0F66038A628D14A67FA /* ActasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D014F01B5FC4BD495876EBD4 /* ActasView.swift */; };
 		C939626C1FC08A782F5A721A /* RegistroViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67090E139352F07F95F36587 /* RegistroViewModel.swift */; };
 		CC1C0905A1DF798DD2381AB6 /* ServiciosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F4F4B41C31BFF9EFEE087B /* ServiciosView.swift */; };
@@ -187,6 +188,8 @@
 		1283425908338B34926D5B4A /* ServiciosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiciosRepository.swift; sourceTree = "<group>"; };
 		12E0985809A88DD8A5848115 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D7A28102D6F004494EE8FCFA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7B2F8D650BDB2FB98A40A8EF /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		A3CB65C5EF30D0C5BEB3901E /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		15A5130CEB89DC504039D507 /* Revision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Revision.swift; sourceTree = "<group>"; };
 		1E31171D90F95C88B95D2E62 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		109DD5E630497B0000E781A1 /* ConfiguracionIglesiaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracionIglesiaViewModel.swift; sourceTree = "<group>"; };
@@ -313,6 +316,7 @@
 			children = (
 				12E0985809A88DD8A5848115 /* Assets.xcassets */,
 				D7A28102D6F004494EE8FCFA /* PrivacyInfo.xcprivacy */,
+				E00A7D27D9CCECDEE73AF2BA /* InfoPlist.strings */,
 				4BB8A95AD4951F784685174A /* TamioApp.swift */,
 				F1259A5B41E02AB14CF915FA /* Data */,
 				9DBC70A847AAF5F81E713770 /* Models */,
@@ -558,6 +562,7 @@
 			knownRegions = (
 				Base,
 				en,
+				es,
 			);
 			mainGroup = 3B3CC432189BA6C0914DF9D8;
 			minimizedProjectReferenceProxies = 1;
@@ -575,6 +580,18 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXVariantGroup section */
+		E00A7D27D9CCECDEE73AF2BA /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7B2F8D650BDB2FB98A40A8EF /* en */,
+				A3CB65C5EF30D0C5BEB3901E /* es */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
 /* Begin PBXResourcesBuildPhase section */
 		37CC1D52623A9272A6B13F7D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
@@ -582,6 +599,7 @@
 			files = (
 				C10D7EC23F4FDFE27435DC81 /* Assets.xcassets in Resources */,
 				F395252D068CC31266C4D32B /* PrivacyInfo.xcprivacy in Resources */,
+				6EFCFB236B175DE2FAE05B34 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -745,9 +763,9 @@
 				DEVELOPMENT_TEAM = 4N9XEU7F4P;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/Info.plist;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Para fotografiar el recibo del banco al registrar un depósito.";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para desbloquear Tamio con tu cara, en vez de escribir la contraseña cada vez.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para adjuntar la foto del recibo del banco a un depósito.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "To photograph the bank receipt when recording a deposit.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "To unlock Tamio with your face instead of typing your password every time.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "To attach a photo of the bank receipt to a deposit.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -770,9 +788,9 @@
 				DEVELOPMENT_TEAM = 4N9XEU7F4P;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/Info.plist;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Para fotografiar el recibo del banco al registrar un depósito.";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para desbloquear Tamio con tu cara, en vez de escribir la contraseña cada vez.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Para adjuntar la foto del recibo del banco a un depósito.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "To photograph the bank receipt when recording a deposit.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "To unlock Tamio with your face instead of typing your password every time.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "To attach a photo of the bank receipt to a deposit.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

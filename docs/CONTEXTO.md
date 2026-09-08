@@ -2302,13 +2302,27 @@ Dos reglas que salen de ahí:
   demuestra que algo no subió es la cola vacía; lo que demuestra qué subió es
   la tabla.
 
-### El idioma de prueba NO se cambia con `-AppleLanguages`
+### El idioma de prueba: qué manda y qué cambió
 
-La app no tiene `es.lproj`, así que `Locale.current` cae a inglés y la app sigue
-en inglés aunque el argumento diga `(es)`. Quien manda es
-`PreferenciasApp.idiomaGuardado`, en `UserDefaults` bajo **`prefs.idioma`**. En
-una prueba de interfaz se pasa como argumento de lanzamiento:
+Quien manda el idioma de la INTERFAZ es `PreferenciasApp.idiomaGuardado`, en
+`UserDefaults` bajo **`prefs.idioma`**. En una prueba se pasa como argumento:
 `app.launchArguments += ["-prefs.idioma", "espanol"]`.
+
+**Lo que decía aquí antes ya NO es cierto** y conviene saber por qué. Decía que
+`-AppleLanguages (es)` no hacía nada porque la app no tenía `es.lproj` y
+`Locale.current` caía a inglés. Dos cosas cambiaron el 8 de septiembre:
+
+1. El caso "Automático" pasó a mirar `Locale.preferredLanguages` —la lista del
+   APARATO— en vez de `Locale.current`, así que `-AppleLanguages (es-MX)` sí
+   mueve la app.
+2. Y ahora existen `en.lproj` y `es.lproj` de verdad, con los textos de los
+   permisos. `Locale.current` ya resuelve a español en un aparato en español.
+
+Eso último arregla de paso `L.locale`: comparaba contra `Locale.current`, que
+siempre daba inglés, así que en español devolvía un `Locale(identifier: "es")`
+genérico y **perdía la región**. Ahora conserva `es_MX`, que es lo que su
+propio comentario decía querer. Comprobado con la app corriendo en es-MX:
+"Martes 8 de septiembre" y los meses del gráfico en español.
 
 ### La tira de informes SÍ se ve en el teléfono, y es correcto
 

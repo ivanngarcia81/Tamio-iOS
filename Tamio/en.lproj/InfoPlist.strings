@@ -1,0 +1,13 @@
+/* Los tres diálogos de permiso que enseña iOS, en inglés.
+
+   El valor BASE del Info.plist es este mismo inglés —la región de desarrollo
+   del proyecto es `en`—, así que un idioma que la app no habla también cae
+   aquí. El español vive en `es.lproj`.
+
+   Antes no existía ninguno de los dos archivos: los tres textos iban solo en
+   español dentro de los ajustes de compilación, y un usuario en inglés veía
+   tres diálogos del sistema en español. */
+
+"NSCameraUsageDescription" = "To photograph the bank receipt when recording a deposit.";
+"NSFaceIDUsageDescription" = "To unlock Tamio with your face instead of typing your password every time.";
+"NSPhotoLibraryUsageDescription" = "To attach a photo of the bank receipt to a deposit.";

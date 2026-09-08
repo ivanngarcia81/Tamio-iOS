@@ -1,0 +1,5 @@
+/* Los tres diálogos de permiso que enseña iOS, en español. Ver `en.lproj`. */
+
+"NSCameraUsageDescription" = "Para fotografiar el recibo del banco al registrar un depósito.";
+"NSFaceIDUsageDescription" = "Para desbloquear Tamio con tu cara, en vez de escribir la contraseña cada vez.";
+"NSPhotoLibraryUsageDescription" = "Para adjuntar la foto del recibo del banco a un depósito.";
