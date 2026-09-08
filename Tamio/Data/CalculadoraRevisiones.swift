@@ -199,7 +199,11 @@ extension CalculadoraRevisiones {
             id: "tx-\(m.id)-\(tipo.rawValue)",
             tipo: tipo,
             concepto: m.titular,
-            detalleLista: "\(m.registradoPor) · \(fecha(m))",
+            // Solo las partes que traen algo. Un movimiento capturado sin
+            // autor —los del web de prueba, por ejemplo— salía como
+            // "· Aug 14, 2026", con el punto colgando delante de la fecha.
+            // Es la misma forma que ya usan la agenda y la ficha del culto.
+            detalleLista: [m.registradoPor, fecha(m)].filter { !$0.isEmpty }.joined(separator: " · "),
             descripcion: descripcion,
             seccionTitulo: m.esIngreso ? L.t("EL INGRESO", "ENTRY DETAILS")
                                        : L.t("EL GASTO", "EXPENSE DETAILS"),
@@ -273,8 +277,9 @@ extension CalculadoraRevisiones {
             id: "co-\(c.id)-firma",
             tipo: .faltaFirma,
             concepto: c.titulo,
-            detalleLista: L.t("\(Money.fmt(c.montoTotal)) · \(c.registro.cuenta)",
-                              "\(Money.fmt(c.montoTotal)) · \(c.registro.cuenta)"),
+            // Igual que arriba: un corte sin cuenta no lleva el punto colgando.
+            // (El `L.t` que había aquí tenía el mismo texto en los dos idiomas.)
+            detalleLista: [Money.fmt(c.montoTotal), c.registro.cuenta].filter { !$0.isEmpty }.joined(separator: " · "),
             descripcion: c.conteoDescuadra
                 ? L.t("Alguien contó este corte y NO cuadró: contó \(Money.fmt(c.segundaConteo ?? 0)) y el corte suma \(Money.fmt(c.montoTotal)). La cifra quedó anotada sin firma.",
                       "Someone counted this cut and it did NOT add up: they counted \(Money.fmt(c.segundaConteo ?? 0)) and the cut totals \(Money.fmt(c.montoTotal)). The figure was recorded unsigned.")
