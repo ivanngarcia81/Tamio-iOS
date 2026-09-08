@@ -500,11 +500,8 @@ struct MembresiaView: View {
     @ViewBuilder
     private var listaCuerpo: some View {
         List {
-            // **Solo en Miembros.** El padrón es la lista a la que se añade
-            // una persona: Seguimiento es una lista de alertas —de ahí no
-            // nace un alta— y Asistencia ni siquiera es una lista. En iPad la
-            // barra es de la pantalla entera y el `+` cabe de sobra, así que
-            // allí sigue arriba y esta fila no se dibuja.
+            // Seguimiento es una lista de alertas y las demás vistas son el
+            // padrón: distinta fila, mismo cuerpo.
             if subtab == 2 {
                 ForEach(vm.itemsSeguimiento) { m in
                     filaSeguimiento(m)
@@ -522,35 +519,6 @@ struct MembresiaView: View {
     }
 
     // MARK: - Filas de lista
-
-    /// La misma forma que las otras dos filas de alta de la app —la categoría
-    /// nueva de Ajustes y el dinero sin depositar de un corte—: `plus.circle`
-    /// relleno y el texto, los dos en la marca.
-    ///
-    /// Va con `filaDeLista` y con el icono al ancho del `Avatar` para que sea
-    /// una tarjeta más de la lista y no un renglón suelto: el nombre "Nuevo
-    /// miembro" arranca en la misma vertical que los 248 nombres de abajo.
-    private var filaNuevoMiembro: some View {
-        Button { mostrarNuevo = true } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(Paleta.brand)
-                    .frame(width: 38, height: 38)
-                Text(L.t("Nuevo miembro", "New member"))
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Paleta.brand)
-                Spacer(minLength: 6)
-            }
-            .padding(.vertical, 10)
-            // El `Spacer` deja el `HStack` del ancho de la fila, pero el área
-            // de toque de un `Button` es su etiqueta: sin esto, tocar el aire
-            // de la derecha no abre nada, y es donde cae el pulgar.
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .filaDeLista(seleccionada: false, tarjeta: true)
-    }
 
     private func filaMiembro(_ m: Miembro) -> some View {
         let esSel = m.id == vm.seleccionId

@@ -2256,11 +2256,22 @@ tarde: al devolverle el chevron el sistema **tiró el `+` sin avisar** —la bar
 pasaba a `Secretary, Search, Members (8), More filters` y desaparecía dar de
 alta—, que es exactamente el límite de la quinta cápsula que ya documenta §4.
 
-**Resuelto: el alta bajó a la lista.** `MembresiaView.listaCuerpo` abre con una
+**Resuelto: el alta bajó a la lista.** `MembresiaView.listaCuerpo` abría con una
 fila "Nuevo miembro" —`plus.circle.fill` y el texto en la marca, con el icono al
 ancho del `Avatar` para que el nombre arranque en la misma vertical que los
 demás—, y `botonNuevo` desapareció de la barra del teléfono. Así **las seis
 pantallas de Secretaría tienen chevron**.
+
+> **YA NO ES ASÍ, y todo lo que sigue de este apartado cuenta un estado que se
+> deshizo.** Cuando la lupa de Membresía se fue al cajón —el mismo truco que
+> Movimientos, ver "Tesorería y el Dashboard"— la barra bajó a cuatro cápsulas y
+> el `+` volvió arriba: hoy es `Secretary · Members (7) · More filters · New`.
+> La fila "Nuevo miembro" dejó de dibujarse entonces, pero `filaNuevoMiembro` se
+> quedó en el archivo sin que la llamara nadie, y el comentario de `listaCuerpo`
+> siguió describiéndola. Los dos se quitaron el **8 de septiembre**, recorriendo
+> la pantalla: en el teléfono NO hay fila de alta, se da de alta con el `+`.
+> Lo que sigue vale como historia de por qué se decidió, no como descripción de
+> lo que hay.
 
 Se eligió frente a la otra salida —bajar el selector a un segmentado como el de
 iPad— por dos costos medidos: el conteo de la etiqueta es lo único que dice
