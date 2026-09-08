@@ -5,8 +5,112 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **7 de septiembre de 2026**, al cerrar los arreglos
-visuales del iPad (§0.0).
+Última actualización: **7 de septiembre de 2026**, al cerrar el español que
+asomaba con la app en inglés (§0.-1).
+
+---
+
+## 0.-1 El español que asomaba con la app en inglés
+
+Iván mandó una captura de **Ajustes · Institución en inglés** con las siete
+sugerencias grises en español —"p. ej. Nuevo León", "p. ej. Lucía Márquez"— y
+una frase: *"Si la app está en inglés no debería salir esto en español"*. De
+ahí salieron **dos fallos distintos**, y el segundo no era de interfaz.
+
+### Uno: diecisiete ejemplos sin pasar por `L.t`
+
+Cinco en Iglesia, siete en Institución, dos en Tesorero y pastor, el correo de
+la invitación en Acceso, el de la ficha de Membresía y uno del iPad.
+
+**El criterio ya existía y no hubo que inventarlo**: el iPad traducía los suyos
+CAMBIANDO el ejemplo —"Nuevo León" → "New Jersey", "Lucía Márquez Peña" →
+"Jane Smith"—, que es lo único que tiene sentido en un campo de ejemplo. El
+teléfono nunca recibió esa pasada. Es la misma forma de fallo que tenían las dos
+tablas de iconos antes de `SeccionAjustes`: un dato con dos dueños que se
+separan.
+
+Dos cosas que solo se supieron mirando, no leyendo:
+
+- **El ejemplo del iPad NO cabe en el teléfono.** "e.g. 1420 Constitution Ave."
+  salía cortado con puntos suspensivos. El teléfono lleva uno corto; el iPad
+  conserva el suyo, que allí entra de sobra.
+- **La maqueta llena todos los campos, así que el ejemplo NO SE VE NUNCA** con
+  los datos de muestra. Hay que vaciar `MockConfiguracionIglesiaRepository` en
+  la copia para que asome. Es lo que hace `pruebas/EjemplosEnInglesUITests.swift`.
+
+Y una del método: **el grep que los encontró se comió `correo@ejemplo.com`**
+—ni tildes ni artículos—. Apareció en la foto, no en el barrido. Un detector de
+español que solo busca acentos deja fuera justo los literales técnicos, que son
+los que más se olvidan.
+
+### Dos: el cargo por omisión, que no era interfaz sino dato
+
+En esa misma fila, **"Title · Secretario" no era una sugerencia gris: era un
+valor guardado.** `ConfiguracionIglesia` traía `pastorCargo = "Pastor"`,
+`tesoreroCargo = "Tesorero"` y `secretarioCargo = "Secretario"`, y los tres
+suben tal cual a `iglesias.pastor_cargo`, `tesorero_cargo` y `secretaria_cargo`.
+
+**El web lo resuelve al revés, y aquí manda él**: deja la columna NULA y traduce
+al imprimir (`church.secretaria_cargo ?? t("cartas.rolSecretaria")`). O sea que
+en cuanto un iPhone guardaba Ajustes · Iglesia escribía "Secretario" en la
+columna compartida y **le apagaba al web su traducción para siempre**. Se veía
+además en Tesorero y pastor: la fila decía "Tesorero" mientras su propio Picker
+ofrecía "Treasurer".
+
+Lo que más vale guardar de esta parte:
+
+1. **`Catalogos.Cargos` ya había arreglado esto para las OPCIONES del Picker**,
+   con un comentario que describe el fallo entero. Las omisiones del modelo se
+   quedaron atrás. Cuando un comentario cuenta un fallo, conviene preguntarse
+   si el arreglo llegó a todos sus lados.
+2. **Vaciar en el aparato no bastaba.** La siguiente bajada traía "Secretario"
+   otra vez, porque el servidor lo tiene escrito desde que una versión anterior
+   lo subió. Por eso la semilla se reconoce también AL BAJAR
+   (`Catalogos.Cargos.sinSemilla`). Un arreglo que solo mira la escritura deja
+   la lectura resucitándolo.
+3. **La subida manda NULO, no `""`.** El `??` del web solo salta con nulo: una
+   cadena vacía le dejaría el pie de la carta sin cargo en vez de traducido.
+4. **La v26 vacía solo lo que es EXACTAMENTE la semilla.** No hay forma de
+   distinguirla de un "Tesorero" tecleado a mano, y no hace falta: vacío se
+   imprime igual "Tesorero" en español y "Treasurer" en inglés, que es lo que
+   esa iglesia quiere en los dos casos. "Tesorera" y "Pastor asociado" no se
+   tocan.
+
+De vocabulario: la omisión de la secretaria pasa a "Secretaria", no
+"Secretario", que es lo que dice el web y lo que ya decía el rótulo de al lado.
+
+### Queda abierto
+
+- **La fila del servidor sigue con la semilla** hasta que alguien guarde Ajustes
+  desde iOS: entonces sube nula y el web recupera su traducción. Si se quiere
+  antes, es un `UPDATE ... SET secretaria_cargo = NULL WHERE secretaria_cargo =
+  'Secretario'` en `iglesias` (y las otras dos). **No se corrió**: el
+  clasificador bloqueó el `select` de comprobación, así que no se llegó a ver
+  qué tiene la fila real.
+- **El resto de la app no se barrió a fondo.** El barrido ampliado dejó unos
+  cuantos candidatos fuera de Ajustes que resultaron falsos —`L.plural`,
+  ternarios sobre `L.esEspanol`, claves de `Chart(.value:)`—, pero el detector
+  no es una garantía: se le escapó uno en la primera pasada. Vive en el
+  historial de esta sesión, no en el repo.
+
+### Cómo se verificó
+
+La receta del §3, con dos apaños que se pueden reutilizar:
+
+- **Una prueba por pantalla, cada una desde cero.** El botón de volver de esta
+  app NO vive en `navigationBars` —es el chevron redondo de `NavHeader`— y
+  buscarlo ahí no devuelve nada. Relanzar sale más barato que perseguirlo.
+- **"Church" es a la vez la fila y el título de su sección**, así que
+  `staticTexts["Church"]` toca la cabecera y no navega. La cabecera NO está
+  dentro de una celda y la fila sí: `app.cells.containing(.staticText,
+  identifier:)` las separa.
+- Las capturas, con el bucle de `simctl io … screenshot` cada dos segundos
+  contra la prueba corriendo en segundo plano, y después agrupando por tamaño
+  de archivo: las pantallas quietas salen repetidas y las de transición no.
+- **Y con el modo revisión encendido en la copia, 43 unitarias se caen.** No es
+  una regresión: en modo revisión los repositorios son maquetas con datos, así
+  que "sin movimientos no inventa nada" recibe cifras de verdad. Hay que
+  apagarlo antes de correr la suite. Con él apagado, **112 en verde**.
 
 ---
 
