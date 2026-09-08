@@ -351,7 +351,7 @@ private struct AjustesCuentaView: View {
                     }
                     Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
                 } message: {
-                    Text(avisoBorrado)
+                    Text(avisoConfirmacion)
                 }
                 if let errorBorrado {
                     Text(errorBorrado).font(.caption).foregroundStyle(Paleta.negativo)
@@ -378,8 +378,17 @@ private struct AjustesCuentaView: View {
     /// en la nube"— sin la condición, así que exagera cuando quedan otros
     /// miembros. Apuntado para el otro repo.
     private var avisoBorrado: String {
-        L.t("Tu cuenta se elimina para siempre. Si eres la única persona con acceso a tu iglesia, se borran TAMBIÉN todos sus datos en la nube: movimientos, miembros, actas y cartas. Si hay más personas, la iglesia sigue y solo se va tu acceso. Esto no se puede deshacer.",
-            "Your account is permanently deleted. If you are the only person with access to your church, ALL of its cloud data goes too: transactions, members, minutes and letters. If there are other people, the church stays and only your access is removed. This cannot be undone.")
+        L.t("Tu cuenta se elimina para siempre. Si eres la única persona con acceso a tu iglesia, se borran TAMBIÉN todos sus datos en la nube: movimientos, miembros, actas y cartas. Si hay más personas, la iglesia sigue y solo se va tu acceso.\n\nPuedes volver a registrarte con el mismo correo, pero eso crea una iglesia NUEVA y vacía: no recuperas nada. Para volver a esta tendría que invitarte un administrador.",
+            "Your account is permanently deleted. If you are the only person with access to your church, ALL of its cloud data goes too: transactions, members, minutes and letters. If there are other people, the church stays and only your access is removed.\n\nYou can sign up again with the same email, but that creates a NEW, empty church: nothing comes back. To return to this one, an administrator would have to invite you.")
+    }
+
+    /// **El diálogo dice menos que el pie, a propósito.** El pie está siempre a
+    /// la vista y puede explicarse; el diálogo es la última pregunta antes de
+    /// una acción sin vuelta, y cuatro frases ahí se leen en diagonal. Aquí van
+    /// solo las dos que cambian la decisión.
+    private var avisoConfirmacion: String {
+        L.t("Se elimina para siempre y no se puede deshacer. Si eres la única persona con acceso, se van también todos los datos de tu iglesia.",
+            "This is permanent and cannot be undone. If you are the only person with access, all of your church's data goes too.")
     }
 
     /// La parte de servidor la hace la Edge Function `borrar-cuenta`, que ya
