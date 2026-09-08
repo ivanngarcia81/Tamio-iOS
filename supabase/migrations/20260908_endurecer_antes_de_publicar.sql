@@ -42,8 +42,10 @@ revoke execute on function public.frenar_borrado_tesorero()     from anon, authe
 -- sustituirle las funciones que llama. Las demás funciones del proyecto ya lo
 -- fijan; esta se quedó fuera.
 --
--- Solo se le añade el `SET`: el cuerpo no cambia.
-alter function public.iglesias_congelar_administradas() set search_path to 'public';
+-- **Ya NO va aquí.** Esta función hay que reescribirla de todas formas —está
+-- bloqueando al webhook de pagos, ver
+-- `20260908_el_plan_lo_mueve_el_servidor.sql`— y el `search_path` va en esa
+-- reescritura, para no tocarla dos veces.
 
 -- 3. **Contraseñas filtradas: la comprobación está APAGADA.**
 --
