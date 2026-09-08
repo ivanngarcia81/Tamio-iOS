@@ -26,9 +26,11 @@ struct DashboardView: View {
     var body: some View {
         scrollContent
             .toolbar { barra }
-            // El `+` baja a la barra inferior del teléfono, como en los dos
-            // pilotos: arriba se queda el segmentado, que es lo que dice qué se
-            // está viendo. En iPad no aplica.
+            // Abajo se queda el saldo en caja, y nada más. El `+` estaba aquí
+            // —así lo pedían los dos pilotos— y subió arriba a la derecha, que
+            // es donde lo pide cualquier otra pantalla de la app: Ingresos,
+            // Miembros, Cartas y Actas tienen su "Nuevo" en `topBarTrailing`,
+            // e Inicio era la única que lo escondía en la esquina de abajo.
             .safeAreaInset(edge: .bottom) { barraInferior }
             .sheet(isPresented: $mostrarNuevo) {
                 NuevoMovimientoView(tipo: .ingreso, folio: folioNuevo, existente: nil) { m in
@@ -54,18 +56,23 @@ struct DashboardView: View {
     @ToolbarContentBuilder
     private var barra: some ToolbarContent {
         if esIPad {
-            ToolbarItem(placement: .topBarTrailing) { botonNuevo }
+            ToolbarItem(placement: .topBarTrailing) { botonNuevo(soloMas: false) }
         } else {
             ToolbarItem(placement: .title) {
                 segmentado.frame(maxWidth: 240)
             }
+            // **Solo el signo, sin la palabra.** El segmentado del título ya
+            // ocupa el centro de la barra y sobre un teléfono no queda ancho
+            // para "Nuevo" al lado sin apretarlo. El nombre no se pierde: va
+            // en la etiqueta de accesibilidad, que es donde lo lee VoiceOver.
+            ToolbarItem(placement: .topBarTrailing) { botonNuevo(soloMas: true) }
         }
     }
 
     @ViewBuilder
     private var barraInferior: some View {
         if !esIPad, let d = vm.data {
-            BarraInferior { botonNuevo } resumen: {
+            BarraInferior { EmptyView() } resumen: {
                 // El saldo en caja encabeza la pantalla, pero se pierde al
                 // primer desplazamiento: es el dato que el tesorero compara, y
                 // en la cápsula sigue a la vista todo el rato.
@@ -78,17 +85,22 @@ struct DashboardView: View {
         }
     }
 
-    private var botonNuevo: some View {
+    private func botonNuevo(soloMas: Bool) -> some View {
         Button {
             Task {
                 folioNuevo = await movimientosRepo.siguienteFolio(tipo: .ingreso)
                 mostrarNuevo = true
             }
         } label: {
-            Label(L.t("Nuevo", "New"), systemImage: "plus")
+            if soloMas {
+                Image(systemName: "plus")
+            } else {
+                Label(L.t("Nuevo", "New"), systemImage: "plus")
+            }
         }
         .buttonStyle(.glass)
         .tint(Paleta.brand)
+        .accessibilityLabel(L.t("Nuevo", "New"))
     }
 
     /// Guarda y recarga los indicadores. Un fallo se avisa: dar por guardado
