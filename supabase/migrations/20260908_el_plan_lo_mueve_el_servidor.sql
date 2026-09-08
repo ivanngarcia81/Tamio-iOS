@@ -1,5 +1,17 @@
 -- **El disparador que protege el plan estaba bloqueando también al servidor.**
--- NO APLICADA todavía: la corre Iván.
+--
+-- APLICADA el 8 de septiembre de 2026 por Iván desde el SQL Editor, y
+-- verificada después en las DOS direcciones sobre la iglesia vacía
+-- `bc682973`, dentro de un bloque que se deshace solo:
+--
+--   * como `postgres`  → el `update` PASA (`sub_estado` quedó en "vencida").
+--   * como `authenticated`, haciéndose pasar por un miembro de esa iglesia
+--     → tocó 1 fila pero el disparador lo CONGELÓ (`sub_estado` siguió en
+--     "activa"). Que toque la fila y no cambie nada es justo lo que se busca:
+--     RLS le deja escribir su iglesia, y el disparador le quita el plan.
+--
+-- La segunda prueba es la que importa. Sin ella solo sabríamos que se abrió la
+-- puerta, no que sigue cerrada para quien debe.
 --
 -- `iglesias_congelar_administradas` se añadió el 7 de septiembre junto con la
 -- política de UPDATE, y hace bien lo que se le pidió: que nadie se cambie el
