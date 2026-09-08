@@ -363,7 +363,10 @@ final class MotorSincronizacion {
 
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("members").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("members")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "members", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("members").update(cuerpo)
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
@@ -421,7 +424,10 @@ final class MotorSincronizacion {
                                     deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("servicios").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("servicios")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "servicios", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("servicios").update(cuerpo)
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
@@ -492,7 +498,10 @@ final class MotorSincronizacion {
             deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("agenda").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("agenda")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "agenda", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("agenda").update(cuerpo)
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
@@ -570,7 +579,10 @@ final class MotorSincronizacion {
             deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("actas").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("actas")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "actas", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("actas").update(cuerpo)
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
@@ -747,7 +759,10 @@ final class MotorSincronizacion {
             deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("cartas").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("cartas")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "cartas", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("cartas").update(cuerpo)
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
@@ -857,7 +872,10 @@ final class MotorSincronizacion {
         let cuerpo = ApunteEscritura(fila, churchId: churchIdActivo, deleted: fila.borrado)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("registro").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("registro")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "registro", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("registro").update(cuerpo)
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
@@ -1043,7 +1061,10 @@ final class MotorSincronizacion {
                                          deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("servicio_asistencia").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("servicio_asistencia")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "servicio_asistencia", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("servicio_asistencia").update(cuerpo)
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
@@ -1076,7 +1097,10 @@ final class MotorSincronizacion {
             deleted: f.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("servicio_puestos").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("servicio_puestos")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "servicio_puestos", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("servicio_puestos").update(cuerpo)
                 .eq("uid", value: f.id).eq("church_id", value: churchIdActivo)
@@ -1107,7 +1131,10 @@ final class MotorSincronizacion {
             deleted: f.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("servicio_orden").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("servicio_orden")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "servicio_orden", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("servicio_orden").update(cuerpo)
                 .eq("uid", value: f.id).eq("church_id", value: churchIdActivo)
@@ -1476,7 +1503,10 @@ final class MotorSincronizacion {
                                       deleted: op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("members").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("members")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "members", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("members").update(cuerpo)
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
@@ -1512,7 +1542,10 @@ final class MotorSincronizacion {
             deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
-            try await supabase.from("parentescos").insert(cuerpo).execute()
+            let tocadas: [FilaTocada] = try await supabase.from("parentescos")
+                .upsert(cuerpo, onConflict: "uid")
+                .select("uid").execute().value
+            try exigir(tocadas, tabla: "parentescos", op)
         case .actualizar, .eliminar:
             let tocadas: [FilaTocada] = try await supabase.from("parentescos").update(cuerpo)
                 .eq("uid", value: fila.id).eq("church_id", value: churchIdActivo)
