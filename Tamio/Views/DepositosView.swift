@@ -235,6 +235,7 @@ struct DepositosView: View {
                 Text(Money.fmt(vm.pendientesMonto))
                     .fontWeight(.semibold)
                     .foregroundStyle(Paleta.aviso)
+                    .lineLimit(1).minimumScaleFactor(0.5)
             }
             .font(.footnote)
             .monospacedDigit()
@@ -298,6 +299,7 @@ struct DepositosView: View {
                 Spacer(minLength: 6)
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(Money.fmt(c.montoTotal)).font(.subheadline.weight(.semibold)).monospacedDigit()
+                        .lineLimit(1).minimumScaleFactor(0.5)
                     if c.sinDepositar {
                         Text(L.t("Sin depositar", "Not deposited"))
                             .font(.caption2.weight(.semibold))

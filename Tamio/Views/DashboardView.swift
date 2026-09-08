@@ -81,6 +81,7 @@ struct DashboardView: View {
                     Text(Money.fmt(d.saldoCaja)).fontWeight(.semibold)
                 }
                 .font(.footnote).monospacedDigit()
+                .lineLimit(1).minimumScaleFactor(0.5)
             }
         }
     }

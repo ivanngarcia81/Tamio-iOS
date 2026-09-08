@@ -231,6 +231,7 @@ struct MovimientosView: View {
             Text(Money.firmado(vm.total, ingreso: vm.tipo == .ingreso))
                 .fontWeight(.semibold)
                 .foregroundStyle(Money.color(ingreso: vm.tipo == .ingreso))
+                .lineLimit(1).minimumScaleFactor(0.5)
         }
         .font(.footnote)
         .monospacedDigit()
@@ -390,9 +391,16 @@ struct MovimientosView: View {
                             }
                     }
                 } header: {
+                    // **Sin `.foregroundStyle(.secondary)`.** La cabecera de una
+                    // `Section` ya se pinta en secundario, y los estilos
+                    // jerárquicos se COMPONEN: secundario sobre secundario da
+                    // terciario. Medido en pantalla con la app corriendo —"HOY
+                    // · MARTES 8 SEP" y "LUNES 7 SEP"—, 1.74:1 en claro y
+                    // 2.48:1 en oscuro, cuando la propia cabecera sin pintar
+                    // da 3.4:1. El mínimo de texto normal es 4.5:1, así que
+                    // esto no lo arregla del todo, pero deja de restar.
                     Text(grupo.encabezado)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
                         .textCase(nil)
                 }
             }
@@ -634,6 +642,7 @@ struct MovimientosView: View {
                         Text(Money.firmado(vm.total, ingreso: vm.tipo == .ingreso))
                             .monospacedDigit().fontWeight(.semibold)
                             .foregroundStyle(Money.color(ingreso: vm.tipo == .ingreso))
+                            .lineLimit(1).minimumScaleFactor(0.5)
                     } label: {
                         Text(L.plural(vm.itemsFiltrados.count,
                                       es: "movimiento", en: "entry", enPlural: "entries"))
@@ -801,6 +810,13 @@ struct MovimientosView: View {
                 Text(Money.firmado(m.monto, ingreso: m.esIngreso))
                     .font(.subheadline.weight(.semibold)).monospacedDigit()
                     .foregroundStyle(Money.color(ingreso: m.esIngreso))
+                    // **Una cifra de dinero no se parte.** En AX1 este mismo
+                    // texto salía en dos renglones: el «+» solo arriba y la
+                    // cantidad debajo, en todas las filas. Es la regla que ya
+                    // lleva escrita `AmountText` —una línea y, si no cabe, se
+                    // encoge—, porque truncar un importe («$2,50…») miente y
+                    // partirlo solo afea.
+                    .lineLimit(1).minimumScaleFactor(0.5)
                 // El hueco de la etiqueta se reserva SIEMPRE. Apareciendo solo
                 // cuando hay etiqueta, las filas marcadas eran más altas que
                 // las demás y el monto se desplazaba hacia arriba: el ritmo de

@@ -310,6 +310,7 @@ struct AportanteDetalle: View {
                         Text(ap.concepto).font(.subheadline)
                         Spacer()
                         Text(Money.fmt(ap.monto)).font(.subheadline.weight(.semibold)).monospacedDigit()
+                            .lineLimit(1).minimumScaleFactor(0.5)
                     }
                     .padding(.vertical, 10)
                     if i < a.aportes.count - 1 { Divider() }
@@ -391,6 +392,7 @@ struct AportanteDetalle: View {
                         Text("\(ap.concepto) · \(Fechas.corta(ap.fecha))").font(.subheadline)
                         Spacer()
                         Text(Money.fmt(ap.monto)).font(.subheadline.weight(.semibold)).monospacedDigit()
+                            .lineLimit(1).minimumScaleFactor(0.5)
                     }
                     .padding(.vertical, 6)
                     if i < a.aportesRecientes.count - 1 { Divider() }
