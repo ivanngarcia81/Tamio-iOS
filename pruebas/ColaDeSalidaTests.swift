@@ -69,14 +69,16 @@ final class ColaDeSalidaTests: XCTestCase {
         try await padron.guardar(m)
         try await sembrarMovimiento()
 
-        XCTAssertEqual(try await ordenDeSubida(), ["miembro", "movimiento"],
+        let alEncolar = try await ordenDeSubida()
+        XCTAssertEqual(alEncolar, ["miembro", "movimiento"],
                        "el alta se encoló primero, así que tiene que salir primera")
 
         var corregida = m
         corregida.telefono = "555 1234"
         try await padron.guardar(corregida)
 
-        XCTAssertEqual(try await ordenDeSubida(), ["miembro", "movimiento"],
+        let trasCorregir = try await ordenDeSubida()
+        XCTAssertEqual(trasCorregir, ["miembro", "movimiento"],
                        "corregir la ficha no puede colocar el alta detrás de lo que vino después")
     }
 
@@ -101,7 +103,8 @@ final class ColaDeSalidaTests: XCTestCase {
     /// vale: lo que se releva es el turno, no el contenido.
     func testRelevarConservaElTurnoPeroNoLaOperacionVieja() async throws {
         try await sembrarMovimiento(id: "mov-3")
-        let alta = try await XCTUnwrap(cola().first)
+        let alCrear = try await cola()
+        let alta = try XCTUnwrap(alCrear.first)
 
         try await movimientos.eliminar(id: "mov-3")
 
