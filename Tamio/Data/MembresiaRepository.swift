@@ -14,16 +14,19 @@ protocol MembresiaRepository {
 
 /// Datos falsos que reproducen la pantalla de Membresía del handoff.
 struct MockMembresiaRepository: MembresiaRepository {
-    /// Cifras del padrón completo de la congregación. El hub de Secretaría las
-    /// lee de aquí en vez de llevar su propio número: antes anunciaba "14
-    /// personas" mientras esta misma pantalla encabezaba 248 / 236.
-    /// 236 + 6 + 6 = 248, el total que ya encabezaba la pantalla.
-    static let resumenPadron = MembresiaResumen(
-        activos: 236, inactivos: 6, bajas: 6,
-        nuevos: 14, recibidos: 3, trasladados: 5,
-        ausencias: 9, incompletos: 21)
-
-    func resumen() async -> MembresiaResumen { Self.resumenPadron }
+    /// **Se cuenta el padrón de la maqueta, como hace el repositorio real.**
+    ///
+    /// Aquí había ocho cifras escritas a mano —236 activos, 248 de total, 21
+    /// incompletos— sobre una `lista()` de siete personas. El hub de Secretaría
+    /// y la cabecera de Membresía leen de aquí, así que el modo revisión
+    /// encabezaba 248 encima de un padrón de siete, y eso es lo que salía en
+    /// las capturas. Ahora las dos implementaciones llaman a la MISMA función.
+    ///
+    /// Si algún día hacen falta cifras más grandes para una captura, lo que se
+    /// agranda es la lista de maqueta, no el encabezado.
+    func resumen() async -> MembresiaResumen {
+        MembresiaResumen.de(Self.almacen)
+    }
 
     func asistenciaResumen() async -> AsistenciaResumen {
         AsistenciaResumen(
@@ -179,8 +182,9 @@ struct MockMembresiaRepository: MembresiaRepository {
 /// los dos extremos.
 ///
 /// **Los ocho indicadores se cuentan, no se escriben.** La maqueta tenía
-/// `resumenPadron` como constante y el hub de Secretaría la copiaba; aquí
-/// salen de las filas, con el mismo criterio que `membresiaStats` en el web:
+/// `resumenPadron` como constante y el hub de Secretaría la copiaba; desde el
+/// 8-sep-2026 las dos implementaciones llaman a `MembresiaResumen.de(_:)`, así
+/// que salen de las filas con el mismo criterio que `membresiaStats` en el web:
 /// activos son `activo = 1` con registro "activo", las altas son las de
 /// `fecha_ingreso` en el año, las bajas las de `fecha_baja` en el año.
 ///
@@ -264,22 +268,10 @@ struct OfflineMembresiaRepository: MembresiaRepository {
         }
     }
 
+    /// La cuenta vive en `MembresiaResumen.de(_:)`, junto al modelo que
+    /// devuelve, para que la maqueta llame exactamente a la misma.
     func resumen() async -> MembresiaResumen {
-        let miembros = (try? await lista()) ?? []
-        let año = Calendar.current.component(.year, from: Date())
-        let vivos = miembros.filter { !$0.estado.esBaja }
-        return MembresiaResumen(
-            activos: vivos.filter { $0.estado.registro == .activo }.count,
-            inactivos: vivos.filter { $0.estado.registro != .activo }.count,
-            bajas: miembros.filter { $0.estado.esBaja }.count,
-            nuevos: miembros.filter { $0.esNuevo(en: año) }.count,
-            recibidos: miembros.filter { $0.esNuevo(en: año) && $0.esRecibido }.count,
-            trasladados: miembros.filter { $0.estado.baja?.motivo == "traslado"
-                                            && Int($0.estado.baja?.fecha.prefix(4) ?? "") == año }.count,
-            // Ausencias: dos cultos seguidos o más sin venir, contado de la
-            // asistencia real. Antes era un cero fijo porque no había de dónde.
-            ausencias: vivos.filter(\.tieneAusencias).count,
-            incompletos: vivos.filter { !$0.expedienteCompleto }.count)
+        MembresiaResumen.de((try? await lista()) ?? [])
     }
 
     func asistenciaResumen() async -> AsistenciaResumen {

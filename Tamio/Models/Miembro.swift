@@ -487,6 +487,35 @@ struct MembresiaResumen {
     /// Señales para trabajar, tampoco estados.
     let ausencias, incompletos: Int
 
+    /// **Se calcula del padrón, nunca se escribe a mano.**
+    ///
+    /// Vivía dentro del repositorio real, y la maqueta llevaba su propia copia
+    /// escrita a dedo: 236 activos, 6 inactivos, 6 bajas, 21 incompletos —
+    /// sobre una `lista()` de SIETE personas. El hub de Secretaría y la
+    /// cabecera de Membresía leen de aquí, así que en modo revisión la app
+    /// encabezaba "248" encima de un padrón de siete. Cualquiera que tocara la
+    /// tarjeta veía la contradicción, y de ahí salen las capturas.
+    ///
+    /// Con la cuenta en un solo sitio y las dos implementaciones llamándola,
+    /// el resumen no puede volver a contradecir a la lista de la que sale.
+    static func de(_ miembros: [Miembro]) -> MembresiaResumen {
+        // El año es "este año", una pregunta sobre HOY: calendario local. Las
+        // fechas GUARDADAS se leen en UTC, y por eso la baja se compara por el
+        // prefijo del texto y no parseándola.
+        let año = Calendar.current.component(.year, from: Date())
+        let vivos = miembros.filter { !$0.estado.esBaja }
+        return MembresiaResumen(
+            activos: vivos.filter { $0.estado.registro == .activo }.count,
+            inactivos: vivos.filter { $0.estado.registro != .activo }.count,
+            bajas: miembros.filter { $0.estado.esBaja }.count,
+            nuevos: miembros.filter { $0.esNuevo(en: año) }.count,
+            recibidos: miembros.filter { $0.esNuevo(en: año) && $0.esRecibido }.count,
+            trasladados: miembros.filter { $0.estado.baja?.motivo == "traslado"
+                                            && Int($0.estado.baja?.fecha.prefix(4) ?? "") == año }.count,
+            ausencias: vivos.filter(\.tieneAusencias).count,
+            incompletos: vivos.filter { !$0.expedienteCompleto }.count)
+    }
+
     /// **El total no se escribe: se suma.** Iba a mano como 248 mientras la
     /// misma tarjeta enseñaba 236 activos y 6 inactivos: había seis personas
     /// que solo existían en el encabezado, y el encabezado es lo que el
