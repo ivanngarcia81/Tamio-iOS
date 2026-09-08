@@ -262,3 +262,175 @@ struct BienvenidaView: View {
         .animation(.easeInOut(duration: 0.2), value: paso)
     }
 }
+
+// MARK: - Configuración inicial
+
+/// **La segunda mitad de la bienvenida, ya con sesión.**
+///
+/// Es el final del `Welcome.tsx` del web —nombre de iglesia, ciudad y moneda—
+/// con sus mismos textos. Aquí va después del acceso y no antes por lo de
+/// siempre: sin `auth.uid()` no se sabe a qué iglesia pertenece nadie.
+///
+/// **Cuándo aparece: cuando la iglesia no tiene nombre Y la bajada ya
+/// terminó.** Las dos condiciones, no una. La primera sola es una trampa
+/// conocida en este repo: la sincronización corre al arrancar, y una pantalla
+/// que se dibuje antes de que acabe ve la iglesia vacía aunque tenga tres años
+/// de datos en el servidor. Al segundo miembro que entra a una iglesia ya
+/// montada no se le puede pedir que la configure otra vez.
+///
+/// **No lleva el "Explorar con datos de ejemplo" del web.** Allí ese botón
+/// siembra la base de la propia iglesia con una congregación ficticia; aquí
+/// eso escribiría en el Supabase de verdad. Lo equivalente en iOS es el modo
+/// revisión, que se enciende al compilar y no se ofrece al usuario.
+///
+/// Cualquier miembro de la iglesia puede guardarla: la política
+/// `actualizar_mi_iglesia` va por `church_id`, no por rol.
+struct ConfiguracionInicialView: View {
+    let alTerminar: () -> Void
+
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    @State private var nombre = ""
+    @State private var ciudad = ""
+    @State private var moneda = Catalogos.monedaPorDefecto.codigo
+    @State private var guardando = false
+    @State private var error: String?
+    @FocusState private var enfocado: Bool
+
+    private var nombreVacio: Bool {
+        nombre.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// **Si hay que pedir la configuración inicial.** Vive aquí y no dentro de
+    /// la raíz para poder probarla: es una regla con dos condiciones y una de
+    /// ellas —la de la sincronización— es justo la que no se ve fallar.
+    ///
+    /// - `nombre` vacío: iglesia recién creada. Es la misma señal que usa el
+    ///   web (`esPrimerArranque` mira `church.nombre`); no hay marca de
+    ///   "configurada" en el esquema, y contar movimientos no vale, porque una
+    ///   iglesia real puede empezar sin ninguno.
+    /// - `ultimaSincronizacion` no nula: la bajada terminó al menos una vez.
+    ///   Sin esto, el primer arranque de un aparato ve la base local en blanco
+    ///   y le pide al segundo miembro de una iglesia ya montada que la
+    ///   configure otra vez — pisándole el nombre.
+    static func haceFalta(nombre: String, ultimaSincronizacion: Date?) -> Bool {
+        guard ultimaSincronizacion != nil else { return false }
+        return nombre.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(spacing: 8) {
+                        Image(systemName: "building.2.fill")
+                            .font(.system(size: 42, weight: .light))
+                            .foregroundStyle(Paleta.brand)
+                        Text(L.t("Bienvenido a Tamio", "Welcome to Tamio"))
+                            .font(.title2.weight(.semibold))
+                        Text(L.t("Configura tu iglesia en un minuto — todo se puede cambiar después en Ajustes.",
+                                 "Set up your church in a minute — everything can be changed later in Settings."))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .listRowBackground(Color.clear)
+                }
+
+                Section {
+                    // Los rótulos van CORTOS, como en el web: en una fila de
+                    // teléfono "Nombre de la iglesia" no deja sitio para
+                    // escribir. El largo se queda en Ajustes, que es donde hay
+                    // espacio y donde se va a volver a leer.
+                    campo(L.t("Iglesia", "Church"), $nombre,
+                          L.t("p. ej. Iglesia Nueva Vida", "e.g. New Life Church"))
+                        .focused($enfocado)
+                        .submitLabel(.go)
+                        .onSubmit { if !nombreVacio { comenzar() } }
+                    campo(L.t("Ciudad", "City"), $ciudad,
+                          L.t("Opcional", "Optional"))
+                    HStack {
+                        Text(L.t("Moneda", "Currency"))
+                            .font(.subheadline).foregroundStyle(.secondary)
+                        Spacer()
+                        Picker("", selection: $moneda) {
+                            ForEach(Catalogos.monedas) { m in
+                                Text("\(m.codigo) \(m.simbolo)").tag(m.codigo)
+                            }
+                        }.labelsHidden()
+                    }
+                } footer: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let error {
+                            Text(error).foregroundStyle(Paleta.negativo)
+                        }
+                        Text(L.t("La moneda se usa en todos los importes y en los PDF. Se puede cambiar después en Ajustes › Iglesia.",
+                                 "The currency is used in every amount and in the PDFs. You can change it later in Settings › Church."))
+                    }
+                }
+                .listRowBackground(Color(.secondarySystemGroupedBackground))
+
+            }
+            .listStyle(.insetGrouped)
+            .navigationBarTitleDisplayMode(.inline)
+            // **El botón fuera de la lista y en una barra de abajo.** Dentro
+            // de la `List` el teclado lo tapaba entero: el campo se enfoca solo
+            // al abrir, así que la primera vista de esta pantalla era un
+            // formulario sin forma de continuar. Un `safeAreaInset` sube con
+            // el teclado, medido con la app corriendo.
+            .safeAreaInset(edge: .bottom) {
+                Button(action: comenzar) {
+                    if guardando {
+                        ProgressView().frame(maxWidth: .infinity)
+                    } else {
+                        Text(L.t("Comenzar", "Get started"))
+                            .frame(maxWidth: .infinity)
+                            .font(.body.weight(.semibold))
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(nombreVacio || guardando)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(.bar)
+            }
+        }
+        .interactiveDismissDisabled()
+        .task {
+            moneda = cfg.config.moneda.isEmpty ? Catalogos.monedaPorDefecto.codigo
+                                               : cfg.config.moneda
+            enfocado = true
+        }
+    }
+
+    private func campo(_ rotulo: String, _ bind: Binding<String>, _ ejemplo: String) -> some View {
+        HStack {
+            Text(rotulo).font(.subheadline).foregroundStyle(.secondary)
+                .frame(maxWidth: 110, alignment: .leading)
+            TextField(ejemplo, text: bind)
+                .font(.subheadline).multilineTextAlignment(.trailing)
+        }
+    }
+
+    /// Guarda y espera. **`guardarYa()` y no dejar que lo recoja el guardado
+    /// diferido**: si la app se cierra en los segundos siguientes, la iglesia
+    /// se queda sin nombre y la pantalla vuelve a salir en el próximo arranque
+    /// como si no se hubiera hecho nada.
+    private func comenzar() {
+        guardando = true
+        error = nil
+        cfg.config.nombre = nombre.trimmingCharacters(in: .whitespaces)
+        cfg.config.ciudad = ciudad.trimmingCharacters(in: .whitespaces)
+        cfg.config.moneda = moneda
+        Task {
+            await cfg.guardarYa()
+            // Que suba ahora y no en el próximo arranque: es el primer dato de
+            // esta iglesia y el web lo está esperando.
+            await MotorSincronizacion.compartido.sincronizar()
+            guardando = false
+            alTerminar()
+        }
+    }
+}

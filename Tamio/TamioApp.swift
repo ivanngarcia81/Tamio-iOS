@@ -17,6 +17,9 @@ struct TamioApp: App {
     /// recorrido. Es `@State` para que la raíz se redibuje al cambiarla: la
     /// propiedad estática sola no es observable.
     @State private var bienvenidaVista = PreferenciasApp.bienvenidaVista
+    /// Si hay que pedir la configuración inicial de la iglesia. Lo decide
+    /// `decidirConfiguracionInicial()`, y solo después de la primera bajada.
+    @State private var pedirConfiguracion = false
     @Environment(\.scenePhase) private var fase
 
     var body: some Scene {
@@ -50,6 +53,13 @@ struct TamioApp: App {
         }
     }
 
+    /// La regla, con su porqué, en `ConfiguracionInicialView.haceFalta`.
+    private func decidirConfiguracionInicial() {
+        pedirConfiguracion = ConfiguracionInicialView.haceFalta(
+            nombre: ConfiguracionIglesiaViewModel.compartido.config.nombre,
+            ultimaSincronizacion: MotorSincronizacion.compartido.ultimaSincronizacion)
+    }
+
     @ViewBuilder
     private var contenido: some View {
         Group {
@@ -78,6 +88,13 @@ struct TamioApp: App {
                 }
                 .environment(sesion)
                 .environment(navegacion)
+                // **La configuración inicial, encima y sin poder esquivarla.**
+                // Va aquí y no dentro de `RootView` porque tapa la app entera:
+                // una iglesia sin nombre no tiene membrete, así que cualquier
+                // PDF que se emitiera antes saldría sin encabezado.
+                .fullScreenCover(isPresented: $pedirConfiguracion) {
+                    ConfiguracionInicialView { pedirConfiguracion = false }
+                }
                 // Al entrar y cada vez que la app vuelve al frente: es cuando
                 // más probable es que haya red otra vez tras un rato sin ella.
                 .task {
@@ -114,6 +131,13 @@ struct TamioApp: App {
                     // donde se registran los meses ya concluidos. No hay tarea
                     // programada de por medio: si la app no se abre en tres
                     // meses, al abrirla se ponen los tres al día de una vez.
+                    // **Aquí y no antes.** La iglesia se juzga vacía DESPUÉS
+                    // de bajar: `cargar()` de arriba lee la base local, que en
+                    // el primer arranque de un aparato está en blanco aunque el
+                    // servidor tenga tres años de datos. Preguntar antes le
+                    // pediría al segundo miembro de una iglesia ya montada que
+                    // la configurara otra vez, y de paso pisaría su nombre.
+                    decidirConfiguracionInicial()
                     let hecho = await MaterializadorRecurrentes.alDia()
                     // Y una segunda vuelta SOLO si de verdad se generó algo,
                     // para que las rentas nuevas no esperen al próximo arranque
