@@ -21,9 +21,13 @@ TestFlight. Corre en macOS, iPad y iPhone desde una sola base de código. Y
 salió **gratis, sin login y 100 % local** — sus propios documentos dicen que se
 hizo así para pasar la revisión.
 
-**Esta app nativa está llamada a reemplazarla y salir como la 2.0.** Por eso
-`MARKETING_VERSION` pasa de `0.1.0` a `2.0.0`: no empieza de cero, continúa una
-serie.
+**Y la nativa sale como ficha NUEVA, en `1.0.0`.** Estuvo un rato puesta en
+`2.0.0`, cuando el plan era heredar la ficha de Tauri. Se revirtió el mismo día
+tras razonarlo: son dos productos distintos —la publicada es gratis, offline y
+de un solo usuario; la nativa es nube, tres roles y cuenta obligatoria—, la
+ficha tiene tres semanas y media, y una 2.0 rechazada se quedaría encima de un
+producto que hoy se vende. "2.0" además solo significa algo para quien conoció
+la 1.x, y esa gente no va a ver esta ficha.
 
 **El nudo, que hay que resolver antes de la primera subida:**
 
@@ -36,16 +40,39 @@ serie.
    `CURRENT_PROJECT_VERSION` es `1`, y en esa ficha ya hay builds de la 1.3.5.
    Hay que mirar el número real en App Store Connect y ponerlo por encima, o la
    subida se rechaza.
-3. **Y el problema de verdad no es el id: es el cobro.** La publicada es gratis
-   y local; la nativa EXIGE cuenta, y el plan ($23.99/mes por iglesia) se
-   compra **fuera**, por Lemon Squeezy. En el repo del web está escrito que
-   `urlCompra` se anula a la fuerza en las compilaciones de App Store por la
-   regla 3.1.1, y que de compras dentro de la app "no hay una línea de código
-   todavía". Mandar la nativa como actualización a quien hoy usa la gratis le
-   pide una cuenta para seguir usando lo que ya tenía.
+3. **El cobro: verificado el 8-sep-2026 contra el texto vigente de las
+   directrices, y hay camino limpio.** No hace falta escribir compras dentro de
+   la app.
 
-   Las reglas de Apple sobre pagos externos se han movido en el último año, así
-   que esto se decide mirando la fuente, no de memoria.
+   - **3.1.3(c) Enterprise Services**: *"If your app is only sold directly by
+     you to organizations or groups for their employees or students… you may
+     allow enterprise users to access previously-purchased content or
+     subscriptions."* Tamio se vende POR IGLESIA, a una congregación con tres
+     roles. Encaja.
+   - **3.1.3(f) Free Stand-alone Apps**: una app gratis compañera de una
+     herramienta de pago web queda fuera de la compra integrada *"provided
+     there is no purchasing inside the app, or calls to action for purchase
+     outside of the app"*. Es el respaldo del argumento.
+   - **3.1.3(b) Multiplatform Services NO sirve**: permite honrar lo comprado
+     en la web *"provided those items are also available as in-app purchases
+     within the app"*. Exige IAP igual.
+   - **Enlazar fuera**: 3.1.1(a) dice que los entitlements *"are not required…
+     in their United States storefront apps"*. En EE. UU. se puede enlazar;
+     fuera hace falta el entitlement.
+   - **Exigir cuenta está permitido**: 5.1.1(v) solo obliga a dejar entrar sin
+     login si la app *"doesn't include significant account-based features"*.
+     Nube, tres roles e invitaciones lo son.
+
+   **Lo que eso obliga:** la app no puede decir dónde se paga. Por eso el pie
+   del plan dejó de decir "para cambios de plan o cortesías contacta soporte" y
+   ahora solo dice que aquí no se cambia. Y conviene que la ficha y la web
+   dejen claro que se vende **a iglesias**: 3.1.3(c) añade que *"Consumer,
+   single user, or family sales must use in-app purchase"*, y un pastor solo
+   comprando para sí es el punto flojo del argumento.
+
+   Lo que queda del choque no es de negocio sino de producto: la publicada
+   funciona 100 % local sin cuenta y la nativa no, así que a esos usuarios una
+   actualización los dejaría colgados. Es la razón que sostiene la ficha nueva.
 
 ---
 

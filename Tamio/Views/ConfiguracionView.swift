@@ -992,8 +992,10 @@ private struct SeccionAcceso: View {
 
                 // Plan
                 GrupoConf(titulo: L.t("TU PLAN", "YOUR PLAN"),
-                          nota: L.t("El plan lo administra el servidor; aquí solo se consulta. Para cambios, contacta a soporte.",
-                                    "The plan is managed server-side; read-only here. For changes, contact support.")) {
+                          // Sin destino, por lo mismo que en el teléfono:
+                          // 3.1.3(f) prohíbe las llamadas a comprar fuera.
+                          nota: L.t("Aquí el plan solo se consulta: no se puede cambiar desde la app.",
+                                    "The plan is read-only here: it can't be changed from the app.")) {
                     FilaConf(label: L.t("Plan", "Plan"), valor: cfg.config.planLegible)
                     Divider()
                     FilaConf(label: L.t("Suscripción", "Subscription"),

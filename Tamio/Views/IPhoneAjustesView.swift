@@ -885,8 +885,17 @@ private struct AjustesAccesoView: View {
             } header: {
                 Text(L.t("Tu plan", "Your plan")).textCase(nil)
             } footer: {
-                Text(L.t("El plan lo administra el servidor; para cambios de plan o cortesías contacta soporte.",
-                         "The plan is managed server-side; for plan changes or courtesy licenses contact support."))
+                // **No se dice dónde se paga, y es a propósito.** Decía "para
+                // cambios de plan o cortesías contacta soporte". La directriz
+                // 3.1.3(f) de Apple deja fuera de la compra integrada a una app
+                // gratis compañera de una herramienta de pago **"provided there
+                // is no purchasing inside the app, or calls to action for
+                // purchase outside of the app"**, y esa frase es justo lo que
+                // un revisor puede leer como llamada a comprar fuera. Se dice
+                // el hecho —aquí solo se consulta— sin mandar a nadie a ningún
+                // sitio.
+                Text(L.t("Aquí el plan solo se consulta: no se puede cambiar desde la app.",
+                         "The plan is read-only here: it can't be changed from the app."))
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
