@@ -261,7 +261,7 @@ struct DepositosView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Paleta.sueloLista(tarjeta: !wide))
         // Desvanecido de borde: la fila deja de aparecer y desaparecer de golpe
         // al cruzar por detrás de la cabecera.
         .scrollEdgeEffectStyle(.soft, for: .all)

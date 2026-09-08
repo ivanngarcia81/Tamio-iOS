@@ -20,13 +20,11 @@ struct CartasView: View {
                 HStack(spacing: 0) {
                     listaColumna
                         .frame(width: Esp.columnaMaestra)
-                        .background(Color(.systemBackground))
                     Divider()
                     detalleColumna
                 }
             } else {
                 listaColumna
-                    .background(Color(.systemBackground))
                     .navigationDestination(isPresented: $panelAbierto) {
                         detalleColumna
                             .navigationBarTitleDisplayMode(.inline)
@@ -90,6 +88,7 @@ struct CartasView: View {
         listaColumnaCore
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .background(Paleta.sueloLista(tarjeta: sizeClass != .regular))
     }
 
     @ViewBuilder

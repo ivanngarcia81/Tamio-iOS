@@ -353,7 +353,7 @@ struct MovimientosView: View {
             // material se fue a la cabecera y al pie, así que aquí queda el
             // fondo liso sobre el que corre el contenido.
             .scrollContentBackground(.hidden)
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(Paleta.sueloLista(tarjeta: compacto))
             // El desvanecido de borde: la fila deja de aparecer y desaparecer
             // de golpe al cruzar por detrás de la cabecera o del pie. Sustituye
             // al margen de scroll que se puso antes como parche, cuando la

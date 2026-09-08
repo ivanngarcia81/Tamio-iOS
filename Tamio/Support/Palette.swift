@@ -85,6 +85,22 @@ enum Paleta {
     /// hueco entre ellas. Este sube un escalón en oscuro.
     static let superficieFila = Color("TamioSuperficieFila")
 
+    /// **El suelo de una lista, que es el par de `superficieFila`.** Va junto
+    /// porque los dos solo tienen sentido uno contra el otro: cuando la fila es
+    /// una tarjeta —el teléfono— el suelo tiene que ser el gris agrupado, y
+    /// cuando la fila va transparente —la columna del iPad— el suelo es la
+    /// superficie clara sobre la que corre el contenido.
+    ///
+    /// Escrito a mano en cada pantalla, el 7-sep se cambió el suelo de siete
+    /// listas a `secondarySystemGroupedBackground` para la columna del iPad y
+    /// en el teléfono quedó **blanco sobre blanco**: las tarjetas de Membresía
+    /// dejaron de verse enteras, no había gris entre ellas. La regla es la
+    /// misma que la de la fila, así que vive en el mismo sitio y se le pasa el
+    /// mismo `tarjeta` que a `filaDeLista`.
+    static func sueloLista(tarjeta: Bool) -> Color {
+        tarjeta ? Color(.systemGroupedBackground) : Color(.secondarySystemGroupedBackground)
+    }
+
     /// Enlaces de acción ("Ver todos", "Abrir bandeja →", "Ver ficha").
     static let enlace = Color("TamioEnlace")
     /// Badge de conteo urgente (Por revisar 7, Mensajes 2).

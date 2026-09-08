@@ -25,7 +25,7 @@ struct ReportesView: View {
         GeometryReader { geo in
             if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
-                    listaColumna.frame(width: Esp.columnaMaestra).background(Color(.secondarySystemGroupedBackground))
+                    listaColumna.frame(width: Esp.columnaMaestra)
                     Divider()
                     preview
                 }
@@ -65,6 +65,7 @@ struct ReportesView: View {
         // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .background(Paleta.sueloLista(tarjeta: compacto))
     }
 
     private func filaReporte(_ t: ReporteTipo) -> some View {

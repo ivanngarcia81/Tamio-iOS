@@ -447,7 +447,7 @@ struct MiembrosView: View {
             // El suelo va en la LISTA, no en la columna: el material se fue a
             // la cabecera y al pie, que es lo único que difumina algo.
             .scrollContentBackground(.hidden)
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(Paleta.sueloLista(tarjeta: compacto))
             // El desvanecido de borde: la fila deja de aparecer y desaparecer
             // de golpe al cruzar por detrás del aviso o del pie.
             .scrollEdgeEffectStyle(.soft, for: .all)

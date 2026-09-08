@@ -141,7 +141,7 @@ struct ActasView: View {
         listaActasCuerpo
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(Paleta.sueloLista(tarjeta: sizeClass != .regular))
     }
 
     @ViewBuilder
