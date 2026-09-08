@@ -5,8 +5,103 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **8 de septiembre de 2026**, al cerrar la pasada de debug
-sobre la sincronización y la cola de salida (§0.-4).
+Última actualización: **8 de septiembre de 2026**, al arreglar el folio que
+impedía subir cualquier movimiento (§0.-5).
+
+---
+
+## 0.-5 Un día entero sin poder subir un solo ingreso ni gasto · 8 de septiembre
+
+**El fallo más caro encontrado hasta ahora, y lo destapó una prueba de
+recurrentes que parecía ir bien.**
+
+Iván capturó dos gastos con el interruptor de "se repite cada mes". La
+definición del recurrente subía; el movimiento, no. Ajustes decía **"Sin subir:
+2 cambios"**, pulsó "Sincronizar ahora", el estado volvió a poner la fecha —o
+sea, éxito— y **seguía diciendo 2**. Sin un solo aviso por ninguna parte.
+
+### Qué era
+
+`20260907_folios_por_serie_y_anio.sql` añadió `anio` a `folios_contador` y
+rehízo la clave primaria como `(church_id, serie, anio)`. Escribió
+`siguiente_folio_anual` con su `on conflict` de tres columnas, correcto. Pero
+**dejó intacta la `siguiente_folio` de antes**, que seguía diciendo
+`on conflict (church_id, serie)`: dos columnas contra una clave de tres.
+
+Sin índice único que case, Postgres levanta `42P10` y PostgREST lo devuelve
+como **400**. Y esa es justo la función que piden los movimientos —cartas y
+actas van por la anual, por eso ellas nunca fallaron—.
+
+**Desde el 7-sep a las 15:21 UTC hasta el 8-sep a las 15:48, ningún ingreso ni
+gasto podía subir desde ningún aparato**, con la app asegurando que todo estaba
+sincronizado. Un día entero de contabilidad quieta. No se perdió nada —la cola
+reintenta, no tira— pero nadie tenía forma de enterarse.
+
+### Cómo se encontró, que es lo reutilizable
+
+El camino, en este orden, y ninguno de los pasos sobró:
+
+1. **El `select` contra la base**, no la captura de pantalla. Las definiciones
+   estaban arriba y los movimientos no: eso ya decía que el fallo estaba en la
+   subida del movimiento y no en el recurrente.
+2. **El contador de folios como testigo.** `folios_contador.gasto` seguía en 2
+   con la marca del día anterior. El folio lo entrega el servidor al subir, así
+   que un contador parado prueba que **ningún gasto había subido**, sin
+   necesidad de mirar la app.
+3. **Los logs de PostgREST**, que es lo que cerró el caso:
+   `POST /rpc/siguiente_folio → 400`, dos por sincronización, decenas de veces.
+4. **Y que NO hubiera nada en los logs de Postgres.** Esa ausencia es la pista
+   fina: si el error no llega a Postgres, lo da el planificador antes de
+   ejecutar —y `42P10` es de planificación—.
+5. **La hora cuadró sola.** Último folio de gasto bueno: 14:29:30 del 7-sep.
+   Contadores de carta y acta: 15:21:20 del 7-sep, que es cuando entró la
+   migración anual. Todo lo de antes, bien; nada de lo de después.
+
+**La lección, y es la misma de esta jornada:** una migración que cambia una
+clave primaria tiene que revisar **todas** las funciones que hacen `on conflict`
+sobre esa tabla, no solo la que se está escribiendo. Aquí se escribió la nueva y
+se dejó la vieja mirando a una clave que ya no existía.
+
+### Lo que dice de los seis arreglos de esta tarde
+
+Esto estaba pasando **mientras se arreglaban**, y es la demostración en vivo de
+que el §0.-4 no era teórico:
+
+- Con la compilación de ayer el motor decía `.reposo` y la pantalla decía que
+  todo iba bien. Con la nueva habría dicho **"2 cambios no pudieron subir:
+  …"** con el error del servidor dentro, que es el hilo del que se tira.
+- Y el reintento sin tope, que se apartó como defecto, aquí **salvó los datos**:
+  los dos movimientos llevaban un día reintentando y subieron solos en cuanto
+  la función respondió bien. Por eso se aparta y **no se tira**, y por eso el
+  botón de sincronizar a mano las despierta.
+
+### Cómo se arregló y cómo se comprobó
+
+`20260908_el_folio_de_un_movimiento_no_se_podia_pedir.sql`, **aplicada y
+verificada ANTES de que ningún aparato la usara**: bloque `do $$ … $$` que se
+hace pasar por un miembro con `set_config` de `request.jwt.claims` —desde el
+editor no hay `auth.uid()` y la comprobación de pertenencia rebota— y termina en
+un `raise` que deshace el bloque entero. Contador antes 2, devolvió 3, y volvió
+a quedar en 2. **El `raise` es la forma de que la prueba te cuente el número sin
+gastarlo**, y aquí importaba: un folio emitido no se devuelve.
+
+Después, la prueba de verdad, en el aparato de Iván: el "Sin subir" bajó a 0
+solo, el contador pasó de **2 a 4**, y los dos gastos llegaron con folios 3 y 4.
+**Dos folios para dos movimientos**, que era el otro riesgo después de un día de
+reintentos.
+
+### Lo que queda de aquí
+
+- **`folio_previsto` lee sin filtrar por `anio`**. Hoy da igual —una serie de
+  movimiento solo tiene la fila del año 0— pero es un `select into` que se
+  traería una fila cualquiera si alguna vez hubiera dos. Anotado en la
+  migración, sin tocar: no está roto y tocarlo sin necesidad es peor.
+- **Los datos de prueba siguen en los libros**: cuatro definiciones recurrentes
+  y sus gastos (Utilities $200 y $500, Limpieza $600 y $300). Dos de las
+  definiciones están activas y **van a generar todos los meses** a partir del 1
+  de octubre. Decisión de Iván: borrarlas, o apagar el interruptor —que para la
+  serie sin hacer desaparecer lo ya registrado, que es lo que descuadraría un
+  cierre—.
 
 ---
 
