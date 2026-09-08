@@ -1,5 +1,12 @@
--- **Endurecimiento previo a publicar en App Store.** NO APLICADA todavía: la
--- corre Iván desde el SQL Editor, como la de `iglesias`.
+-- **Endurecimiento previo a publicar en App Store.** APLICADA el 8 de
+-- septiembre de 2026, y verificada: la revisión de seguridad de Supabase ya no
+-- marca ninguna de las tres.
+--
+-- **Y se comprobó lo que aquí se afirma**, que era lo arriesgado: después del
+-- revoke, un tesorero intentó dar de baja a un miembro real y el disparador
+-- `frenar_baja_tesorero` lo frenó igual —`activo` siguió en 1—. Quitar el
+-- permiso de EJECUTAR no apaga un disparador. Probado dentro de un bloque que
+-- se deshace solo, dos veces: antes y después de corregir el `revoke`.
 --
 -- Sale de auditar RLS entera el 8 de septiembre de 2026, tabla por tabla. Lo
 -- primero, para que conste, es lo que NO hay que arreglar:
@@ -30,9 +37,15 @@
 -- ese permiso al CREAR el disparador, no cada vez que salta. Conviene
 -- confirmarlo igual dando de baja a un miembro después de aplicarlo, que es lo
 -- que hace saltar a `frenar_baja_tesorero`.
-revoke execute on function public.crear_perfil_al_registrarse() from anon, authenticated;
-revoke execute on function public.frenar_baja_tesorero()        from anon, authenticated;
-revoke execute on function public.frenar_borrado_tesorero()     from anon, authenticated;
+-- **De PUBLIC, no de `anon, authenticated`.** Así se escribió primero y NO
+-- HIZO NADA: en PostgreSQL una función nace con `EXECUTE` concedido a PUBLIC,
+-- y esos dos roles lo heredan de ahí. Quitarles el permiso explícito los deja
+-- igual de capaces. Se vio porque la revisión de seguridad de Supabase seguía
+-- marcando las tres después de "arreglarlo"; el `proacl` lo confirmó, con su
+-- `=X/postgres` —la concesión a PUBLIC— intacto.
+revoke execute on function public.crear_perfil_al_registrarse() from public;
+revoke execute on function public.frenar_baja_tesorero()        from public;
+revoke execute on function public.frenar_borrado_tesorero()     from public;
 
 -- 2. **`iglesias_congelar_administradas` no fija su `search_path`.**
 --

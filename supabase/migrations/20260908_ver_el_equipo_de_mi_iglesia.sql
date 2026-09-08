@@ -1,5 +1,6 @@
--- **El administrador no podía ver quién está en su iglesia.** NO APLICADA: la
--- corre Iván.
+-- **El administrador no podía ver quién está en su iglesia.** APLICADA el 8 de
+-- septiembre de 2026 y verificada sobre la cuenta real: el administrador pasó
+-- de ver 1 perfil a ver los 4 de su iglesia, y un tesorero ve los mismos 4.
 --
 -- **Ensayada entera contra la base el 8-sep-2026**, dentro de un bloque que
 -- termina en `raise` y no deja nada puesto. Haciéndose pasar por el
@@ -40,8 +41,19 @@ as $$
   select church_id from public.perfiles where id = auth.uid()
 $$;
 
--- Se puede llamar estando dentro; no la necesita `anon`.
-revoke execute on function public.mi_iglesia() from anon;
+-- **`mi_iglesia()` se queda ejecutable por PUBLIC, a propósito.**
+--
+-- La revisión de seguridad de Supabase la marca, y aun así no se revoca. Se
+-- midió lo que costaría: quitándola de PUBLIC, una consulta ANÓNIMA sobre
+-- `perfiles` deja de devolver vacío y devuelve
+-- "permission denied for function mi_iglesia" — porque la política de abajo la
+-- llama, y evaluarla exige el permiso. Un autenticado seguiría bien (tiene su
+-- concesión propia), pero cambiar un resultado vacío por un error 500 no
+-- compra nada aquí.
+--
+-- Y no compra nada porque la función **no revela nada**: devuelve la iglesia
+-- de QUIEN LLAMA, y para un anónimo `auth.uid()` es nulo, así que devuelve
+-- nulo. No hay dato ajeno al que llegar.
 
 -- **Quién ve a quién: cualquier miembro ve a los de SU iglesia.**
 --
