@@ -338,6 +338,12 @@ struct AgendaView: View {
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
 
+                // **Los siete días miden lo mismo, haya círculo o no.** Sin el
+                // `frame`, el `ZStack` medía 30 pt en el día elegido y solo el
+                // alto del número en los demás, así que "TUE" quedaba diez
+                // píxeles más arriba que "SUN", "MON" y "WED": la tira de la
+                // semana salía descuadrada justo en el día que estás mirando.
+                // `celdaSemanaVacia` ya reservaba esos 30 pt; esta no.
                 ZStack {
                     if sel {
                         Circle().fill(Paleta.brand).frame(width: 30, height: 30)
@@ -348,6 +354,7 @@ struct AgendaView: View {
                         .font(.subheadline.weight(sel || hoy ? .semibold : .regular))
                         .foregroundStyle(sel ? .white : (hoy ? Paleta.brand : .primary))
                 }
+                .frame(width: 30, height: 30)
 
                 HStack(spacing: 2) {
                     ForEach(evs.prefix(2)) { ev in
