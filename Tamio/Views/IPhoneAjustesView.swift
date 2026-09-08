@@ -779,6 +779,9 @@ private struct AjustesAccesoView: View {
     /// que la pantalla se refresque cuando la sincronización avanza.
     private let motor = MotorSincronizacion.compartido
 
+    @State private var equipo: [EquipoIglesia.Persona] = []
+    @State private var errorEquipo: String?
+
     @Binding var invEmail: String
     @Binding var invNom: String
     /// El rol de la invitación es un `Rol`, no una cadena.
@@ -808,17 +811,34 @@ private struct AjustesAccesoView: View {
 
     var body: some View {
         List {
-            // La lista de quién tiene acceso NO se puede enseñar todavía, y
-            // no es un descuido: la política de `perfiles` en Supabase deja a
-            // cada cuenta leer SOLO la suya. Enseñar una lista de una persona
-            // —tú— bajo el título "Personas" sería peor que decirlo.
+            // **La lista sale del servidor, no de aquí.** Antes esta sección
+            // enseñaba solo tu cuenta porque la única política de lectura de
+            // `perfiles` era `auth.uid() = id`. Con
+            // `leer_perfiles_de_mi_iglesia` aplicada, la misma consulta trae a
+            // todo el equipo; sin aplicar, trae una fila. Por eso no hay dos
+            // caminos en la app: hay uno que crece cuando el servidor lo
+            // permite.
             Section {
-                filaYo
+                if equipo.isEmpty {
+                    filaYo
+                } else {
+                    ForEach(equipo) { filaPersona($0) }
+                }
             } header: {
                 Text(L.t("Personas", "People")).textCase(nil)
             } footer: {
-                Text(L.t("Por ahora solo se ve tu propia cuenta: el servidor no deja que un aparato lea los perfiles de los demás. Invitar sí funciona, aquí abajo.",
-                         "For now only your own account is visible: the server doesn't let a device read other people's profiles. Inviting does work, below."))
+                if let errorEquipo {
+                    Text(errorEquipo).foregroundStyle(Paleta.negativo)
+                } else if equipo.count <= 1 {
+                    // Una lista de uno bajo el título "Personas" se lee como un
+                    // error. Decir por qué cuesta un renglón.
+                    Text(L.t("Solo se ve tu cuenta. Si acabas de invitar a alguien, aparecerá aquí en cuanto entre por primera vez.",
+                             "Only your account is visible. If you just invited someone, they'll show up here once they sign in for the first time."))
+                } else {
+                    Text(L.plural(equipo.count, es: "persona", esPlural: "personas",
+                                  en: "person", enPlural: "people")
+                         + L.t(" con acceso a esta iglesia.", " with access to this church."))
+                }
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
@@ -939,6 +959,7 @@ private struct AjustesAccesoView: View {
         // El contador solo se recalculaba al terminar una sincronización, así
         // que al abrir Ajustes después de capturar sin señal decía cero.
         .task { await motor.recontarPendientes() }
+        .task { await cargarEquipo() }
     }
 
     private func campoF(_ label: String, _ bind: Binding<String>, _ hint: String) -> some View {
@@ -948,7 +969,9 @@ private struct AjustesAccesoView: View {
         }
     }
 
-    /// Tu propia cuenta. Es la única fila que el servidor deja leer.
+    /// Tu propia cuenta, dibujada desde la sesión. Es el RESPALDO: se usa
+    /// mientras la lista del servidor no ha llegado —o si no llega—, para que
+    /// la sección nunca aparezca vacía.
     private var filaYo: some View {
         let p = sesion?.perfil ?? SesionSupabase.Perfil()
         return HStack(spacing: 12) {
@@ -965,6 +988,42 @@ private struct AjustesAccesoView: View {
             Text(L.t("Tú", "You")).font(.caption).foregroundStyle(.tertiary)
         }
         .padding(.vertical, 2)
+    }
+
+    /// Igual que `filaYo`, pero para los demás: mismo círculo, mismo rol
+    /// debajo. A ti se te marca con "Tú" para no buscarte en la lista.
+    private func filaPersona(_ p: EquipoIglesia.Persona) -> some View {
+        let soyYo = p.id == sesion?.perfil.id
+        return HStack(spacing: 12) {
+            Text(p.iniciales)
+                .font(.caption.weight(.bold)).foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(soyYo ? Paleta.brand : Color.secondary, in: Circle())
+            VStack(alignment: .leading, spacing: 1) {
+                Text(p.nombre.isEmpty ? L.t("Sin nombre", "No name") : p.nombre)
+                    .font(.subheadline)
+                    .foregroundStyle(p.nombre.isEmpty ? .secondary : .primary)
+                Text(AjustesRol.corto(p.rol)).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if soyYo {
+                Text(L.t("Tú", "You")).font(.caption).foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    /// Se recarga también después de invitar: quien acaba de aceptar tiene que
+    /// aparecer sin salir de la pantalla.
+    private func cargarEquipo() async {
+        do {
+            equipo = try await EquipoIglesia.cargar()
+            errorEquipo = nil
+        } catch {
+            // No se vacía lo que ya había: media pantalla con datos viejos es
+            // mejor que una lista que desaparece al perder la red un segundo.
+            errorEquipo = error.localizedDescription
+        }
     }
 
     private var puedeInvitar: Bool {
@@ -999,6 +1058,9 @@ private struct AjustesAccesoView: View {
             // escribió no tiene por qué volver a teclearlo.
             invEmail = ""
             invNom = ""
+            // Si ya tenía cuenta, se unió en este momento y debe salir en la
+            // lista de arriba sin salir de la pantalla.
+            await cargarEquipo()
         } catch {
             invitacionOK = false
             avisoInvitacion = error.localizedDescription

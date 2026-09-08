@@ -36,6 +36,12 @@ final class SesionSupabase {
     private(set) var perfil = Perfil()
 
     struct Perfil: Equatable {
+        /// **El `auth.uid()` de esta persona.** Se añadió para poder marcar
+        /// cuál de las filas del equipo eres tú en Acceso y áreas: la lista
+        /// viene del servidor y no trae esa marca. No se guarda en la caché
+        /// —la caché se busca POR uid, así que ya lo tienes en la mano al
+        /// leerla— y en modo revisión se queda vacío, que allí no hay equipo.
+        var id = ""
         var nombre = ""
         /// El correo no está en `perfiles`: sale del usuario de Auth, que es
         /// quien lo tiene. Iba escrito a mano en tres pantallas.
@@ -246,6 +252,7 @@ final class SesionSupabase {
                 // El correo lo tenemos aunque no se pueda preguntar al
                 // servidor: viene con la sesión.
                 guardado.perfil.correo = correo
+                guardado.perfil.id = uid
                 churchIdActivo = guardado.churchId
                 perfil = guardado.perfil
                 autorActual = guardado.perfil.firma
@@ -273,6 +280,7 @@ final class SesionSupabase {
         churchIdActivo = leido.churchId
         perfil = leido.perfil
         perfil.correo = correo
+        perfil.id = uid
         // El autor de lo que se anote en el registro, ya con el correo puesto
         // por si el perfil no trae nombre: `firma` cae al correo antes que
         // dejar un apunte sin autor.

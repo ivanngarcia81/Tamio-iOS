@@ -263,3 +263,75 @@ enum Invitaciones {
         }
     }
 }
+
+// MARK: - El equipo de la iglesia
+
+/// **Quién más tiene acceso a esta iglesia.**
+///
+/// La pantalla de Acceso enseñaba solo tu propia cuenta, y no por descuido: la
+/// única política de lectura de `perfiles` era `auth.uid() = id`. Un
+/// administrador podía invitar pero no comprobar a quién había invitado. La
+/// política `leer_perfiles_de_mi_iglesia`
+/// (`supabase/migrations/20260908_ver_el_equipo_de_mi_iglesia.sql`) lo abre.
+///
+/// **Degrada bien si esa migración todavía no se aplicó**: la consulta es la
+/// misma y el servidor devuelve solo tu fila. La pantalla enseña una lista de
+/// uno en vez de fallar, y empieza a enseñar al resto el día que se aplique,
+/// sin tocar la app.
+///
+/// `perfiles` no guarda correos —viven en `auth.users`, que el cliente no
+/// toca—, así que aquí no hay más que nombre, rol y foto.
+enum EquipoIglesia {
+
+    struct Persona: Identifiable, Hashable {
+        let id: String
+        let nombre: String
+        let rol: SesionSupabase.Perfil.Rol
+
+        /// Para el círculo de iniciales, con la misma regla que el perfil
+        /// propio: si no hay nombre, no se inventa nada.
+        var iniciales: String {
+            let partes = nombre.split(separator: " ").prefix(2)
+            let letras = partes.compactMap { $0.first }.map(String.init).joined()
+            return letras.isEmpty ? "?" : letras.uppercased()
+        }
+    }
+
+    private struct Fila: Decodable {
+        let id: String
+        let nombre: String?
+        let rol: String?
+    }
+
+    /// Devuelve el equipo ordenado: primero los administradores, y dentro de
+    /// cada rol por nombre. Quien no tenga nombre puesto va al final, que es
+    /// donde estorba menos.
+    static func cargar() async throws -> [Persona] {
+        let filas: [Fila] = try await supabase
+            .from("perfiles")
+            .select("id, nombre, rol")
+            .eq("church_id", value: churchIdActivo)
+            .execute()
+            .value
+
+        return filas
+            .map { f in
+                Persona(id: f.id,
+                        nombre: (f.nombre ?? "").trimmingCharacters(in: .whitespaces),
+                        rol: SesionSupabase.Perfil.Rol(rawValue: f.rol ?? "") ?? .tesorero)
+            }
+            .sorted { a, b in
+                if a.rol != b.rol { return orden(a.rol) < orden(b.rol) }
+                if a.nombre.isEmpty != b.nombre.isEmpty { return !a.nombre.isEmpty }
+                return a.nombre.localizedCaseInsensitiveCompare(b.nombre) == .orderedAscending
+            }
+    }
+
+    private static func orden(_ r: SesionSupabase.Perfil.Rol) -> Int {
+        switch r {
+        case .administrador: return 0
+        case .tesorero:      return 1
+        case .secretaria:    return 2
+        }
+    }
+}
