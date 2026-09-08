@@ -167,7 +167,11 @@ struct RegistroView: View {
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 6) {
                         if a.esNota {
-                            Text("NOTA").font(.caption2.weight(.bold)).foregroundStyle(Paleta.aviso)
+                            // Con `L.t` como el resto: era el único `Text` de
+                            // texto visible escrito a pelo en toda la carpeta
+                            // de vistas, y con la app en inglés la píldora
+                            // decía "NOTA" al lado de "Notes 2".
+                            Text(L.t("NOTA", "NOTE")).font(.caption2.weight(.bold)).foregroundStyle(Paleta.aviso)
                                 .padding(.horizontal, Esp.hueco).padding(.vertical, 1)
                                 .background(Paleta.avisoFill, in: RoundedRectangle(cornerRadius: 4))
                         }
