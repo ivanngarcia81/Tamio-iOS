@@ -10,6 +10,45 @@ asomaba con la app en inglés (§0.-1).
 
 ---
 
+## 0.-2 El bundle id, y la trampa que deja escrita
+
+Decidido con Iván el 8 de septiembre de 2026, y anotado porque es una decisión
+que solo se puede tomar UNA vez.
+
+**Ya hay una app publicada.** `com.tesoreria.app` es la de Tauri del repo
+`Tamio-app`: en App Store desde el 13 de agosto de 2026, hoy con la 1.3.5 en
+TestFlight. Corre en macOS, iPad y iPhone desde una sola base de código. Y
+salió **gratis, sin login y 100 % local** — sus propios documentos dicen que se
+hizo así para pasar la revisión.
+
+**Esta app nativa está llamada a reemplazarla y salir como la 2.0.** Por eso
+`MARKETING_VERSION` pasa de `0.1.0` a `2.0.0`: no empieza de cero, continúa una
+serie.
+
+**El nudo, que hay que resolver antes de la primera subida:**
+
+1. **Una app publicada NO puede cambiar de bundle id.** "2.0 de esa misma app"
+   y "id propio" no pueden ser las dos verdad el día de la subida. Hoy el id se
+   queda en `church.tamio.native`, a petición de Iván; el día que se suba a esa
+   ficha tiene que decir `com.tesoreria.app`. Equivocarse ahí crea una app
+   distinta **para siempre**.
+2. **El número de compilación tendrá que subir por encima del de Tauri.**
+   `CURRENT_PROJECT_VERSION` es `1`, y en esa ficha ya hay builds de la 1.3.5.
+   Hay que mirar el número real en App Store Connect y ponerlo por encima, o la
+   subida se rechaza.
+3. **Y el problema de verdad no es el id: es el cobro.** La publicada es gratis
+   y local; la nativa EXIGE cuenta, y el plan ($23.99/mes por iglesia) se
+   compra **fuera**, por Lemon Squeezy. En el repo del web está escrito que
+   `urlCompra` se anula a la fuerza en las compilaciones de App Store por la
+   regla 3.1.1, y que de compras dentro de la app "no hay una línea de código
+   todavía". Mandar la nativa como actualización a quien hoy usa la gratis le
+   pide una cuenta para seguir usando lo que ya tenía.
+
+   Las reglas de Apple sobre pagos externos se han movido en el último año, así
+   que esto se decide mirando la fuente, no de memoria.
+
+---
+
 ## 0.-1 El español que asomaba con la app en inglés
 
 Iván mandó una captura de **Ajustes · Institución en inglés** con las siete

@@ -12,7 +12,13 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     TARGETED_DEVICE_FAMILY: "1,2"   # 1 = iPhone, 2 = iPad → app adaptativa
-    MARKETING_VERSION: "0.1.0"
+    # La nativa sale como 2.0: reemplaza a la 1.3.x de Tauri, no empieza de
+    # cero. Decidido por Iván el 8-sep-2026.
+    MARKETING_VERSION: "2.0.0"
+    # **Ojo el día que se suba a la ficha de `com.tesoreria.app`:** el número
+    # de compilación tiene que ser MAYOR que el más alto ya subido ahí, y las
+    # de Tauri llegan por lo menos hasta la 1.3.5. Este `1` lo rechazarían.
+    # Hay que mirar el número real en App Store Connect y ponerlo por encima.
     CURRENT_PROJECT_VERSION: "1"
 targets:
   Tamio:
@@ -22,9 +28,25 @@ targets:
       - path: Tamio
     settings:
       base:
-        # Bundle id de trabajo. NO es com.tesoreria.app a propósito: esto es un
-        # prototipo local. Al decidir si la app nativa hereda la ficha actual
-        # de App Store se cambiará aquí (ver conversación de arranque).
+        # **Id propio, y a propósito, MIENTRAS TANTO.** Decidido con Iván el
+        # 8-sep-2026.
+        #
+        # Ya hay una app publicada: `com.tesoreria.app`, la de Tauri del repo
+        # `Tamio-app`, en App Store desde el 13 de agosto de 2026 y hoy en
+        # TestFlight con la 1.3.5. Esta app nativa está llamada a REEMPLAZARLA
+        # y a salir como la 2.0.
+        #
+        # **Y ahí está el nudo: una app publicada no puede cambiar de bundle
+        # id.** "2.0 de esa misma app" y "id propio" no pueden ser las dos
+        # verdad el día de la subida. El día que se suba a esa ficha, esto
+        # tiene que decir `com.tesoreria.app` — no hay segunda oportunidad, y
+        # equivocarse crea una app distinta para siempre.
+        #
+        # Se queda aparte por ahora porque la nativa EXIGE cuenta y la
+        # publicada salió gratis, sin login y 100% local para pasar la
+        # revisión: mandarla como actualización a esos usuarios les rompe la
+        # app que tienen. Eso se resuelve antes, no con un ajuste de
+        # compilación.
         PRODUCT_BUNDLE_IDENTIFIER: church.tamio.native
         GENERATE_INFOPLIST_FILE: YES
         # Se MEZCLA con el plist generado. Solo lleva `CFBundleLocalizations`,

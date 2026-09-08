@@ -10,7 +10,7 @@ import Foundation
 /// siguiente asegura que la app es más vieja de lo que es.
 enum VersionApp {
 
-    /// "0.1.0", de `CFBundleShortVersionString`.
+    /// "2.0.0", de `CFBundleShortVersionString`.
     static var corta: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
     }
