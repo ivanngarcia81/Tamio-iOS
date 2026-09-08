@@ -1,0 +1,53 @@
+-- **Endurecimiento previo a publicar en App Store.** NO APLICADA todavía: la
+-- corre Iván desde el SQL Editor, como la de `iglesias`.
+--
+-- Sale de auditar RLS entera el 8 de septiembre de 2026, tabla por tabla. Lo
+-- primero, para que conste, es lo que NO hay que arreglar:
+--
+--   * Las 24 tablas de `public` tienen RLS ACTIVO. Ninguna se quedó fuera.
+--   * Ninguna de sus políticas deja pasar nada sin `church_id` o `auth.uid()`:
+--     se comprobó buscando políticas cuya expresión no mencionara ninguno de
+--     los dos, y no hay una sola.
+--   * `folios_contador` tiene RLS y CERO políticas, que parece un olvido y no
+--     lo es: falla cerrado a propósito y solo se entra por las funciones de
+--     folio. Las dos apps van siempre por RPC, nunca por la tabla.
+--   * Las cuatro funciones de folio son `security definer` y reciben el
+--     `church_id` COMO PARÁMETRO —que es el patrón donde se cuela un inquilino
+--     en otro—, pero las cuatro comprueban la pertenencia a mano contra
+--     `perfiles` antes de tocar nada. Y `fijar_permisos_tesoreria` exige el rol
+--     de administrador. Correcto.
+--
+-- Lo que sigue son las tres cosas que sí quedan.
+
+-- 1. **Tres funciones de DISPARADOR expuestas como endpoint REST.**
+--
+-- `crear_perfil_al_registrarse` la puede llamar hasta `anon`, sin haber
+-- entrado. No es explotable —PL/pgSQL rechaza ejecutar una función de
+-- disparador fuera de su disparador—, pero es superficie que no pinta nada en
+-- una API pública, y la revisión de seguridad de Supabase las marca.
+--
+-- Quitar el permiso de EJECUTAR no apaga el disparador: PostgreSQL comprueba
+-- ese permiso al CREAR el disparador, no cada vez que salta. Conviene
+-- confirmarlo igual dando de baja a un miembro después de aplicarlo, que es lo
+-- que hace saltar a `frenar_baja_tesorero`.
+revoke execute on function public.crear_perfil_al_registrarse() from anon, authenticated;
+revoke execute on function public.frenar_baja_tesorero()        from anon, authenticated;
+revoke execute on function public.frenar_borrado_tesorero()     from anon, authenticated;
+
+-- 2. **`iglesias_congelar_administradas` no fija su `search_path`.**
+--
+-- Es la que impide que alguien se cambie el plan o sus propios permisos desde
+-- el teléfono, o sea que es justo la que no conviene que sea secuestrable. Con
+-- el `search_path` suelto, quien pueda crear un esquema por delante puede
+-- sustituirle las funciones que llama. Las demás funciones del proyecto ya lo
+-- fijan; esta se quedó fuera.
+--
+-- Solo se le añade el `SET`: el cuerpo no cambia.
+alter function public.iglesias_congelar_administradas() set search_path to 'public';
+
+-- 3. **Contraseñas filtradas: la comprobación está APAGADA.**
+--
+-- Esto NO es SQL, va en el panel: Authentication › Policies › "Leaked password
+-- protection". Supabase la contrasta contra HaveIBeenPwned. Para una app que
+-- guarda la contabilidad de una congregación y que va a estar en App Store,
+-- encenderla es gratis y evita el caso más común de cuenta comprometida.
