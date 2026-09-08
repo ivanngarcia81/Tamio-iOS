@@ -139,3 +139,110 @@ struct ImportarAportantesView: View {
         }
     }
 }
+
+// MARK: - Decir qué columna es cuál
+
+/// **El paso que faltaba: mapear las columnas.**
+///
+/// Los dos importadores exigían los nombres de columna exactos —`nombre`,
+/// `fecha`, `monto`— y, si no venían, avisaban de cuáles faltaban y no dejaban
+/// seguir. Eso funciona con un archivo que salió de la propia exportación de
+/// Tamio y falla con cualquier otro: nadie tiene un Excel cuya primera fila
+/// diga exactamente eso. El app web lo resolvió preguntando
+/// (`GenericCsvImportModal`), y esto lo refleja.
+///
+/// **Sale ya relleno con la sugerencia.** Un archivo exportado por Tamio se
+/// reconoce entero y el usuario solo pulsa Continuar, que es como se comportaba
+/// antes. Lo que cambia es que ahora un archivo distinto TAMBIÉN se puede
+/// importar, corrigiendo el mapeo.
+struct MapearColumnasView: View {
+    let documento: CSVLector.Documento
+    let campos: [CSVLector.Campo]
+    /// Se llama con el documento ya reescrito con las claves de la app.
+    let alContinuar: (CSVLector.Documento) -> Void
+
+    @Environment(\.dismiss) private var cerrar
+    @State private var mapeo: [String: String] = [:]
+
+    /// El centinela de "esta columna no está en mi archivo". Un `Picker` no
+    /// admite `nil` como etiqueta, y usar la cadena vacía la confundiría con
+    /// una columna que de verdad se llame "".
+    private static let ninguna = "\u{0}ninguna"
+
+    private var faltantes: [CSVLector.Campo] {
+        CSVLector.faltantes(mapeo, campos: campos)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(campos) { campo in fila(campo) }
+                } header: {
+                    Text(L.t("Qué columna es cuál", "Which column is which")).textCase(nil)
+                } footer: {
+                    if faltantes.isEmpty {
+                        Text(L.t("Lo que dejes sin columna se queda vacío y se puede completar después en cada ficha.",
+                                 "Anything left unmapped stays empty and can be filled in later on each record."))
+                    } else {
+                        Text(L.t("Falta por decir de dónde sale: \(faltantes.map(\.rotulo).joined(separator: ", ")).",
+                                 "Still missing: \(faltantes.map(\.rotulo).joined(separator: ", "))."))
+                            .foregroundStyle(Paleta.negativo)
+                    }
+                }
+                .listRowBackground(Color(.secondarySystemGroupedBackground))
+            }
+            .listStyle(.insetGrouped)
+            // Corto porque en el teléfono se cortaba: "Columnas del…". El
+            // subtítulo de la sección ya dice de qué va.
+            .navigationTitle(L.t("Columnas", "Columns"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L.t("Cancelar", "Cancel")) { cerrar() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L.t("Continuar", "Continue")) {
+                        alContinuar(CSVLector.aplicar(mapeo, a: documento, campos: campos))
+                        cerrar()
+                    }
+                    .disabled(!faltantes.isEmpty)
+                }
+            }
+            // La sugerencia se calcula una vez, al abrir: recalcularla en cada
+            // dibujado pisaría lo que el usuario acabe de corregir.
+            .task { mapeo = CSVLector.mapeoSugerido(documento, campos: campos) }
+        }
+    }
+
+    private func fila(_ campo: CSVLector.Campo) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(campo.rotulo).font(.subheadline)
+                if campo.obligatorio {
+                    Text(L.t("obligatorio", "required"))
+                        .font(.caption)
+                        .foregroundStyle(mapeo[campo.clave] == nil ? Paleta.negativo : .secondary)
+                }
+            }
+            Spacer()
+            Picker("", selection: Binding(
+                get: { mapeo[campo.clave] ?? Self.ninguna },
+                set: { nueva in
+                    if nueva == Self.ninguna { mapeo[campo.clave] = nil }
+                    else {
+                        // Una columna del archivo no puede alimentar dos campos:
+                        // se le quita a quien la tuviera.
+                        for (k, v) in mapeo where v == nueva && k != campo.clave {
+                            mapeo[k] = nil
+                        }
+                        mapeo[campo.clave] = nueva
+                    }
+                })) {
+                Text(L.t("— ninguna —", "— none —")).tag(Self.ninguna)
+                ForEach(documento.encabezados, id: \.self) { Text($0).tag($0) }
+            }
+            .labelsHidden()
+        }
+    }
+}

@@ -42,8 +42,39 @@ enum ImportadorAportantes {
     /// aporte. Lo demás puede completarse después desde la ficha.
     private static let obligatorias = ["nombre"]
 
-    static func analizar(_ url: URL, existentes: [Aportante]) throws -> Analisis {
-        let doc = try CSVLector.leer(url)
+    /// **Lo que la app necesita, y por qué nombres suele venir.** Se enseña en
+    /// el paso de mapeo, en este orden. Los alias son los encabezados que se
+    /// reconocen solos —van sin acentos, que `CSVLector.normalizar` los quita
+    /// de los dos lados— para que un archivo exportado por Tamio, o uno con
+    /// nombres razonables en español o inglés, no haya que mapearlo a mano.
+    static var campos: [CSVLector.Campo] {
+        [.init("nombre", L.t("Nombre", "Name"), obligatorio: true,
+               alias: ["name", "nombre_completo", "full_name", "aportante", "miembro", "member"]),
+         .init("id", L.t("Identificador", "Identifier"), alias: ["uid", "codigo", "code"]),
+         .init("id_fiscal", L.t("Identificación fiscal", "Tax ID"),
+               alias: ["rfc", "tax_id", "ein", "idfiscal"]),
+         .init("estado", L.t("Estado", "Status"), alias: ["status", "situacion"]),
+         .init("rol", L.t("Tipo de aporte", "Gift type"), alias: ["tipo", "type"]),
+         .init("telefono", L.t("Teléfono", "Phone"), alias: ["phone", "tel", "celular", "movil", "numero", "numero_de_telefono"]),
+         .init("correo", L.t("Correo", "Email"), alias: ["email", "e_mail", "mail"]),
+         .init("direccion", L.t("Domicilio", "Address"), alias: ["address", "domicilio", "direccion_completa", "calle"]),
+         .init("nacimiento", L.t("Nacimiento", "Birth date"),
+               alias: ["birth_date", "fecha_nacimiento", "fecha_de_nacimiento", "cumpleanos", "cumpleaños"]),
+         .init("estado_civil", L.t("Estado civil", "Marital status"), alias: ["marital_status"]),
+         .init("miembro_desde", L.t("Miembro desde", "Member since"),
+               alias: ["member_since", "fecha_ingreso", "fecha_de_ingreso", "ingreso", "fecha_de_alta", "alta"]),
+         .init("congrega_desde", L.t("Congrega desde", "Attending since"),
+               alias: ["fecha_congregacion", "fecha_de_congregacion", "attending_since", "congrega"]),
+         .init("frecuencia_aporte", L.t("Frecuencia", "Frequency"),
+               alias: ["frecuencia", "frequency"])]
+    }
+
+    /// **Recibe el documento ya mapeado, no el archivo.** Antes leía el URL y
+    /// exigía que las cabeceras fueran las claves exactas; ahora quien llama
+    /// pasa por `MapearColumnasView` primero, y lo que llega aquí ya trae las
+    /// claves de la app. `columnasFaltantes` se queda como red de seguridad:
+    /// con el mapeo delante no debería llenarse nunca.
+    static func analizar(_ doc: CSVLector.Documento, existentes: [Aportante]) throws -> Analisis {
         let faltantes = obligatorias.filter { !doc.encabezados.contains($0) }
         guard faltantes.isEmpty else {
             return Analisis(filas: [], columnasFaltantes: faltantes)

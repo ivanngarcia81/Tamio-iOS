@@ -50,8 +50,32 @@ enum ImportadorAportes {
 
     private static let obligatorias = ["fecha", "monto"]
 
-    static func analizar(_ url: URL, existentes: [Aportante]) throws -> Analisis {
-        let doc = try CSVLector.leer(url)
+    /// Lo que la app necesita de un archivo de aportes. Ver
+    /// `ImportadorAportantes.campos` para el porqué de los alias.
+    ///
+    /// **A quién se le apunta el aporte puede venir por nombre o por id**, y
+    /// ninguno de los dos es obligatorio por separado: un diezmo de alguien sin
+    /// ficha se registra igual, con el nombre suelto. Obligatorios solo la
+    /// fecha y el importe, que sin ellos no hay aporte.
+    static var campos: [CSVLector.Campo] {
+        [.init("fecha", L.t("Fecha", "Date"), obligatorio: true,
+               alias: ["date", "dia", "day", "fecha_del_aporte", "fecha_de_pago"]),
+         .init("monto", L.t("Importe", "Amount"), obligatorio: true,
+               alias: ["amount", "importe", "cantidad", "valor", "total", "monto_del_aporte"]),
+         .init("aportante_nombre", L.t("Aportante", "Giver"),
+               alias: ["nombre", "name", "giver", "miembro", "member", "donante"]),
+         .init("aportante_id", L.t("Id del aportante", "Giver ID"),
+               alias: ["member_uid", "uid", "id"]),
+         .init("concepto", L.t("Concepto", "Description"),
+               alias: ["description", "descripcion", "detalle", "memo", "nota"])]
+    }
+
+    /// **Recibe el documento ya mapeado, no el archivo.** Antes leía el URL y
+    /// exigía que las cabeceras fueran las claves exactas; ahora quien llama
+    /// pasa por `MapearColumnasView` primero, y lo que llega aquí ya trae las
+    /// claves de la app. `columnasFaltantes` se queda como red de seguridad:
+    /// con el mapeo delante no debería llenarse nunca.
+    static func analizar(_ doc: CSVLector.Documento, existentes: [Aportante]) throws -> Analisis {
         let faltantes = obligatorias.filter { !doc.encabezados.contains($0) }
         guard faltantes.isEmpty else {
             return Analisis(filas: [], columnasFaltantes: faltantes)

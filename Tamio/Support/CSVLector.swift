@@ -119,3 +119,97 @@ enum CSVLector {
         return filas
     }
 }
+
+// MARK: - Decir qué columna es cuál
+
+/// **El paso de mapeo**, reflejado del `services/csvImport.ts` del app web.
+///
+/// Antes los dos importadores exigían los nombres de columna EXACTOS —`nombre`,
+/// `fecha`, `monto`— y avisaban de las que faltaban. Eso funciona con un
+/// archivo que salió de la propia exportación de Tamio y falla con cualquier
+/// otro: nadie tiene un Excel cuya primera fila diga exactamente eso. El web lo
+/// resolvió preguntando, y aquí se hace igual.
+///
+/// La pieza clave es que el mapeo **devuelve otro `Documento`** cuyas cabeceras
+/// ya son las claves internas de la app. Así los importadores no se enteran de
+/// que esto existe: siguen pidiendo `doc.valor(fila, "nombre")`.
+extension CSVLector {
+
+    /// Un dato que la app necesita, y por qué nombres suele venir.
+    struct Campo: Identifiable, Hashable {
+        let clave: String
+        let rotulo: String
+        let obligatorio: Bool
+        /// Nombres con los que se reconoce sola. Van SIN acentos y en
+        /// minúscula; la comparación normaliza el encabezado igual.
+        let alias: [String]
+
+        var id: String { clave }
+
+        init(_ clave: String, _ rotulo: String, obligatorio: Bool = false, alias: [String] = []) {
+            self.clave = clave
+            self.rotulo = rotulo
+            self.obligatorio = obligatorio
+            // La propia clave siempre vale como alias: un archivo exportado por
+            // Tamio se reconoce entero sin tocar nada, que es como funcionaba
+            // esto antes y no debe empeorar.
+            self.alias = [clave] + alias
+        }
+    }
+
+    /// Compara sin acentos, sin mayúsculas y sin separadores, para que
+    /// "Teléfono", "telefono" y " TELEFONO " sean la misma columna.
+    ///
+    /// **Todo lo que no sea letra o número cuenta como separador**, no solo el
+    /// espacio: la primera versión solo cambiaba espacios y por eso "E-mail" no
+    /// casaba con el alias `e_mail`. Lo encontró una prueba, no una lectura —
+    /// un encabezado de Excel trae guiones, puntos y paréntesis a partes
+    /// iguales.
+    static func normalizar(_ s: String) -> String {
+        let plano = s.folding(options: [.diacriticInsensitive, .caseInsensitive],
+                              locale: Locale(identifier: "es"))
+        let troceado = plano.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+        return troceado.joined(separator: "_")
+    }
+
+    /// **La sugerencia**, que el usuario puede corregir. Una columna del
+    /// archivo no se ofrece dos veces: si ya se asignó, se salta.
+    static func mapeoSugerido(_ doc: Documento, campos: [Campo]) -> [String: String] {
+        var mapeo: [String: String] = [:]
+        var usadas = Set<String>()
+        for campo in campos {
+            let alias = Set(campo.alias.map(normalizar))
+            if let hallada = doc.encabezados.first(where: {
+                !usadas.contains($0) && alias.contains(normalizar($0))
+            }) {
+                mapeo[campo.clave] = hallada
+                usadas.insert(hallada)
+            }
+        }
+        return mapeo
+    }
+
+    /// **Rehace el documento con las claves de la app.** Lo que no se mapeó se
+    /// queda como columna vacía, que es exactamente lo que `Documento.valor`
+    /// ya sabía tratar: devuelve "" y cada importador aplica su omisión.
+    static func aplicar(_ mapeo: [String: String], a doc: Documento, campos: [Campo]) -> Documento {
+        let claves = campos.map(\.clave)
+        let indices: [Int?] = campos.map { campo in
+            guard let col = mapeo[campo.clave] else { return nil }
+            return doc.encabezados.firstIndex(of: col)
+        }
+        let filas = doc.filas.map { fila in
+            indices.map { i -> String in
+                guard let i, i < fila.count else { return "" }
+                return fila[i].trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return Documento(encabezados: claves, filas: filas)
+    }
+
+    /// Los obligatorios que siguen sin columna. Es lo que apaga el botón de
+    /// continuar, y sustituye al aviso de "falta la columna «nombre»".
+    static func faltantes(_ mapeo: [String: String], campos: [Campo]) -> [Campo] {
+        campos.filter { $0.obligatorio && mapeo[$0.clave] == nil }
+    }
+}

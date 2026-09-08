@@ -11,6 +11,8 @@ struct MiembrosView: View {
     @State private var csvParaCompartir: URL?
     @State private var mostrarImportador = false
     @State private var analisis: ImportadorAportantes.Analisis?
+    /// El CSV recién leído, esperando a que digan qué columna es cuál.
+    @State private var porMapear: PorMapear?
     @State private var mostrarImportadorAportes = false
     @State private var analisisAportes: ImportadorAportes.Analisis?
     @State private var errorImportacion: String?
@@ -60,6 +62,22 @@ struct MiembrosView: View {
             .sheet(item: $analisisAportes) { a in
                 ImportarAportesView(analisis: a) { porAportante in
                     Task { await vm.importarAportes(porAportante) }
+                }
+            }
+            .sheet(item: $porMapear) { pendiente in
+                MapearColumnasView(documento: pendiente.documento,
+                                   campos: pendiente.campos) { mapeado in
+                    // El análisis se lanza al cerrarse la hoja del mapeo, no
+                    // dentro de ella: dos hojas a la vez no se apilan.
+                    do {
+                        if pendiente.esAportantes {
+                            analisis = try ImportadorAportantes.analizar(mapeado, existentes: vm.items)
+                        } else {
+                            analisisAportes = try ImportadorAportes.analizar(mapeado, existentes: vm.items)
+                        }
+                    } catch {
+                        errorImportacion = error.localizedDescription
+                    }
                 }
             }
             .alert(L.t("No se pudo importar", "Couldn't import"),
@@ -264,15 +282,30 @@ struct MiembrosView: View {
 
     /// Analiza el archivo y enseña el resumen. Nada se escribe hasta que se
     /// confirma en la pantalla siguiente.
+    /// **Leer ya no es analizar.** Entre las dos cosas va el paso de mapeo:
+    /// se abre `MapearColumnasView` con el documento crudo, y solo cuando el
+    /// usuario dice qué columna es cuál se analiza. Antes se exigían las
+    /// cabeceras exactas y un Excel cualquiera no entraba.
     private func analizar(_ resultado: Result<[URL], Error>) {
         conArchivo(resultado) { url in
-            analisis = try ImportadorAportantes.analizar(url, existentes: vm.items)
+            porMapear = PorMapear(documento: try CSVLector.leer(url), esAportantes: true)
         }
     }
 
     private func analizarAportes(_ resultado: Result<[URL], Error>) {
         conArchivo(resultado) { url in
-            analisisAportes = try ImportadorAportes.analizar(url, existentes: vm.items)
+            porMapear = PorMapear(documento: try CSVLector.leer(url), esAportantes: false)
+        }
+    }
+
+    /// Un CSV leído esperando a que digan qué columna es cuál.
+    struct PorMapear: Identifiable {
+        let id = UUID()
+        let documento: CSVLector.Documento
+        let esAportantes: Bool
+
+        var campos: [CSVLector.Campo] {
+            esAportantes ? ImportadorAportantes.campos : ImportadorAportes.campos
         }
     }
 
