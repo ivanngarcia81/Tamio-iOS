@@ -53,7 +53,23 @@ struct ServiciosView: View {
                 listaColumna
                     .navigationDestination(item: $abierto) { s in
                         detalleServicio(s)
+                            // **El nombre y la fecha del culto, a la barra.**
+                            // Aquí el detalle ES la pantalla y su barra iba
+                            // vacía, con solo el chevron, mientras el título
+                            // ocupaba dos renglones de contenido. Es lo que ya
+                            // hacen Membresía, Ingresos y Aportantes.
+                            .encabezadoNav(s.titulo, s.fechaLegible)
                             .navigationBarTitleDisplayMode(.inline)
+                            // **El menú, aquí y no dentro de `detalleServicio`.**
+                            // En iPad ese detalle es la columna derecha, que
+                            // vive DENTRO de esta pantalla: puesto allí, su
+                            // barra se sumaría a la de arriba y saldrían dos
+                            // hamburguesas en la misma barra. Esta rama es solo
+                            // la del teléfono, donde el detalle sí tiene barra
+                            // propia.
+                            .toolbar {
+                                ToolbarItem(placement: .topBarTrailing) { menuAcciones }
+                            }
                     }
             }
         }
@@ -76,15 +92,8 @@ struct ServiciosView: View {
         // En iPad se queda `.large`: allí la barra es de la pantalla entera y
         // el título no compite con ninguna cápsula.
         .navigationBarTitleDisplayMode(compacto ? .inline : .large)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { hoja = .nuevo } label: {
-                    Label(L.t("Nuevo", "New"), systemImage: "plus")
-                }
-                .buttonStyle(.glass)
-                .tint(Paleta.brand)
-            }
-        }
+        // Una sola cápsula para toda la pantalla: ver `menuAcciones`.
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { menuAcciones } }
         .task { await vm.cargar() }
         .sincronizable { await vm.cargar() }
         .sheet(item: $hoja) { cual in
@@ -185,45 +194,22 @@ struct ServiciosView: View {
     private func detalleServicio(_ s: Servicio) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Encabezado
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(s.titulo).font(.title2.weight(.semibold))
-                    // La fecha completa, no "23 de agosto" con el mes escrito
-                    // a mano: el culto puede ser de cualquier mes.
-                    Text(s.fechaLegible)
-                        .font(.subheadline).foregroundStyle(.secondary)
-                }
-
-                // Botones de acción
-                HStack(spacing: 10) {
-                    // Pintados a mano: el primario iba con `Paleta.brand` de
-                    // fondo y el texto en blanco, los mismos ~2.4:1 en oscuro
-                    // que se quitaron del resto de la app. Ahora son botones de
-                    // verdad, con el estilo que ya llevan los demás: glass con
-                    // el verde de marca el que actúa, glass en gris el otro.
-                    // **Dos cosas distintas.** "Tomar lista" abre el padrón
-                    // agrupado en familias y guarda una fila por persona, que
-                    // es de donde salen la racha y las ausencias. "Contar" es
-                    // el conteo de cabezas de siempre, para el culto donde no
-                    // se pasa lista.
-                    Button { if let c = vm.cultoDeLaSeleccion { hoja = .lista(c) } } label: {
-                        Text(L.t("Tomar lista", "Take attendance"))
-                            .font(.subheadline.weight(.medium))
-                            .apagadoLegible(vm.cultoDeLaSeleccion == nil)
+                // **El encabezado, solo en iPad.** Allí este detalle es la
+                // columna derecha y la barra de navegación es de la pantalla
+                // entera —dice "Registro de servicios"—, así que el culto tiene
+                // que decir su nombre dentro del panel. En el teléfono el
+                // detalle ES la pantalla: su nombre y su fecha suben a la barra
+                // con `encabezadoNav`, que es lo que ya hacen Membresía,
+                // Ingresos y Aportantes, y así la barra deja de ir vacía con
+                // solo el chevron.
+                if !compacto {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(s.titulo).font(.title2.weight(.semibold))
+                        // La fecha completa, no "23 de agosto" con el mes
+                        // escrito a mano: el culto puede ser de cualquier mes.
+                        Text(s.fechaLegible)
+                            .font(.subheadline).foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.glass).tint(Color.secondary)
-                    .disabled(vm.cultoDeLaSeleccion == nil)
-                    Button { hoja = .contar } label: {
-                        Text(L.t("Contar", "Count"))
-                            .font(.subheadline.weight(.medium))
-                    }
-                    .buttonStyle(.glass).tint(Color.secondary)
-                    Button { hoja = .asignar } label: {
-                        Text(L.t("Asignar", "Assign"))
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    .buttonStyle(.glass).tint(Paleta.brand)
-                    Spacer()
                 }
 
                 // **Las tres tarjetas de siempre, solo si tienen algo.**
@@ -331,6 +317,71 @@ struct ServiciosView: View {
         }
         .background(Color(.systemGroupedBackground))
     }
+
+    /// **Las acciones del culto, en una sola cápsula de la barra.**
+    ///
+    /// Iván rodeó las tres en una captura del teléfono: flotaban entre el
+    /// título y las tarjetas, sobre el fondo agrupado, así que sus cápsulas de
+    /// `.glass` no tenían nada que refractar y se leían como tres rectángulos
+    /// blancos. Se probó subirlas enteras a una `safeAreaBar`, como el
+    /// segmentado de Agenda: se veían como cristal de verdad, pero con el texto
+    /// en AX1 "Take attendance" —la etiqueta más larga de la app— ya no cabía
+    /// con las otras dos y la tira se partía en dos renglones. La decisión es
+    /// de Iván y es la única que no depende del ancho.
+    ///
+    /// **Dos cosas distintas.** "Tomar lista" abre el padrón agrupado en
+    /// familias y guarda una fila por persona, que es de donde salen la racha y
+    /// las ausencias. "Contar" es el conteo de cabezas de siempre, para el
+    /// culto donde no se pasa lista. Por eso son dos entradas y no una.
+    ///
+    /// Cada una lleva su icono: en un menú, tres renglones de texto suelto se
+    /// leen igual de rápido que una lista de la compra.
+    ///
+    /// **Las cuatro, y por eso se va también el `+`.** "Nuevo" era una cápsula
+    /// aparte en la misma barra; metida aquí, la pantalla entera gasta UNA
+    /// cápsula en vez de dos más tres botones sueltos, que es lo que pidió
+    /// Iván: *"ponerlo todo dentro de una hamburguesa… y así se ahorra
+    /// espacio"*.
+    ///
+    /// Las tres del culto se apagan cuando no hay culto delante: en el teléfono
+    /// eso es la lista —donde `seleccionId` puede seguir apuntando al último
+    /// abierto, y actuar sobre él sería actuar a ciegas— y en iPad es la
+    /// columna derecha vacía. "Nuevo" nunca se apaga, que es lo que hay que
+    /// poder hacer justo cuando no hay ninguno.
+    private var menuAcciones: some View {
+        Menu {
+            Button {
+                if let c = vm.cultoDeLaSeleccion { hoja = .lista(c) }
+            } label: {
+                Label(L.t("Tomar lista", "Take attendance"), systemImage: "checklist")
+            }
+            .disabled(servicioActivo == nil || vm.cultoDeLaSeleccion == nil)
+
+            Button { hoja = .contar } label: {
+                Label(L.t("Contar", "Count"), systemImage: "number")
+            }
+            .disabled(servicioActivo == nil)
+
+            Button { hoja = .asignar } label: {
+                Label(L.t("Asignar", "Assign"), systemImage: "person.2.badge.plus")
+            }
+            .disabled(servicioActivo == nil)
+
+            Divider()
+
+            Button { hoja = .nuevo } label: {
+                Label(L.t("Nuevo servicio", "New service"), systemImage: "plus")
+            }
+        } label: {
+            Label(L.t("Acciones", "Actions"), systemImage: "line.3.horizontal")
+        }
+        .buttonStyle(.glass)
+        .tint(Paleta.brand)
+    }
+
+    /// El culto sobre el que actúa el menú: el que se está viendo. En el
+    /// teléfono es el que se empujó; en iPad, el de la columna derecha.
+    private var servicioActivo: Servicio? { compacto ? abierto : vm.seleccion }
 
     // MARK: - Lo capturado en la ficha del culto
 
