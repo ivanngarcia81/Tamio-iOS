@@ -114,7 +114,11 @@ struct InformesMembresiaView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Color(.secondarySystemGroupedBackground))
+        // Esta columna solo existe en iPad —la rama compacta enseña el informe
+        // y nada más—, así que la fila nunca es tarjeta y el suelo es siempre
+        // el claro. Va por la regla igual, para que no haya que volver a
+        // deducirlo.
+        .background(Paleta.sueloLista(tarjeta: false))
         .frame(width: Esp.columnaMaestra)
     }
 

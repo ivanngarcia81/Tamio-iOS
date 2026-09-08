@@ -41,7 +41,6 @@ struct ServiciosView: View {
                 HStack(spacing: 0) {
                     listaColumna
                         .frame(width: Esp.columnaMaestra)
-                        .background(Color(.secondarySystemGroupedBackground))
                     Divider()
                     if let s = vm.seleccion {
                         detalleServicio(s)
@@ -52,7 +51,6 @@ struct ServiciosView: View {
                 }
             } else {
                 listaColumna
-                    .background(.regularMaterial)
                     .navigationDestination(item: $abierto) { s in
                         detalleServicio(s)
                             .navigationBarTitleDisplayMode(.inline)
@@ -124,7 +122,12 @@ struct ServiciosView: View {
         // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
         listaColumnaCore
             .listStyle(.plain)
+            // El suelo va en la LISTA, no en el sitio donde se usa. En el
+            // teléfono era `.regularMaterial` detrás de la columna entera: sin
+            // nada que difuminar se resolvía como un gris plano, que es lo
+            // mismo que el gris agrupado pero por accidente.
             .scrollContentBackground(.hidden)
+            .background(Paleta.sueloLista(tarjeta: sizeClass != .regular))
     }
 
     @ViewBuilder
@@ -1131,7 +1134,9 @@ struct ListaAsistenciaSheet: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Color(.systemGroupedBackground))
+        // Sus filas son tarjetas en los dos aparatos: la hoja de asistencia se
+        // marca igual en el teléfono que en el iPad.
+        .background(Paleta.sueloLista(tarjeta: true))
         .scrollEdgeEffectStyle(.soft, for: .all)
     }
 
