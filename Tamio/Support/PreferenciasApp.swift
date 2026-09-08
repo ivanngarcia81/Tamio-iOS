@@ -105,12 +105,13 @@ final class PreferenciasApp {
     private static let claveIdioma = "prefs.idioma"
     private static let claveTamano = "prefs.tamano"
     private static let claveBienvenida = "prefs.bienvenidaVista"
+    private static let claveConfigurada = "prefs.iglesiaConfigurada"
 
     /// Todas las de este aparato, en un sitio. Las usa el reinicio de fábrica:
     /// vaciar el dominio entero de `UserDefaults` se llevaría por delante lo
     /// que guardan las SDK de Apple y de Supabase, y borrar por una lista
     /// escrita en otro archivo es cómo se olvida la siguiente.
-    static var claves: [String] { [claveTema, claveIdioma, claveTamano, claveBienvenida] }
+    static var claves: [String] { [claveTema, claveIdioma, claveTamano, claveBienvenida, claveConfigurada] }
 
     private init() {
         let d = UserDefaults.standard
@@ -133,6 +134,17 @@ final class PreferenciasApp {
     static var bienvenidaVista: Bool {
         get { UserDefaults.standard.bool(forKey: claveBienvenida) }
         set { UserDefaults.standard.set(newValue, forKey: claveBienvenida) }
+    }
+
+    /// **Si ya se pasó por la configuración inicial en este aparato.**
+    ///
+    /// Es el equivalente del `localStorage("tesoreria-welcomed")` del web, y
+    /// hace falta por lo mismo: la señal de "iglesia sin configurar" es que se
+    /// llame "Mi Iglesia", y una iglesia puede llamarse así de verdad. Sin
+    /// esta bandera, a esa se le pediría configurarse en cada arranque.
+    static var iglesiaConfigurada: Bool {
+        get { UserDefaults.standard.bool(forKey: claveConfigurada) }
+        set { UserDefaults.standard.set(newValue, forKey: claveConfigurada) }
     }
 
     /// El idioma elegido, leído sin pasar por el objeto observable.

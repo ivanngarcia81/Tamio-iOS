@@ -763,18 +763,35 @@ struct ConfiguracionInicialView: View {
     /// la raíz para poder probarla: es una regla con dos condiciones y una de
     /// ellas —la de la sincronización— es justo la que no se ve fallar.
     ///
-    /// - `nombre` vacío: iglesia recién creada. Es la misma señal que usa el
-    ///   web (`esPrimerArranque` mira `church.nombre`); no hay marca de
-    ///   "configurada" en el esquema, y contar movimientos no vale, porque una
-    ///   iglesia real puede empezar sin ninguno.
+    /// - **El nombre es el que siembra el registro.** `crear_perfil_al_registrarse`
+    ///   crea la iglesia con `coalesce(nullif(meta->>'iglesia',''), 'Mi Iglesia')`,
+    ///   así que una iglesia recién nacida NO se llama "": se llama
+    ///   **"Mi Iglesia"**. El web compara contra ese literal
+    ///   (`esPrimerArranque`) y aquí se hacía contra vacío — que no ocurre
+    ///   nunca, o sea que esta pantalla no se enseñaba JAMÁS. Se descubrió el
+    ///   8-sep-2026 mirando la cuenta de una persona real, no el código.
+    ///   El vacío se sigue tratando como sin configurar, por si alguien lo
+    ///   borra a mano.
     /// - `ultimaSincronizacion` no nula: la bajada terminó al menos una vez.
     ///   Sin esto, el primer arranque de un aparato ve la base local en blanco
     ///   y le pide al segundo miembro de una iglesia ya montada que la
     ///   configure otra vez — pisándole el nombre.
-    static func haceFalta(nombre: String, ultimaSincronizacion: Date?) -> Bool {
-        guard ultimaSincronizacion != nil else { return false }
-        return nombre.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    /// - `yaConfigurado`: la bandera de este aparato, equivalente al
+    ///   `localStorage` del web. Una iglesia puede llamarse "Mi Iglesia" de
+    ///   verdad; sin esta bandera se le pediría configurarse en cada arranque.
+    static func haceFalta(nombre: String,
+                          ultimaSincronizacion: Date?,
+                          yaConfigurado: Bool = false) -> Bool {
+        guard ultimaSincronizacion != nil, !yaConfigurado else { return false }
+        let n = nombre.trimmingCharacters(in: .whitespacesAndNewlines)
+        return n.isEmpty || n.compare(Self.nombreSembrado,
+                                      options: .caseInsensitive) == .orderedSame
     }
+
+    /// El literal que escribe el disparador de registro en Supabase. Si
+    /// cambia allí, cambia aquí: son el mismo dato en dos sitios y no hay
+    /// forma de que el compilador lo note.
+    static let nombreSembrado = "Mi Iglesia"
 
     var body: some View {
         NavigationStack {
@@ -885,6 +902,7 @@ struct ConfiguracionInicialView: View {
         cfg.config.moneda = moneda
         Task {
             await cfg.guardarYa()
+            PreferenciasApp.iglesiaConfigurada = true
             // Que suba ahora y no en el próximo arranque: es el primer dato de
             // esta iglesia y el web lo está esperando.
             await MotorSincronizacion.compartido.sincronizar()

@@ -15,6 +15,31 @@ final class ConfiguracionInicialTests: XCTestCase {
         XCTAssertTrue(ConfiguracionInicialView.haceFalta(nombre: "", ultimaSincronizacion: yaBajo))
     }
 
+    /// **El caso que de verdad ocurre, y que esta prueba no cubría.**
+    ///
+    /// El disparador de registro NO deja el nombre vacío: crea la iglesia
+    /// llamándola "Mi Iglesia". Comprobar solo el vacío hacía que esta
+    /// pantalla no se enseñara nunca. Se descubrió mirando la cuenta de una
+    /// persona real el 8-sep-2026.
+    func testUnaIglesiaReciennRegistradaSeLlamaMiIglesia() {
+        XCTAssertTrue(ConfiguracionInicialView.haceFalta(nombre: "Mi Iglesia",
+                                                         ultimaSincronizacion: yaBajo),
+                      "### al recién registrado no se le pide configurar su iglesia")
+        // Como el literal viene del servidor, se acepta con otro espaciado o
+        // capitalización antes que dejar a alguien sin la pantalla.
+        XCTAssertTrue(ConfiguracionInicialView.haceFalta(nombre: "  mi iglesia ",
+                                                         ultimaSincronizacion: yaBajo))
+    }
+
+    /// Y la bandera del aparato, que es lo que impide preguntárselo cada vez a
+    /// una iglesia que se llame así de verdad.
+    func testSiYaSeConfiguroNoSeVuelveAPreguntar() {
+        XCTAssertFalse(ConfiguracionInicialView.haceFalta(nombre: "Mi Iglesia",
+                                                          ultimaSincronizacion: yaBajo,
+                                                          yaConfigurado: true),
+                       "### se le pediría configurar en cada arranque")
+    }
+
     func testIglesiaConNombreNoSePregunta() {
         XCTAssertFalse(ConfiguracionInicialView.haceFalta(nombre: "Iglesia Nueva Vida",
                                                           ultimaSincronizacion: yaBajo))

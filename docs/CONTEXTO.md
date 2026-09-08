@@ -10,6 +10,43 @@ asomaba con la app en inglés (§0.-1).
 
 ---
 
+## 0.-3 Una cuenta real destapó que la configuración inicial no se enseñaba nunca
+
+8 de septiembre de 2026. Iván pidió que **Dennys Castillo** (`denedycastillo@hotmail.com`)
+pasara a administradora de su propia iglesia; estaba de `secretaria` y sola en
+ella desde julio, o sea **encerrada**: el único miembro de una iglesia que no es
+administrador no puede invitar a nadie —la Edge Function lo comprueba— ni
+administrar nada. Su rol ya está cambiado.
+
+**Eso vale por sí solo como aviso de producto:** el disparador de registro te
+hace ADMINISTRADOR de tu iglesia nueva. En una prueba se le bajó el rol y quedó
+en un callejón sin salida que el producto ni impide ni detecta.
+
+**Y de mirar su cuenta salió un fallo en el código de la víspera.** Su iglesia se
+llama **"Mi Iglesia"**, que es lo que siembra el disparador:
+
+    insert into iglesias (nombre)
+    values (coalesce(nullif(meta->>'iglesia',''), 'Mi Iglesia'))
+
+`ConfiguracionInicialView.haceFalta` comprobaba si el nombre estaba **vacío**. Un
+nombre vacío no ocurre nunca, así que **la pantalla de configuración inicial no
+se habría enseñado JAMÁS** — ni a Dennys ni a ningún cliente nuevo. El comentario
+decía que reflejaba la regla del web, y el web compara contra el literal
+(`esPrimerArranque`, `church.nombre === "Mi Iglesia"`). Se leyó la regla, se
+resumió y se implementó el resumen.
+
+Arreglado: el centinela es "Mi Iglesia" (y el vacío se sigue aceptando, por si
+alguien lo borra a mano), con `PreferenciasApp.iglesiaConfigurada` de guarda —el
+equivalente del `localStorage` del web— para que a una iglesia que de verdad se
+llame así no se le pregunte en cada arranque. Dos pruebas nuevas, una por cada
+mitad.
+
+**La lección, que no es nueva pero volvió a costar:** cuando se refleja una regla
+del web, se copia la regla, no lo que uno entendió de ella. Y el fallo no salió
+de leer el código: salió de mirar una cuenta de verdad.
+
+---
+
 ## 0.-2 El bundle id, y la trampa que deja escrita
 
 Decidido con Iván el 8 de septiembre de 2026, y anotado porque es una decisión

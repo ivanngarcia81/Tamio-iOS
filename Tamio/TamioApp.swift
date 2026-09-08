@@ -57,7 +57,8 @@ struct TamioApp: App {
     private func decidirConfiguracionInicial() {
         pedirConfiguracion = ConfiguracionInicialView.haceFalta(
             nombre: ConfiguracionIglesiaViewModel.compartido.config.nombre,
-            ultimaSincronizacion: MotorSincronizacion.compartido.ultimaSincronizacion)
+            ultimaSincronizacion: MotorSincronizacion.compartido.ultimaSincronizacion,
+            yaConfigurado: PreferenciasApp.iglesiaConfigurada)
     }
 
     @ViewBuilder
