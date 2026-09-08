@@ -5,8 +5,150 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **8 de septiembre de 2026**, al arreglar el folio que
-impedía subir cualquier movimiento (§0.-5).
+Última actualización: **8 de septiembre de 2026**, tras la pasada de interfaz
+del iPhone (§0.-6).
+
+---
+
+## 0.-6 La pasada de interfaz del iPhone · 8 de septiembre
+
+**Solo interfaz, solo iPhone 17e, en inglés, las cuatro zonas.** Ocho arreglos,
+un commit cada uno. Lo que la hace repetible es que **ningún bug se dio por
+bueno sin medirlo en la pantalla**: los de contraste con el valor del pixel, los
+de layout con la captura del antes y del después en la misma postura.
+
+### Lo que se arregló
+
+- **"NOTA" en una app en inglés.** Era el ÚNICO `Text` de texto visible de toda
+  `Tamio/Views/` sin pasar por `L.t` —comprobado con un grep sobre la carpeta—,
+  y salía al lado de la pastilla del filtro, que sí decía "Notes 2".
+- **"+$2,500.00" partido en dos renglones** con Dynamic Type en AX1, en todas
+  las filas de Ingresos: el `Text` del monto no tenía la regla que `AmountText`
+  sí lleva escrita.
+- **Cuatro cabeceras de sección a 1.74:1** (§4, "El gris se aplica dos veces").
+- **"vs mes anterior" sin nada con qué comparar** en el chip de Gastos: un
+  parámetro hacía de sufijo y de leyenda a la vez.
+- **La tira de Agenda · Semana descuadrada** en el día elegido.
+- **"Transfer in progress" partiendo la pastilla** y estirando la fila.
+- **El pie de la tarjeta de Ingresos recortado por los dos lados** en AX1.
+- **`filaNuevoMiembro`, muerta**, con su comentario huérfano y el §5 de este
+  archivo documentándola como vigente.
+- **La sección "Plantillas" de Cartas se quedaba vacía para siempre una de cada
+  cinco veces.** Ver abajo: es el hallazgo que más costó y el que primero se
+  descartó mal.
+
+### La sección de plantillas que a veces no aparecía
+
+Cabecera "Templates" dibujada y **ni una fila debajo**, con "Issued this
+month" entera justo después. Primero se descartó como foto prematura —una
+segunda corrida la enseñó llena, y el §0.0 avisa de las fotos prematuras—;
+**era un error**: la tercera corrida la volvió a enseñar vacía a los diez
+segundos, y con veinte aperturas seguidas salieron **3 de 20**, y luego 5 de
+20. No se recupera: en las malas no aparece en veinte segundos.
+
+**No era el dato.** Instrumentando `cargar()` con `NSLog`, `plantillas` valía
+16 también en las corridas malas. Y con el `NSLog` puesto el fallo se
+esconde: 11 corridas de 11 buenas. Es sensible al tiempo, así que cada
+hipótesis se midió con veinte aperturas y contra un control con el MISMO
+instrumento —sin eso, dos de las tres "confirmaciones" habrían sido ruido—.
+
+- Esconder la `Section` cuando está vacía: **2 de 20**. Descartado, y además
+  imposible: en la corrida mala `plantillas` vale 16 y la sección se emite.
+- `Task.yield()` al entrar en `cargar()`: **2 de 20**. Descartado.
+- **Calcular las dos listas y asignarlas juntas, sin `await` entre las dos
+  asignaciones: 0 de 20, y otra vez 0 de 20**, contra 3 y 5 de 20 en los dos
+  controles intercalados. **8 de 40 → 0 de 40.** Ese es el arreglo.
+
+Lo que pasaba: `emitidas` se publicaba, la vista evaluaba su cuerpo, y en ese
+hueco —hay un `await` entre las dos asignaciones— se asignaba `plantillas`.
+La observación que ese cuerpo en vuelo estaba registrando se perdía, y la
+vista no volvía a leer la propiedad.
+
+**El mismo patrón está en cuatro view models más** —`InformesMembresia`,
+`Membresia`, `Movimientos` y `Reportes`—, encontrados con grep. **No se
+tocaron**: Membresía se midió igual, veinte aperturas, y dio **0 de 20**; en
+Reportes cada `await` depende del anterior y no se puede agrupar sin
+refactorizar; y no hay evidencia en los otros dos. Si alguna lista de esas
+pantallas aparece vacía alguna vez, la receta de medida es
+`pruebas/PlantillasDeCartaUITests.swift` con otro testigo.
+
+**Dos avisos sobre la prueba, que costaron una vuelta cada uno:** el testigo de
+"ya estoy en la pantalla" no puede ser una fila que el caso BUENO empuje fuera
+de pantalla —"Issued this month" queda bajo las 16 plantillas, y usarlo marcaba
+como fallo justo las corridas buenas—; y un fallo intermitente **no se cierra
+con una corrida que sale bien**, se cierra con veinte y un control.
+
+### Cómo se midió, que es lo reutilizable
+
+- **El contraste se lee del PNG, no se estima.** Un lector de PNG en Python
+  puro —zlib más los cinco filtros— basta para sacar los colores dominantes de
+  un rectángulo y calcular la relación WCAG. Sin dependencias, y contra la
+  captura de `simctl`, que es lo que de verdad se ve.
+- **La misma medida en dos sitios distingue la causa.** "LUNES 7 SEP" está a
+  media pantalla, lejos de la barra de cristal, y medía lo mismo que la primera
+  cabecera: eso descartó el desvanecido y dejó al descubierto el doble gris.
+- **Las herramientas están en `pruebas/`**: `RecorridoInterfazUITests.swift`
+  (el recorrido con las paradas), `contraste.py` (el lector de PNG) y
+  `PlantillasDeCartaUITests.swift` (la prueba de veinte aperturas). Ver su
+  `LEEME.md`.
+- **Las filas de una `List` no son botones**: son celdas con la etiqueta vacía,
+  así que no se localizan por texto. Y **la primera celda es la cabecera de
+  sección**, así que `cells.element(boundBy: 0)` toca el rótulo y no la fila.
+  Para abrir una fila, tocar su `staticText` por coordenada.
+- **Las filas de un hub bajo el pliegue no están en el árbol** hasta que se
+  desplaza: `abrirFila` tiene que buscar bajando, o da un "no existe" que es
+  mentira. Cinco pantallas de Secretaría se dieron por recorridas sin haberlas
+  abierto por esto.
+- **La foto prematura vuelve a aparecer —y una de las dos NO lo era.** Agenda
+  repitió el "0 pending" del §0.0 y sí era prematura. La sección "Templates" de
+  Cartas se descartó igual tras una segunda corrida llena, **y era un fallo de
+  verdad** (arriba). La regla que sale: una segunda corrida que sale bien solo
+  descarta si el fallo era determinista; si puede ser intermitente, hacen falta
+  veinte y un control.
+
+### Lo que se decidió NO tocar, y por qué
+
+- **G · Los botones apagados de la barra a 2.11:1** ("Limpiar" en la hoja de
+  filtros, "Guardar" en el alta). Decisión de Iván: se quedan. El atenuado del
+  sistema ES la señal de que no se pueden tocar, y subirlos a 8.4:1 con
+  `apagadoLegible` haría que un "Guardar" que no guarda parezca que sí. Es el
+  mismo razonamiento que ya está escrito en `RevisarView`: *"una cápsula que
+  parece botón y no responde promete algo que no cumple"*. Anotado en §4 con la
+  medida para que no se vuelva a descubrir.
+- **H · Las píldoras de estado**, medidas en claro: "Not deposited" y "3 lapsed
+  givers" **2.96:1**, "Partial roster" sobre fila seleccionada **2.38:1**,
+  "Active" **3.73:1**, "Full roster" 4.35:1. El mínimo de texto normal es 4.5:1
+  y son `.caption` de 11 pt, así que no cuentan como texto grande. Es el color
+  de `Paleta`, o sea toda la app a la vez: decisión de diseño, no defecto de
+  pantalla. Se queda anotado en §4.
+
+### Lo que se vio y no es de interfaz
+
+- **Inicio · "This week" enseña la agenda de agosto** ("FRI 21") mientras
+  Secretaría dice "MON 21" **del mismo evento**. No es un cálculo mal hecho de
+  día de la semana: son dos fuentes, y `MockDashboardRepository.semana` lleva el
+  día y el número escritos a mano. Solo pasa en modo revisión.
+- **Membresía · Asistencia** dice "Average attendance 186" y "Best service 214 ·
+  Aug 23" sobre un padrón de siete. Sale del resumen escrito a mano del mock, el
+  mismo que el §5 ya apunta para el hub. **Y "mejor servicio" es justo la cifra
+  que el Informe de Asistencia quitó el 6-sep por venir de ahí**: el dato sigue
+  vivo en esta otra pantalla. Con datos reales el resumen es real, así que no se
+  toca desde aquí, pero conviene mirarlo cuando se enchufe.
+
+### Lo que queda pendiente de esta zona
+
+- **Depósitos trunca los TRES títulos de tres** ("Sunday, September 6 servi…").
+  No es un fallo: es `lineLimit(1)` con una columna derecha que se lleva el
+  monto y la pastilla. Arreglarlo pide dos renglones y eso cambia el alto de la
+  fila, o sea diseño. Queda apuntado.
+- **Sin recorrer**: las hojas de Nuevo aportante, Nuevo corte, Registrar
+  depósito, Segunda firma, Hoja de firma, Editar asunto, Editar recurrente,
+  Importar aportantes y aportes, Nueva nota, Nuevo pariente y Documento de
+  aportante; los detalles de acta, carta, servicio y evento; Membresía ·
+  Seguimiento; y Acceso y Pantalla de bloqueo, que el modo revisión salta.
+- **El iPad no se tocó**: esta pasada era solo teléfono.
+- **Los cuatro view models con dos asignaciones publicadas entre `await`s**
+  (arriba). Sin evidencia de fallo; si aparece, ya hay instrumento.
 
 ---
 
@@ -1666,6 +1808,45 @@ Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.
   mínimo para texto normal es 4.5:1): la etiqueta se borra. No es culpa del
   `tint` —sin él sale el mismo número— y `.secondary` tampoco basta: 3.29:1.
   Lo que sí funciona es `.primary` rebajado: 8.4:1 en claro y 8.3:1 en oscuro.
+
+  **Y los botones apagados de la BARRA se quedan como están** (medido el
+  8-sep: "Limpiar" de la hoja de filtros y "Guardar" del alta de movimiento,
+  los dos a **2.11:1**). Son `ToolbarItem` normales, sin `buttonStyle`: el
+  atenuado se lo pone el sistema y ES la señal de que no se pueden tocar.
+  Decisión de Iván: subirlos con `apagadoLegible` haría que un "Guardar" que no
+  guarda parezca que sí, que es lo contrario de lo que ya razona `RevisarView`
+  —*"una cápsula que parece botón y no responde promete algo que no cumple"*—.
+  No es un pendiente: está decidido.
+
+- **Las píldoras de estado no llegan a 4.5:1 en claro, y se queda así.**
+  Medido sobre la captura el 8-sep: "Sin depositar" y "3 aportantes sin
+  aportar" **2.96:1**, "Roster parcial" sobre una fila SELECCIONADA **2.38:1**
+  —ahí se suman dos capas de tinte—, "Activo" **3.73:1**, "Roster completo"
+  4.35:1. En oscuro "Sin depositar" sube a 4.18:1. Son `.caption` de 11 pt, así
+  que no cuentan como texto grande y el mínimo que les toca es 4.5:1.
+
+  Sale de `TamioAviso` y de la marca, o sea de la paleta: cambiarlo mueve el
+  naranja y el verde de TODA la app. Decisión de Iván el 8-sep: es diseño, no
+  defecto de pantalla, y no se decide en mitad de una pasada de bugs. Los
+  números quedan aquí para cuando se decida.
+
+- **`.foregroundStyle(.secondary)` sobre la cabecera de una `Section` la pinta
+  DOS veces.** Los estilos jerárquicos de SwiftUI se componen: secundario sobre
+  secundario da terciario. Medido el 8-sep en cuatro pantallas —Ingresos,
+  bitácora de cultos, Reportes y Agenda · Lista—: **1.74:1 en claro y 2.48:1 en
+  oscuro**, cuando la cabecera sin pintar da 3.4:1 y 5.9:1. Quitando el
+  modificador se arreglan las cuatro.
+
+  **No era el desvanecido de la barra de cristal**, que es lo primero que
+  parece: "LUNES 7 SEP" está a media pantalla, lejos de cualquier barra, y
+  medía exactamente lo mismo. La forma de distinguirlo es medir la misma clase
+  de rótulo en dos alturas distintas.
+
+- **Una cifra de dinero no se parte ni se recorta.** `AmountText` lleva
+  `lineLimit(1)` MÁS `minimumScaleFactor`, y ese par es la regla: sin el
+  primero, en AX1 "+$2,500.00" sale en dos renglones con el signo solo arriba;
+  sin el segundo, se trunca a "$2,50…", que miente. El 8-sep se aplicó a las
+  siete cifras sueltas que no pasan por `AmountText`.
 - **El ancho del segmentado NO era la causa** de que la barra truncara. Se
   probó dos veces, y a 160 pt fijos truncaba igual. Sobraba un control.
 
