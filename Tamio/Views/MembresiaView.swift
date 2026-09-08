@@ -578,6 +578,24 @@ struct MembresiaView: View {
                 }
                 Pill(texto: m.estado.etiqueta, color: m.estado.color)
             }
+            // **Las pastillas de la fila no se parten.** "Transfer in progress"
+            // —la etiqueta inglesa, más larga que "Traslado en curso"— caía en
+            // dos renglones dentro de la cápsula: la fila crecía, la columna
+            // derecha se descuadraba y el ritmo de la lista se rompía en la
+            // única persona con traslado abierto. El nombre, que ya lleva
+            // `lineLimit(1)`, cede el ancho antes que la pastilla.
+            //
+            // No va dentro de `Pill`: hay veintiséis y en un detalle —donde
+            // `etiquetaConDestino` lleva la iglesia de destino— partir es mejor
+            // que recortar. Aquí, en una fila de lista estrecha, es al revés.
+            //
+            // Y con `minimumScaleFactor`, porque `lineLimit(1)` a secas dejaba
+            // "Transfer in prog…": recortar una pastilla de estado es peor que
+            // partirla —se pierde justo la palabra que la pastilla existe para
+            // decir—. Encogiendo, cabe entera. Solo se encoge lo que haga falta:
+            // en español, que es más corto, no se nota.
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
         }
         .padding(.vertical, 10)
         .filaDeLista(seleccionada: esSel, tarjeta: sizeClass != .regular)
