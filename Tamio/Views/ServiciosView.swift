@@ -373,7 +373,14 @@ struct ServiciosView: View {
                 Label(L.t("Nuevo servicio", "New service"), systemImage: "plus")
             }
         } label: {
-            Label(L.t("Acciones", "Actions"), systemImage: "line.3.horizontal")
+            // **Los tres puntos y no las tres rayas.** Nació como hamburguesa
+            // —`line.3.horizontal`—, que es lo que Iván pidió, pero en
+            // Membresía el botón de filtros es `line.3.horizontal.decrease`:
+            // el mismo dibujo con una raya más corta. Dos cápsulas casi
+            // iguales en la misma app, una que filtra y otra que actúa. El
+            // `ellipsis` es además el "más acciones" que iOS usa en todas
+            // partes, así que no hay que aprenderlo.
+            Label(L.t("Acciones", "Actions"), systemImage: "ellipsis")
         }
         .buttonStyle(.glass)
         .tint(Paleta.brand)
