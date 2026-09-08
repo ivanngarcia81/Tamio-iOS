@@ -18,6 +18,32 @@ enum Marca {
     static let verdeHondo = Color(red: 0x0E / 255, green: 0x5B / 255, blue: 0x3A / 255)
 }
 
+extension Font {
+
+    /// **El tamaño del diseño, pero escalando con Dynamic Type.**
+    ///
+    /// `Font.system(size:)` es un tamaño FIJO: no se mueve por mucho que el
+    /// usuario suba la letra en Ajustes. La bienvenida y el acceso estaban
+    /// escritas así entera —doce tamaños a mano, ni un `relativeTo` ni un
+    /// `ScaledMetric`—, y medido con la app corriendo en AX1 los rótulos daban
+    /// exactamente el mismo alto que en tamaño normal: el título 81.3 pt, el
+    /// botón 56.0, "Tamio" 52.7. O sea que **la puerta de la app era la única
+    /// pantalla que ignoraba el ajuste**, y justo la primera que ve alguien que
+    /// lo tiene puesto porque le hace falta.
+    ///
+    /// `UIFontMetrics` devuelve ese mismo tamaño escalado por la categoría
+    /// vigente, así que a tamaño normal el diseño no se mueve ni un píxel y a
+    /// partir de ahí crece. El `relativeTo` dice CON QUÉ escala: los estilos
+    /// grandes crecen menos que los pequeños, y usar `.body` para todo haría
+    /// que un titular de 44 pt se disparara.
+    static func escalada(_ tamano: CGFloat,
+                         weight peso: Font.Weight = .regular,
+                         relativeTo estilo: UIFont.TextStyle) -> Font {
+        .system(size: UIFontMetrics(forTextStyle: estilo).scaledValue(for: tamano),
+                weight: peso)
+    }
+}
+
 /// **El fondo de la bienvenida y del acceso: un degradado y tres halos.**
 ///
 /// Va aparte porque lo comparten las dos pantallas, y tienen que compartirlo:
@@ -148,7 +174,7 @@ struct BaldosaCristal<Contenido: View>: View {
 struct BotonMarca: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 18, weight: .semibold))
+            .font(.escalada(18, weight: .semibold, relativeTo: .headline))
             .foregroundStyle(Marca.verdeHondo)
             .frame(maxWidth: .infinity, minHeight: 56)
             .background(.white, in: .rect(cornerRadius: 28))
@@ -162,7 +188,7 @@ struct BotonMarca: ButtonStyle {
 struct BotonMarcaCristal: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 18, weight: .medium))
+            .font(.escalada(18, weight: .medium, relativeTo: .headline))
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity, minHeight: 56)
             .vidrioMarca(radio: 28, alta: 0.26, baja: 0.14, sombra: false)
@@ -281,6 +307,14 @@ struct BienvenidaView: View {
     /// centrado obliga al ojo a buscar dónde empieza cada renglón; el título
     /// grande de iOS 26 nace pegado al margen y el texto tiene que seguirlo.
     private func diapositiva(_ d: Diapositiva, primera: Bool) -> some View {
+        // **Se puede desplazar, pero solo si hace falta.**
+        // `.scrollBounceBehavior(.basedOnSize)` deja la diapositiva quieta
+        // mientras el contenido cabe —que es siempre a tamaño normal, y ahí no
+        // cambia ni un píxel—, y la vuelve desplazable en cuanto no cabe. Sin
+        // esto, al hacer que la tipografía escalara, en AX1 el pie del selector
+        // de idioma —"«Automatic» usa el idioma del sistema"— se quedaba fuera
+        // de la página y no había forma de llegar a él.
+        ScrollView {
         VStack(alignment: .leading, spacing: 0) {
             // El de arriba solo en pantalla ancha: con uno solo, el de abajo
             // empuja el bloque contra el techo y el `alignment` del `frame` no
@@ -289,20 +323,20 @@ struct BienvenidaView: View {
 
             BaldosaCristal {
                 Image(systemName: d.icono)
-                    .font(.system(size: 40, weight: .regular))
+                    .font(.escalada(40, relativeTo: .largeTitle))
                     .foregroundStyle(.white)
             }
             .padding(.bottom, 34)
 
             Text(d.titulo)
-                .font(.system(size: 34, weight: .bold))
+                .font(.escalada(34, weight: .bold, relativeTo: .largeTitle))
                 .tracking(-1)
                 .lineSpacing(-2)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, 14)
 
             Text(d.texto)
-                .font(.system(size: 17))
+                .font(.escalada(17, relativeTo: .body))
                 .lineSpacing(3)
                 .foregroundStyle(.white.opacity(0.86))
                 .fixedSize(horizontal: false, vertical: true)
@@ -326,6 +360,9 @@ struct BienvenidaView: View {
         .padding(.horizontal, 28)
         .frame(maxWidth: 560, alignment: .leading)
         .frame(maxWidth: .infinity)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollIndicators(.hidden)
     }
 
     /// El mismo sitio que en el web: la primera diapositiva.
@@ -344,7 +381,12 @@ struct BienvenidaView: View {
                 ForEach(PreferenciasApp.Idioma.allCases, id: \.self) { idioma in
                     let elegido = prefs.idioma == idioma
                     Button(idioma.etiqueta) { prefs.idioma = idioma }
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.escalada(15, weight: .semibold, relativeTo: .subheadline))
+                        // Tres cápsulas de ancho igual: con la letra grande
+                        // "Automatic" no cabía y salía "Automa…". Recortar el
+                        // nombre de un idioma es peor que encogerlo.
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .frame(maxWidth: .infinity, minHeight: 40)
                         .background(elegido ? AnyShapeStyle(.white)
                                             : AnyShapeStyle(.clear),
@@ -359,7 +401,7 @@ struct BienvenidaView: View {
 
             Text(L.t("«Automático» usa el idioma del sistema.",
                      "\"Automatic\" uses the system language."))
-                .font(.system(size: 13))
+                .font(.escalada(13, relativeTo: .footnote))
                 .foregroundStyle(.white.opacity(0.62))
                 .padding(.leading, 2)
         }
@@ -467,13 +509,13 @@ struct AccesoView: View {
                     .padding(.bottom, 22)
 
                     Text("Tamio")
-                        .font(.system(size: 44, weight: .bold))
+                        .font(.escalada(44, weight: .bold, relativeTo: .largeTitle))
                         .tracking(-1.6)
                         .padding(.bottom, 10)
 
                     Text(L.t("Entra con tu cuenta para ver los datos de tu iglesia.",
                              "Sign in to see your church's data."))
-                        .font(.system(size: 17))
+                        .font(.escalada(17, relativeTo: .body))
                         .foregroundStyle(.white.opacity(0.82))
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.bottom, 30)
@@ -505,7 +547,7 @@ struct AccesoView: View {
                     Button(L.t("¿Olvidaste tu contraseña?", "Forgot your password?")) {
                         recuperando = true
                     }
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.escalada(15, weight: .medium, relativeTo: .subheadline))
                     .foregroundStyle(.white.opacity(0.78))
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity)
@@ -583,7 +625,7 @@ struct AccesoView: View {
 struct CampoBlanco: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
-            .font(.system(size: 17))
+            .font(.escalada(17, relativeTo: .body))
             .foregroundStyle(.black)
             .tint(Marca.verde)
             .padding(.horizontal, 18)
@@ -799,7 +841,7 @@ struct ConfiguracionInicialView: View {
                 Section {
                     VStack(spacing: 8) {
                         Image(systemName: "building.2.fill")
-                            .font(.system(size: 42, weight: .light))
+                            .font(.escalada(42, weight: .light, relativeTo: .largeTitle))
                             .foregroundStyle(Paleta.brand)
                         Text(L.t("Bienvenido a Tamio", "Welcome to Tamio"))
                             .font(.title2.weight(.semibold))
