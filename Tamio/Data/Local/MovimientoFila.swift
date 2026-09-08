@@ -127,6 +127,25 @@ struct OperacionPendiente: Codable, FetchableRecord, MutablePersistableRecord {
     var entidad: String
     var registroId: String
     var operacion: String
+    /// **Cuándo entró en la cola, y no cuándo se tocó por última vez.**
+    ///
+    /// `subirPendientes` sube por este campo, así que es el que decide el
+    /// orden. Los doce `encolar` relevan la operación anterior borrándola e
+    /// insertando una nueva; si esa nueva estrenara fecha, editar algo que ya
+    /// esperaba turno lo mandaría al FINAL de la cola y podría salir después de
+    /// cosas que dependen de él. De ahí que cada `encolar` conserve el
+    /// `creadoEn` de la operación que releva.
+    ///
+    /// Lo que eso rompía, con nombre y apellido: una persona dada de alta en
+    /// Membresía y editada después en Tesorería son dos entidades —`miembro` y
+    /// `aportante`— sobre la MISMA fila de `members`. Corregir la ficha otra
+    /// vez movía el alta detrás de la edición, así que el `update` salía
+    /// primero contra un `uid` que allá no existía todavía: cero filas, 204, y
+    /// hasta el commit de esta semana ni siquiera un error. Después entraba el
+    /// alta, con solo sus columnas, y lo que había escrito Tesorería no llegaba.
+    ///
+    /// Las dos excepciones son `BorradoMasivo` y `Respaldo.reencolar`, que no
+    /// relevan nada: rehacen la cola entera desde cero.
     var creadoEn: Double
     var intentos: Int
     var ultimoError: String?

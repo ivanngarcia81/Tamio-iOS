@@ -92,13 +92,16 @@ struct OfflineCategoriasRepository: CategoriasRepository {
     /// lo anterior, porque después de borrarla no hay nada que actualizar.
     private static func encolar(_ db: Database, id: String,
                                 operacion: OperacionPendiente.Operacion) throws {
+        let previa = try OperacionPendiente
+            .filter(Column("entidad") == "categoriaCustom" && Column("registroId") == id)
+            .fetchOne(db)
         try OperacionPendiente
             .filter(Column("entidad") == "categoriaCustom" && Column("registroId") == id)
             .deleteAll(db)
         var op = OperacionPendiente(id: nil, entidad: "categoriaCustom",
                                     registroId: id,
                                     operacion: operacion.rawValue,
-                                    creadoEn: Date().timeIntervalSince1970,
+                                    creadoEn: previa?.creadoEn ?? Date().timeIntervalSince1970,
                                     intentos: 0, ultimoError: nil)
         try op.insert(db)
     }

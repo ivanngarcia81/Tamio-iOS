@@ -305,7 +305,7 @@ struct OfflineActasRepository: ActasRepository {
             .deleteAll(db)
         var nueva = OperacionPendiente(id: nil, entidad: "acta", registroId: id,
                                        operacion: efectiva.rawValue,
-                                       creadoEn: Date().timeIntervalSince1970,
+                                       creadoEn: previa?.creadoEn ?? Date().timeIntervalSince1970,
                                        intentos: 0, ultimoError: nil)
         try nueva.insert(db)
     }

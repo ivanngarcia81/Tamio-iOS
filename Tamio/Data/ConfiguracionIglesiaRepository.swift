@@ -59,13 +59,16 @@ struct OfflineConfiguracionIglesiaRepository: ConfiguracionIglesiaRepository {
             try IglesiaFila(id: churchIdActivo, c).save(db)
             // Una sola operación pendiente por iglesia: al servidor solo le
             // importa cómo quedó, no por cuántas ediciones pasó.
+            let previa = try OperacionPendiente
+                .filter(Column("entidad") == "iglesia")
+                .fetchOne(db)
             try OperacionPendiente
                 .filter(Column("entidad") == "iglesia")
                 .deleteAll(db)
             var op = OperacionPendiente(id: nil, entidad: "iglesia",
                                         registroId: churchIdActivo,
                                         operacion: OperacionPendiente.Operacion.actualizar.rawValue,
-                                        creadoEn: Date().timeIntervalSince1970,
+                                        creadoEn: previa?.creadoEn ?? Date().timeIntervalSince1970,
                                         intentos: 0, ultimoError: nil)
             try op.insert(db)
         }
