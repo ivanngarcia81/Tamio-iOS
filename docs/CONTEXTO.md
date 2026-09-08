@@ -5,8 +5,121 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **7 de septiembre de 2026**, al cerrar el español que
-asomaba con la app en inglés (§0.-1).
+Última actualización: **8 de septiembre de 2026**, al cerrar la pasada de debug
+sobre la sincronización y la cola de salida (§0.-4).
+
+---
+
+## 0.-4 La cola de salida, repasada entera · 8 de septiembre
+
+Primera pasada de debug sobre `MotorSincronizacion.swift` —2 607 líneas, el
+archivo más grande del repo— y los doce `encolar`. Es la zona a la que las
+sesiones del 6 y el 7 le fueron colgando seis entidades nuevas (`evento`,
+`acta`, `carta`, `apunte`, `plantilla`, `trasladoSalida`), cada una escrita por
+separado y ejercitada una sola vez. Salieron seis cosas, y **cinco de las seis
+eran variantes del mismo error de fondo**: dar por hecho que el servidor avisa.
+
+### Lo que se arregló, y por qué son la misma historia
+
+1. **Once `update` daban por bueno no haber tocado ninguna fila** (`82ac930`).
+   PostgREST devuelve 204 y se va. Esto ya había costado TODO lo que se escribía
+   en Ajustes · Iglesia, se diagnosticó, y `subirIglesia` se blindó con
+   `nadieRecibioLaIglesia` — **solo esa**. Su propio comentario dejaba escrita
+   la regla general y nadie la aplicó a las otras once. Ahora hay un
+   `exigir(_:tabla:_:)` que pide `.select("uid")` y lanza si vuelve vacío.
+
+   **El borrado queda fuera a propósito**: crear algo sin red y darlo de baja
+   antes de que salga deja un solo `eliminar` en la cola pidiendo borrar una
+   fila que allá no se creó nunca. Exigir confirmación la atascaría para
+   siempre.
+
+2. **`crear` no era idempotente** (`2d02056`). Once `insert` contra cinco
+   `upsert(onConflict: "uid")`: el corte seguía exactamente la fecha en que se
+   escribió cada zona, las cinco de Tesorería bien y las once anteriores no.
+   Si el servidor guarda y la respuesta no vuelve, cada vuelta reintenta el
+   mismo `insert` y recibe `duplicate key`. **Comprobado contra la base antes de
+   tocar nada**, que era lo arriesgado: `uid` es la clave primaria de las
+   catorce tablas.
+
+3. **Editar algo lo mandaba al final de la cola** (`f4effe5`). Los doce
+   `encolar` relevaban la operación previa con la fecha de AHORA, y
+   `subirPendientes` ordena por `creadoEn`. Una persona de alta en Membresía y
+   editada en Tesorería son dos entidades sobre la MISMA fila de `members`:
+   corregir la ficha colocaba el alta detrás de la edición, el `update` salía
+   contra un `uid` inexistente, y la `frecuencia_aporte` no llegaba. Ahora se
+   conserva el turno. El porqué vive en `OperacionPendiente.creadoEn`.
+
+4. **`intentos` y `ultimoError` no los leía nadie** (`9ba1ee7`). Cuatro
+   apariciones en el proyecto: una escritura, dos declaraciones y la migración.
+   **Cero lecturas.** Sin tope, una operación que no puede salir se reintenta
+   para siempre y el motor sigue diciendo `.reposo`. Tras cinco intentos ahora
+   **se aparta, no se tira** —descartarla sería perder algo escrito— y la
+   sincronización termina en `.fallo` con la cuenta y lo que dijo el servidor.
+   Los tres sitios donde se sincroniza A MANO las despiertan.
+
+5. **La bajada descartaba una fila y adelantaba el cursor por encima**
+   (`4b2f77d`). Una fila con algo pendiente de subir no se aplica, pero el
+   cursor pasaba igual y la consulta es `>`: esa versión no se pedía nunca más.
+   Y como se sube ANTES de bajar, estar pendiente ahí significa que la subida
+   acaba de fallar. `AvanceCursor` se planta en el primer hueco.
+
+6. **Una baja del padrón se podía resucitar** (`cfdbdaf`). Las dos subidas de
+   `members` miraban solo la operación y no `fila.borrado`; las otras seis ya
+   miraban las dos cosas.
+
+### Lo que conviene no volver a descubrir
+
+- **La lección que se repite:** cuando un comentario de este repo dice "esto se
+  queda por si mañana pasa otra vez", conviene mirar **cuántos sitios más tienen
+  la misma forma**. Aquí la regla estaba escrita, bien escrita, y aplicada en
+  uno de doce sitios. Lo mismo con `.insert` frente a `.upsert` y con
+  `fila.borrado`: en los tres casos el arreglo correcto ya existía en el
+  archivo, copiado en unos sitios y no en otros. **Contar primero**, como con
+  las píldoras del §0.0.
+- **`XCTAssertEqual` y `XCTUnwrap` toman `@autoclosure`**, que no soporta
+  concurrencia: un `try await` dentro no compila. Hay que llamar antes y
+  comparar la constante. Costó dos vueltas de compilación de la copia.
+- **Un `var` capturado y mutado dentro del closure de `cola.write` es aviso hoy
+  y error en Swift 6.** `AvanceCursor` se declara DENTRO de la escritura.
+- **Dos `xcodebuild` a la vez sobre el mismo DerivedData chocan**: `database is
+  locked`, y el error no dice que el culpable seas tú. Uno cada vez.
+
+### Cómo se verificó, que es lo reutilizable
+
+Receta de §3, con dos cosas que conviene copiar tal cual:
+
+- **Simulador propio y limpio**: `xcrun simctl create "Tamio pruebas limpio"
+  "iPhone 17e"` → `535B863C-BCD2-4D92-AB5D-6FE9ED41FF02`. Nunca ha tenido
+  sesión, así que el llavero está vacío y no hay a dónde subir (§3). **Se deja
+  creado**: es la forma barata de correr la suite sin arriesgar la base.
+- **Con el modo revisión APAGADO.** Encendido salen **43 fallos de 143**, y no
+  son regresiones: la mitad de la suite pide los repositorios `Offline*` y en
+  modo revisión se inyectan los `Mock*`. §3 los da como alternativas —"modo
+  revisión encendido **o** simulador limpio"— y para las unitarias la buena es
+  la segunda. Anotarlo aquí ahorra una tarde de perseguir fallos inventados.
+
+Resultado: **143 pruebas, 0 fallos** (10 nuevas en
+`pruebas/ColaDeSalidaTests.swift`, sobre las 133 que había). Y el `select` de
+comprobación contra la base de la iglesia después de correrlas: cero filas con
+los ids de prueba y cero filas tocadas en cuatro horas en `members`,
+`transactions`, `cartas`, `registro` y `cortes`.
+
+### Lo que queda abierto de esta zona
+
+- **Nada de las once subidas se ha ejercitado contra el servidor.** Compila y la
+  suite pasa, pero `exigir` y los `upsert` solo se demuestran con red. Es lo
+  primero que hay que mirar la próxima vez que se entre con la cuenta.
+- Las cinco subidas que ya usaban `upsert` —cortes, corte_movimientos,
+  depósitos, categorías, recurrentes— **siguen sin comprobar que tocaron algo**.
+  Se dejaron así a propósito: un `upsert` cuya política de UPDATE filtra sí da
+  error, al contrario que el `update` suelto. Merece una comprobación con red
+  antes de darlo por cerrado.
+- **M2 sin verificar en la app**: falta saber si la interfaz deja llegar a
+  editar una ficha ya dada de baja.
+- Una operación apartada tras cinco intentos **no se ve en pantalla como tal**:
+  se cuenta dentro de "Sin subir" y el estado dice el error, pero no hay una
+  lista de qué se quedó fuera. Es lo siguiente si esto llega a pasarle a
+  alguien de verdad.
 
 ---
 
