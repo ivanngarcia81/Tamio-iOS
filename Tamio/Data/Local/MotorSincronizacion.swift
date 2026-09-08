@@ -477,7 +477,9 @@ final class MotorSincronizacion {
             fechaBaja: fila.activo ? nil : fila.fechaBaja,
             motivoBaja: fila.activo ? nil : fila.motivoBaja,
             frecuenciaAporte: fila.frecuencia,
-            deleted: op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+            // `fila.borrado` TAMBIÉN, no solo la operación. Ver `subirMiembro`,
+            // que es la otra cara de esta misma fila de `members`.
+            deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
 
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
@@ -1641,8 +1643,19 @@ final class MotorSincronizacion {
         guard let fila = try await cola.read({ db in
             try MiembroFila.fetchOne(db, key: op.registroId)
         }) else { return }
+        // **La baja se lee de la FILA, no solo de la operación.**
+        //
+        // `encolar` releva un `eliminar` pendiente por un `actualizar`: el
+        // colapso solo protege el par `crear` + `actualizar`. Así que una baja
+        // que todavía no había salido, si la ficha se toca después, subía como
+        // una actualización corriente con `deleted: false` encima de una fila
+        // que en el teléfono tiene `borrado = 1`. La persona quedaba viva en el
+        // servidor y muerta aquí, y la siguiente bajada la resucitaba.
+        //
+        // Las otras seis subidas ya lo hacían así; estas dos —las dos caras de
+        // `members`— se habían quedado mirando solo la operación.
         let cuerpo = MiembroEscritura(fila, churchId: churchIdActivo,
-                                      deleted: op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
+                                      deleted: fila.borrado || op.operacion == OperacionPendiente.Operacion.eliminar.rawValue)
         switch OperacionPendiente.Operacion(rawValue: op.operacion) {
         case .crear:
             let tocadas: [FilaTocada] = try await supabase.from("members")
