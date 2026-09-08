@@ -15,6 +15,21 @@
 	     Info.plist generado (`GENERATE_INFOPLIST_FILE` sigue en YES), así que
 	     el bundle id, la versión, la pantalla de arranque y las orientaciones
 	     se siguen poniendo desde los ajustes de compilación. -->
+	<!-- **Cumplimiento de exportación.** Sin esta clave, App Store Connect
+	     pregunta lo mismo en CADA subida.
+
+	     `false` = "no usa cifrado NO exento". Lo que la app cifra son los
+	     respaldos, con AES-GCM de **CryptoKit** (`RespaldoCifrado`), más la
+	     protección de datos del propio iOS y HTTPS contra Supabase. Las tres
+	     son cifrado del sistema operativo de Apple con algoritmos estándar, que
+	     es justo lo que la exención cubre: no hay criptografía propia ni
+	     algoritmo inventado en ninguna parte del repo.
+
+	     ES UNA DECLARACIÓN LEGAL. Está puesta con ese razonamiento, pero la
+	     firma Iván, no yo. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>

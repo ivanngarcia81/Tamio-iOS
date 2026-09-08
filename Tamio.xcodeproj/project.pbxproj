@@ -129,6 +129,7 @@
 		B46ADD0BB75921181C16F411 /* CorteDetalle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F09621C7501A398B478F7231 /* CorteDetalle.swift */; };
 		BC1AFDA08D32D431C8636A4C /* TamioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB8A95AD4951F784685174A /* TamioApp.swift */; };
 		C10D7EC23F4FDFE27435DC81 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 12E0985809A88DD8A5848115 /* Assets.xcassets */; };
+		F395252D068CC31266C4D32B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D7A28102D6F004494EE8FCFA /* PrivacyInfo.xcprivacy */; };
 		C317B0F66038A628D14A67FA /* ActasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D014F01B5FC4BD495876EBD4 /* ActasView.swift */; };
 		C939626C1FC08A782F5A721A /* RegistroViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67090E139352F07F95F36587 /* RegistroViewModel.swift */; };
 		CC1C0905A1DF798DD2381AB6 /* ServiciosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F4F4B41C31BFF9EFEE087B /* ServiciosView.swift */; };
@@ -185,6 +186,7 @@
 		109DD5C630497B0000E781A1 /* MotorSincronizacion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MotorSincronizacion.swift; path = Local/MotorSincronizacion.swift; sourceTree = "<group>"; };
 		1283425908338B34926D5B4A /* ServiciosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiciosRepository.swift; sourceTree = "<group>"; };
 		12E0985809A88DD8A5848115 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D7A28102D6F004494EE8FCFA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		15A5130CEB89DC504039D507 /* Revision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Revision.swift; sourceTree = "<group>"; };
 		1E31171D90F95C88B95D2E62 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		109DD5E630497B0000E781A1 /* ConfiguracionIglesiaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracionIglesiaViewModel.swift; sourceTree = "<group>"; };
@@ -310,6 +312,7 @@
 			isa = PBXGroup;
 			children = (
 				12E0985809A88DD8A5848115 /* Assets.xcassets */,
+				D7A28102D6F004494EE8FCFA /* PrivacyInfo.xcprivacy */,
 				4BB8A95AD4951F784685174A /* TamioApp.swift */,
 				F1259A5B41E02AB14CF915FA /* Data */,
 				9DBC70A847AAF5F81E713770 /* Models */,
@@ -578,6 +581,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C10D7EC23F4FDFE27435DC81 /* Assets.xcassets in Resources */,
+				F395252D068CC31266C4D32B /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

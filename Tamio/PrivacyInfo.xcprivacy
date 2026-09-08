@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Manifiesto de privacidad. Sin él la subida a App Store Connect devuelve
+  ITMS-91053 por las APIs de "razón requerida" que la app usa.
+
+  Los códigos de razón NO están escritos de memoria: salen de la documentación
+  de Apple (`NSPrivacyAccessedAPIType` y `NSPrivacyCollectedDataType`), y solo
+  se declara lo que la app hace de verdad, comprobado en el código.
+
+  **Lo que NO se declara, y por qué:** `NSPrivacyAccessedAPICategoryDiskSpace`.
+  La Zona de riesgo enseña "el espacio que ocupa", pero eso es la SUMA DEL
+  TAMAÑO de tres archivos (`Compactacion.tamanoDeLaBase`), no la capacidad del
+  volumen: no se llama a `volumeAvailableCapacity` en ninguna parte. Declarar
+  una categoría que no se usa es tan incorrecto como omitir la que sí.
+
+  Tampoco hay tiempo de arranque del sistema ni teclados activos.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<!-- `FileManager.attributesOfItem(atPath:)`, en `Compactacion` y en
+		     `ProteccionArchivos`. Se leen `.size` y `.protectionKey` de
+		     `tamio.sqlite` y sus dos archivos hermanos, todos dentro del
+		     contenedor de la app. La categoría es la de MARCAS DE TIEMPO
+		     aunque no se lea ninguna fecha: la API las devuelve igual y es la
+		     llamada lo que Apple mira. C617.1 es literalmente ese caso —
+		     "metadata of files inside the app container". -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+
+		<!-- El tema, el idioma, el tamaño de letra, la bandera de bienvenida,
+		     el candado biométrico y la sesión. Todo en `UserDefaults.standard`:
+		     no hay `suiteName` ni App Group en ninguna parte, así que la razón
+		     es CA92.1 —solo la app— y no 1C8F.1. -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+
+	<!--
+	  BORRADOR · esto lo tiene que confirmar Iván antes de subir.
+
+	  Todo lo de aquí sale de mirar qué viaja a Supabase: dieciocho tablas y el
+	  bucket de comprobantes. Nada se usa para seguimiento ni para publicidad,
+	  y por eso `NSPrivacyCollectedDataTypeTracking` es falso en todas.
+
+	  `Linked` es TRUE porque la fila lleva `church_id` y el usuario está
+	  autenticado: se puede llegar de la persona al dato.
+
+	  **La declaración de aquí y las respuestas del cuestionario de App Store
+	  Connect tienen que decir lo mismo.** Si se cambia una, se cambia la otra.
+	-->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<!-- Nombres: del padrón (`members.nombre`), del tesorero, del pastor y
+		     de la secretaria. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeName</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key><true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key><false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+		</dict>
+
+		<!-- El correo de la cuenta que entra, y `members.email`. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key><true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key><false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+		</dict>
+
+		<!-- `members.telefono` y los del tesorero y el pastor. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePhoneNumber</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key><true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key><false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+		</dict>
+
+		<!-- `members.direccion` y la dirección de la iglesia del membrete. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePhysicalAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key><true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key><false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+		</dict>
+
+		<!-- Ingresos, gastos, diezmos y ofrendas: `transactions`. No son pagos
+		     ni tarjetas —la app no cobra nada—, así que es "otra información
+		     financiera" y no `PaymentInfo`. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherFinancialInfo</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key><true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key><false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+		</dict>
+
+		<!-- Las fotos del recibo del banco, que suben al bucket de
+		     comprobantes (`ComprobantesStorage`), y el logo de la iglesia. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePhotosorVideos</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key><true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key><false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+		</dict>
+
+		<!-- Actas, cartas, notas del padrón y notas de seguimiento. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key><true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key><false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+		</dict>
+
+		<!-- **La delicada, y por la que esto es un borrador.** "Sensitive Info"
+		     de Apple incluye expresamente las creencias religiosas, y un padrón
+		     de iglesia guarda fecha de bautismo en agua y en espíritu, estado
+		     de membresía y ministerios. Eso ES afiliación religiosa de personas
+		     que además NO son quien usa la app. Omitirlo es lo que se sanciona;
+		     declararlo de más no cuesta nada. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeSensitiveInfo</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key><true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key><false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+		</dict>
+
+		<!-- El `auth.uid()` con el que firma cada apunte del registro. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key><true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key><false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+		</dict>
+	</array>
+</dict>
+</plist>
