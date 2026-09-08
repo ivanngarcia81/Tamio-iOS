@@ -45,6 +45,49 @@ final class MotorSincronizacion {
     /// atascadas. Es el único hilo del que tirar cuando algo no sube.
     private(set) var ultimoErrorDeSubida: String?
 
+    /// **Qué registros están esperando turno, para poder marcarlos en su fila.**
+    ///
+    /// El contador de Ajustes dice CUÁNTOS, y eso no bastó: el 8 de septiembre
+    /// decía "2 cambios" durante un día entero y no había forma de saber
+    /// cuáles. Iván acabó leyendo el color del icono de la fila —que es el de
+    /// la categoría— como si fuera el estado de subida, porque era lo único de
+    /// color que había en la pantalla donde estaba mirando.
+    ///
+    /// La clave es `entidad` y `registroId` juntos, que es como se identifica
+    /// una operación en la cola: dos entidades pueden compartir `registroId`
+    /// —`aportante` y `miembro` son las dos caras de la misma fila de
+    /// `members`— y una fila de padrón no debe marcarse porque Tesorería tenga
+    /// algo pendiente de esa persona.
+    private(set) var enCola: Set<String> = []
+    /// Las que además se rindieron tras `maxIntentos`. Subconjunto de `enCola`:
+    /// apartarse no es salirse.
+    private(set) var seRindieron: Set<String> = []
+
+    /// Cómo va la subida de un registro concreto, para su fila.
+    enum Subida {
+        /// No hay nada pendiente suyo: lo que se ve es lo que hay en el servidor.
+        case alDia
+        /// Esperando turno. **Naranja, no rojo**: todavía no ha fallado nada, y
+        /// pintar de rojo lo que lleva tres segundos en la cola es gritar por
+        /// costumbre. Quien grita siempre deja de ser creído.
+        case enCola
+        /// Se intentó `maxIntentos` veces y no salió. Esto SÍ es rojo: alguien
+        /// tiene que mirarlo, y hasta hoy nadie podía.
+        case noSubio
+    }
+
+    func subida(_ entidad: String, _ id: String) -> Subida {
+        let clave = Self.clave(entidad, id)
+        if seRindieron.contains(clave) { return .noSubio }
+        return enCola.contains(clave) ? .enCola : .alDia
+    }
+
+    /// El separador es un carácter que no puede salir en un uuid ni en un
+    /// nombre de entidad, para que no haya dos claves distintas que colisionen.
+    private static func clave(_ entidad: String, _ id: String) -> String {
+        "\(entidad)\u{1}\(id)"
+    }
+
     /// Cuántas veces se reintenta una operación antes de dejarla descansar.
     ///
     /// **No se tira: se aparta.** Descartarla sería perder un cambio que
@@ -197,20 +240,22 @@ final class MotorSincronizacion {
 
     @MainActor
     func recontarPendientes() async {
-        let cuenta = try? await cola.read { db -> (Int, [OperacionPendiente]) in
-            let total = try OperacionPendiente.fetchCount(db)
-            // Las más viejas primero: la que lleva más tiempo atascada es la
-            // que mejor explica por qué, y las que vinieron detrás suelen ser
-            // la misma causa repetida.
-            let rendidas = try OperacionPendiente
-                .filter(Column("intentos") >= Self.maxIntentos)
-                .order(Column("creadoEn"))
-                .fetchAll(db)
-            return (total, rendidas)
-        }
-        pendientes = cuenta?.0 ?? 0
-        atascadas = cuenta?.1.count ?? 0
-        ultimoErrorDeSubida = cuenta?.1.first?.ultimoError
+        // Se leen ENTERAS y no solo su cuenta: las filas necesitan saber cuáles
+        // son suyas. La cola es una cola —lo normal es que esté vacía o con
+        // unas pocas—, así que traérselas no es caro.
+        let todas = (try? await cola.read { db in
+            try OperacionPendiente.order(Column("creadoEn")).fetchAll(db)
+        }) ?? []
+        let rendidas = todas.filter { $0.intentos >= Self.maxIntentos }
+
+        pendientes = todas.count
+        atascadas = rendidas.count
+        // La más vieja primero: la que lleva más tiempo atascada es la que
+        // mejor explica por qué, y las que vinieron detrás suelen ser la misma
+        // causa repetida.
+        ultimoErrorDeSubida = rendidas.first?.ultimoError
+        enCola = Set(todas.map { Self.clave($0.entidad, $0.registroId) })
+        seRindieron = Set(rendidas.map { Self.clave($0.entidad, $0.registroId) })
     }
 
     // MARK: - Subida

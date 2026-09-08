@@ -128,6 +128,9 @@ struct EditarRecurrenteView: View {
 /// no es el suyo.
 struct FilaRecurrente: View {
     let recurrente: MovimientoRecurrente
+    /// Para decir si esta definición ya salió del teléfono. Ver la pastilla de
+    /// abajo: es la pantalla donde se buscó esa respuesta y no estaba.
+    private let motor = MotorSincronizacion.compartido
 
     var body: some View {
         HStack(spacing: 10) {
@@ -146,14 +149,55 @@ struct FilaRecurrente: View {
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 6)
-            // **Sin signo y en secundario, al revés que un movimiento.** Un
-            // importe en rojo con su menos delante se lee como dinero que ya
-            // salió; esto todavía no ha salido.
-            Text(L.t("\(Money.fmt(recurrente.monto)) / mes",
-                     "\(Money.fmt(recurrente.monto)) / mo"))
-                .font(.subheadline.weight(.semibold)).monospacedDigit()
-                .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 3) {
+                // **Sin signo y en secundario, al revés que un movimiento.** Un
+                // importe en rojo con su menos delante se lee como dinero que ya
+                // salió; esto todavía no ha salido.
+                Text(L.t("\(Money.fmt(recurrente.monto)) / mes",
+                         "\(Money.fmt(recurrente.monto)) / mo"))
+                    .font(.subheadline.weight(.semibold)).monospacedDigit()
+                    .foregroundStyle(.secondary)
+                // **Aquí es donde se buscó "¿esto subió?" y no había respuesta.**
+                // El 8 de septiembre esta pantalla enseñó durante un día una
+                // definición subida y un movimiento que no, sin distinguirlos;
+                // el único color de la fila era el del icono, que es el de la
+                // categoría, y se leyó como si fuera el estado de la subida.
+                //
+                // A diferencia de la fila de un movimiento, aquí NO se reserva
+                // el hueco: estas filas son pocas y no forman un ritmo que se
+                // rompa. Reservarlo dejaría un espacio muerto en cada una.
+                switch motor.subida("movimientoRecurrente", recurrente.id) {
+                case .noSubio:
+                    PastillaDeSubida(texto: L.t("No subió", "Upload failed"),
+                                     tinta: Paleta.negativo, fondo: Paleta.negativoFill)
+                case .enCola:
+                    PastillaDeSubida(texto: L.t("Sin subir", "Not uploaded"),
+                                     tinta: Paleta.aviso, fondo: Paleta.avisoFill)
+                case .alDia:
+                    EmptyView()
+                }
+            }
         }
         .padding(.vertical, Esp.chip)
+    }
+}
+
+
+/// La pastilla de "esto no ha salido del teléfono".
+///
+/// Naranja mientras espera turno y roja cuando se rindió tras `maxIntentos`:
+/// pintar de rojo lo que lleva tres segundos en la cola es gritar por
+/// costumbre, y quien grita siempre deja de ser creído.
+struct PastillaDeSubida: View {
+    let texto: String
+    let tinta: Color
+    let fondo: Color
+
+    var body: some View {
+        Text(texto)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(tinta)
+            .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
+            .background(fondo, in: Capsule())
     }
 }

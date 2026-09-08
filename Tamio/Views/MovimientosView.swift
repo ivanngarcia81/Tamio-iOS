@@ -14,6 +14,10 @@ struct MovimientosView: View {
     /// financiero es más grave que marcar un corte, que ya la pide.
     @State private var movimientoAEliminar: Movimiento?
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// Para marcar en su fila lo que todavía no ha salido del teléfono.
+    /// Es un singleton `@Observable`: leerlo dentro del `body` basta para
+    /// que la pastilla se actualice sola cuando la cola cambia.
+    private let motor = MotorSincronizacion.compartido
     /// La elección Ingresos/Gastos es la MISMA que marca la sidebar, así que
     /// vive aquí y no solo en el ViewModel. El picker de esta pantalla estaba
     /// atado a `vm.tipo` y no tocaba `nav.seccion`: cambiar a Gastos desde
@@ -802,11 +806,11 @@ struct MovimientosView: View {
                 // las demás y el monto se desplazaba hacia arriba: el ritmo de
                 // la lista se rompía cada dos filas.
                 let etiqueta = etiquetaEstado(m)
-                Text(etiqueta ?? L.t("Sin depositar", "Not deposited"))
+                Text(etiqueta?.texto ?? L.t("Sin depositar", "Not deposited"))
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Paleta.aviso)
+                    .foregroundStyle(etiqueta?.tinta ?? Paleta.aviso)
                     .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
-                    .background(Paleta.avisoFill, in: Capsule())
+                    .background(etiqueta?.fondo ?? Paleta.avisoFill, in: Capsule())
                     .opacity(etiqueta == nil ? 0 : 1)
                     .accessibilityHidden(etiqueta == nil)
             }
@@ -826,11 +830,30 @@ struct MovimientosView: View {
     /// no llevaba ninguna marca en la lista, aunque el filtro "Marcados como
     /// pendientes" sí lo encontrara y la ficha sí lo dijera: se filtraba a
     /// ciegas y, al volver de la ficha, la lista no recordaba cuál era.
-    private func etiquetaEstado(_ m: Movimiento) -> String? {
-        if m.esIngreso {
-            return m.sinDepositar ? L.t("Sin depositar", "Not deposited") : nil
+    /// La pastilla de la derecha de una fila: qué dice y de qué color.
+    ///
+    /// **El estado de subida manda sobre los demás.** Si un movimiento no ha
+    /// salido del teléfono, que esté "sin depositar" es un detalle de después:
+    /// lo primero que hay que saber es que el servidor todavía no lo tiene.
+    /// Antes esta pastilla no lo decía en ninguna parte, y por eso un día
+    /// entero con la contabilidad parada se vio como una pantalla normal.
+    private func etiquetaEstado(_ m: Movimiento) -> (texto: String, tinta: Color, fondo: Color)? {
+        switch motor.subida("movimiento", m.id) {
+        case .noSubio:
+            return (L.t("No subió", "Upload failed"), Paleta.negativo, Paleta.negativoFill)
+        case .enCola:
+            return (L.t("Sin subir", "Not uploaded"), Paleta.aviso, Paleta.avisoFill)
+        case .alDia:
+            break
         }
-        return m.marcadoPendiente ? L.t("Pendiente", "Flagged") : nil
+        if m.esIngreso {
+            return m.sinDepositar
+                ? (L.t("Sin depositar", "Not deposited"), Paleta.aviso, Paleta.avisoFill)
+                : nil
+        }
+        return m.marcadoPendiente
+            ? (L.t("Pendiente", "Flagged"), Paleta.aviso, Paleta.avisoFill)
+            : nil
     }
 
 }
