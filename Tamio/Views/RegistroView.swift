@@ -116,9 +116,31 @@ struct RegistroView: View {
         }
     }
 
+    /// **La pastilla que no cabe baja de línea; ninguna se parte por dentro.**
+    ///
+    /// Las cuatro cápsulas iban en un `HStack` a secas dentro de la columna del
+    /// iPad, que mide `Esp.columnaMaestra` —320 pt fijos— y no crece. En inglés
+    /// las etiquetas son más largas que en español y las cuatro suman unos 350
+    /// pt contra los 288 disponibles, así que `Text` las partía DENTRO de la
+    /// cápsula y hasta las cortaba con guion —"Trea-sury", "Sec-re-tary",
+    /// "Note s"—: las cuatro crecían a tres renglones y la tira dejaba de
+    /// leerse como una fila de filtros. Lo señaló Iván rodeándolas en una
+    /// captura del iPad.
+    ///
+    /// Son dos arreglos que se necesitan mutuamente. `lineLimit(1)` +
+    /// `fixedSize()` en la pastilla: cada una ocupa lo que mide y ya no se
+    /// puede romper por dentro. Y `FlowLayout` en la tira, que es lo que la app
+    /// ya tiene para esto —lo dice su propio comentario— y baja de línea la que
+    /// sobra. Una tira con scroll horizontal dejaría "Notes" cortada contra el
+    /// divisor, que a ojo se lee como el mismo fallo; y encoger la etiqueta
+    /// esconde justo la palabra que dice qué filtra.
+    ///
+    /// En el teléfono, más ancho, las cuatro siguen en una sola línea. Con el
+    /// texto en AX1 bajan las que haga falta, que es lo que hace que esto no
+    /// vuelva.
     private var barraFiltros: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+            FlowLayout(spacing: 8) {
                 ForEach(vm.filtrosVisibles()) { f in pastilla(f) }
             }
             Text(L.t("Ves todo: administrador", "Seeing all: administrator"))
@@ -136,6 +158,10 @@ struct RegistroView: View {
             }
             .font(.footnote.weight(sel ? .semibold : .regular))
             .foregroundStyle(sel ? Color(.systemBackground) : .primary)
+            // La etiqueta y su conteo, en una línea y a su ancho natural: es lo
+            // que impide que la cápsula se parta cuando la tira no cabe.
+            .lineLimit(1)
+            .fixedSize()
             .padding(.horizontal, Esp.chip).padding(.vertical, 6)
             .background(sel ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color(.tertiarySystemFill)),
                         in: Capsule())
