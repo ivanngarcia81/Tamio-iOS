@@ -2763,6 +2763,95 @@ haya sea una excepción.
 
 ---
 
+## 6.b Lo que solo puede hacer Iván · con el aparato o la cuenta en la mano
+
+Lista escrita el **8 de septiembre de 2026** a petición suya. No es trabajo de
+código: es todo lo que ninguna sesión puede cerrar desde el Mac porque pide un
+iPhone o un iPad de verdad, una cuenta, el panel de Supabase, o que pase el
+tiempo. Va aparte del §6 justamente para no mezclarla con lo que sí se programa.
+
+Cada punto dice **qué hacer**, **qué mirar** y **cómo saber que salió bien**.
+
+### A. Entrar con la cuenta y usar la app un rato — LO MÁS IMPORTANTE
+
+Es lo primero de todo, y no por costumbre: el 8 de septiembre se reescribieron
+**las once subidas** del motor (§0.-4). Compilan y las 143 pruebas pasan, pero
+las pruebas no tocan la red: **el camino por el que sube TODO cambió y nunca ha
+hablado con el servidor**.
+
+- **Qué hacer:** entrar con la cuenta real y hacer una de cada: crear un
+  movimiento, editar un miembro, cerrar un acta, emitir una carta, pasar lista
+  en un culto, hacer un corte.
+- **Qué mirar:** Ajustes · Sincronización. Después de cada cosa, **"Sin subir"
+  tiene que volver a 0**.
+- **Cómo saber que salió mal:** si el estado deja de decir la fecha y pasa a
+  decir *"N cambios no pudieron subir: …"*, eso es lo nuevo funcionando —está
+  avisando, que antes no lo hacía—. **Apunta el texto entero del error**: ahí
+  está el nombre de la tabla y el id, y es todo lo que hace falta para
+  arreglarlo.
+- **Y lo contrario también importa:** si algo que escribiste en el teléfono
+  reaparece con el valor viejo después de sincronizar, es el bug que se
+  arregló volviendo por otro sitio. Dilo aunque parezca una tontería.
+
+### B. La clase de protección de los archivos — pide un iPad DE VERDAD
+
+El simulador **no implementa Data Protection**, así que desde el Mac esto no se
+puede medir. Es lo que bloquea la decisión del cifrado local
+(`docs/CIFRADO-LOCAL.md`).
+
+- **Qué hacer:** abrir la app en el iPad, ir a **Ajustes · Zona de riesgo**.
+- **Qué mirar:** el renglón de la protección de archivos.
+- **Bien:** dice *"Completa salvo si ya estaba abierto"*.
+- **Falta además:** qué protección le queda al respaldo una vez guardado en
+  iCloud Drive. Con esas dos medidas ya se puede decidir el cifrado; sin ellas,
+  no.
+
+### C. El respaldo con contraseña, en el aparato
+
+Hoy solo está probado con pruebas unitarias, nunca a mano.
+
+- **Qué hacer:** crear un respaldo con contraseña, sacarlo del aparato,
+  **borrar todo** desde la Zona de riesgo, y restaurarlo.
+- **Qué mirar:** que vuelva el padrón entero, los movimientos y los folios.
+- **Bien:** el número de miembros y de movimientos es el mismo que antes de
+  borrar. Si algo no vuelve, **anota qué**: no es lo mismo perder las notas de
+  seguimiento que perder un corte.
+
+### D. Borrar la cuenta — CON UNA CUENTA DE USAR Y TIRAR
+
+**Este camino no se ha ejecutado nunca.** Es destructivo y en cascada.
+
+- **Qué hacer:** crear una cuenta nueva de prueba, con su iglesia, y probar
+  **las dos ramas**:
+  1. Iglesia con más miembros → al borrarte, **la iglesia sobrevive**.
+  2. Siendo el único miembro → **la iglesia se borra entera**.
+- **Nunca con tu cuenta real.** No hay deshacer.
+
+### E. Encender la comprobación de contraseñas filtradas — panel, 30 segundos
+
+Es lo único que queda del endurecimiento previo a publicar, y no es SQL.
+
+- **Dónde:** panel de Supabase → **Authentication › Policies** → *"Leaked
+  password protection"*.
+- **Qué hace:** contrasta la contraseña contra HaveIBeenPwned.
+- **Comprobado el 8-sep: sigue APAGADA.** Para una app que guarda la
+  contabilidad de una congregación es gratis y evita el caso más común de
+  cuenta comprometida.
+
+### F. La purga — no es trabajo, es esperar
+
+El botón **no aparece** hasta que haya algo borrado de hace más de 30 días. No
+hay nada que hacer hasta entonces; solo no darlo por roto cuando no se vea.
+
+### G. Los recurrentes, cada cambio de mes
+
+Ya los probaste el 7 de septiembre y salieron bien. Lo que conviene mirar es el
+**primer arranque de un mes nuevo**: es cuando se materializan solos, y si la
+app pasó meses cerrada se ponen todos al día de una vez. Que no salgan
+duplicados entre el iPhone y el iPad es lo que hay que confirmar.
+
+---
+
 ## 7. Cómo se escribe aquí
 
 Los mensajes de commit son **frases que cuentan el problema**, no resúmenes del
