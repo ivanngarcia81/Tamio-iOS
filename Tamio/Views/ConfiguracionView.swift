@@ -979,7 +979,7 @@ private struct SeccionAcceso: View {
                              valor: motor.pendientesLegible)
                     Divider()
                     Button {
-                        Task { await motor.sincronizar() }
+                        Task { await motor.sincronizar(reintentarLoAtascado: true) }
                     } label: {
                         Text(L.t("Sincronizar ahora", "Sync now"))
                             .font(.system(size: 16))

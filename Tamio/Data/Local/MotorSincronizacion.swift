@@ -25,6 +25,35 @@ final class MotorSincronizacion {
     /// nadie crea que algo está guardado en el servidor cuando no lo está.
     private(set) var pendientes = 0
 
+    /// **Cuántas se han rendido**, de las que esperan turno.
+    ///
+    /// `intentos` y `ultimoError` llevaban desde la primera versión
+    /// escribiéndose en el `catch` de `subirPendientes` y **no los leía nadie**:
+    /// cuatro apariciones en todo el proyecto —una escritura, dos
+    /// declaraciones y la migración que crea las columnas— y cero lecturas. Sin
+    /// tope y sin nadie mirando, una operación que no puede salir se reintenta
+    /// en cada vuelta para siempre, el contador se queda clavado en "N cambios"
+    /// y el motor sigue diciendo `.reposo`: la pantalla asegura que todo está
+    /// bien mientras algo lleva días sin subir.
+    ///
+    /// Ya pasó, aunque se anotara como accidente de pruebas: dos operaciones se
+    /// quedaron en la cola intentando subir `m1` y `m2` contra `members_pkey`.
+    /// No tenían forma de salir por sí solas.
+    private(set) var atascadas = 0
+
+    /// Lo que dijo el servidor la última vez que se intentó una de las
+    /// atascadas. Es el único hilo del que tirar cuando algo no sube.
+    private(set) var ultimoErrorDeSubida: String?
+
+    /// Cuántas veces se reintenta una operación antes de dejarla descansar.
+    ///
+    /// **No se tira: se aparta.** Descartarla sería perder un cambio que
+    /// alguien escribió; seguir reintentándola cada vez es gastar una petición
+    /// por vuelta en algo que ya falló cinco veces seguidas. Así que se queda en
+    /// la cola, deja de estorbar, y el botón de sincronizar a mano las despierta
+    /// —quien lo pulsa está pidiendo justamente eso—.
+    static let maxIntentos = 5
+
     private var cola: DatabaseQueue { BaseLocal.compartida.cola }
     private let repoRemoto = SupabaseMovimientosRepository()
 
@@ -80,10 +109,18 @@ final class MotorSincronizacion {
 
     // MARK: - API
 
+    /// - Parameter reintentarLoAtascado: despierta las operaciones que se
+    ///   habían rendido tras `maxIntentos`. Lo pasan los tres sitios donde el
+    ///   usuario pide sincronizar A MANO —el botón de las dos pantallas de
+    ///   Ajustes y el tirón de refresco—, porque eso es exactamente lo que está
+    ///   pidiendo. Las vueltas automáticas no las tocan: si ya falló cinco
+    ///   veces, volver a intentarlo cada vez que la app pasa a primer plano no
+    ///   la va a arreglar.
     @MainActor
-    func sincronizar() async {
+    func sincronizar(reintentarLoAtascado: Bool = false) async {
         guard estado != .sincronizando, !ModoRevision.sinLogin else { return }
         estado = .sincronizando
+        if reintentarLoAtascado { await despertarAtascadas() }
         do {
             try await subirPendientes()
             try await bajarCambios()
@@ -130,13 +167,50 @@ final class MotorSincronizacion {
             estado = .fallo(error.localizedDescription)
         }
         await recontarPendientes()
+        // Terminar sin excepciones no es terminar bien: lo que se rindió sigue
+        // ahí, y callarlo es lo que dejaba a la pantalla diciendo que todo
+        // estaba sincronizado con cambios de hace días sin subir.
+        if atascadas > 0, estado == .reposo {
+            estado = .fallo(atascadasLegible)
+        }
+    }
+
+    /// El texto que sustituye a la fecha cuando algo se quedó por el camino.
+    /// Dice CUÁNTAS y QUÉ dijo el servidor: sin lo segundo no hay por dónde
+    /// empezar a mirar.
+    private var atascadasLegible: String {
+        let cuantas = atascadas == 1
+            ? L.t("1 cambio no pudo subir", "1 change couldn't be uploaded")
+            : L.t("\(atascadas) cambios no pudieron subir", "\(atascadas) changes couldn't be uploaded")
+        guard let detalle = ultimoErrorDeSubida, !detalle.isEmpty else { return cuantas }
+        return "\(cuantas): \(detalle)"
+    }
+
+    /// Vuelve a poner a cero el contador de intentos de las que se rindieron.
+    /// No borra nada: lo que estaba en la cola sigue en la cola.
+    private func despertarAtascadas() async {
+        try? await cola.write { db in
+            try db.execute(sql: "update outbox set intentos = 0 where intentos >= ?",
+                           arguments: [Self.maxIntentos])
+        }
     }
 
     @MainActor
     func recontarPendientes() async {
-        pendientes = (try? await cola.read { db in
-            try OperacionPendiente.fetchCount(db)
-        }) ?? 0
+        let cuenta = try? await cola.read { db -> (Int, [OperacionPendiente]) in
+            let total = try OperacionPendiente.fetchCount(db)
+            // Las más viejas primero: la que lleva más tiempo atascada es la
+            // que mejor explica por qué, y las que vinieron detrás suelen ser
+            // la misma causa repetida.
+            let rendidas = try OperacionPendiente
+                .filter(Column("intentos") >= Self.maxIntentos)
+                .order(Column("creadoEn"))
+                .fetchAll(db)
+            return (total, rendidas)
+        }
+        pendientes = cuenta?.0 ?? 0
+        atascadas = cuenta?.1.count ?? 0
+        ultimoErrorDeSubida = cuenta?.1.first?.ultimoError
     }
 
     // MARK: - Subida
@@ -147,6 +221,9 @@ final class MotorSincronizacion {
         }
 
         for op in operaciones {
+            // Se aparta, no se tira: la operación sigue en la cola y el botón
+            // de sincronizar a mano la despierta. Ver `maxIntentos`.
+            guard op.intentos < Self.maxIntentos else { continue }
             do {
                 try await subir(op)
                 _ = try await cola.write { db in

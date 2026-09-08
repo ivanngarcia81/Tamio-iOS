@@ -35,7 +35,9 @@ extension View {
     /// terminara antes, que es la peor clase de fallo.
     func sincronizable(_ recargar: @escaping () async -> Void) -> some View {
         refreshable {
-            await MotorSincronizacion.compartido.sincronizar()
+            // Un tirón de refresco es una petición explícita: despierta también
+            // lo que se había rendido tras cinco intentos.
+            await MotorSincronizacion.compartido.sincronizar(reintentarLoAtascado: true)
             await recargar()
         }
         .onChange(of: MotorSincronizacion.compartido.ultimaSincronizacion) {

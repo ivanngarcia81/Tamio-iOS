@@ -885,7 +885,7 @@ private struct AjustesAccesoView: View {
             Section {
                 valorF(L.t("Estado", "Status"), motor.estadoLegible)
                 valorF(L.t("Sin subir", "Not uploaded"), motor.pendientesLegible)
-                Button { Task { await motor.sincronizar() } } label: {
+                Button { Task { await motor.sincronizar(reintentarLoAtascado: true) } } label: {
                     Text(L.t("Sincronizar ahora", "Sync now")).font(.subheadline)
                         .foregroundStyle(motor.puedeSincronizar ? Paleta.brand : .secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)

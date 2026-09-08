@@ -113,4 +113,65 @@ final class ColaDeSalidaTests: XCTestCase {
         XCTAssertEqual(operaciones.first?.creadoEn, alta.creadoEn,
                        "pero se queda en el turno que ya tenía")
     }
+
+    // MARK: - Que alguien lea `intentos`
+
+    /// Siembra una operación que ya se rindió, sin pasar por la red.
+    private func sembrarAtascada(intentos: Int, error: String) async throws {
+        _ = try await BaseLocal.compartida.cola.write { db in
+            var op = OperacionPendiente(id: nil, entidad: "carta", registroId: "car-1",
+                                        operacion: OperacionPendiente.Operacion.crear.rawValue,
+                                        creadoEn: Date().timeIntervalSince1970,
+                                        intentos: intentos, ultimoError: error)
+            try op.insert(db)
+        }
+    }
+
+    /// **El motor tiene que ENTERARSE de que algo se rindió.**
+    ///
+    /// Es el bug entero: `intentos` y `ultimoError` se escribían y no los leía
+    /// nadie, así que una operación que no podía salir se reintentaba en cada
+    /// vuelta mientras la pantalla decía que todo estaba sincronizado.
+    func testUnaOperacionRendidaSeCuentaYTraeSuError() async throws {
+        try await sembrarAtascada(intentos: MotorSincronizacion.maxIntentos,
+                                  error: "duplicate key value violates unique constraint")
+
+        await MotorSincronizacion.compartido.recontarPendientes()
+
+        XCTAssertEqual(MotorSincronizacion.compartido.pendientes, 1)
+        XCTAssertEqual(MotorSincronizacion.compartido.atascadas, 1,
+                       "la que se rindió tiene que contarse aparte")
+        XCTAssertEqual(MotorSincronizacion.compartido.ultimoErrorDeSubida,
+                       "duplicate key value violates unique constraint",
+                       "y hay que poder saber QUÉ dijo el servidor")
+    }
+
+    /// Y la otra mitad: una que falló un par de veces sigue siendo normal. Si
+    /// contara como atascada, la primera vez sin cobertura la app diría que hay
+    /// cambios que no pudieron subir cuando solo hacía falta esperar.
+    func testUnaQueFalloPocasVecesNoSeDaPorPerdida() async throws {
+        try await sembrarAtascada(intentos: MotorSincronizacion.maxIntentos - 1,
+                                  error: "The Internet connection appears to be offline.")
+
+        await MotorSincronizacion.compartido.recontarPendientes()
+
+        XCTAssertEqual(MotorSincronizacion.compartido.pendientes, 1)
+        XCTAssertEqual(MotorSincronizacion.compartido.atascadas, 0)
+        XCTAssertNil(MotorSincronizacion.compartido.ultimoErrorDeSubida)
+    }
+
+    /// Con la cola limpia no puede quedar rastro de la vuelta anterior: el
+    /// motor es un singleton y sus contadores viven entre pruebas.
+    func testConLaColaVaciaNoQuedaNadaAtascado() async throws {
+        try await sembrarAtascada(intentos: MotorSincronizacion.maxIntentos, error: "algo")
+        await MotorSincronizacion.compartido.recontarPendientes()
+        XCTAssertEqual(MotorSincronizacion.compartido.atascadas, 1)
+
+        try BaseLocal.compartida.limpiar()
+        await MotorSincronizacion.compartido.recontarPendientes()
+
+        XCTAssertEqual(MotorSincronizacion.compartido.pendientes, 0)
+        XCTAssertEqual(MotorSincronizacion.compartido.atascadas, 0)
+        XCTAssertNil(MotorSincronizacion.compartido.ultimoErrorDeSubida)
+    }
 }
