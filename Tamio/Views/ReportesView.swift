@@ -363,22 +363,44 @@ struct ReportesView: View {
     @ViewBuilder
     private func chipsLista(_ e: EstadoFinanciero) -> some View {
         chipKPI(L.t("Ingresos del mes", "Income this month"), e.ingresosMes, Paleta.brand,
-                delta: e.deltaIngresos, invert: false, sub: L.t("vs mes anterior", "vs last month"))
+                delta: e.deltaIngresos, invert: false, sufijo: L.t("vs mes anterior", "vs last month"))
         chipKPI(L.t("Gastos del mes", "Expenses this month"), e.gastosMes, Paleta.negativo,
-                delta: e.deltaGastos, invert: true, sub: L.t("vs mes anterior", "vs last month"))
+                delta: e.deltaGastos, invert: true, sufijo: L.t("vs mes anterior", "vs last month"))
         chipKPI(L.t("Balance neto", "Net balance"), e.balanceNeto, Paleta.brand,
-                delta: e.deltaBalance, invert: false, sub: L.t("vs mes anterior", "vs last month"))
+                delta: e.deltaBalance, invert: false, sufijo: L.t("vs mes anterior", "vs last month"))
+        // El saldo final no compara con nada: su renglón es una leyenda que se
+        // sostiene sola, y por eso va en `nota` y no en `sufijo`.
         chipKPI(L.t("Saldo final", "Ending balance"), e.saldoFinal, Paleta.morado,
-                delta: nil, invert: false,
-                sub: L.t("con el saldo anterior", "including previous balance"))
+                delta: nil, invert: false, sufijo: "",
+                nota: L.t("con el saldo anterior", "including previous balance"))
     }
 
-    private func chipKPI(_ titulo: String, _ monto: Centavos, _ color: Color, delta: Double?, invert: Bool, sub: String) -> some View {
+    /// **`sufijo` acompaña a la variación; `nota` se sostiene sola.** Eran el
+    /// mismo parámetro, así que cuando no había con qué comparar —el mes
+    /// anterior a cero, que es el primer mes de cualquier iglesia— el chip
+    /// enseñaba "vs mes anterior" a secas, sin flecha y sin porcentaje: una
+    /// preposición colgando debajo de una cifra.
+    ///
+    /// Sin variación el renglón se queda vacío pero **sigue ocupando su alto**,
+    /// como el hueco de la etiqueta en las filas de Ingresos: si desapareciera,
+    /// los cuatro chips de la rejilla dejarían de medir lo mismo y el que sí
+    /// compara quedaría más alto que sus vecinos.
+    private func chipKPI(_ titulo: String, _ monto: Centavos, _ color: Color,
+                         delta: Double?, invert: Bool, sufijo: String,
+                         nota: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(titulo).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             AmountText(cents: monto, size: 22)
-            if let delta { DeltaBadge(pct: delta, sufijo: sub, invert: invert).font(.caption) }
-            else { Text(sub).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
+            Group {
+                if let delta {
+                    DeltaBadge(pct: delta, sufijo: sufijo, invert: invert)
+                } else if let nota {
+                    Text(nota).foregroundStyle(.secondary)
+                } else {
+                    Text(" ").hidden()
+                }
+            }
+            .font(.caption).lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Esp.tarjeta)
@@ -524,15 +546,21 @@ struct ReportesView: View {
 
     @ViewBuilder
     private func chipsAnual(_ a: ReporteAnual) -> some View {
+        // Los cuatro del anual no comparan con nada: sus renglones son
+        // leyendas que se sostienen solas, así que van en `nota`.
         chipKPI(L.t("Ingresos del año", "Income for the year"), a.totalIngresos, Paleta.brand,
-                delta: nil, invert: false, sub: L.t("\(a.meses.count) meses con movimientos",
-                                                    "\(a.meses.count) months with activity"))
+                delta: nil, invert: false, sufijo: "",
+                nota: L.t("\(a.meses.count) meses con movimientos",
+                          "\(a.meses.count) months with activity"))
         chipKPI(L.t("Gastos del año", "Expenses for the year"), a.totalGastos, Paleta.negativo,
-                delta: nil, invert: false, sub: L.t("Todo el año", "Whole year"))
+                delta: nil, invert: false, sufijo: "",
+                nota: L.t("Todo el año", "Whole year"))
         chipKPI(L.t("Balance del año", "Year balance"), a.balance, Paleta.brand,
-                delta: nil, invert: false, sub: L.t("Ingresos menos gastos", "Income less expenses"))
+                delta: nil, invert: false, sufijo: "",
+                nota: L.t("Ingresos menos gastos", "Income less expenses"))
         chipKPI(L.t("Depositado", "Deposited"), a.depositosTotal, Paleta.morado,
-                delta: nil, invert: false, sub: L.t("No suma al balance", "Not part of the balance"))
+                delta: nil, invert: false, sufijo: "",
+                nota: L.t("No suma al balance", "Not part of the balance"))
     }
 
     private func avisoPendientesAnual(_ a: ReporteAnual) -> some View {
