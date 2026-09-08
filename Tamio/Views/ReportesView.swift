@@ -55,8 +55,10 @@ struct ReportesView: View {
                         }
                 }
             } header: {
+                // Sin `.foregroundStyle(.secondary)`, por lo mismo que en
+                // Ingresos: doblar el secundario deja el rótulo en 1.78:1.
                 Text(L.t("Tesorería", "Treasury"))
-                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    .font(.caption.weight(.semibold))
                     .textCase(nil)
             }
         }

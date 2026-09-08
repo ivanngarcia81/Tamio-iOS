@@ -141,9 +141,10 @@ struct ServiciosView: View {
                 // del culto más reciente al más antiguo, así que bajo ese
                 // rótulo aparecían cultos de hace meses. Se rotula como en el
                 // web, que enseña esta misma lista sin partirla.
+                // Sin `.foregroundStyle(.secondary)`, por lo mismo que en
+                // Ingresos: doblar el secundario deja el rótulo en 1.73:1.
                 Text(L.t("Historial completo", "Full history"))
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
                     .textCase(nil)
             }
         }

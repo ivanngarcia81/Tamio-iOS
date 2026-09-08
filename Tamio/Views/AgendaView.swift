@@ -394,9 +394,11 @@ struct AgendaView: View {
                             .stroke(Color(.separator), lineWidth: 0.75))
                         .padding(.horizontal, Esp.pantalla).padding(.bottom, 8)
                     } header: {
+                        // Sin `.foregroundStyle(.secondary)`, por lo mismo que
+                        // en Ingresos: doblar el secundario deja el rótulo en
+                        // terciario.
                         Text(etiquetaDiaLista(grupo.dia))
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
                             .padding(.horizontal, Esp.pantalla).padding(.vertical, 6)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color(.systemGroupedBackground).opacity(0.95))
