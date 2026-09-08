@@ -25,10 +25,18 @@ struct KPICard<Pie: View>: View {
 
             contenido
 
+            // **El pie se encoge hasta la mitad, no hasta tres cuartos.** Con
+            // Dynamic Type en AX1 el pie de Ingresos —"19 records ▲172.8%"—
+            // se truncaba por los DOS lados a la vez: "19 reco… ▲172.…", o sea
+            // ni el conteo ni la variación se podían leer. A 0.75 no daba de
+            // sí; a 0.5, el mismo margen que ya se da `AmountText`, entra
+            // entero. Encoger un pie de metadatos es preferible a recortarlo:
+            // la cifra grande, que es lo que el tamaño accesible viene a
+            // agrandar, no se toca.
             pie
                 .font(.footnote.weight(.medium))
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .minimumScaleFactor(0.5)
         }
         .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
         .padding(Esp.tarjeta)
