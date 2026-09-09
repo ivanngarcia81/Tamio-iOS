@@ -18,12 +18,29 @@ struct HojaFirma: View {
     @State private var lienzo = PKCanvasView()
     /// Sube en cada trazo para que el botón de guardar se entere de que ya hay
     /// algo dibujado: `PKCanvasView` no es observable.
+    ///
+    /// **Y hay que LEERLO donde se decide**, ver `vacio`.
     @State private var trazos = 0
     @State private var fotoElegida: PhotosPickerItem?
     @State private var mostrarArchivos = false
     @State private var error: String?
 
-    private var vacio: Bool { lienzo.drawing.strokes.isEmpty }
+    /// **Se pregunta primero por `trazos`, y no es por gusto: es lo único que
+    /// vuelve a dibujar esta hoja.**
+    ///
+    /// `lienzo` es un `PKCanvasView`, un objeto de UIKit que SwiftUI no
+    /// observa, así que preguntarle por sus trazos no crea ninguna
+    /// dependencia: el delegado subía `trazos` en cada trazo, el cuerpo no lo
+    /// leía en ninguna parte y no se reevaluaba. Resultado medido en iPad:
+    /// después de firmar, "Guardar" y "Borrar" seguían apagados y no había
+    /// forma de guardar la firma. Con un `NSLog` puesto el fallo se escondía
+    /// —el registro fuerza el repintado—, que es la señal de que no era el
+    /// dibujo sino la observación.
+    ///
+    /// Con `trazos` delante, el estado vuelve a mandar: a cero no hace falta ni
+    /// mirar el lienzo, y a partir de uno se pregunta por los trazos de verdad,
+    /// que es lo que distingue "he firmado" de "he borrado".
+    private var vacio: Bool { trazos == 0 || lienzo.drawing.strokes.isEmpty }
 
     var body: some View {
         NavigationStack {
