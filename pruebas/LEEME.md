@@ -95,6 +95,25 @@ modo revisión salta.
   en teléfono. El alto que se compara depende de la escala de la hoja: 38 pt en
   iPad, 20 en el teléfono.
 
+- **`ImportarIPadUITests.swift`** y **`ImportarTelefonoUITests.swift`** — los
+  dos importadores de CSV, de punta a punta: menú → selector → archivo → mapeo
+  → previa. Tres cosas que costaron una tarde y no se deducen del código:
+  1. **El selector de archivos corre en OTRO proceso.** `DocumentsApp.state` y
+     el conteo de botones de la app **no lo ven**; con ese detector se da por
+     roto lo que ya funciona. Lo delatan sus propios textos ("Recents", "On My
+     iPad") o, si no, la captura.
+  2. **Hace falta un CSV puesto de antemano**, porque la app no puede guardarlo
+     en Archivos sin manos. Se escribe en el contenedor del simulador:
+     `.../data/Containers/Shared/AppGroup/<el de group.com.apple.FileProvider.LocalStorage>/File Provider Storage/`.
+     El del iPad se abre por nombre; en la rejilla el toque va **en el icono**,
+     no en la etiqueta (`dy: -1.8` desde el texto).
+  3. **En el iPhone sus elementos ni se dejan consultar** —la instantánea de
+     accesibilidad caduca a media lectura— y **recuerda entre corridas dónde
+     estaba**, así que navegar por coordenadas fijas no vale: lo único estable
+     es el buscador de arriba, se escribe el nombre y se toca el resultado.
+  Y `revisar()` no se puede usar mientras el selector está arriba, por lo
+  mismo: se toma la captura a secas.
+
 **Y un aviso sobre lo que estas pruebas NO pueden medir:** XCUITest lista los
 elementos aunque lleven `accessibilityHidden(true)` —comprobado poniéndoselo al
 aviso del modo revisión, que siguió apareciendo en el volcado—. Así que con el
