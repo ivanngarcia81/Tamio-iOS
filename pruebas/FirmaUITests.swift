@@ -12,7 +12,13 @@ final class FirmaIPad: XCTestCase {
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()
-        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // `-prefs.bienvenidaVista` salta el recorrido de bienvenida: es un
+        // valor volátil de `UserDefaults`, así que la prueba no depende de
+        // que el contenedor del simulador ya lo tenga puesto. Sin él, un
+        // contenedor recién estrenado abre la app en la bienvenida y no hay
+        // ni sidebar ni pestañas.
+        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+                                "-prefs.bienvenidaVista", "YES"]
         app.launch(); sleep(2)
         XCUIDevice.shared.orientation = .landscapeLeft; sleep(3)
     }
@@ -63,7 +69,13 @@ final class FirmaIPad: XCTestCase {
 final class FirmaIPhone: XCTestCase {
     func testElTrazoEnciendeGuardar() {
         let app = XCUIApplication()
-        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // `-prefs.bienvenidaVista` salta el recorrido de bienvenida: es un
+        // valor volátil de `UserDefaults`, así que la prueba no depende de
+        // que el contenedor del simulador ya lo tenga puesto. Sin él, un
+        // contenedor recién estrenado abre la app en la bienvenida y no hay
+        // ni sidebar ni pestañas.
+        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+                                "-prefs.bienvenidaVista", "YES"]
         app.launch(); sleep(3)
         app.tabBars.buttons["Settings"].tap(); sleep(2)
         let fila = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Treasurer & pastor'")).firstMatch

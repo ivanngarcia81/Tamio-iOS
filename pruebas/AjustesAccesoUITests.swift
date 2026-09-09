@@ -5,7 +5,13 @@ import XCTest
 final class AjustesAcceso: XCTestCase {
     func testParadaEnAccesoYAreas() {
         let app = XCUIApplication()
-        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // `-prefs.bienvenidaVista` salta el recorrido de bienvenida: es un
+        // valor volátil de `UserDefaults`, así que la prueba no depende de
+        // que el contenedor del simulador ya lo tenga puesto. Sin él, un
+        // contenedor recién estrenado abre la app en la bienvenida y no hay
+        // ni sidebar ni pestañas.
+        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+                                "-prefs.bienvenidaVista", "YES"]
         app.launch(); sleep(2)
         XCUIDevice.shared.orientation = .landscapeLeft; sleep(3)
         let ajustes = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Settings'")).firstMatch

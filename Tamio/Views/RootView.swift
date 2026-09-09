@@ -80,6 +80,14 @@ struct RootView: View {
                 // `navigationDestination(item:)` de cada pantalla, así que
                 // quien la cierra tiene que ser ese mismo `item`.
                 detalle
+                    // Y al ensanchar, la sección sigue a la pestaña **solo si
+                    // se cambió de pestaña mientras la ventana era estrecha**:
+                    // quien solo movió el tamaño vuelve donde estaba.
+                    .task {
+                        if Navegacion.pestana(de: nav.seccion) != nav.pestana {
+                            nav.seccion = Navegacion.seccion(de: nav.pestana)
+                        }
+                    }
             }
         } else {
             IPhoneRootView()
@@ -293,7 +301,13 @@ private struct IPhoneRootView: View {
         // nunca tuvo, porque `inicio` es el valor por omisión—. Sin esto, la
         // secretaria abriría la app en una pestaña que no existe y vería el
         // TabView en blanco.
-        .task { corregirPestana() }
+        // **La pestaña sigue a la sección al caer a compacto.** Ver
+        // `Navegacion.pestana(de:)`: estrechar la ventana desde Ingresos
+        // aterrizaba en Inicio.
+        .task {
+            nav.pestana = Navegacion.pestana(de: nav.seccion)
+            corregirPestana()
+        }
         .onChange(of: permisos.rol) { _, _ in corregirPestana() }
         .tint(Paleta.brand)
         // `.ultraThinMaterial` es el material más transparente del sistema: dejaba

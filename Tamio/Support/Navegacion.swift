@@ -23,4 +23,40 @@ final class Navegacion {
     enum Pestana: Hashable {
         case inicio, tesoreria, revisar, secretaria, ajustes
     }
+
+    // MARK: - Las dos formas de la app, sincronizadas
+
+    /// **A qué pestaña del teléfono pertenece cada sección de la sidebar.**
+    ///
+    /// La app cambia de forma con el ANCHO DE LA VENTANA, no solo de aparato:
+    /// en iPadOS 26 se estrecha con el asa de la esquina y a 375 pt la clase
+    /// pasa a compacta y se dibuja el `TabView`. Hasta ahora esas dos formas no
+    /// se hablaban —la sidebar mira `seccion` y las pestañas miran `pestana`—,
+    /// así que estrechar la ventana desde Ingresos aterrizaba en Inicio: se
+    /// perdía dónde estabas por cambiar el tamaño de la ventana.
+    static func pestana(de seccion: String) -> Pestana {
+        switch seccion {
+        case "inicio":              return .inicio
+        case "porRevisar":          return .revisar
+        case "config":              return .ajustes
+        case "membresia", "actas", "servicios", "cartas", "informes",
+             "agenda", "registro":  return .secretaria
+        default:                    return .tesoreria
+        }
+    }
+
+    /// Y el camino de vuelta: con qué sección se abre cada pestaña al
+    /// ensanchar. Solo se usa cuando la pestaña NO corresponde a la sección
+    /// que ya había, para no perder el sitio exacto —quien estaba en Depósitos
+    /// y solo cambió el tamaño de la ventana vuelve a Depósitos, no a
+    /// Ingresos.
+    static func seccion(de pestana: Pestana) -> String {
+        switch pestana {
+        case .inicio:     return "inicio"
+        case .tesoreria:  return "ingresos"
+        case .revisar:    return "porRevisar"
+        case .secretaria: return "membresia"
+        case .ajustes:    return "config"
+        }
+    }
 }

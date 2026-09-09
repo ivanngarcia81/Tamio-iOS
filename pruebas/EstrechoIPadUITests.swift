@@ -17,7 +17,13 @@ final class EstrechoIPad: XCTestCase {
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()
-        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // `-prefs.bienvenidaVista` salta el recorrido de bienvenida: es un
+        // valor volátil de `UserDefaults`, así que la prueba no depende de
+        // que el contenedor del simulador ya lo tenga puesto. Sin él, un
+        // contenedor recién estrenado abre la app en la bienvenida y no hay
+        // ni sidebar ni pestañas.
+        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+                                "-prefs.bienvenidaVista", "YES"]
         app.launch(); sleep(2)
         XCUIDevice.shared.orientation = .portrait; sleep(2)
         // La sidebar fijada es lo que estrecha la columna: sin ella el detalle
