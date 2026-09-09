@@ -12,9 +12,10 @@ del iPad (§0.-7).
 
 ## 0.-7 La pasada de interfaz del iPad · 9 de septiembre
 
-**Solo interfaz, solo iPad, las cuatro zonas.** Doce arreglos, un commit cada
+**Solo interfaz, solo iPad, las cuatro zonas.** Catorce arreglos, un commit cada
 uno, sobre iPad Air 13" (1366×1024) y iPad mini (1133×744), en inglés, claro y
-oscuro y con AX1. Nueve pruebas nuevas en `pruebas/`.
+oscuro, con AX1 y con la ventana estrechada hasta compacto. Once pruebas nuevas
+en `pruebas/`.
 
 ### La postura que lo destapó casi todo
 
@@ -77,10 +78,48 @@ en la app —Inicio y Reportes— sin haberse extendido a las demás.
   puesto y `XCUIDevice.shared.orientation` no hace nada; el Air 13" mide lo
   mismo y sí gira. Y si se mata un runner a media rotación, el simulador se
   queda sin girar hasta un `simctl shutdown` + `boot`.
-- **Multitarea, sin medir.** El asa de redimensionado de iPadOS 26 no responde
-  al arrastre de XCUITest, así que Split View y Slide Over no se pudieron
-  ejercitar. La postura equivalente —regular con la columna estrecha— sí quedó
-  medida, en el mini con la sidebar fijada.
+- **La multitarea sí se pudo medir**, ver abajo. Y la postura de regular con la
+  columna estrecha, en el mini con la sidebar fijada.
+
+### La multitarea, ya medida
+
+**En iPadOS 26 la ventana se estrecha con el asa de la esquina inferior derecha
+y a 375 pt la app cae a clase compacta**, o sea que dibuja su forma de teléfono
+dentro del iPad. Es la postura de Split View y Slide Over, y ahora está en
+`pruebas/MultitareaIPadUITests.swift`. Cómo se maneja, que es lo que costó:
+
+- El asa **solo agarra con una pulsación LARGA** antes de arrastrar
+  (`press(forDuration: 1.0, thenDragTo:)`); con 0.6 no.
+- **El asa no ENSANCHA.** Para volver a pantalla completa está el botón "Zoom"
+  de los controles de ventana, que vive en SpringBoard
+  (`Window Controls, Tamio` → `Zoom`).
+- **Con el teclado fuera no se puede estrechar**: el asa queda debajo. Y la
+  tecla "Hide keyboard" no sirve —apaisado se dibuja fuera de la pantalla, con
+  la x en negativo—. Lo que sí: probar con una hoja que no traiga teclado.
+- El tamaño de la ventana **sobrevive a relanzar la app y a reiniciar el
+  simulador**, así que el `setUp` tiene que devolverla a pantalla completa o la
+  prueba siguiente arranca en compacto —y el recorrido de capturas fotografía
+  la forma de teléfono dentro del iPad, con un diff de píxeles del 80 % que no
+  es ninguna regresión—. Y se devuelve **después de girar**: antes de girar, el
+  marco todavía no dice que la ventana es estrecha.
+- Y el arranque de las pruebas necesita `-prefs.bienvenidaVista`: un contenedor
+  recién estrenado abre la app en la bienvenida.
+
+**Y la sincronía va en `onChange(of: sizeClass)`, no en un `task`.** Un `task`
+corre cuando la vista aparece, no cuando se cruza la frontera: en un iPad
+grande —que nunca es compacto— la pestaña se queda en su valor de partida, y la
+regla "la sección sigue a la pestaña" devolvía a Inicio al elegir cualquier
+sección. Lo cazó la suite del mini, no la del Air: **la tanda completa al final
+no es un trámite**.
+
+De ahí salieron dos cosas. **Una arreglada**: al estrechar, la app aterrizaba
+en Inicio, porque la sidebar mira `nav.seccion` y las pestañas `nav.pestana` y
+nadie las traducía. **Y una que no**: una hoja abierta no sobrevive al cambio
+de clase —las dos formas son dos árboles distintos y se destruye el `@State` de
+quien la presenta—, así que con la hoja de "Nuevo" se pierde lo escrito. Está
+marcado con `XCTExpectFailure`: la prueba queda en verde y avisa el día que
+alguien lo arregle. **Sacar el borrador de las 44 hojas a un modelo compartido
+es un rediseño, y es decisión de Iván.**
 
 ### El aviso que más caro puede salir
 
