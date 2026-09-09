@@ -67,3 +67,36 @@ detalle baja de 640 pt con la sidebar fijada.
   superior (reloj y aviso del modo revisión) y da el porcentaje distinto:
   `python3 pruebas/pixdiff.py antes.png despues.png`. **Solo vale con corrida
   de control**: dos corridas del mismo código dan 0.000 %.
+
+## Las de la segunda vuelta del iPad · 9 de septiembre
+
+Las 45 hojas, los detalles que no se habían abierto, y las dos pantallas que el
+modo revisión salta.
+
+- **`HojasIPadUITests.swift`** — abre las hojas una a una y, en cada parada,
+  fotografía, vuelca los rótulos con su marco y **avisa de lo que se sale por el
+  borde**. Trae los ayudantes que costaron una vuelta: `toca` baja a buscar el
+  botón si está bajo el pliegue (en la columna de detalle del iPad los del corte
+  quedan fuera de pantalla), y `revisarSuave` es para las hojas del SISTEMA —la
+  de compartir—, que se reordenan mientras se leen y dejan a XCUITest sin el
+  elemento a media lista.
+- **`DetallesIPadUITests.swift`** — la carta, el culto y el día de la agenda.
+  El desplazamiento va por el LADO DERECHO: en el centro cae la lista.
+- **`AccesoIPadUITests.swift`** — la puerta, en las dos orientaciones. Se corre
+  con el modo revisión **APAGADO** y en un simulador recién creado
+  (`xcrun simctl create`), porque el llavero del simulador es común a todas las
+  apps (§3).
+- **`CandadoIPadUITests.swift`** — la pantalla de bloqueo. Se corre con el modo
+  revisión encendido —el candado se enciende en Ajustes · Cuenta— y **se queda
+  encendido entre corridas**, así que la prueba sirve para las dos entradas. El
+  diálogo del sistema tapa la pantalla y se cancela desde SpringBoard;
+  `sb.buttons["Cancel"]` hay más de uno, así que **`.firstMatch`**.
+- **`ConstanciaUITests.swift`** — la frase de la constancia, entera, en iPad y
+  en teléfono. El alto que se compara depende de la escala de la hoja: 38 pt en
+  iPad, 20 en el teléfono.
+
+**Y un aviso sobre lo que estas pruebas NO pueden medir:** XCUITest lista los
+elementos aunque lleven `accessibilityHidden(true)` —comprobado poniéndoselo al
+aviso del modo revisión, que siguió apareciendo en el volcado—. Así que con el
+árbol de XCUITest no se puede saber qué lee VoiceOver: eso pide VoiceOver de
+verdad.
