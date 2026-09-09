@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Raíz de la app. En iPad (regular) es un maestro-detalle con la sidebar de
 /// navegación, como el handoff. En iPhone (compacto) se colapsa a una pila con
@@ -50,56 +51,100 @@ struct RootView: View {
                         }
                     }
             } detail: {
-                // El área de detalle enruta según la sección elegida en la
-                // sidebar. Cada pantalla trae su propio layout (el Dashboard es
-                // una sola vista; Ingresos/Gastos son maestro-detalle).
-                // **Cada sección pregunta por su área.** La sidebar ya no
-                // ofrece lo que no toca, pero `nav.seccion` se recuerda entre
-                // arranques y se puede mover desde otras pantallas: sin esto,
-                // quitarle el rol a alguien no le cerraría la pantalla que dejó
-                // abierta.
-                switch nav.seccion {
-                case "inicio":
-                    conPermiso(.inicio) { DashboardView() }
-                case "ingresos":
-                    conPermiso(.tesoreria) { MovimientosView(tipo: .ingreso) }
-                case "gastos":
-                    conPermiso(.tesoreria) { MovimientosView(tipo: .gasto) }
-                case "reportes":
-                    conPermiso(.reportes) { ReportesView() }
-                case "depositos":
-                    conPermiso(.tesoreria) { DepositosView() }
-                case "miembros":
-                    conPermiso(.tesoreria) { MiembrosView() }
-                case "membresia":
-                    conPermiso(.padron) { MembresiaView() }
-                case "actas":
-                    conPermiso(.secretaria) { ActasView() }
-                case "servicios":
-                    conPermiso(.secretaria) { ServiciosView() }
-                case "cartas":
-                    conPermiso(.secretaria) { CartasView() }
-                case "informes":
-                    conPermiso(.secretaria) { InformesMembresiaView() }
-                case "agenda":
-                    conPermiso(.secretaria) { AgendaView() }
-                case "config":
-                    ConfiguracionView()
-                case "registro":
-                    conPermiso(.registro) { RegistroView() }
-                case "porRevisar":
-                    conPermiso(.tesoreria) { RevisarView() }
-                default:
-                    ContentUnavailableView(
-                        etiquetaSeccion(nav.seccion),
-                        systemImage: "hammer",
-                        description: Text(L.t("Esta pantalla llega en un próximo slice.",
-                                              "This screen is coming in a later slice."))
-                    )
-                }
+                // **`NavigationStack` alrededor del detalle, y es lo que hace
+                // que se pueda abrir una ficha en una ventana estrecha.**
+                //
+                // Las doce pantallas de maestro-detalle se parten por ancho: a
+                // partir de `Esp.anchoMaestroDetalle` dibujan lista y detalle
+                // lado a lado, y por debajo empujan el detalle con
+                // `navigationDestination`. Una columna de detalle de un
+                // `NavigationSplitView` trae barra de navegación pero **no una
+                // pila**, así que ese `navigationDestination` no tenía dónde
+                // empujar: tocar una fila la pintaba de verde y no pasaba nada
+                // más.
+                //
+                // Se ve en cuanto la columna baja de 640 pt sin que la app
+                // salga de la clase regular: el iPad mini en vertical con la
+                // sidebar fijada (744 − 300), la app a la mitad en Split View,
+                // o cualquier ventana de Stage Manager. Medido en el mini:
+                // Ingresos, Reportes y Depósitos se quedaban sin ficha y sin
+                // botón de volver.
+                //
+                // **Y cada pantalla cierra su ficha al cambiar de sección**
+                // (`cierraAlCambiarSeccion`, en `Pieces.swift`). La raíz de
+                // esta pila la elige la sidebar: al cambiarla con una ficha
+                // empujada, la raíz cambiaba por debajo y la ficha anterior se
+                // quedaba encima —se elegía Reportes y se seguía viendo el
+                // movimiento—. Ni vaciar un `NavigationPath` ni cambiar el
+                // `id` de la pila la sacan: lo que empuja es el
+                // `navigationDestination(item:)` de cada pantalla, así que
+                // quien la cierra tiene que ser ese mismo `item`.
+                detalle
             }
         } else {
             IPhoneRootView()
+        }
+    }
+
+    /// La pantalla que toca según la sección elegida en la sidebar. Cada una
+    /// trae su propio layout (el Dashboard es una sola vista; Ingresos/Gastos
+    /// son maestro-detalle).
+    ///
+    /// **Cada sección pregunta por su área.** La sidebar ya no ofrece lo que no
+    /// toca, pero `nav.seccion` se recuerda entre arranques y se puede mover
+    /// desde otras pantallas: sin esto, quitarle el rol a alguien no le
+    /// cerraría la pantalla que dejó abierta.
+    private var detalle: some View {
+        NavigationStack {
+            // El `ZStack` no es decorativo: es el ancla ESTABLE de la que
+            // cuelga el vaciador. Colgado del `switch`, cambiaría de identidad
+            // con la sección y no se enteraría del cambio, que es justo lo que
+            // tiene que ver.
+            ZStack { pantallaDeSeccion }
+                .background(VaciarPila(seccion: nav.seccion).frame(width: 0, height: 0))
+        }
+    }
+
+    @ViewBuilder
+    private var pantallaDeSeccion: some View {
+        switch nav.seccion {
+        case "inicio":
+            conPermiso(.inicio) { DashboardView() }
+        case "ingresos":
+            conPermiso(.tesoreria) { MovimientosView(tipo: .ingreso) }
+        case "gastos":
+            conPermiso(.tesoreria) { MovimientosView(tipo: .gasto) }
+        case "reportes":
+            conPermiso(.reportes) { ReportesView() }
+        case "depositos":
+            conPermiso(.tesoreria) { DepositosView() }
+        case "miembros":
+            conPermiso(.tesoreria) { MiembrosView() }
+        case "membresia":
+            conPermiso(.padron) { MembresiaView() }
+        case "actas":
+            conPermiso(.secretaria) { ActasView() }
+        case "servicios":
+            conPermiso(.secretaria) { ServiciosView() }
+        case "cartas":
+            conPermiso(.secretaria) { CartasView() }
+        case "informes":
+            conPermiso(.secretaria) { InformesMembresiaView() }
+        case "agenda":
+            conPermiso(.secretaria) { AgendaView() }
+        case "config":
+            ConfiguracionView()
+        case "registro":
+            conPermiso(.registro) { RegistroView() }
+        case "porRevisar":
+            conPermiso(.tesoreria) { RevisarView() }
+        default:
+            ContentUnavailableView(
+                etiquetaSeccion(nav.seccion),
+                systemImage: "hammer",
+                description: Text(L.t("Esta pantalla llega en un próximo slice.",
+                                      "This screen is coming in a later slice."))
+            )
         }
     }
 
@@ -109,17 +154,17 @@ struct RootView: View {
     static var avisoRevision: some View {
         if ModoRevision.sinLogin {
             Text(L.t("MODO REVISIÓN · sin sesión · datos de ejemplo",
-                     "REVIEW MODE · no session · sample data"))
-                .font(.caption2.weight(.bold))
-                // Texto OSCURO, no blanco. Sobre el naranja de aviso el blanco
-                // da 3.6:1 en claro y 2.0:1 en oscuro —el modo oscuro aclaró el
-                // fondo sin oscurecer el texto—, las dos por debajo del 4.5:1
-                // que pide un texto pequeño. El negro da 5.9:1 y 10.3:1, así
-                // que sirve para las dos apariencias sin un color nuevo.
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 3)
-                .background(Paleta.aviso)
+                 "REVIEW MODE · no session · sample data"))
+            .font(.caption2.weight(.bold))
+            // Texto OSCURO, no blanco. Sobre el naranja de aviso el blanco
+            // da 3.6:1 en claro y 2.0:1 en oscuro —el modo oscuro aclaró el
+            // fondo sin oscurecer el texto—, las dos por debajo del 4.5:1
+            // que pide un texto pequeño. El negro da 5.9:1 y 10.3:1, así
+            // que sirve para las dos apariencias sin un color nuevo.
+            .foregroundStyle(.black)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 3)
+            .background(Paleta.aviso)
         }
     }
 
@@ -139,6 +184,49 @@ struct RootView: View {
         case "mensajes": return L.t("Mensajes", "Messages")
         case "config": return L.t("Configuración", "Settings")
         default: return "Tamio"
+        }
+    }
+}
+
+/// **Vacía la pila del detalle cuando la sidebar cambia de sección.**
+///
+/// La columna de detalle de un `NavigationSplitView` reutiliza UN
+/// `UINavigationController`, y lo que se ha empujado en él **sobrevive a que
+/// se reconstruya el árbol de SwiftUI**. Medido en el iPad mini, las tres
+/// formas de pedirlo desde arriba se quedan cortas: vaciar un
+/// `NavigationPath` no saca lo que empujó un `navigationDestination(item:)`,
+/// un `id` nuevo en el `NavigationStack` cambia la raíz pero deja la ficha
+/// encima, y una pila por sección hace lo mismo. Con las tres, elegir
+/// "Reportes" con un movimiento abierto seguía enseñando el movimiento.
+///
+/// Tampoco vale que cada pantalla ponga su `item` a `nil` al cambiar la
+/// sección: para cuando llega ese aviso, la pantalla ya se está desmontando y
+/// su `onChange` no corre.
+///
+/// Así que se saca por donde se metió. Es el mismo trato que `NavHeader` le da
+/// al gesto de volver: cuando el comportamiento vive en UIKit, se arregla en
+/// UIKit y se deja escrito por qué.
+private struct VaciarPila: UIViewControllerRepresentable {
+    let seccion: String
+
+    func makeUIViewController(context: Context) -> UIViewController { Vaciador() }
+
+    func updateUIViewController(_ vc: UIViewController, context: Context) {
+        (vc as? Vaciador)?.alCambiar(a: seccion)
+    }
+
+    final class Vaciador: UIViewController {
+        private var ultima: String?
+
+        func alCambiar(a seccion: String) {
+            defer { ultima = seccion }
+            // La primera pasada solo apunta la sección: no hay nada empujado
+            // todavía y un `pop` aquí sería trabajo inútil en cada arranque.
+            guard let ultima, ultima != seccion else { return }
+            // Sin animación: la raíz ya ha cambiado por debajo, así que
+            // deslizar la ficha vieja hacia la derecha enseñaría una
+            // transición que no es la que ha pasado.
+            navigationController?.popToRootViewController(animated: false)
         }
     }
 }
@@ -166,40 +254,40 @@ private struct IPhoneRootView: View {
         // información suya sino ruido.
         TabView(selection: $nav.pestana) {
             if permisos.ve(.inicio) {
-                NavigationStack { DashboardView() }
-                    .tabItem { Label(L.t("Inicio", "Home"), systemImage: "house") }
-                    .tag(Navegacion.Pestana.inicio)
+            NavigationStack { DashboardView() }
+                .tabItem { Label(L.t("Inicio", "Home"), systemImage: "house") }
+                .tag(Navegacion.Pestana.inicio)
             }
 
             if permisos.ve(.tesoreria) {
-                NavigationStack { IPhoneTesoreriaView() }
-                    .tabItem { Label(L.t("Tesorería", "Treasury"), systemImage: "dollarsign.circle") }
-                    .tag(Navegacion.Pestana.tesoreria)
+            NavigationStack { IPhoneTesoreriaView() }
+                .tabItem { Label(L.t("Tesorería", "Treasury"), systemImage: "dollarsign.circle") }
+                .tag(Navegacion.Pestana.tesoreria)
 
-                NavigationStack { RevisarView() }
-                    .tabItem { Label(L.t("Por revisar", "To review"), systemImage: "tray") }
-                    .badge(revisarVM.porRevisarCount)
-                    .tag(Navegacion.Pestana.revisar)
+            NavigationStack { RevisarView() }
+                .tabItem { Label(L.t("Por revisar", "To review"), systemImage: "tray") }
+                .badge(revisarVM.porRevisarCount)
+                .tag(Navegacion.Pestana.revisar)
             } else if permisos.ve(.reportes) {
-                // Reportes vive DENTRO del hub de Tesorería, así que sin esa
-                // pestaña la secretaria no tendría por dónde llegar. Se le da
-                // su propia entrada en vez de dejarle un hub de Tesorería con
-                // una sola fila dentro, que se leería como una tesorería
-                // recortada en lugar de como lo que es: acceso al reporte.
-                NavigationStack { ReportesView() }
-                    .tabItem { Label(L.t("Reportes", "Reports"), systemImage: "chart.bar") }
-                    .tag(Navegacion.Pestana.tesoreria)
+            // Reportes vive DENTRO del hub de Tesorería, así que sin esa
+            // pestaña la secretaria no tendría por dónde llegar. Se le da
+            // su propia entrada en vez de dejarle un hub de Tesorería con
+            // una sola fila dentro, que se leería como una tesorería
+            // recortada en lugar de como lo que es: acceso al reporte.
+            NavigationStack { ReportesView() }
+                .tabItem { Label(L.t("Reportes", "Reports"), systemImage: "chart.bar") }
+                .tag(Navegacion.Pestana.tesoreria)
             }
 
             if permisos.ve(.secretaria) {
-                NavigationStack { IPhoneSecretariaView() }
-                    .tabItem { Label(L.t("Secretaría", "Secretary"), systemImage: "person.text.rectangle") }
-                    .tag(Navegacion.Pestana.secretaria)
+            NavigationStack { IPhoneSecretariaView() }
+                .tabItem { Label(L.t("Secretaría", "Secretary"), systemImage: "person.text.rectangle") }
+                .tag(Navegacion.Pestana.secretaria)
             }
 
             NavigationStack { IPhoneAjustesView() }
-                .tabItem { Label(L.t("Ajustes", "Settings"), systemImage: "gearshape") }
-                .tag(Navegacion.Pestana.ajustes)
+            .tabItem { Label(L.t("Ajustes", "Settings"), systemImage: "gearshape") }
+            .tag(Navegacion.Pestana.ajustes)
         }
         // La pestaña guardada puede ser una que este rol ya no tenga —o que
         // nunca tuvo, porque `inicio` es el valor por omisión—. Sin esto, la

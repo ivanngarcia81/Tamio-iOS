@@ -25,12 +25,18 @@ struct ReportesView: View {
         GeometryReader { geo in
             if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
-                    listaColumna.frame(width: Esp.columnaMaestra)
+                    listaColumna(empuja: false).frame(width: Esp.columnaMaestra)
                     Divider()
                     preview
                 }
             } else {
-                listaColumna
+                // **Quien decide si la fila empuja es el ANCHO, no la clase de
+                // tamaño.** Iba por `compacto`, así que en un iPad con la
+                // columna estrecha —el mini en vertical con la sidebar, la app
+                // a la mitad— la fila movía la selección de un panel que no se
+                // dibuja: se pintaba de verde y no llevaba a ninguna parte. Es
+                // la misma pregunta que ya responde este `GeometryReader`.
+                listaColumna(empuja: true)
                     .navigationDestination(item: $abierto) { t in
                         detalleCompacto(t)
                     }
@@ -43,15 +49,15 @@ struct ReportesView: View {
 
     // MARK: - Lista de reportes
 
-    private var listaColumna: some View {
+    private func listaColumna(empuja: Bool) -> some View {
         List {
             Section {
                 ForEach(vm.tipos) { t in
-                    filaReporte(t)
+                    filaReporte(t, empuja: empuja)
                         .contentShape(Rectangle())
                         .onTapGesture {
                             vm.seleccionId = t.id
-                            if compacto { abierto = t }
+                            if empuja { abierto = t }
                         }
                 }
             } header: {
@@ -68,11 +74,11 @@ struct ReportesView: View {
         .background(Paleta.sueloLista(tarjeta: compacto))
     }
 
-    private func filaReporte(_ t: ReporteTipo) -> some View {
+    private func filaReporte(_ t: ReporteTipo, empuja: Bool) -> some View {
         // En iPad la fila marca la selección de la columna; en el teléfono
         // lleva a otra pantalla, y eso se dice con un chevrón. Pintarla de
         // verde allí sería anunciar una selección que no se queda a la vista.
-        let sel = !compacto && t.id == vm.seleccionId
+        let sel = !empuja && t.id == vm.seleccionId
         return HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(t.titulo).font(.subheadline.weight(.semibold))
@@ -80,7 +86,7 @@ struct ReportesView: View {
                 Text(t.subtitulo).font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
-            if compacto {
+            if empuja {
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
             }
@@ -93,7 +99,7 @@ struct ReportesView: View {
         // encima prometía algo que el menú "Acciones" niega a propósito: sus
         // tres acciones se apagan porque no hay culto delante—. Misma línea que
         // ya llevan Ingresos y Aportantes.
-        .filaDeLista(seleccionada: sel && !compacto, tarjeta: compacto)
+        .filaDeLista(seleccionada: sel, tarjeta: compacto)
     }
 
     // MARK: - Detalle en el teléfono
@@ -105,7 +111,7 @@ struct ReportesView: View {
     /// nombre pasa a encabezar el contenido, como en el detalle de un
     /// movimiento.
     private func detalleCompacto(_ t: ReporteTipo) -> some View {
-        contenido(t, titulo: t.titulo)
+        contenido(t, titulo: t.titulo, empujado: true)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { barraCompacta }
@@ -222,7 +228,8 @@ struct ReportesView: View {
     }
 
     @ViewBuilder
-    private func contenido(_ t: ReporteTipo, titulo: String? = nil) -> some View {
+    private func contenido(_ t: ReporteTipo, titulo: String? = nil,
+                           empujado: Bool = false) -> some View {
         if vm.sinDatos {
             // No es que el reporte esté vacío: es que no hay movimientos
             // aprobados con los que hacerlo.
@@ -232,9 +239,9 @@ struct ReportesView: View {
                 description: Text(L.t("Los reportes salen de los movimientos aprobados. Captura ingresos y gastos, o dales el visto bueno en Por revisar.",
                                       "Reports are built from approved transactions. Record income and expenses, or approve them in To review.")))
         } else if t.id == "estado", let e = vm.estado {
-            estadoFinanciero(e, titulo: titulo)
+            estadoFinanciero(e, titulo: titulo, empujado: empujado)
         } else if t.id == "anual", let a = vm.anual {
-            reporteAnual(a, titulo: titulo)
+            reporteAnual(a, titulo: titulo, empujado: empujado)
         } else if vm.cargando {
             // **Aquí ponía "Próximamente · Este reporte llega en un próximo
             // slice".** Los tipos de reporte son dos, "estado" y "anual", y los
@@ -255,16 +262,22 @@ struct ReportesView: View {
         }
     }
 
-    private func estadoFinanciero(_ e: EstadoFinanciero, titulo: String? = nil) -> some View {
+    private func estadoFinanciero(_ e: EstadoFinanciero, titulo: String? = nil,
+                                  empujado: Bool = false) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let titulo {
                     Text(titulo).font(.title2.weight(.bold))
                 }
-                // En iPad la tira de filtros se queda en la columna: la barra
-                // es de la pantalla entera y allí compartiría sitio con la
-                // sidebar. En el teléfono ya subió a la barra.
-                if !compacto { barraFiltros }
+                // **La tira de filtros solo cuando el reporte NO está
+                // empujado.** En la columna de detalle del iPad se queda aquí:
+                // la barra es de la pantalla entera y allí compartiría sitio
+                // con la sidebar. Cuando el reporte se empuja —el teléfono, y
+                // también un iPad con la columna estrecha— la pantalla ES el
+                // reporte y sus controles suben a la barra, así que dibujar
+                // también la tira los pone dos veces, y la segunda con "PDF
+                // preview" partido en tres renglones.
+                if !empujado { barraFiltros }
                 HStack {
                     TituloSeccion(texto: L.t("RESUMEN EN PANTALLA", "ON-SCREEN SUMMARY"))
                     Spacer()
@@ -501,11 +514,12 @@ struct ReportesView: View {
 
     // MARK: - Reporte anual
 
-    private func reporteAnual(_ a: ReporteAnual, titulo: String? = nil) -> some View {
+    private func reporteAnual(_ a: ReporteAnual, titulo: String? = nil,
+                              empujado: Bool = false) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let titulo { Text(titulo).font(.title2.weight(.bold)) }
-                if !compacto { barraFiltrosAnual(a) }
+                if !empujado { barraFiltrosAnual(a) }
                 HStack {
                     TituloSeccion(texto: L.t("RESUMEN EN PANTALLA", "ON-SCREEN SUMMARY"))
                     Spacer()
