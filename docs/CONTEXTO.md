@@ -12,7 +12,7 @@ del iPad (§0.-7).
 
 ## 0.-7 La pasada de interfaz del iPad · 9 de septiembre
 
-**Solo interfaz, solo iPad, las cuatro zonas.** Dieciséis arreglos, un commit
+**Solo interfaz, solo iPad, las cuatro zonas.** Diecisiete arreglos, un commit
 cada uno, sobre iPad Air 13" (1366×1024) y iPad mini (1133×744), en inglés,
 claro y oscuro, con AX1 y con la ventana estrechada hasta compacto. Dieciséis
 pruebas nuevas en `pruebas/`. Recorridas las 39 pantallas, las hojas, los
@@ -148,6 +148,52 @@ nada por eso.
 **Y en la agenda, la semilla de la maqueta marca como cumplidas actividades
 futuras** (12, 16 y 19 de septiembre, con hoy a 9): está escrita para un mes en
 el que "hoy" era el día 20. Es de la maqueta, no de la pantalla.
+
+### La tercera vuelta: importar un CSV no se podía
+
+Los dos importadores de aportantes y aportes **no abrían nada**: el menú se
+cerraba y ahí quedaba la cosa, en iPad y en teléfono. Arreglado en `57a2adb`.
+
+**La causa: varias presentaciones apiladas sobre la misma vista no conviven.**
+`MiembrosView` tenía cinco `.sheet` y dos `.fileImporter` encadenados; SwiftUI
+presenta uno y los demás no salen. Las dos primeras del montón —el alta y el
+compartir— sí funcionaban, y eso lo disimulaba. El arreglo ya estaba escrito en
+`ServiciosView`: un `enum` de hojas y un `.sheet(item:)`, más un solo
+`fileImporter`. **Conviene mirar si alguna otra pantalla apila presentaciones**:
+esta se pasó meses sin poder importar y nadie lo vio.
+
+Juntarlas destapó dos trampas que vale la pena no volver a pisar:
+
+- **Un `isPresented` calculado se borra antes de que lo lea su cierre.** Con
+  `Binding(get: { importando != nil }, set: { if !$0 { importando = nil } })`,
+  cerrarse el selector pone `importando` en `nil` ANTES de que corra el cierre
+  de resultado, así que el cierre no sabe cuál de los dos CSV se pidió: "Importar
+  aportes" enseñaba el mapeo de aportantes. El `isPresented` va en su propio
+  `Bool`, y el "cuál" lo borra quien lo usa.
+- **Una hoja no puede abrir otra desde dentro.** `MapearColumnasView` avisa y
+  acto seguido se cierra; ese cierre pone la hoja en `nil` y se lleva por
+  delante lo que se acabara de asignar. Se guarda aparte y se presenta en el
+  `onDismiss`.
+
+**Y el aviso de método, que costó una tarde:** el selector de archivos corre en
+OTRO proceso. `XCUIApplication(bundleIdentifier: "com.apple.DocumentsApp").state`
+y el conteo de botones de la app **no lo ven**, y con ese detector di por roto
+lo que ya estaba arreglado. Lo que sí lo delata son sus propios textos
+—"Recents", "On My iPad"— y, en el teléfono, mirar la captura. En el iPhone sus
+elementos ni siquiera se dejan consultar (la instantánea de accesibilidad caduca
+a media lectura): allí se navega por coordenadas, y el único punto fijo es el
+buscador de arriba. Además **el selector recuerda entre corridas dónde estaba**.
+
+Para probarlo de punta a punta hace falta un CSV en "On My iPad", y la app no
+puede dejarlo ahí sin manos: se escribe en el contenedor del simulador,
+`.../data/Containers/Shared/AppGroup/<el de group.com.apple.FileProvider.LocalStorage>/File Provider Storage/`.
+Recetas en `pruebas/ImportarIPadUITests.swift` y `pruebas/ImportarTelefonoUITests.swift`.
+
+**Lo que se vio y NO es de interfaz:** la previa de aportes pinta un día menos
+—el CSV dice `2026-09-06` y la fila dice "Sep 5, 2026"—. `Fechas.desdeTexto`
+parsea la fecha suelta a medianoche UTC (bien) y `Fechas.corta` la formatea con
+`L.formateador`, que no fija zona y usa la del aparato (UTC-6 en Monterrey).
+Es de la capa de datos, no se tocó.
 
 ### El aviso que más caro puede salir
 
