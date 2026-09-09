@@ -485,6 +485,9 @@ struct AccesoView: View {
     private enum Campo { case correo, contrasena }
 
     private var incompleto: Bool { correo.isEmpty || contrasena.isEmpty }
+    /// El aviso de "faltan datos", que es NUESTRO: `SesionSupabase.error` es
+    /// `private(set)` y guarda lo que contestó el servidor.
+    @State private var aviso: String?
 
     var body: some View {
         ZStack {
@@ -522,8 +525,8 @@ struct AccesoView: View {
 
                     tarjetaCampos
 
-                    if let error = sesion.error {
-                        Text(error)
+                    if let texto = aviso ?? sesion.error {
+                        Text(texto)
                             .font(.footnote)
                             .foregroundStyle(.white)
                             .padding(.top, 12)
@@ -540,8 +543,13 @@ struct AccesoView: View {
                         }
                     }
                     .buttonStyle(BotonMarca())
-                    .disabled(sesion.ocupada || incompleto)
-                    .opacity(incompleto ? 0.7 : 1)
+                    // **Solo se apaga mientras entra, no por estar los campos
+                    // vacíos.** Apagado por omisión medía 2.99:1, y es el
+                    // primer botón de la app. Mismo remedio que en la
+                    // configuración inicial: no se maquilla el botón apagado,
+                    // se quita el motivo de apagarlo. `entrar()` dice qué falta
+                    // y lleva el foco al campo.
+                    .disabled(sesion.ocupada)
                     .padding(.top, 16)
 
                     Button(L.t("¿Olvidaste tu contraseña?", "Forgot your password?")) {
@@ -590,6 +598,7 @@ struct AccesoView: View {
                 .autocorrectionDisabled()
                 .focused($foco, equals: .correo)
                 .submitLabel(.next)
+                .onChange(of: correo) { if !incompleto { aviso = nil } }
                 .onSubmit { foco = .contrasena }
 
             // El filo entre los dos, del ancho entero de la tarjeta.
@@ -601,7 +610,9 @@ struct AccesoView: View {
                 .textContentType(.password)
                 .focused($foco, equals: .contrasena)
                 .submitLabel(.go)
-                .onSubmit { if !incompleto { entrar() } }
+                // Sin el `if`: con un campo vacío no hacía nada y no decía
+                // por qué. Ahora entra en `entrar`, que es quien avisa.
+                .onSubmit { entrar() }
         }
         .textFieldStyle(CampoBlanco())
         .background(.white)
@@ -617,6 +628,16 @@ struct AccesoView: View {
     }
 
     private func entrar() {
+        // Sin correo o sin contraseña no hay a quién preguntar, pero eso se
+        // DICE y se lleva el foco al campo que falta, en vez de dejar un botón
+        // gris que no responde y no explica por qué.
+        guard !incompleto else {
+            aviso = L.t("Escribe tu correo y tu contraseña.",
+                        "Enter your email and password.")
+            foco = correo.isEmpty ? .correo : .contrasena
+            return
+        }
+        aviso = nil
         Task { await sesion.iniciarSesion(correo: correo, contrasena: contrasena) }
     }
 }
