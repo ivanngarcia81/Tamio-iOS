@@ -8,6 +8,17 @@ import SwiftUI
 private typealias SeccionConfig = SeccionAjustes
 
 // MARK: - Helpers de layout
+//
+// **Los tamaños de esta pantalla escalan con Dynamic Type.** Estaban escritos
+// como `Font.system(size:)`, que es un tamaño FIJO: setenta y ocho, y medido
+// con la app corriendo en AX1 daban exactamente el mismo alto que en tamaño
+// normal —el título "Settings", las filas, las tarjetas y hasta "Sign out"—.
+// La sidebar de al lado sí crecía, así que la pantalla se leía a dos escalas.
+//
+// `Font.escalada` (en `AccesoView.swift`) es el mismo tamaño pasado por
+// `UIFontMetrics`: a tamaño de fábrica no mueve ni un píxel, y a partir de ahí
+// crece. El `relativeTo` dice con qué escala, que no es la misma para un
+// rótulo de 12 pt que para un titular de 27.
 
 private struct GrupoConf<C: View>: View {
     var titulo: String = ""
@@ -18,7 +29,7 @@ private struct GrupoConf<C: View>: View {
         VStack(alignment: .leading, spacing: 8) {
             if !titulo.isEmpty {
                 Text(titulo)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.escalada(12, weight: .bold, relativeTo: .caption1))
                     .tracking(0.5)
                     .textCase(.uppercase)
                     .foregroundStyle(.tertiary)
@@ -31,7 +42,7 @@ private struct GrupoConf<C: View>: View {
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             if let nota {
                 Text(nota)
-                    .font(.system(size: 12.5))
+                    .font(.escalada(12.5, relativeTo: .caption1))
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, Esp.hueco)
@@ -50,14 +61,14 @@ private struct HeroCard: View {
                 .frame(width: 60, height: 60)
                 .overlay(
                     Image(systemName: seccion.icono)
-                        .font(.system(size: 26, weight: .medium))
+                        .font(.escalada(26, weight: .medium, relativeTo: .title1))
                         .foregroundStyle(.white)
                 )
             VStack(alignment: .leading, spacing: 8) {
                 Text(seccion.titulo)
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.escalada(26, weight: .bold, relativeTo: .title1))
                 Text(seccion.descripcion)
-                    .font(.system(size: 15))
+                    .font(.escalada(15, relativeTo: .subheadline))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -93,11 +104,11 @@ private struct FilaConf: View {
     private var fila: some View {
         HStack(spacing: 12) {
             Text(label)
-                .font(.system(size: 15.5))
+                .font(.escalada(15.5, relativeTo: .subheadline))
                 .foregroundStyle(Color(.label))
             Spacer()
             if let v = valor {
-                Text(v).font(.system(size: 15.5)).foregroundStyle(valorColor)
+                Text(v).font(.escalada(15.5, relativeTo: .subheadline)).foregroundStyle(valorColor)
             }
             if chevron {
                 Image(systemName: "chevron.right")
@@ -118,11 +129,11 @@ private struct FilaEditable: View {
     var body: some View {
         HStack(spacing: 12) {
             Text(label)
-                .font(.system(size: 15.5))
+                .font(.escalada(15.5, relativeTo: .subheadline))
                 .foregroundStyle(.secondary)
                 .layoutPriority(1)
             TextField("", text: $texto)
-                .font(.system(size: 15.5))
+                .font(.escalada(15.5, relativeTo: .subheadline))
                 .multilineTextAlignment(.trailing)
         }
         .frame(minHeight: 50)
@@ -174,7 +185,7 @@ struct ConfiguracionView: View {
         VStack(spacing: 0) {
             HStack {
                 Text(L.t("Configuración", "Settings"))
-                    .font(.system(size: 27, weight: .bold))
+                    .font(.escalada(27, weight: .bold, relativeTo: .title1))
                     .tracking(-0.6)
                 Spacer()
             }
@@ -196,11 +207,11 @@ struct ConfiguracionView: View {
                                 .frame(width: 30, height: 30)
                                 .overlay(
                                     Image(systemName: SeccionConfig.cuenta.icono)
-                                        .font(.system(size: 15, weight: .medium))
+                                        .font(.escalada(15, weight: .medium, relativeTo: .subheadline))
                                         .foregroundStyle(.white)
                                 )
                             Text(L.t("Cuenta", "Account"))
-                                .font(.system(size: 16))
+                                .font(.escalada(16, relativeTo: .body))
                                 .foregroundStyle(seccion == .cuenta ? Paleta.brand : .primary)
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -239,11 +250,11 @@ struct ConfiguracionView: View {
                             .frame(width: 28, height: 28)
                             .overlay(
                                 Image(systemName: SeccionConfig.zona.icono)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(.escalada(12, weight: .medium, relativeTo: .caption1))
                                     .foregroundStyle(.white)
                             )
                         Text(L.t("Zona de riesgo", "Danger zone"))
-                            .font(.system(size: 15.5, weight: seccion == .zona ? .semibold : .medium))
+                            .font(.escalada(15.5, weight: seccion == .zona ? .semibold : .medium, relativeTo: .subheadline))
                             .foregroundStyle(seccion == .zona ? SeccionConfig.zona.color : .primary)
                         Spacer()
                     }
@@ -265,7 +276,7 @@ struct ConfiguracionView: View {
     private func grupoSidebar(titulo: String, items: [SeccionConfig]) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(titulo)
-                .font(.system(size: 11.5, weight: .bold))
+                .font(.escalada(11.5, weight: .bold, relativeTo: .caption2))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(.tertiary)
@@ -279,11 +290,11 @@ struct ConfiguracionView: View {
                             .frame(width: 28, height: 28)
                             .overlay(
                                 Image(systemName: s.icono)
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.escalada(13, weight: .medium, relativeTo: .footnote))
                                     .foregroundStyle(.white)
                             )
                         Text(s.titulo)
-                            .font(.system(size: 15.5, weight: seccion == s ? .semibold : .medium))
+                            .font(.escalada(15.5, weight: seccion == s ? .semibold : .medium, relativeTo: .subheadline))
                             .foregroundStyle(seccion == s ? Paleta.brand : .primary)
                             .lineLimit(1)
                         Spacer()
@@ -330,7 +341,7 @@ struct ConfiguracionView: View {
                             .frame(width: 30, height: 30)
                             .overlay(
                                 Image(systemName: s.icono)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.escalada(14, weight: .medium, relativeTo: .subheadline))
                                     .foregroundStyle(.white)
                             )
                         Text(s.titulo).font(.subheadline)
@@ -379,19 +390,19 @@ private struct SeccionCuenta: View {
                     let p = sesion?.perfil ?? SesionSupabase.Perfil()
                     HStack(spacing: 16) {
                         Text(p.iniciales)
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.escalada(22, weight: .bold, relativeTo: .title2))
                             .foregroundStyle(Paleta.brand)
                             .frame(width: 66, height: 66)
                             .background(Paleta.brandFill, in: Circle())
                         VStack(alignment: .leading, spacing: 3) {
                             Text(p.nombre.isEmpty ? L.t("Tu cuenta", "Your account") : p.nombre)
-                                .font(.system(size: 20, weight: .bold))
+                                .font(.escalada(20, weight: .bold, relativeTo: .title3))
                                 .foregroundStyle(.primary)
                             Text(p.correo)
-                                .font(.system(size: 14.5))
+                                .font(.escalada(14.5, relativeTo: .subheadline))
                                 .foregroundStyle(.secondary)
                             Text(AjustesRol.legible(p.rol))
-                                .font(.system(size: 14))
+                                .font(.escalada(14, relativeTo: .subheadline))
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -403,12 +414,12 @@ private struct SeccionCuenta: View {
                 GrupoConf {
                     HStack(spacing: 10) {
                         Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 17))
+                            .font(.escalada(17, relativeTo: .body))
                             .foregroundStyle(motor.haFallado ? Paleta.negativo : Paleta.brand)
                         // Decía "Sincronizado" siempre, aunque no se hubiera
                         // sincronizado nunca. Ver `MotorSincronizacion`.
                         Text(motor.estadoLegible)
-                            .font(.system(size: 14.5))
+                            .font(.escalada(14.5, relativeTo: .subheadline))
                             .foregroundStyle(.secondary)
                     }
                     .frame(minHeight: 50)
@@ -431,10 +442,10 @@ private struct SeccionCuenta: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(L.t("Pedir \(BloqueoBiometrico.nombreBiometria) al abrir",
                                      "Require \(BloqueoBiometrico.nombreBiometria) to open"))
-                                .font(.system(size: 16))
+                                .font(.escalada(16, relativeTo: .body))
                             Text(L.t("También tapa las cuentas en el conmutador de apps.",
                                      "Also hides the accounts in the app switcher."))
-                                .font(.system(size: 13)).foregroundStyle(.tertiary)
+                                .font(.escalada(13, relativeTo: .footnote)).foregroundStyle(.tertiary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         Spacer()
@@ -449,7 +460,7 @@ private struct SeccionCuenta: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Button { confirmarCierre = true } label: {
                         Text(L.t("Cerrar sesión", "Sign out"))
-                            .font(.system(size: 16.5))
+                            .font(.escalada(16.5, relativeTo: .body))
                             .foregroundStyle(Paleta.negativo)
                             .frame(maxWidth: .infinity)
                             .frame(minHeight: 54)
@@ -470,7 +481,7 @@ private struct SeccionCuenta: View {
                     }
                     Text(L.t("Cerrar sesión no borra nada del aparato: al volver a entrar, todo sigue donde estaba.",
                              "Signing out doesn't delete anything from the device."))
-                        .font(.system(size: 12.5))
+                        .font(.escalada(12.5, relativeTo: .caption1))
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, Esp.hueco)
                 }
@@ -521,10 +532,10 @@ private struct SeccionIglesia: View {
                 GrupoConf(titulo: L.t("FISCAL Y CONTABLE", "FISCAL & ACCOUNTING")) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(L.t("EIN / identificación fiscal", "EIN / Tax ID"))
-                            .font(.system(size: 13.5))
+                            .font(.escalada(13.5, relativeTo: .footnote))
                             .foregroundStyle(.secondary)
                         TextField(L.t("p. ej. 12-3456789", "e.g. 12-3456789"), text: $cfg.config.idFiscal)
-                            .font(.system(size: 16))
+                            .font(.escalada(16, relativeTo: .body))
                     }
                     .padding(.horizontal, Esp.pantalla)
                     .padding(.vertical, 12)
@@ -534,7 +545,7 @@ private struct SeccionIglesia: View {
                     // la moneda configurada ni dejaba cambiarla.
                     HStack {
                         Text(L.t("Moneda", "Currency"))
-                            .font(.system(size: 16))
+                            .font(.escalada(16, relativeTo: .body))
                         Spacer()
                         Picker("", selection: $cfg.config.moneda) {
                             ForEach(Catalogos.monedas) { m in
@@ -551,10 +562,10 @@ private struct SeccionIglesia: View {
                     // de la misma configuración no coincidían.
                     VStack(alignment: .leading, spacing: 6) {
                         Text(L.t("Saldo de apertura", "Opening balance"))
-                            .font(.system(size: 13.5))
+                            .font(.escalada(13.5, relativeTo: .footnote))
                             .foregroundStyle(.secondary)
                         TextField("0.00", text: $aperturaTexto)
-                            .font(.system(size: 16))
+                            .font(.escalada(16, relativeTo: .body))
                             .onSubmit { fijarApertura() }
                     }
                     .padding(.horizontal, Esp.pantalla)
@@ -566,7 +577,7 @@ private struct SeccionIglesia: View {
                 // falsearía justo la cifra que dice cuánto dinero hay delante.
                 Text(L.t("El saldo de apertura es el dinero que la tesorería ya tenía antes del primer movimiento registrado. No se suma al saldo en caja, que es el efectivo todavía sin depositar.",
                          "Opening balance is money the treasury already had before the first recorded transaction. It is not added to cash on hand, which is money not yet deposited."))
-                    .font(.system(size: 12.5))
+                    .font(.escalada(12.5, relativeTo: .caption1))
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, Esp.hueco)
@@ -633,7 +644,7 @@ private struct SeccionInstitucion: View {
                 GrupoConf {
                     VStack(spacing: 14) {
                         Text(ConfiguracionIglesiaViewModel.compartido.config.nombre)
-                            .font(.system(size: 17, weight: .bold))
+                            .font(.escalada(17, weight: .bold, relativeTo: .body))
                             .foregroundStyle(Paleta.brand)
                             .frame(maxWidth: .infinity, alignment: .center)
                         Divider()
@@ -643,7 +654,7 @@ private struct SeccionInstitucion: View {
                 }
                 Text(L.t("Así se ve el membrete de los PDF con lo que hay escrito abajo.",
                          "This is how the PDF letterhead looks with what's written below."))
-                    .font(.system(size: 12.5))
+                    .font(.escalada(12.5, relativeTo: .caption1))
                     .foregroundStyle(.tertiary)
                     .padding(.horizontal, Esp.hueco)
                     .padding(.top, -16)
@@ -655,10 +666,10 @@ private struct SeccionInstitucion: View {
                     ForEach(Array(membreteItems.enumerated()), id: \.offset) { idx, item in
                         VStack(alignment: .leading, spacing: 5) {
                             Text(item.0)
-                                .font(.system(size: 13.5))
+                                .font(.escalada(13.5, relativeTo: .footnote))
                                 .foregroundStyle(.secondary)
                             Text(item.1)
-                                .font(.system(size: 16))
+                                .font(.escalada(16, relativeTo: .body))
                                 .foregroundStyle(.tertiary)
                                 .lineLimit(1)
                         }
@@ -677,16 +688,16 @@ private struct SeccionInstitucion: View {
                             .frame(width: 40, height: 40)
                             .overlay(
                                 Image(systemName: "doc.text.fill")
-                                    .font(.system(size: 20))
+                                    .font(.escalada(20, relativeTo: .title3))
                                     .foregroundStyle(.white)
                             )
                         VStack(alignment: .leading, spacing: 2) {
                             Text(L.t("Vista previa del PDF", "PDF preview"))
-                                .font(.system(size: 16.5, weight: .bold))
+                                .font(.escalada(16.5, weight: .bold, relativeTo: .body))
                                 .foregroundStyle(.primary)
                             Text(L.t("Así se verá el encabezado de tus reportes",
                                      "This is how your report headers will look"))
-                                .font(.system(size: 13.5))
+                                .font(.escalada(13.5, relativeTo: .footnote))
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -746,12 +757,12 @@ private struct SeccionTesorero: View {
                     Toggle(isOn: $cfg.config.imprimirFirmas) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(L.t("Imprimir firmas en los PDF", "Print signatures on PDFs"))
-                                .font(.system(size: 16))
+                                .font(.escalada(16, relativeTo: .body))
                             // Decía que apagado salen "con la línea en blanco".
                             // Es al revés: apagado, el bloque desaparece entero.
                             Text(L.t("Apagado, el bloque de firmas no se imprime: ni la línea, ni el nombre, ni el cargo.",
                                      "When off, the signature block isn't printed at all: no line, no name, no title."))
-                                .font(.system(size: 13)).foregroundStyle(.tertiary)
+                                .font(.escalada(13, relativeTo: .footnote)).foregroundStyle(.tertiary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -788,7 +799,7 @@ private struct SeccionTesorero: View {
             FilaEditable(label: L.t("Nombre completo", "Full name"), texto: nombre)
             Divider()
             HStack {
-                Text(L.t("Cargo", "Title")).font(.system(size: 15.5)).foregroundStyle(.secondary)
+                Text(L.t("Cargo", "Title")).font(.escalada(15.5, relativeTo: .subheadline)).foregroundStyle(.secondary)
                 Spacer()
                 // `conValorVigente`: un cargo guardado en el otro idioma no
                 // está entre las opciones y el Picker saldría en blanco.
@@ -811,7 +822,7 @@ private struct SeccionTesorero: View {
             Divider()
             Button { firmando = f } label: {
                 HStack(spacing: 12) {
-                    Text(f.titulo).font(.system(size: 15.5)).foregroundStyle(.primary)
+                    Text(f.titulo).font(.escalada(15.5, relativeTo: .subheadline)).foregroundStyle(.primary)
                     Spacer()
                     if let imagen = firmas.imagen(f) {
                         // La firma de verdad y no un "Guardada": lo que hay que
@@ -822,13 +833,13 @@ private struct SeccionTesorero: View {
                             .frame(maxWidth: 160, maxHeight: 40)
                             .accessibilityLabel(f.titulo)
                         Button(role: .destructive) { firmas.borrar(f) } label: {
-                            Image(systemName: "trash").font(.system(size: 14))
+                            Image(systemName: "trash").font(.escalada(14, relativeTo: .subheadline))
                                 .foregroundStyle(Paleta.negativo)
                         }
                         .buttonStyle(.plain)
                     } else {
                         Text(L.t("Firmar", "Sign"))
-                            .font(.system(size: 15)).foregroundStyle(Paleta.brand)
+                            .font(.escalada(15, relativeTo: .subheadline)).foregroundStyle(Paleta.brand)
                     }
                 }
                 .frame(minHeight: 64)
@@ -893,7 +904,7 @@ private struct SeccionAcceso: View {
             Text(invitando
                  ? L.t("Enviando…", "Sending…")
                  : L.t("Enviar invitación", "Send invitation"))
-                .font(.system(size: 16))
+                .font(.escalada(16, relativeTo: .body))
                 // **Un solo `foregroundStyle` con la condición dentro.** Con
                 // dos encadenados —el verde y `apagadoLegible`— gana uno u
                 // otro según el orden y no se puede razonar de memoria:
@@ -912,7 +923,7 @@ private struct SeccionAcceso: View {
     /// La fila de sincronizar, con botón o sin él. Ver el cuerpo.
     private var filaSincronizar: some View {
         Text(L.t("Sincronizar ahora", "Sync now"))
-            .font(.system(size: 16))
+            .font(.escalada(16, relativeTo: .body))
             // Ver `filaInvitar`: un solo `foregroundStyle`.
             .foregroundStyle(motor.puedeSincronizar
                              ? AnyShapeStyle(Paleta.brand)
@@ -950,17 +961,17 @@ private struct SeccionAcceso: View {
                     let p = sesion?.perfil ?? SesionSupabase.Perfil()
                     HStack(spacing: 12) {
                         Text(p.iniciales)
-                            .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                            .font(.escalada(14, weight: .bold, relativeTo: .subheadline)).foregroundStyle(.white)
                             .frame(width: 34, height: 34)
                             .background(Paleta.brand, in: Circle())
                         VStack(alignment: .leading, spacing: 1) {
                             Text(p.nombre.isEmpty ? L.t("Tu cuenta", "Your account") : p.nombre)
-                                .font(.system(size: 16))
+                                .font(.escalada(16, relativeTo: .body))
                             Text(AjustesRol.corto(p.rol))
-                                .font(.system(size: 13)).foregroundStyle(.secondary)
+                                .font(.escalada(13, relativeTo: .footnote)).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text(L.t("Tú", "You")).font(.system(size: 14)).foregroundStyle(.tertiary)
+                        Text(L.t("Tú", "You")).font(.escalada(14, relativeTo: .subheadline)).foregroundStyle(.tertiary)
                     }
                     .frame(minHeight: 54).padding(.horizontal, Esp.pantalla)
                 }
@@ -977,7 +988,7 @@ private struct SeccionAcceso: View {
                     FilaEditable(label: L.t("Nombre (opcional)", "Name (optional)"), texto: $invNom)
                     Divider()
                     HStack {
-                        Text(L.t("Rol", "Role")).font(.system(size: 15.5))
+                        Text(L.t("Rol", "Role")).font(.escalada(15.5, relativeTo: .subheadline))
                         Spacer()
                         // Los TRES roles de acceso que acepta el servidor. La
                         // fila decía "Tesorero" fijo y no dejaba cambiarlo.
@@ -1096,8 +1107,8 @@ private struct SeccionAcceso: View {
                           cambiar: @escaping (Bool) async -> String?) -> some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(titulo).font(.system(size: 16))
-                Text(nota).font(.system(size: 13)).foregroundStyle(.tertiary)
+                Text(titulo).font(.escalada(16, relativeTo: .body))
+                Text(nota).font(.escalada(13, relativeTo: .footnote)).foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -1151,7 +1162,7 @@ private struct SeccionCategorias: View {
                         let sel = tipo == t
                         Button { tipo = t } label: {
                             Text(t == .ingreso ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses"))
-                                .font(.system(size: 15, weight: sel ? .semibold : .medium))
+                                .font(.escalada(15, weight: sel ? .semibold : .medium, relativeTo: .subheadline))
                                 .foregroundStyle(sel ? .primary : .secondary)
                                 .frame(maxWidth: .infinity)
                                 .frame(minHeight: 38)
@@ -1186,23 +1197,23 @@ private struct SeccionCategorias: View {
                                 .frame(width: 12, height: 12)
                                 .opacity(f.huerfana ? 0.35 : 1)
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(f.nombre).font(.system(size: 16)).lineLimit(1)
+                                Text(f.nombre).font(.escalada(16, relativeTo: .body)).lineLimit(1)
                                 if f.huerfana {
                                     Text(L.t("Ya no está en el catálogo", "No longer in the catalog"))
-                                        .font(.system(size: 12)).foregroundStyle(.tertiary)
+                                        .font(.escalada(12, relativeTo: .caption1)).foregroundStyle(.tertiary)
                                 }
                             }
                             Spacer()
                             Text(f.movimientos == 1
                                  ? L.t("1 movimiento", "1 transaction")
                                  : L.t("\(f.movimientos) movimientos", "\(f.movimientos) transactions"))
-                                .font(.system(size: 15)).foregroundStyle(.secondary)
+                                .font(.escalada(15, relativeTo: .subheadline)).foregroundStyle(.secondary)
                             if let c = f.custom {
                                 Button(role: .destructive) {
                                     Task { await vm.eliminar(c) }
                                 } label: {
                                     Image(systemName: "trash")
-                                        .font(.system(size: 14))
+                                        .font(.escalada(14, relativeTo: .subheadline))
                                         .foregroundStyle(Paleta.negativo)
                                 }
                                 .buttonStyle(.plain)
@@ -1215,10 +1226,10 @@ private struct SeccionCategorias: View {
                     Divider()
                     Button { nombreNuevo = ""; creando = true } label: {
                         HStack(spacing: 12) {
-                            Text("+").font(.system(size: 16)).foregroundStyle(.white)
+                            Text("+").font(.escalada(16, relativeTo: .body)).foregroundStyle(.white)
                                 .frame(width: 24, height: 24)
                                 .background(Paleta.brand, in: Circle())
-                            Text(labelNueva).font(.system(size: 16)).foregroundStyle(.primary)
+                            Text(labelNueva).font(.escalada(16, relativeTo: .body)).foregroundStyle(.primary)
                             Spacer()
                         }
                         .frame(minHeight: 52).padding(.horizontal, Esp.pantalla)
@@ -1285,11 +1296,11 @@ private struct SeccionPreferencias: View {
                     ForEach(Array(temas.enumerated()), id: \.element) { idx, t in
                         Button { prefs.tema = t } label: {
                             HStack {
-                                Text(t.etiqueta).font(.system(size: 16)).foregroundStyle(.primary)
+                                Text(t.etiqueta).font(.escalada(16, relativeTo: .body)).foregroundStyle(.primary)
                                 Spacer()
                                 if prefs.tema == t {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 15, weight: .semibold))
+                                        .font(.escalada(15, weight: .semibold, relativeTo: .subheadline))
                                         .foregroundStyle(Paleta.brand)
                                 }
                             }
@@ -1305,7 +1316,7 @@ private struct SeccionPreferencias: View {
                           nota: L.t("\"Automático\" usa el idioma del sistema: español si está en español, inglés en cualquier otro caso. \"Normal\" respeta el tamaño de letra de los ajustes del aparato; los demás lo sustituyen.",
                                     "\"Automatic\" uses the system language: Spanish if set to Spanish, English otherwise. \"Normal\" respects the device text size; the others override it.")) {
                     HStack {
-                        Text(L.t("Idioma", "Language")).font(.system(size: 16))
+                        Text(L.t("Idioma", "Language")).font(.escalada(16, relativeTo: .body))
                         Spacer()
                         Picker("", selection: $prefs.idioma) {
                             ForEach(PreferenciasApp.Idioma.allCases, id: \.self) {
@@ -1318,16 +1329,16 @@ private struct SeccionPreferencias: View {
                     Divider()
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text(L.t("Tamaño de texto", "Text size")).font(.system(size: 16))
+                            Text(L.t("Tamaño de texto", "Text size")).font(.escalada(16, relativeTo: .body))
                             Spacer()
                             Text(prefs.tamano.etiqueta)
-                                .font(.system(size: 15)).foregroundStyle(.secondary)
+                                .font(.escalada(15, relativeTo: .subheadline)).foregroundStyle(.secondary)
                         }
                         HStack(spacing: 12) {
-                            Text("A").font(.system(size: 13)).foregroundStyle(.tertiary)
+                            Text("A").font(.escalada(13, relativeTo: .footnote)).foregroundStyle(.tertiary)
                             Slider(value: nivel, in: 0...Double(tamanos.count - 1), step: 1)
                                 .tint(Paleta.brand)
-                            Text("A").font(.system(size: 21)).foregroundStyle(.tertiary)
+                            Text("A").font(.escalada(21, relativeTo: .title3)).foregroundStyle(.tertiary)
                         }
                     }
                     .padding(.horizontal, Esp.pantalla).padding(.vertical, 12)
@@ -1374,13 +1385,13 @@ private struct SeccionZona: View {
                 GrupoConf(nota: error) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L.t("Antes de tocar nada", "Before doing anything"))
-                            .font(.system(size: 17, weight: .bold))
+                            .font(.escalada(17, weight: .bold, relativeTo: .body))
                         Text(Respaldo.ultimo == nil
                              ? L.t("Un respaldo tarda unos segundos y es lo único que puede devolver lo que se pierda. Todavía no has hecho ninguno desde este aparato.",
                                    "A backup takes a few seconds and is the only thing that can restore lost data. You haven't made one from this device yet.")
                              : L.t("Un respaldo tarda unos segundos y es lo único que puede devolver lo que se pierda.",
                                    "A backup takes a few seconds and is the only thing that can restore lost data."))
-                            .font(.system(size: 14.5)).foregroundStyle(.secondary)
+                            .font(.escalada(14.5, relativeTo: .subheadline)).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, Esp.pantalla).padding(.vertical, 18)
@@ -1390,7 +1401,7 @@ private struct SeccionZona: View {
                             Text(trabajando
                                  ? L.t("Preparando…", "Preparing…")
                                  : L.t("Respaldar ahora", "Backup now"))
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(.escalada(17, weight: .semibold, relativeTo: .body))
                                 .foregroundStyle(trabajando ? .secondary : Paleta.brand)
                             if trabajando { ProgressView() }
                         }
@@ -1424,14 +1435,14 @@ private struct SeccionZona: View {
                                     "Deleted items stay marked and keep taking space: that's what lets the deletion propagate to other devices. Freeing space permanently removes what has been deleted for more than \(Compactacion.diasParaPurgar) days and has already been uploaded. Log entries are never touched.")) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(L.t("Espacio en este aparato", "Storage on this device"))
-                            .font(.system(size: 16))
+                            .font(.escalada(16, relativeTo: .body))
                         Text(estadoBase?.resumen ?? L.t("Midiendo…", "Measuring…"))
-                            .font(.system(size: 13.5)).foregroundStyle(.tertiary)
+                            .font(.escalada(13.5, relativeTo: .footnote)).foregroundStyle(.tertiary)
                             .fixedSize(horizontal: false, vertical: true)
                         if let e = estadoBase, e.filasPurgables > 0 {
                             Button { confirmarPurgar = true } label: {
                                 Text(L.t("Liberar espacio", "Free up space"))
-                                    .font(.system(size: 15)).foregroundStyle(Paleta.brand)
+                                    .font(.escalada(15, relativeTo: .subheadline)).foregroundStyle(Paleta.brand)
                             }
                             .buttonStyle(.plain)
                             .disabled(trabajando)
@@ -1447,16 +1458,16 @@ private struct SeccionZona: View {
                     HStack(spacing: 14) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(L.t("Restaurar un respaldo", "Restore a backup"))
-                                .font(.system(size: 16)).foregroundStyle(.primary)
+                                .font(.escalada(16, relativeTo: .body)).foregroundStyle(.primary)
                             Text(L.t("Reemplaza todo lo capturado después de la fecha del respaldo.",
                                      "Replaces everything captured after the backup date."))
-                                .font(.system(size: 13.5)).foregroundStyle(.tertiary)
+                                .font(.escalada(13.5, relativeTo: .footnote)).foregroundStyle(.tertiary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         Spacer()
                         Button { eligiendoRespaldo = true } label: {
                             Text(L.t("Elegir un archivo…", "Choose a file…"))
-                                .font(.system(size: 15)).foregroundStyle(Paleta.brand)
+                                .font(.escalada(15, relativeTo: .subheadline)).foregroundStyle(Paleta.brand)
                         }
                         .buttonStyle(.plain)
                         .disabled(trabajando)
@@ -1469,7 +1480,7 @@ private struct SeccionZona: View {
                     Button(role: .destructive) { confirmarReinicio = true } label: {
                         HStack {
                             Text(L.t("Borrar datos de este iPad", "Erase data from this iPad"))
-                                .font(.system(size: 16)).foregroundStyle(Paleta.negativo)
+                                .font(.escalada(16, relativeTo: .body)).foregroundStyle(Paleta.negativo)
                             Spacer()
                         }
                         .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
@@ -1478,7 +1489,7 @@ private struct SeccionZona: View {
                     .disabled(trabajando)
                     Text(L.t("Borra solo la copia de este aparato; lo que ya se sincronizó sigue en el servidor de la iglesia y vuelve a bajar en cuanto alguien entre.",
                              "It erases only this device's copy; anything already synced stays on the church server and comes back down as soon as someone signs in."))
-                        .font(.system(size: 12.5)).foregroundStyle(.tertiary)
+                        .font(.escalada(12.5, relativeTo: .caption1)).foregroundStyle(.tertiary)
                         .padding(.horizontal, Esp.pantalla).padding(.bottom, 14)
                 }
             }
