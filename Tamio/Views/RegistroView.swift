@@ -46,6 +46,9 @@ struct RegistroView: View {
         // se lee — el mismo caso que Actas y Agenda.
         .navigationBarTitleDisplayMode(compacto ? .inline : .large)
         .toolbar {
+            // El filtro primero: es lo que decide QUÉ se está viendo, y la
+            // nota es lo que se añade. Ver `menuFiltros`.
+            ToolbarItem(placement: .topBarTrailing) { menuFiltros }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { escribiendo = true } label: {
                     Label(L.t("Escribir una nota", "Write a note"), systemImage: "square.and.pencil")
@@ -94,7 +97,6 @@ struct RegistroView: View {
         scrollApuntes
             .background(Color(.secondarySystemGroupedBackground))
             .scrollEdgeEffectStyle(.soft, for: .all)
-            .safeAreaBar(edge: .top, spacing: 0) { barraFiltros }
             .colchonInferior()
     }
 
@@ -116,57 +118,51 @@ struct RegistroView: View {
         }
     }
 
-    /// **La pastilla que no cabe baja de línea; ninguna se parte por dentro.**
+    /// **Los cuatro filtros, en un menú de la barra.**
     ///
-    /// Las cuatro cápsulas iban en un `HStack` a secas dentro de la columna del
-    /// iPad, que mide `Esp.columnaMaestra` —320 pt fijos— y no crece. En inglés
-    /// las etiquetas son más largas que en español y las cuatro suman unos 350
-    /// pt contra los 288 disponibles, así que `Text` las partía DENTRO de la
-    /// cápsula y hasta las cortaba con guion —"Trea-sury", "Sec-re-tary",
-    /// "Note s"—: las cuatro crecían a tres renglones y la tira dejaba de
-    /// leerse como una fila de filtros. Lo señaló Iván rodeándolas en una
-    /// captura del iPad.
+    /// Eran cuatro cápsulas en una tira bajo el título. En la columna del iPad
+    /// —320 pt fijos— no cabían y `Text` las partía con guion dentro de la
+    /// cápsula: "Trea-sury", "Sec-re-tary", "Note s". Se arregló bajando de
+    /// línea la que sobraba, y aun así la tira gastaba uno o dos renglones de
+    /// pantalla en cada aparato. Iván pidió lo mismo que en Servicios:
+    /// recogerlo todo en un solo control de la barra.
     ///
-    /// Son dos arreglos que se necesitan mutuamente. `lineLimit(1)` +
-    /// `fixedSize()` en la pastilla: cada una ocupa lo que mide y ya no se
-    /// puede romper por dentro. Y `FlowLayout` en la tira, que es lo que la app
-    /// ya tiene para esto —lo dice su propio comentario— y baja de línea la que
-    /// sobra. Una tira con scroll horizontal dejaría "Notes" cortada contra el
-    /// divisor, que a ojo se lee como el mismo fallo; y encoger la etiqueta
-    /// esconde justo la palabra que dice qué filtra.
+    /// **Icono de filtro y no los tres puntos.** En Servicios los tres puntos
+    /// son ACCIONES —tomar lista, contar, asignar—; esto elige qué se ve, que
+    /// es otra cosa. `line.3.horizontal.decrease` es lo que ya significa
+    /// "filtros" en esta app, en el botón de Membresía, así que aquí no hay
+    /// nada nuevo que aprender.
     ///
-    /// En el teléfono, más ancho, las cuatro siguen en una sola línea. Con el
-    /// texto en AX1 bajan las que haga falta, que es lo que hace que esto no
-    /// vuelva.
-    private var barraFiltros: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            FlowLayout(spacing: 8) {
-                ForEach(vm.filtrosVisibles()) { f in pastilla(f) }
+    /// **Lo elegido tiene que verse desde fuera.** Un filtro escondido en un
+    /// menú es la forma más fácil de que alguien crea que faltan apuntes: el
+    /// icono se tiñe de marca y se pone al lado la etiqueta con su conteo en
+    /// cuanto el filtro deja de ser "Todo". Con "Todo" puesto —que es no
+    /// filtrar— va solo el icono y no gasta ancho.
+    ///
+    /// El "Ves todo: administrador", que vivía suelto bajo la tira, se va de
+    /// cabecera del menú: es lo mismo que decía, en el sitio donde se decide.
+    private var menuFiltros: some View {
+        Menu {
+            Section(L.t("Ves todo: administrador", "Seeing all: administrator")) {
+                Picker(L.t("Filtrar", "Filter"), selection: $vm.filtro) {
+                    ForEach(vm.filtrosVisibles()) { f in
+                        Text("\(f.etiqueta)  \(vm.count(f))").tag(f)
+                    }
+                }
+                .pickerStyle(.inline)
             }
-            Text(L.t("Ves todo: administrador", "Seeing all: administrator"))
-                .font(.caption2).foregroundStyle(.tertiary)
-        }
-        .padding(.horizontal, Esp.pantalla).padding(.vertical, 12)
-    }
-
-    private func pastilla(_ f: FiltroRegistro) -> some View {
-        let sel = vm.filtro == f
-        return Button { vm.filtro = f } label: {
+        } label: {
             HStack(spacing: 5) {
-                Text(f.etiqueta)
-                Text("\(vm.count(f))").opacity(0.6).monospacedDigit()
+                Image(systemName: "line.3.horizontal.decrease")
+                if vm.filtro != .todo {
+                    Text("\(vm.filtro.etiqueta) \(vm.count(vm.filtro))")
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                }
             }
-            .font(.footnote.weight(sel ? .semibold : .regular))
-            .foregroundStyle(sel ? Color(.systemBackground) : .primary)
-            // La etiqueta y su conteo, en una línea y a su ancho natural: es lo
-            // que impide que la cápsula se parta cuando la tira no cabe.
-            .lineLimit(1)
-            .fixedSize()
-            .padding(.horizontal, Esp.chip).padding(.vertical, 6)
-            .background(sel ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color(.tertiarySystemFill)),
-                        in: Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
+        .tint(vm.filtro == .todo ? Color.primary : Paleta.brand)
     }
 
     private func encabezadoDia(_ titulo: String, _ n: Int) -> some View {
