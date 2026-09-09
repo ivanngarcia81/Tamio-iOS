@@ -5,8 +5,90 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **8 de septiembre de 2026**, tras la pasada de interfaz
-del iPhone y su segunda tanda —la puerta, el candado y los formularios— (§0.-6).
+Última actualización: **9 de septiembre de 2026**, tras la pasada de interfaz
+del iPad (§0.-7).
+
+---
+
+## 0.-7 La pasada de interfaz del iPad · 9 de septiembre
+
+**Solo interfaz, solo iPad, las cuatro zonas.** Doce arreglos, un commit cada
+uno, sobre iPad Air 13" (1366×1024) y iPad mini (1133×744), en inglés, claro y
+oscuro y con AX1. Nueve pruebas nuevas en `pruebas/`.
+
+### La postura que lo destapó casi todo
+
+**Regular con la columna de detalle estrecha.** El iPad mini en vertical con la
+sidebar fijada deja 444 pt; el 13" en vertical, 453 para la vista previa; la
+app a la mitad en Split View o en Stage Manager, lo que toque. La clase de
+tamaño sigue siendo **regular**, así que todo lo que preguntaba "¿es un
+teléfono?" contestaba que no y dibujaba la versión ancha en un sitio donde no
+cabe. Siete de los doce arreglos son eso.
+
+**La regla, entonces: pregunta el ANCHO, no el aparato.** `ViewThatFits` y
+`GridItem(.adaptive(minimum:))` son las dos herramientas, y ya estaban usadas
+en la app —Inicio y Reportes— sin haberse extendido a las demás.
+
+### Lo que no se deduce leyendo el código
+
+- **La columna de detalle de un `NavigationSplitView` no trae pila.** Las doce
+  pantallas de maestro-detalle empujan la ficha por debajo de
+  `Esp.anchoMaestroDetalle`, y ese `navigationDestination` no tenía dónde
+  empujar: tocar una fila la pintaba de verde y no pasaba nada más.
+- **Y esa pila, una vez puesta, no se vacía desde SwiftUI.** Con la ficha
+  abierta, cambiar de sección dejaba la ficha anterior encima. Medido: ni
+  vaciar un `NavigationPath` —lo que empuja es un `navigationDestination(item:)`
+  y no pasa por ahí—, ni un `id` nuevo en la pila, ni una pila por sección, ni
+  que cada pantalla ponga su `item` a `nil` al cambiar la sección —cuando llega
+  ese aviso ya se está desmontando y su `onChange` no corre—. Se saca con
+  `popToRootViewController`, como `NavHeader` hace con el gesto de volver.
+- **Un `Divider` hermano de una fila la aprieta.** En la ficha del aportante,
+  las filas con separador debajo dibujaban el importe al 50 % —41.5 pt contra
+  77— y la última, sin separador, entero. No lo evitan `lineLimit`,
+  `layoutPriority` ni `fixedSize`. Colgado del renglón con un `overlay` se ve
+  igual y deja de opinar sobre el ancho.
+- **Dos `foregroundStyle` sobre el mismo `Text` no se razonan de memoria.**
+  Medido tres veces en el mismo botón: 2.14:1, 1.67:1 y 3.03:1 según el orden y
+  el `disabled`. Se pone UNO con la condición dentro.
+- **`.disabled` sobre un botón `.plain` atenúa por encima de lo que pinte la
+  etiqueta**, igual que §4 tiene medido para `.borderedProminent`. Lo que
+  funciona es lo que ya decidió `RevisarView`: cuando la fila no puede hacer
+  nada, no se dibuja como botón. De 1.74:1 a **8.59:1**.
+- **`PKCanvasView` no es observable, y el cuerpo tiene que LEER el contador.**
+  La hoja de firma dejaba "Guardar" apagado con la firma hecha. El diagnóstico
+  lo cerró el instrumento: con un `NSLog` puesto el fallo desaparecía, que es
+  la señal de que no era el dibujo sino el repintado.
+- **En una `List`, `accessibilityAddTraits` se queda en los elementos de la
+  fila, no en la celda.** La celda sigue diciendo `isSelected=false`. Para
+  VoiceOver da igual; para una prueba, no.
+
+### Cómo se verificó, que es lo reutilizable
+
+- **El diff de píxeles contra la rama, con corrida de control.** Está en
+  `pruebas/pixdiff.py`: lee el PNG sin dependencias, salta la franja superior
+  —reloj y aviso del modo revisión— y da el porcentaje. Dos corridas del mismo
+  código dan **0.000 %**, así que cualquier cosa distinta de cero es real. Las
+  34 pantallas del iPad apaisado salen a 0.000 % tras los doce arreglos.
+- **Y el tamaño de letra de fábrica es `large`.** El guion de capturas devolvía
+  el simulador a `medium` al terminar una tanda de AX1, y toda la app salía un
+  punto más pequeña: un 9 % de diferencia que no era ninguna regresión. §4 ya
+  lo avisaba; aquí costó una vuelta igual.
+- **El iPad Pro 13" del simulador no gira.** Tiene el bloqueo de rotación
+  puesto y `XCUIDevice.shared.orientation` no hace nada; el Air 13" mide lo
+  mismo y sí gira. Y si se mata un runner a media rotación, el simulador se
+  queda sin girar hasta un `simctl shutdown` + `boot`.
+- **Multitarea, sin medir.** El asa de redimensionado de iPadOS 26 no responde
+  al arrastre de XCUITest, así que Split View y Slide Over no se pudieron
+  ejercitar. La postura equivalente —regular con la columna estrecha— sí quedó
+  medida, en el mini con la sidebar fijada.
+
+### El aviso que más caro puede salir
+
+**Otra sesión trabaja este mismo árbol.** Un `git add -A` se llevó dos arreglos
+suyos dentro de un commit mío (`e746210`, que se comió el CSV en blanco y las
+firmas del acta; ellos lo explicaron aparte en `68a55cb`). Con dos sesiones en
+`~/Desktop/Tamio-iOS` hay que **añadir los archivos por nombre**, nunca `-A`, y
+mirar `git status` antes de cada commit.
 
 ---
 
