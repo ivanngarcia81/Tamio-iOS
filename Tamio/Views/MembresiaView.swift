@@ -1023,6 +1023,10 @@ private struct NuevoMiembroSheet: View {
             Form {
                 Section(L.t("QUIÉN ES", "WHO THEY ARE")) {
                     TextField(L.t("Nombre completo o de familia", "Full name or family name"), text: $m.nombre)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Nombre completo o de familia", "Full name or family name"))
                     HStack {
                         Text(L.t("Teléfono", "Phone")).foregroundStyle(.primary)
                         Text(L.t("(opcional)", "(optional)")).foregroundStyle(.secondary).font(.subheadline)
@@ -1247,6 +1251,10 @@ private struct ServicioHabilidadesPage: View {
                         placeholder: L.t("Otro oficio o habilidad…", "Other trade or skill…"))
             Section {
                 TextField(L.t("Disponibilidad para servir", "Availability to serve"), text: $m.disponibilidad)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Disponibilidad para servir", "Availability to serve"))
                 Toggle(L.t("Interés en servir en algún ministerio", "Interested in serving"), isOn: $m.interesServir)
                     .tint(Paleta.brand)
             }
@@ -1279,6 +1287,7 @@ private struct DatosPersonaPage: View {
                     ForEach(Padron.estadosCiviles, id: \.self) { Text(Padron.etiqueta($0)).tag($0) }
                 }
                 TextField(L.t("Dirección (opcional)", "Address (optional)"), text: $m.direccion)
+                    .accessibilityLabel(L.t("Dirección (opcional)", "Address (optional)"))
             } footer: {
                 Text(L.t("Se pueden cambiar cuando quieras: una dirección se muda y un estado civil cambia.",
                           "These can be changed anytime."))
@@ -1300,11 +1309,16 @@ private struct MasDatosPage: View {
         Form {
             Section {
                 TextField(L.t("ID fiscal (opcional)", "Tax ID (optional)"), text: $m.idFiscal)
+                    .accessibilityLabel(L.t("ID fiscal (opcional)", "Tax ID (optional)"))
                     .autocorrectionDisabled()
                 TextField(L.t("Notas (opcional)", "Notes (optional)"), text: $m.notas, axis: .vertical)
                     .lineLimit(2...5)
                 TextField(L.t("Iglesia anterior (si aplica)", "Previous church (if applicable)"),
                           text: $m.iglesiaAnterior)
+                    // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                    .accessibilityLabel(L.t("Notas (opcional)", "Notes (optional)"))
+                    // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                    .accessibilityLabel(L.t("Iglesia anterior (si aplica)", "Previous church (if applicable)"))
                 Toggle(L.t("Se congrega desde", "Attends since"), isOn: $tieneCongrega)
                     .tint(Paleta.brand)
                 if tieneCongrega {
@@ -1453,6 +1467,8 @@ private struct SeguimientoSheet: View {
                     TextField(L.t("Descripción (opcional)", "Description (optional)"),
                               text: $descripcion, axis: .vertical)
                         .lineLimit(3...6)
+                        // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                        .accessibilityLabel(L.t("Descripción (opcional)", "Description (optional)"))
                     Toggle(L.t("Acción completada", "Action completed"), isOn: $completado)
                         .tint(Paleta.brand)
                 }

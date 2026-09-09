@@ -428,10 +428,10 @@ private struct NuevaActaSheet: View {
             Picker(L.t("Tipo de reunión", "Meeting type"), selection: $tipo) {
                 ForEach(tipos, id: \.self) { Text($0.etiqueta).tag($0) }
             }
-            TextField(L.t("Título", "Title"), text: $tituloCustom)
+            FilaCampo(L.t("Título", "Title"), $tituloCustom)
                 .autocorrectionDisabled()
             DatePicker(L.t("Fecha", "Date"), selection: $fecha, displayedComponents: .date)
-            TextField(L.t("Ubicación · opcional", "Location · optional"), text: $lugar)
+            FilaCampo(L.t("Ubicación · opcional", "Location · optional"), $lugar)
                 .autocorrectionDisabled()
             Toggle(L.t("Hora de inicio", "Start time"), isOn: $tieneHoraInicio)
             if tieneHoraInicio {
@@ -443,9 +443,9 @@ private struct NuevaActaSheet: View {
                 DatePicker(L.t("Cierre", "Close"), selection: $horaCierre,
                            displayedComponents: .hourAndMinute)
             }
-            TextField(L.t("Presidido por", "Presided by"), text: $presidido)
+            FilaCampo(L.t("Presidido por", "Presided by"), $presidido)
                 .autocorrectionDisabled()
-            TextField(L.t("Secretaria de actas", "Recording secretary"), text: $secretariaActas)
+            FilaCampo(L.t("Secretaria de actas", "Recording secretary"), $secretariaActas)
                 .autocorrectionDisabled()
             Toggle(L.t("Quórum cumplido", "Required quorum was met"), isOn: $quorumCumplido)
             Toggle(L.t("Acta confidencial", "Confidential · restricted access"), isOn: $esConfidencial)
@@ -482,6 +482,10 @@ private struct NuevaActaSheet: View {
                       text: $resumenAsuntos, axis: .vertical)
                 .lineLimit(3...6)
                 .autocorrectionDisabled()
+                // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                .accessibilityLabel(L.t("Resumen de asuntos tratados", "Summary of matters discussed"))
+                // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                .accessibilityLabel(L.t("Puntos de agenda · uno por línea", "Agenda items · one item per line"))
         }
     }
 

@@ -450,8 +450,11 @@ private struct NuevaCartaSheet: View {
             }
             DatePicker(L.t("Fecha de emisión", "Issue date"),
                        selection: $datos.fechaEmision, displayedComponents: .date)
-            TextField(L.t("Lugar de emisión · opcional", "Place of issue · optional"),
-                      text: $datos.lugarEmision)
+            TextField(L.t("Lugar de emisión · opcional", "Place of issue · optional"), text: $datos.lugarEmision)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Lugar de emisión · opcional", "Place of issue · optional"))
                 .autocorrectionDisabled()
         }
     }
@@ -475,12 +478,15 @@ private struct NuevaCartaSheet: View {
                     }
                 }
             } else {
-                TextField(L.t("Nombre del destinatario", "Recipient name"),
-                          text: $datos.miembroSeleccionado)
+                TextField(L.t("Nombre del destinatario", "Recipient name"), text: $datos.miembroSeleccionado)
+                    .accessibilityLabel(L.t("Nombre del destinatario", "Recipient name"))
                     .autocorrectionDisabled()
             }
-            TextField(L.t("Dirección del destinatario · opcional", "Recipient address · optional"),
-                      text: $datos.direccionDestinatario)
+            TextField(L.t("Dirección del destinatario · opcional", "Recipient address · optional"), text: $datos.direccionDestinatario)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Dirección del destinatario · opcional", "Recipient address · optional"))
                 .autocorrectionDisabled()
         }
     }
@@ -489,11 +495,14 @@ private struct NuevaCartaSheet: View {
     private var seccionContenido: some View {
         Section(L.t("CONTENIDO", "CONTENT")) {
             TextField(L.t("Asunto", "Subject"), text: $datos.asunto)
+                    .accessibilityLabel(L.t("Asunto", "Subject"))
                 .autocorrectionDisabled()
             TextField(L.t("Saludo · p. ej. A quien corresponda",
                           "Salutation · e.g. To whom it may concern"),
                       text: $datos.saludo)
                 .autocorrectionDisabled()
+                // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                .accessibilityLabel(L.t("Saludo · p. ej. A quien corresponda", "Salutation · e.g. To whom it may concern"))
             // **Las plantillas de la iglesia.** Ofrecía los quince casos del
             // `enum` y rellenaba con `cuerpoTemplate`, un `switch` de textos
             // escritos aquí: lo que la iglesia hubiera redactado en el web no
@@ -519,8 +528,13 @@ private struct NuevaCartaSheet: View {
                       text: $datos.cuerpoTexto, axis: .vertical)
                 .lineLimit(6...14)
                 .autocorrectionDisabled()
-            TextField(L.t("Cierre · p. ej. Atentamente,", "Closing · e.g. Sincerely,"),
-                      text: $datos.cierre)
+                // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                .accessibilityLabel(L.t("Cuerpo de la carta", "Letter body"))
+            TextField(L.t("Cierre · p. ej. Atentamente,", "Closing · e.g. Sincerely,"), text: $datos.cierre)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Cierre · p. ej. Atentamente,", "Closing · e.g. Sincerely,"))
                 .autocorrectionDisabled()
         }
     }
@@ -561,6 +575,8 @@ private struct NuevaCartaSheet: View {
                       text: $datos.notasInternas, axis: .vertical)
                 .lineLimit(2...4)
                 .autocorrectionDisabled()
+                // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                .accessibilityLabel(L.t("Notas internas · opcional", "Internal notes · optional"))
         }
     }
 

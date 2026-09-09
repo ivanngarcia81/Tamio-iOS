@@ -668,6 +668,7 @@ private struct NuevoEventoSheet: View {
             Form {
                 Section(L.t("EVENTO", "EVENT")) {
                     TextField(L.t("Título", "Title"), text: $titulo)
+                    .accessibilityLabel(L.t("Título", "Title"))
                     Picker(L.t("Tipo", "Type"), selection: $tipo) {
                         ForEach(TipoEvento.allCases, id: \.self) { t in
                             Text(t.titulo).tag(t)
@@ -690,12 +691,15 @@ private struct NuevoEventoSheet: View {
                             .tint(Paleta.brand)
                     }
                     TextField(L.t("Lugar (opcional)", "Location (optional)"), text: $lugar)
+                    .accessibilityLabel(L.t("Lugar (opcional)", "Location (optional)"))
                 }
 
                 Section(L.t("DESCRIPCIÓN", "DESCRIPTION")) {
                     TextField(L.t("Descripción o notas (opcional)", "Description / notes (optional)"),
                               text: $descripcion, axis: .vertical)
                         .lineLimit(3...8)
+                        // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                        .accessibilityLabel(L.t("Descripción o notas (opcional)", "Description / notes (optional)"))
                 }
 
                 Section(L.t("RESPONSABILIDAD", "RESPONSIBILITY")) {
@@ -711,10 +715,15 @@ private struct NuevoEventoSheet: View {
                     }
                     TextField(L.t("Ministerio / departamento (opcional)", "Ministry / department (optional)"),
                               text: $ministerio)
-                    TextField(L.t("Presupuesto o ponente (opcional)", "Budget or speaker (optional)"),
-                              text: $presupuesto)
-                    TextField(L.t("Nota al pie (opcional)", "Footnote (optional)"),
-                              text: $notaPie)
+                        // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                        .accessibilityLabel(L.t("Ministerio / departamento (opcional)", "Ministry / department (optional)"))
+                    TextField(L.t("Presupuesto o ponente (opcional)", "Budget or speaker (optional)"), text: $presupuesto)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Presupuesto o ponente (opcional)", "Budget or speaker (optional)"))
+                    TextField(L.t("Nota al pie (opcional)", "Footnote (optional)"), text: $notaPie)
+                    .accessibilityLabel(L.t("Nota al pie (opcional)", "Footnote (optional)"))
                 }
 
                 Section {

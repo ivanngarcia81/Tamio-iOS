@@ -643,8 +643,13 @@ private struct NuevoServicioSheet: View {
                     .frame(width: 70)
             }
             TextField(L.t("Lideró el servicio · opcional", "Lead the service · optional"), text: $lidero)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Lideró el servicio · opcional", "Lead the service · optional"))
                 .autocorrectionDisabled()
             TextField(L.t("Predicó · opcional", "Preached · optional"), text: $predico)
+                    .accessibilityLabel(L.t("Predicó · opcional", "Preached · optional"))
                 .autocorrectionDisabled()
             ForEach(cancionItems, id: \.id) { item in
                 HStack(spacing: 10) {
@@ -769,6 +774,10 @@ private struct NuevoServicioSheet: View {
     private var seccionMensaje: some View {
         Section(L.t("MENSAJE", "PASSAGE")) {
             TextField(L.t("Título del mensaje · opcional", "Message title · optional"), text: $tituloMensaje)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Título del mensaje · opcional", "Message title · optional"))
                 .autocorrectionDisabled()
             TextField(L.t("Texto bíblico principal · p. ej. Salmos 121:1-8",
                           "Main Bible text · e.g. Psalm 121:1-8"),
@@ -779,6 +788,10 @@ private struct NuevoServicioSheet: View {
                       text: $resumenMensaje, axis: .vertical)
                 .lineLimit(2...5)
                 .autocorrectionDisabled()
+                // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                .accessibilityLabel(L.t("Resumen breve del mensaje · opcional", "Brief summary of this message · optional"))
+                // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                .accessibilityLabel(L.t("Texto bíblico principal · p. ej. Salmos 121:1-8", "Main Bible text · e.g. Psalm 121:1-8"))
         }
     }
 
@@ -786,8 +799,16 @@ private struct NuevoServicioSheet: View {
     private var seccionEscuela: some View {
         Section(L.t("ESCUELA BÍBLICA", "BIBLE SCHOOL")) {
             TextField(L.t("Tema enseñado · opcional", "Topic taught · optional"), text: $temaEscuela)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Tema enseñado · opcional", "Topic taught · optional"))
                 .autocorrectionDisabled()
             TextField(L.t("Maestro(a) · opcional", "Class teacher · optional"), text: $maestroEscuela)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Maestro(a) · opcional", "Class teacher · optional"))
                 .autocorrectionDisabled()
         }
     }

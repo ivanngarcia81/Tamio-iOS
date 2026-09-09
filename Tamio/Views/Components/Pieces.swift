@@ -1,5 +1,45 @@
 import SwiftUI
 
+/// **Una fila de formulario que sigue diciendo qué es cuando tiene dato.**
+///
+/// El primer argumento de `TextField` es el MARCADOR DE POSICIÓN, y un marcador
+/// solo se ve con el campo vacío. Usarlo de rótulo —que es como estaban
+/// escritos casi todos los formularios de la app— funciona hasta que hay algo
+/// escrito: a partir de ahí la fila enseña un valor suelto y no dice de qué es.
+/// Al EDITAR un aportante la hoja entera era una columna de "2018",
+/// "TOBA880101AB1", "Married", "2016".
+///
+/// Y no es solo de mirar: medido con XCUITest, esos campos daban la etiqueta de
+/// accesibilidad **vacía**, así que VoiceOver leía el valor sin decir de qué
+/// campo era. `LabeledContent` arregla las dos cosas a la vez.
+///
+/// **No vale para todo, y por eso no está aplicada en todas partes.** Se queda
+/// el marcador donde el texto no es un rótulo sino una instrucción —"+ Agregar
+/// acuerdo", "Buscar por nombre", "Salutation · e.g. To whom it may concern"—,
+/// en los editores de varias líneas, cuyo nombre lo dice la cabecera de su
+/// sección, y donde el rótulo es tan largo que no cabe a la izquierda de su
+/// propio valor en 390 pt.
+struct FilaCampo: View {
+    let rotulo: String
+    @Binding var texto: String
+
+    init(_ rotulo: String, _ texto: Binding<String>) {
+        self.rotulo = rotulo
+        self._texto = texto
+    }
+
+    var body: some View {
+        LabeledContent(rotulo) {
+            // El marcador va VACÍO: con el rótulo ya a la izquierda, repetirlo
+            // aquí lo escribe dos veces en la misma fila mientras el campo esté
+            // sin llenar. Se vio en la primera captura, no leyendo el código.
+            TextField("", text: $texto)
+                .multilineTextAlignment(.trailing)
+                .foregroundStyle(.primary)
+        }
+    }
+}
+
 /// Etiqueta redonda con tinte de color ("Diezmo", "Folio 1042", "Sin
 /// depositar"). El color solo aparece aquí porque es dato, no decoración.
 struct Pill: View {

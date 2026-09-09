@@ -40,58 +40,32 @@ struct NuevoAportanteView: View {
     }
 
     private var editando: Bool { existente != nil }
-
-    /// **Rótulo a la izquierda y valor a la derecha, no un `placeholder`.**
-    ///
-    /// El primer argumento de `TextField` es el marcador de posición, y un
-    /// marcador SOLO se ve con el campo vacío. Los nueve campos de esta hoja lo
-    /// usaban de rótulo, así que en cuanto tenían valor dejaban de decir qué
-    /// eran: al EDITAR un aportante la hoja entera era una columna de valores
-    /// sueltos —"2018", "81 1010 2020", "TOBA880101AB1", "Married", "2016"—,
-    /// y en el alta pasaba ya con "Miembro desde", que nace con el año puesto.
-    ///
-    /// Y no era solo de mirar: el volcado de accesibilidad daba los nueve
-    /// campos con la etiqueta **vacía**, o sea que VoiceOver leía el valor sin
-    /// decir de qué campo era. `LabeledContent` arregla las dos cosas de una
-    /// vez, y de paso las filas se parecen a las dos que ya tenían rótulo, los
-    /// `Picker` de "Rol" y "Aporta".
-    private func campo(_ rotulo: String, _ texto: Binding<String>) -> some View {
-        LabeledContent(rotulo) {
-            // El marcador de posición va VACÍO: con el rótulo ya a la
-            // izquierda, ponerlo también aquí lo escribía dos veces en la misma
-            // fila —"Nombre completo … Nombre completo"— mientras el campo
-            // estuviera sin llenar, que en el alta es siempre.
-            TextField("", text: texto)
-                .multilineTextAlignment(.trailing)
-                .foregroundStyle(.primary)
-        }
-    }
     private let roles = [L.t("diezmo", "tithe"), L.t("donador", "donor")]
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    campo(L.t("Nombre completo", "Full name"), $nombre)
+                    FilaCampo(L.t("Nombre completo", "Full name"), $nombre)
                     Picker(L.t("Rol", "Role"), selection: $rol) {
                         ForEach(roles, id: \.self) { Text($0).tag($0) }
                     }
-                    campo(L.t("Miembro desde", "Member since"), $miembroDesde)
+                    FilaCampo(L.t("Miembro desde", "Member since"), $miembroDesde)
                     Picker(L.t("Aporta", "Gives"), selection: $frecuencia) {
                         ForEach(FrecuenciaAporte.allCases) { Text($0.etiqueta).tag($0) }
                     }
                 }
                 Section {
-                    campo(L.t("Teléfono", "Phone"), $telefono).keyboardType(.phonePad)
-                    campo(L.t("Correo", "Email"), $correo)
+                    FilaCampo(L.t("Teléfono", "Phone"), $telefono).keyboardType(.phonePad)
+                    FilaCampo(L.t("Correo", "Email"), $correo)
                         .keyboardType(.emailAddress).textInputAutocapitalization(.never)
-                    campo(L.t("ID fiscal", "Tax ID"), $idFiscal).textInputAutocapitalization(.characters)
+                    FilaCampo(L.t("ID fiscal", "Tax ID"), $idFiscal).textInputAutocapitalization(.characters)
                 }
                 Section {
-                    campo(L.t("Nacimiento", "Birth"), $nacimiento)
-                    campo(L.t("Dirección", "Address"), $direccion)
-                    campo(L.t("Estado civil", "Marital status"), $estadoCivil)
-                    campo(L.t("Congrega desde", "Attends since"), $congregaDesde)
+                    FilaCampo(L.t("Nacimiento", "Birth"), $nacimiento)
+                    FilaCampo(L.t("Dirección", "Address"), $direccion)
+                    FilaCampo(L.t("Estado civil", "Marital status"), $estadoCivil)
+                    FilaCampo(L.t("Congrega desde", "Attends since"), $congregaDesde)
                 }
             }
             .navigationTitle(editando ? L.t("Editar aportante", "Edit giver") : L.t("Nuevo aportante", "New giver"))

@@ -222,12 +222,16 @@ struct NuevoMovimientoView: View {
     private var seccionDetalle: some View {
         Section(header: Text(L.t("DETALLE", "DETAILS"))) {
             pickerCategoria
-            TextField(L.t("Subcategoría · opcional", "Subcategory · optional"),
-                      text: $subcategoria)
+            TextField(L.t("Subcategoría · opcional", "Subcategory · optional"), text: $subcategoria)
+                    // Rótulo largo: como etiqueta a la izquierda se
+                    // recortaba ("Place of issue · opti…"), así que se
+                    // queda de marcador y el nombre va para VoiceOver.
+                    .accessibilityLabel(L.t("Subcategoría · opcional", "Subcategory · optional"))
                 .autocorrectionDisabled()
             // Para gastos el concepto es requerido y va justo tras la categoría
             if tipo == .gasto {
                 TextField(L.t("Concepto", "Concept"), text: $concepto)
+                    .accessibilityLabel(L.t("Concepto", "Concept"))
                     .autocorrectionDisabled()
             }
             DatePicker(L.t("Fecha", "Date"), selection: $fecha, displayedComponents: .date)
@@ -238,6 +242,7 @@ struct NuevoMovimientoView: View {
             // Para ingresos el concepto es opcional y va al final de la sección
             if tipo == .ingreso {
                 TextField(L.t("Concepto · opcional", "Concept · optional"), text: $concepto)
+                    .accessibilityLabel(L.t("Concepto · opcional", "Concept · optional"))
                     .autocorrectionDisabled()
             }
         }
@@ -258,6 +263,7 @@ struct NuevoMovimientoView: View {
             .pickerStyle(.menu)
             if case .visitante = aportante {
                 TextField(L.t("Nombre", "Name"), text: $nombreVisitante)
+                    .accessibilityLabel(L.t("Nombre", "Name"))
                     .autocorrectionDisabled()
             }
         } header: {
@@ -317,8 +323,10 @@ struct NuevoMovimientoView: View {
     private var seccionBeneficiario: some View {
         Section(header: Text(L.t("BENEFICIARIO", "PAYEE"))) {
             TextField(L.t("Pagado a", "Paid to"), text: $pagadoA)
+                    .accessibilityLabel(L.t("Pagado a", "Paid to"))
                 .autocorrectionDisabled()
             TextField(L.t("ID fiscal · opcional", "Tax ID · optional"), text: $rfc)
+                    .accessibilityLabel(L.t("ID fiscal · opcional", "Tax ID · optional"))
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.characters)
         }
@@ -342,6 +350,8 @@ struct NuevoMovimientoView: View {
             TextField(L.t("Notas · opcional", "Notes · optional"), text: $notas, axis: .vertical)
                 .lineLimit(2...4)
                 .autocorrectionDisabled()
+                // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
+                .accessibilityLabel(L.t("Notas · opcional", "Notes · optional"))
             if tipo == .gasto {
                 Toggle(L.t("Marcar como pendiente", "Flag for review"), isOn: $marcadoPendiente)
             }
