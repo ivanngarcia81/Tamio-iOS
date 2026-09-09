@@ -86,6 +86,20 @@ final class CartasViewModel {
     @MainActor
     func emitirCarta() async {
         guard !carta.aportante.isEmpty else { return }
+        // **Se guarda con las `{{variables}}` ya sustituidas, no crudas.**
+        //
+        // El web sustituye al ELEGIR la plantilla (`CartaEditor.tsx`) y guarda
+        // el texto resuelto, así que da por hecho que una carta emitida ya no
+        // tiene variables dentro: las enseña tal cual. iOS las guardaba crudas
+        // —comprobado contra la base, la carta CAR-2026-0006 emitida desde el
+        // teléfono llegó con "We certify that {{miembro_nombre}}"—, así que esa
+        // carta se lee mal en el escritorio.
+        //
+        // Aquí y no al elegir la plantilla, que es donde lo hace el web,
+        // porque el orden de esta pantalla es el contrario: primero se abre la
+        // plantilla y DESPUÉS se escribe a quién va. Al emitir ya se sabe todo.
+        let ctx = carta.contextoVariables(ConfiguracionIglesiaViewModel.compartido.config)
+        func resuelto(_ t: String) -> String { VariablesCarta.aplicar(t, ctx) }
         let nueva = CartaEmitida(
             id: UUID().uuidString,
             folio: await repo.siguienteFolio(fecha: carta.fechaEmision),
@@ -95,10 +109,10 @@ final class CartasViewModel {
             destinatarioTipo: carta.tipoDestinatario,
             destinatarioNombre: carta.aportante,
             destinatarioDireccion: carta.direccionDestinatario,
-            asunto: carta.asunto.isEmpty ? carta.tipo.titulo : carta.asunto,
-            saludo: carta.saludo,
-            cuerpo: carta.cuerpoTexto,
-            despedida: carta.cierre,
+            asunto: resuelto(carta.asunto.isEmpty ? carta.tipo.titulo : carta.asunto),
+            saludo: resuelto(carta.saludo),
+            cuerpo: resuelto(carta.cuerpoTexto),
+            despedida: resuelto(carta.cierre),
             // El editor pide una firma y el formulario largo varias: se
             // juntan sin repetir, que es lo que se imprime al pie.
             firmas: ([carta.firma] + carta.firmantes)
