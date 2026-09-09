@@ -214,6 +214,7 @@ struct ConfiguracionView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityAddTraits(seccion == .cuenta ? .isSelected : [])
                     .padding(.horizontal, Esp.pantalla)
                     .padding(.bottom, 20)
 
@@ -254,6 +255,7 @@ struct ConfiguracionView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(seccion == .zona ? .isSelected : [])
                 .padding(.horizontal, Esp.pantalla)
                 .padding(.vertical, 10)
             }
@@ -294,6 +296,8 @@ struct ConfiguracionView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                // Ver `Sidebar`: la sección abierta se dice, no solo se pinta.
+                .accessibilityAddTraits(seccion == s ? .isSelected : [])
                 .padding(.horizontal, Esp.pantalla)
             }
         }

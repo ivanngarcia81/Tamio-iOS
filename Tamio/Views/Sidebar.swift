@@ -43,6 +43,12 @@ private struct SidebarRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // La sección abierta se distingue por el verde y por el fondo
+        // tintado, y ninguna de las dos cosas llega a VoiceOver: sin esto,
+        // las trece filas de la sidebar se leen iguales y no hay forma de
+        // saber en cuál estás. Medido: `isSelected` daba `false` también en
+        // la que estaba abierta.
+        .accessibilityAddTraits(seleccionado ? .isSelected : [])
     }
 }
 

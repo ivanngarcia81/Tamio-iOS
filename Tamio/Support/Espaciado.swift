@@ -94,6 +94,11 @@ private struct FilaDeLista: ViewModifier {
             .overlay(alignment: .leading) {
                 if seleccionada { Rectangle().fill(Paleta.brand).frame(width: 3) }
             }
+            // **Y la selección se DICE, no solo se pinta.** El fondo tintado y
+            // la barra verde son toda la señal de cuál es la fila abierta, y a
+            // VoiceOver no le llegaba ninguna de las dos: leía las nueve filas
+            // iguales. Es lo que ya hacen las tarjetas del informe del padrón.
+            .accessibilityAddTraits(seleccionada ? .isSelected : [])
             // Recorta fondo y barra al mismo radio: sueltos, la barra se salía
             // por la esquina de la tarjeta.
             .clipShape(forma)
