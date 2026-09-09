@@ -6,7 +6,7 @@ en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
 Última actualización: **8 de septiembre de 2026**, tras la pasada de interfaz
-del iPhone (§0.-6).
+del iPhone y su segunda tanda —la puerta, el candado y los formularios— (§0.-6).
 
 ---
 
@@ -77,6 +77,53 @@ pantallas aparece vacía alguna vez, la receta de medida es
 de pantalla —"Issued this month" queda bajo las 16 plantillas, y usarlo marcaba
 como fallo justo las corridas buenas—; y un fallo intermitente **no se cierra
 con una corrida que sale bien**, se cierra con veinte y un control.
+
+### La segunda tanda: la puerta, el candado y los formularios
+
+Después de la lista de arriba se recorrieron **las diecisiete pantallas que la
+primera pasada no había abierto** —las doce hojas de alta y los cinco
+detalles— y **Acceso y la pantalla de bloqueo**, que el modo revisión salta y
+piden un simulador limpio (`xcrun simctl create`) porque el llavero del
+simulador comparte la sesión (§3).
+
+- **La puerta no escalaba con el tamaño de letra.** Doce `.font(.system(size:))`
+  fijos: medido, los rótulos daban EL MISMO alto en tamaño normal y en AX1
+  —título 81.3 pt, "Tamio" 52.7, el botón 56.0—. `Font.escalada(_:weight:
+  relativeTo:)` sobre `UIFontMetrics`. **Cuidado con la medida:** el tamaño de
+  fábrica de iOS es `large`, NO el `medium` del simulador; medir contra `medium`
+  hace creer que todo encoge.
+- **"Comenzar" de la configuración inicial, a 1.42:1**, y es lo primero que ve
+  quien estrena la app. Ver §4.
+- **El botón de entrar, a 2.99:1**, con el mismo remedio: 7.88:1.
+- **El candado enseñaba un `NSError` crudo con su número.** Ver §4.
+- **"0 de N listos" iba dentro de una cápsula** del sistema y se leía como un
+  botón muerto, que es justo lo que `aprobarTodo` quería evitar y explicaba en
+  su comentario. `sharedBackgroundVisibility(.hidden)` cuando no hay ninguno
+  aprobable.
+- **Al editar un aportante, los nueve campos se quedaban sin rótulo.** El
+  marcador de posición usado como etiqueta se va en cuanto hay dato, y el
+  volcado de accesibilidad los daba con la etiqueta VACÍA. Ver §4.
+- **Seis listas se quedaban con una fila pintada** como si siguiera abierta al
+  volver en el teléfono. Ingresos y Aportantes ya lo tenían resuelto; las otras
+  seis no.
+- Y el resto: "NOTA" y "Hand note" sin traducir, los tres campos del corte
+  azules aquí y verdes allá, el "· Aug 14" con el punto colgando, el contador
+  de la carta partido por la mitad de la cifra, y la gráfica de asistencia con
+  las cuatro barras iguales.
+- **El superviviente de la familia ficticia.** `ConfiguracionIglesiaRepository`
+  seguía nombrando pastor a "Samuel Ruvalcaba", el apellido que se mandó borrar
+  el 6-sep y que este archivo daba por "borrado del todo". Además contradecía a
+  la maqueta, que lo llama "Pastor Abel Ramos" en cinco sitios, y por eso las
+  tres comparaciones que colocan la rúbrica del pastor no casaban NUNCA.
+
+### Lo que se decidió NO tocar en la segunda tanda
+
+- **G y H siguen en pie** (arriba). Y se les suma que `ConfiguracionView` —la
+  pantalla de Ajustes del **iPad**— tiene ochenta y un tamaños fijos con el
+  mismo problema que la puerta. Sin medir: esa pasada era solo teléfono.
+- **Ocho de los nueve formularios se quedan con su marcador de posición.** Solo
+  se etiquetó Actas. El porqué, en §4.
+- **Depósitos trunca los tres títulos de tres.** Sigue siendo diseño.
 
 ### Cómo se midió, que es lo reutilizable
 
@@ -1841,6 +1888,56 @@ Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.
   parece: "LUNES 7 SEP" está a media pantalla, lejos de cualquier barra, y
   medía exactamente lo mismo. La forma de distinguirlo es medir la misma clase
   de rótulo en dos alturas distintas.
+
+- **`.disabled` sobre `.borderedProminent` NO atenúa la etiqueta: repinta el
+  botón entero.** Medido tres veces sobre el "Comenzar" de la configuración
+  inicial, que a 1.42:1 es el peor número de la app: `apagadoLegible`, un color
+  explícito en el `Text` y cambiar el `tint` dan **los tres 1.42:1 clavado**.
+  Dibujar el botón a mano con `.buttonStyle(.plain)` sube solo a 2.44:1 y a
+  cambio sustituye el control. Es la misma trampa del segmentado —el estilo de
+  botón pinta por encima de la etiqueta—, y aquí tampoco vale el `.tint`.
+
+  **Lo que sí funciona es no apagarlo.** Decisión de Iván el 8-sep: el botón se
+  queda vivo y quien valida es la acción, que dice qué falta y lleva el foco al
+  campo. Aplicado a "Comenzar" (1.42 → **5.36:1**) y a "Entrar" (2.99 →
+  **7.88:1**). Es el razonamiento que ya estaba escrito en `RevisarView`.
+
+- **`LabeledContent` le deja al rótulo MEDIA fila.** Por encima de unos veinte
+  caracteres se recorta con el campo vacío: "Subcategory · optio…", "Place of
+  issue · opti…". Y convertir solo los cortos deja la misma tarjeta con dos
+  estilos a la vez —marcador gris junto a rótulo negro—, que es peor que no
+  tocarla.
+
+  **La regla, entonces: se etiqueta el formulario cuyos campos caben TODOS, o
+  ninguno.** De los nueve de la app solo lo cumplen Actas y Aportantes. En los
+  otros siete el marcador se queda y el nombre va en `accessibilityLabel`, que
+  no se ve y arregla lo que de verdad estaba roto: el volcado daba esos campos
+  con la etiqueta VACÍA, así que VoiceOver leía el valor sin decir de qué era.
+  La pieza y la lista de cuándo NO usarla están en `FilaCampo`, en `Pieces.swift`.
+
+- **Un `catch` que enseña `localizedDescription` por omisión acaba enseñando un
+  `NSError` crudo.** La pantalla de bloqueo se pone al IRSE al fondo, así que su
+  `.task` pedía la cara con la app ya detrás y el sistema contestaba que no; al
+  volver, el candado con "The operation couldn't be completed.
+  (com.apple.LocalAuthentication error 6.)" debajo. Medido: **5 de 6** vueltas
+  al fondo y de vuelta.
+
+  Y una lista de códigos que callar no cierra el caso: salieron **dos** —6 y
+  -1000, ninguno con constante nombrada en `LAError`—, y el primer arreglo, que
+  silenciaba `notInteractive` por su nombre, se quedó en 4 de 6. **La lista
+  buena es la corta: los que se arreglan haciendo algo.** Ahora solo se explican
+  cuatro y quien vuelve a pedir la cara es la vuelta a `.active` de `TamioApp`.
+  Prueba en `pruebas/CandadoUITests.swift`, con la receta de inscribir Face ID
+  en el simulador, que no se hace con `simctl` sino con `notifyutil`.
+
+- **Un `ToolbarItem` recibe la cápsula de cristal aunque dentro haya un `Text`.**
+  Por eso "0 de N listos" se leía como un botón que no responde pese a que el
+  código ya devolvía texto y no botón. Se quita con
+  `sharedBackgroundVisibility(.hidden)`.
+
+- **El tamaño de letra de fábrica es `large`, no `medium`.** El `medium` de
+  `simctl ui content_size` está un escalón por DEBAJO del de fábrica, así que
+  comparar contra él hace creer que un arreglo encoge la tipografía.
 
 - **Una cifra de dinero no se parte ni se recorta.** `AmountText` lleva
   `lineLimit(1)` MÁS `minimumScaleFactor`, y ese par es la regla: sin el
