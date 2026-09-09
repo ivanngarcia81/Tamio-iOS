@@ -12,10 +12,11 @@ del iPad (§0.-7).
 
 ## 0.-7 La pasada de interfaz del iPad · 9 de septiembre
 
-**Solo interfaz, solo iPad, las cuatro zonas.** Catorce arreglos, un commit cada
-uno, sobre iPad Air 13" (1366×1024) y iPad mini (1133×744), en inglés, claro y
-oscuro, con AX1 y con la ventana estrechada hasta compacto. Once pruebas nuevas
-en `pruebas/`.
+**Solo interfaz, solo iPad, las cuatro zonas.** Dieciséis arreglos, un commit
+cada uno, sobre iPad Air 13" (1366×1024) y iPad mini (1133×744), en inglés,
+claro y oscuro, con AX1 y con la ventana estrechada hasta compacto. Dieciséis
+pruebas nuevas en `pruebas/`. Recorridas las 39 pantallas, las hojas, los
+detalles, la puerta y el candado.
 
 ### La postura que lo destapó casi todo
 
@@ -120,6 +121,33 @@ quien la presenta—, así que con la hoja de "Nuevo" se pierde lo escrito. Est�
 marcado con `XCTExpectFailure`: la prueba queda en verde y avisa el día que
 alguien lo arregle. **Sacar el borrador de las 44 hojas a un modelo compartido
 es un rediseño, y es decisión de Iván.**
+
+### La segunda vuelta: las hojas, los detalles y las dos pantallas escondidas
+
+La pasada de pantallas dejó sin abrir **las 45 hojas**, los detalles de carta,
+culto y día, y las dos pantallas que el modo revisión salta. Recorridas ahora
+(`pruebas/HojasIPadUITests.swift`, `DetallesIPadUITests.swift`,
+`AccesoIPadUITests.swift`, `CandadoIPadUITests.swift`), con dos arreglos:
+
+- **La constancia anual recortaba la frase que la certifica.** Es de
+  `HojaCartaEscalada`, así que le pasaba a cualquier párrafo de dos renglones de
+  cualquier previa: `altoHoja` arranca en 0 y el contenido se mide dentro de una
+  caja de alto cero, así que el texto se conforma con un renglón, se recorta, y
+  el alto que se publica es el del párrafo YA recortado. `fixedSize` vertical.
+- **Los CSV se descargaban con el nombre en español** con la app en inglés
+  ("aportantes-", "movimientos-"), mientras la plantilla de al lado ya usaba
+  `L.t`.
+
+**Lo que no se puede medir con XCUITest, y conviene no volver a intentarlo:**
+lista los elementos aunque lleven `accessibilityHidden(true)` —comprobado
+poniéndoselo al aviso del modo revisión, que siguió saliendo en el volcado—.
+Con el candado puesto, el volcado enseña las cifras de Inicio, pero eso **no
+demuestra que VoiceOver las lea**: hace falta VoiceOver de verdad. No se tocó
+nada por eso.
+
+**Y en la agenda, la semilla de la maqueta marca como cumplidas actividades
+futuras** (12, 16 y 19 de septiembre, con hoy a 9): está escrita para un mes en
+el que "hoy" era el día 20. Es de la maqueta, no de la pantalla.
 
 ### El aviso que más caro puede salir
 
