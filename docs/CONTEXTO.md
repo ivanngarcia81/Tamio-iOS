@@ -12,7 +12,7 @@ del iPad (§0.-7).
 
 ## 0.-7 La pasada de interfaz del iPad · 9 de septiembre
 
-**Solo interfaz, solo iPad, las cuatro zonas.** Diecisiete arreglos, un commit
+**Solo interfaz, solo iPad, las cuatro zonas.** Dieciocho arreglos, un commit
 cada uno, sobre iPad Air 13" (1366×1024) y iPad mini (1133×744), en inglés,
 claro y oscuro, con AX1 y con la ventana estrechada hasta compacto. Dieciséis
 pruebas nuevas en `pruebas/`. Recorridas las 39 pantallas, las hojas, los
@@ -194,6 +194,32 @@ Recetas en `pruebas/ImportarIPadUITests.swift` y `pruebas/ImportarTelefonoUITest
 parsea la fecha suelta a medianoche UTC (bien) y `Fechas.corta` la formatea con
 `L.formateador`, que no fija zona y usa la del aparato (UTC-6 en Monterrey).
 Es de la capa de datos, no se tocó.
+
+### Lo que queda abierto de esta pasada
+
+De la lista inicial cerró todo menos una cosa, y **esa una no se pudo ni
+medir**: si Esc cierra las hojas con teclado físico.
+
+`app.typeKey(...)` **no le llega a la app en este simulador**. Se comprobó con
+un atajo de verdad —un `.keyboardShortcut("j", modifiers: .command)` puesto a
+mano en el botón Nuevo—: ⌘J no abrió nada con la app corriendo y respondiendo.
+Así que la medida original ("tras Esc sigue el Cancel") no demuestra que Esc
+esté roto: demuestra que la tecla no llegó. **Es el mismo error de instrumento
+que el del selector de archivos, dos veces en el mismo día**, y la lección es
+la de siempre: antes de creerse una medida negativa, un control positivo con
+algo que SÍ tenga que funcionar.
+
+Se llegó a escribir el arreglo —`.keyboardShortcut(.cancelAction)` en los
+treinta botones de `.cancellationAction`— y **se revirtió sin subirlo**: no se
+puede verificar aquí y puede que iOS ya cierre la hoja con Esc por su cuenta,
+en cuyo caso serían treinta líneas para un fallo que no existe. Queda para
+comprobarlo en el iPad de Iván con teclado: abrir cualquier hoja, pulsar Esc.
+Si no se cierra, el arreglo es esa línea en esos treinta sitios.
+
+**De paso:** la sidebar dibuja "⌘K" al lado del buscador y **ese atajo no
+existe** —no hay un solo `keyboardShortcut` en toda la app—. O se conecta o se
+borra el rótulo, pero prometer una tecla que no hace nada es peor que no
+prometerla.
 
 ### El aviso que más caro puede salir
 
