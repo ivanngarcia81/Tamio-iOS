@@ -78,6 +78,50 @@ de pantalla —"Issued this month" queda bajo las 16 plantillas, y usarlo marcab
 como fallo justo las corridas buenas—; y un fallo intermitente **no se cierra
 con una corrida que sale bien**, se cierra con veinte y un control.
 
+### Probado EN EL IPHONE DE IVÁN · 9 de septiembre
+
+**Lo que llevaba dos días pendiente ya está cerrado.** La app se instaló en su
+iPhone 17 Pro Max (receta del §6.b · A.0, a la primera) y él la usó con la
+cuenta real. Comprobado contra la BASE, no contra la cola —que es la lección
+del §5—: subieron dos movimientos, una carta con folio del servidor
+(`CAR-2026-0006`), dos cortes y seis apuntes automáticos
+(`cartaEmitida`, `corteEntregado`, `corteDepositado`, `segundaFirma`). **Las
+once subidas reescritas el 8-sep hablaron con el servidor y todas pasaron.**
+
+Después guardó un miembro: llegó a `members` con su `estado_civil`. Ese es el
+camino que podía fallar en silencio bajo RLS, y no falló.
+
+**Y el aparato encontró dos fallos que el simulador no podía dar:**
+
+- **La carta imprimía `{{miembro_nombre}}` con el campo lleno.** Nadie
+  sustituía las variables de la plantilla, ni en la previa ni en el PDF. Solo
+  se ve con una plantilla de VERDAD: la maqueta nace con el cuerpo vacío, así
+  que ahí el fallo no existe.
+
+  Y mirando la tabla salió la segunda mitad: la carta se guardaba CRUDA. El web
+  sustituye al elegir la plantilla y guarda el texto resuelto, así que da por
+  hecho que una carta emitida no lleva variables y la enseña tal cual — una
+  carta emitida desde el teléfono se lee mal en el escritorio. En iOS se
+  resuelve al EMITIR, porque aquí el orden es el contrario: primero la
+  plantilla, después a quién va.
+
+- **El estado civil se guardaba pero la fila seguía diciendo "Sin
+  especificar"** hasta salir de la página y volver. **En el simulador no se
+  reproduce.** De los quince controles de las cuatro páginas que cuelgan de la
+  hoja de miembro, ese `Picker` es el único que tiene que volver a derivar lo
+  que enseña a partir de `m`; las páginas se empujan con `NavigationLink` dentro
+  de un `Form`, donde SwiftUI no garantiza refrescar la vista ya empujada. Con
+  estado local se repinta siempre. Confirmado por Iván en el aparato.
+
+  **Se descartó antes la explicación fácil:** ese `Picker` mezcla un `Text`
+  suelto con un `ForEach`, construcción frágil conocida, pero el mismo patrón
+  está en veintidós selectores y solo ese falla.
+
+**La lección, otra vez y ahora con dos ejemplos más:** el aparato con datos de
+verdad encuentra lo que ni la maqueta ni el simulador pueden. Y **la cola de
+salida a cero no demuestra qué subió**: la carta con las variables crudas se vio
+en la tabla, no en la app.
+
 ### La segunda tanda: la puerta, el candado y los formularios
 
 Después de la lista de arriba se recorrieron **las diecisiete pantallas que la
