@@ -311,7 +311,7 @@ struct RegistroView: View {
             tarjetaConteo(L.t("Apuntes", "Entries"), vm.totalCount, Paleta.brand, .primary)
             tarjetaConteo(L.t("Tesorería", "Treasury"), vm.tesoreriaCount, Paleta.brand, Paleta.brand)
             tarjetaConteo(L.t("Secretaría", "Secretary"), vm.secretariaCount, morado, .primary)
-            tarjetaConteo(L.t("Notas a mano", "Hand notes"), vm.notasCount, Paleta.aviso, Paleta.aviso)
+            tarjetaConteo(L.t("Notas a mano", "Manual notes"), vm.notasCount, Paleta.aviso, Paleta.aviso)
         }
     }
 

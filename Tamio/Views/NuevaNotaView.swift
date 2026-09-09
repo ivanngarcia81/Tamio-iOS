@@ -20,7 +20,12 @@ struct NuevaNotaView: View {
                     }
                     .pickerStyle(.segmented)
                 } header: {
-                    Text(L.t("Nota a mano", "Hand note"))
+                    // "Manual note" y no "Hand note": lo segundo es la traducción palabra
+                    // por palabra de "nota a mano" y en inglés no se dice. Lo que
+                    // distingue a estas del resto del registro es que las escribe
+                    // una persona en vez de anotarlas la app sola, y a eso en inglés
+                    // se le llama "manual".
+                    Text(L.t("Nota a mano", "Manual note"))
                 }
 
                 Section {
