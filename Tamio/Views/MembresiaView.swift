@@ -1187,20 +1187,43 @@ private struct NuevoMiembroSheet: View {
 private struct VidaEspiritualPage: View {
     @Binding var m: Miembro
 
+    /// **Repinta la página al escribir.** Estas cuatro páginas se empujan con
+    /// `NavigationLink` dentro de un `Form`, y ahí SwiftUI no garantiza volver
+    /// a evaluar la vista YA empujada cuando cambia el `@State` del padre. El
+    /// valor viaja —el enlace escribe— pero lo que se VE se queda viejo: pasó
+    /// con el estado civil y con los chips de habilidades, los dos encontrados
+    /// por Iván en su iPhone y ninguno reproducible en el simulador.
+    ///
+    /// No basta con arreglar el control que falló: le pasa a CUALQUIERA cuyo
+    /// aspecto se derive de la ficha —los interruptores, las fechas—, y al
+    /// siguiente que se añada. Así que en vez de un remedio por control, el
+    /// enlace que se le pasa lleva dentro un toque a un `@State` propio de la
+    /// página: escribir invalida la página, la página se vuelve a evaluar, y
+    /// todos sus controles se repintan con lo que la ficha dice ahora.
+    ///
+    /// Un `TextField` no lo necesita —lleva su propio estado mientras se
+    /// escribe— pero tampoco le estorba.
+    @State private var repinta = 0
+
+    private func vivo<T>(_ enlace: Binding<T>) -> Binding<T> {
+        Binding(get: { enlace.wrappedValue },
+                set: { enlace.wrappedValue = $0; repinta &+= 1 })
+    }
+
     var body: some View {
         Form {
             Section {
-                Toggle(L.t("Bautizado en agua", "Baptized in water"), isOn: $m.bautizadoAgua)
+                Toggle(L.t("Bautizado en agua", "Baptized in water"), isOn: vivo($m.bautizadoAgua))
                     .tint(Paleta.brand)
                 if m.bautizadoAgua {
-                    FechaOpcional(titulo: L.t("Fecha del bautismo", "Baptism date"), texto: $m.fechaBautismoAgua)
+                    FechaOpcional(titulo: L.t("Fecha del bautismo", "Baptism date"), texto: vivo($m.fechaBautismoAgua))
                 }
-                Toggle(L.t("Bautizado con el Espíritu Santo", "Baptized with the Holy Spirit"), isOn: $m.bautizadoEspiritu)
+                Toggle(L.t("Bautizado con el Espíritu Santo", "Baptized with the Holy Spirit"), isOn: vivo($m.bautizadoEspiritu))
                     .tint(Paleta.brand)
                 if m.bautizadoEspiritu {
-                    FechaOpcional(titulo: L.t("Fecha", "Date"), texto: $m.fechaBautismoEspiritu)
+                    FechaOpcional(titulo: L.t("Fecha", "Date"), texto: vivo($m.fechaBautismoEspiritu))
                 }
-                Toggle(L.t("Curso de membresía completado", "Membership course completed"), isOn: $m.cursoMembresia)
+                Toggle(L.t("Curso de membresía completado", "Membership course completed"), isOn: vivo($m.cursoMembresia))
                     .tint(Paleta.brand)
             } footer: {
                 Text(L.t("La fecha es opcional: lo que la secretaria suele saber es si pasó, no cuándo.",
@@ -1244,6 +1267,29 @@ private struct FechaOpcional: View {
 private struct ServicioHabilidadesPage: View {
     @Binding var m: Miembro
 
+    /// **Repinta la página al escribir.** Estas cuatro páginas se empujan con
+    /// `NavigationLink` dentro de un `Form`, y ahí SwiftUI no garantiza volver
+    /// a evaluar la vista YA empujada cuando cambia el `@State` del padre. El
+    /// valor viaja —el enlace escribe— pero lo que se VE se queda viejo: pasó
+    /// con el estado civil y con los chips de habilidades, los dos encontrados
+    /// por Iván en su iPhone y ninguno reproducible en el simulador.
+    ///
+    /// No basta con arreglar el control que falló: le pasa a CUALQUIERA cuyo
+    /// aspecto se derive de la ficha —los interruptores, las fechas—, y al
+    /// siguiente que se añada. Así que en vez de un remedio por control, el
+    /// enlace que se le pasa lleva dentro un toque a un `@State` propio de la
+    /// página: escribir invalida la página, la página se vuelve a evaluar, y
+    /// todos sus controles se repintan con lo que la ficha dice ahora.
+    ///
+    /// Un `TextField` no lo necesita —lleva su propio estado mientras se
+    /// escribe— pero tampoco le estorba.
+    @State private var repinta = 0
+
+    private func vivo<T>(_ enlace: Binding<T>) -> Binding<T> {
+        Binding(get: { enlace.wrappedValue },
+                set: { enlace.wrappedValue = $0; repinta &+= 1 })
+    }
+
     var body: some View {
         Form {
             ChipSection(titulo: L.t("MINISTERIOS EN LOS QUE SIRVE", "MINISTRIES THEY SERVE IN"),
@@ -1267,7 +1313,7 @@ private struct ServicioHabilidadesPage: View {
                     // recortaba ("Place of issue · opti…"), así que se
                     // queda de marcador y el nombre va para VoiceOver.
                     .accessibilityLabel(L.t("Disponibilidad para servir", "Availability to serve"))
-                Toggle(L.t("Interés en servir en algún ministerio", "Interested in serving"), isOn: $m.interesServir)
+                Toggle(L.t("Interés en servir en algún ministerio", "Interested in serving"), isOn: vivo($m.interesServir))
                     .tint(Paleta.brand)
             }
         }
@@ -1304,13 +1350,36 @@ private struct DatosPersonaPage: View {
     /// etiqueta se repinta pase lo que pase con el padre.
     @State private var estadoCivil = ""
 
+    /// **Repinta la página al escribir.** Estas cuatro páginas se empujan con
+    /// `NavigationLink` dentro de un `Form`, y ahí SwiftUI no garantiza volver
+    /// a evaluar la vista YA empujada cuando cambia el `@State` del padre. El
+    /// valor viaja —el enlace escribe— pero lo que se VE se queda viejo: pasó
+    /// con el estado civil y con los chips de habilidades, los dos encontrados
+    /// por Iván en su iPhone y ninguno reproducible en el simulador.
+    ///
+    /// No basta con arreglar el control que falló: le pasa a CUALQUIERA cuyo
+    /// aspecto se derive de la ficha —los interruptores, las fechas—, y al
+    /// siguiente que se añada. Así que en vez de un remedio por control, el
+    /// enlace que se le pasa lleva dentro un toque a un `@State` propio de la
+    /// página: escribir invalida la página, la página se vuelve a evaluar, y
+    /// todos sus controles se repintan con lo que la ficha dice ahora.
+    ///
+    /// Un `TextField` no lo necesita —lleva su propio estado mientras se
+    /// escribe— pero tampoco le estorba.
+    @State private var repinta = 0
+
+    private func vivo<T>(_ enlace: Binding<T>) -> Binding<T> {
+        Binding(get: { enlace.wrappedValue },
+                set: { enlace.wrappedValue = $0; repinta &+= 1 })
+    }
+
     var body: some View {
         Form {
             Section {
-                Toggle(L.t("Fecha de nacimiento conocida", "Birth date known"), isOn: $tieneFecha)
+                Toggle(L.t("Fecha de nacimiento conocida", "Birth date known"), isOn: vivo($tieneFecha))
                     .tint(Paleta.brand)
                 if tieneFecha {
-                    DatePicker(L.t("Nacimiento", "Birth"), selection: $fechaNacimiento, displayedComponents: .date)
+                    DatePicker(L.t("Nacimiento", "Birth"), selection: vivo($fechaNacimiento), displayedComponents: .date)
                         .tint(Paleta.brand)
                 }
                 // Claves del web. Sin valor no es "soltero": es que no se ha
@@ -1342,6 +1411,29 @@ private struct MasDatosPage: View {
     @Binding var tieneCongrega: Bool
     @Binding var fechaCongrega: Date
 
+    /// **Repinta la página al escribir.** Estas cuatro páginas se empujan con
+    /// `NavigationLink` dentro de un `Form`, y ahí SwiftUI no garantiza volver
+    /// a evaluar la vista YA empujada cuando cambia el `@State` del padre. El
+    /// valor viaja —el enlace escribe— pero lo que se VE se queda viejo: pasó
+    /// con el estado civil y con los chips de habilidades, los dos encontrados
+    /// por Iván en su iPhone y ninguno reproducible en el simulador.
+    ///
+    /// No basta con arreglar el control que falló: le pasa a CUALQUIERA cuyo
+    /// aspecto se derive de la ficha —los interruptores, las fechas—, y al
+    /// siguiente que se añada. Así que en vez de un remedio por control, el
+    /// enlace que se le pasa lleva dentro un toque a un `@State` propio de la
+    /// página: escribir invalida la página, la página se vuelve a evaluar, y
+    /// todos sus controles se repintan con lo que la ficha dice ahora.
+    ///
+    /// Un `TextField` no lo necesita —lleva su propio estado mientras se
+    /// escribe— pero tampoco le estorba.
+    @State private var repinta = 0
+
+    private func vivo<T>(_ enlace: Binding<T>) -> Binding<T> {
+        Binding(get: { enlace.wrappedValue },
+                set: { enlace.wrappedValue = $0; repinta &+= 1 })
+    }
+
     var body: some View {
         Form {
             Section {
@@ -1356,10 +1448,10 @@ private struct MasDatosPage: View {
                     .accessibilityLabel(L.t("Notas (opcional)", "Notes (optional)"))
                     // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
                     .accessibilityLabel(L.t("Iglesia anterior (si aplica)", "Previous church (if applicable)"))
-                Toggle(L.t("Se congrega desde", "Attends since"), isOn: $tieneCongrega)
+                Toggle(L.t("Se congrega desde", "Attends since"), isOn: vivo($tieneCongrega))
                     .tint(Paleta.brand)
                 if tieneCongrega {
-                    DatePicker(L.t("Desde", "Since"), selection: $fechaCongrega, displayedComponents: .date)
+                    DatePicker(L.t("Desde", "Since"), selection: vivo($fechaCongrega), displayedComponents: .date)
                         .tint(Paleta.brand)
                 }
             } footer: {
@@ -1385,19 +1477,39 @@ private struct ChipSection: View {
 
     @State private var nuevoTexto = ""
 
+    /// **Lo elegido se lleva en estado LOCAL y se escribe de vuelta.**
+    ///
+    /// Es el mismo caso que el estado civil de la página de al lado, y lo
+    /// encontró Iván en su iPhone: al tocar "músico" o "electricidad" el chip
+    /// no se pintaba —"se frisa un poco"—, y al salir de la página y volver
+    /// aparecía ya elegido. El valor viajaba y subía bien; lo que no se
+    /// refrescaba era el color.
+    ///
+    /// El relleno de cada chip se deriva de `seleccionados`, así que para verlo
+    /// cambiar hace falta que el cuerpo de esta vista vuelva a evaluarse. Estas
+    /// páginas se empujan con `NavigationLink` dentro de un `Form`, donde
+    /// SwiftUI no garantiza refrescar la vista YA empujada cuando cambia el
+    /// `@State` del padre. El estado propio de una vista sí la invalida
+    /// siempre.
+    ///
+    /// **Nada más escribe estas listas mientras la página está abierta**, así
+    /// que la copia local no puede quedarse atrás de la ficha; si algún día
+    /// algo las cambiara desde fuera, esto habría que revisarlo.
+    @State private var elegidos: [String] = []
+
     /// El catálogo más lo escrito a mano que ya esté elegido, sin repetir.
     private var opciones: [String] {
-        catalogo + seleccionados.filter { !catalogo.contains($0) }
+        catalogo + elegidos.filter { !catalogo.contains($0) }
     }
 
     var body: some View {
         Section(titulo) {
             FlowLayout(spacing: 8) {
                 ForEach(opciones, id: \.self) { op in
-                    let sel = seleccionados.contains(op)
+                    let sel = elegidos.contains(op)
                     Button {
-                        if sel { seleccionados.removeAll { $0 == op } }
-                        else   { seleccionados.append(op) }
+                        if sel { elegidos.removeAll { $0 == op } }
+                        else   { elegidos.append(op) }
                     } label: {
                         Text(Padron.etiqueta(op))
                             .font(.subheadline)
@@ -1416,8 +1528,8 @@ private struct ChipSection: View {
                     TextField(placeholder, text: $nuevoTexto)
                     Button(L.t("Agregar", "Add")) {
                         let txt = nuevoTexto.trimmingCharacters(in: .whitespaces)
-                        guard !txt.isEmpty, !seleccionados.contains(txt) else { return }
-                        seleccionados.append(txt)
+                        guard !txt.isEmpty, !elegidos.contains(txt) else { return }
+                        elegidos.append(txt)
                         nuevoTexto = ""
                     }
                     .foregroundStyle(nuevoTexto.trimmingCharacters(in: .whitespaces).isEmpty
@@ -1426,6 +1538,8 @@ private struct ChipSection: View {
                 }
             }
         }
+        .onAppear { elegidos = seleccionados }
+        .onChange(of: elegidos) { seleccionados = elegidos }
     }
 }
 
