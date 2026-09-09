@@ -313,21 +313,43 @@ struct ReportesView: View {
         .background(Paleta.avisoFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    /// **Una fila si cabe, dos si no.** En la columna del iPad grande los
+    /// cuatro controles caben de sobra; en una columna estrecha —el mini, la
+    /// app a la mitad, el 13" en vertical— no, y el sistema no los baja solos:
+    /// apretaba las cápsulas hasta partir "PDF preview" en dos renglones y
+    /// recortar el mes a "Septembe…". Bajar las acciones a su propia fila deja
+    /// las cuatro etiquetas enteras.
     private var barraFiltros: some View {
-        HStack(spacing: 10) {
-            menuPeriodo { chipFiltro(vm.periodoEtiqueta) }
-            menuCategoria { chipFiltro(vm.categoriaEtiqueta) }
-            Spacer()
-            ShareLink(item: vm.resumenTexto) {
-                Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                filtrosDelEstado
+                Spacer()
+                accionesDelEstado
             }
-            .buttonStyle(.glass)
-            .tint(Color.secondary)
-            Button { mostrarPDF = true } label: {
-                Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.text").fontWeight(.semibold)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) { filtrosDelEstado; Spacer() }
+                HStack(spacing: 10) { Spacer(); accionesDelEstado }
             }
-            .buttonStyle(.glass).tint(Paleta.brand)
         }
+    }
+
+    @ViewBuilder
+    private var filtrosDelEstado: some View {
+        menuPeriodo { chipFiltro(vm.periodoEtiqueta) }
+        menuCategoria { chipFiltro(vm.categoriaEtiqueta) }
+    }
+
+    @ViewBuilder
+    private var accionesDelEstado: some View {
+        ShareLink(item: vm.resumenTexto) {
+            Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+        }
+        .buttonStyle(.glass)
+        .tint(Color.secondary)
+        Button { mostrarPDF = true } label: {
+            Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.text").fontWeight(.semibold)
+        }
+        .buttonStyle(.glass).tint(Paleta.brand)
     }
 
     /// Periodo: elige el mes; recarga las cifras de ese mes.
@@ -550,19 +572,31 @@ struct ReportesView: View {
         .sheet(isPresented: $mostrarPDF) { ReporteAnualPDFSheet(a: a) }
     }
 
+    /// Ver `barraFiltros`: una fila si cabe, dos si no.
     private func barraFiltrosAnual(_ a: ReporteAnual) -> some View {
-        HStack(spacing: 10) {
-            menuAnio { chipFiltro(vm.anioSel) }
-            Spacer()
-            ShareLink(item: vm.resumenAnual) {
-                Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                menuAnio { chipFiltro(vm.anioSel) }
+                Spacer()
+                accionesDelAnual
             }
-            .buttonStyle(.glass).tint(Color.secondary)
-            Button { mostrarPDF = true } label: {
-                Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.text").fontWeight(.semibold)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) { menuAnio { chipFiltro(vm.anioSel) }; Spacer() }
+                HStack(spacing: 10) { Spacer(); accionesDelAnual }
             }
-            .buttonStyle(.glass).tint(Paleta.brand)
         }
+    }
+
+    @ViewBuilder
+    private var accionesDelAnual: some View {
+        ShareLink(item: vm.resumenAnual) {
+            Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+        }
+        .buttonStyle(.glass).tint(Color.secondary)
+        Button { mostrarPDF = true } label: {
+            Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.text").fontWeight(.semibold)
+        }
+        .buttonStyle(.glass).tint(Paleta.brand)
     }
 
     @ViewBuilder
@@ -631,42 +665,55 @@ struct ReportesView: View {
         VStack(alignment: .leading, spacing: 8) {
             TituloSeccion(texto: L.t("RESUMEN POR MES", "SUMMARY BY MONTH"))
             Tarjeta {
-                VStack(spacing: 0) {
-                    HStack(spacing: 6) {
-                        Text(L.t("MES", "MONTH")).frame(maxWidth: .infinity, alignment: .leading)
-                        Text(L.t("INGRESOS", "INCOME")).frame(width: anchoCol, alignment: .trailing)
-                        Text(L.t("GASTOS", "EXPENSES")).frame(width: anchoCol, alignment: .trailing)
-                        Text(L.t("BALANCE", "BALANCE")).frame(width: anchoCol, alignment: .trailing)
-                    }
-                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
-                    Divider()
-                    ForEach(a.meses) { f in
-                        HStack(spacing: 6) {
-                            Text(f.mes).lineLimit(1).minimumScaleFactor(0.8)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).celdaDinero(anchoCol)
-                            Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).celdaDinero(anchoCol)
-                            Text(Money.fmt(f.balance)).fontWeight(.semibold).celdaDinero(anchoCol)
-                        }
-                        .font(compacto ? .caption : .subheadline).monospacedDigit()
-                        .padding(.vertical, 9)
-                        Divider()
-                    }
-                    // El total del año cierra la tabla: es la fila por la que
-                    // existe el documento.
-                    HStack(spacing: 6) {
-                        Text(L.t("Total \(a.anio)", "Total \(a.anio)")).fontWeight(.semibold)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        Text(Money.fmt(a.totalIngresos)).foregroundStyle(Paleta.brand).celdaDinero(anchoCol)
-                        Text(Money.fmt(a.totalGastos)).foregroundStyle(Paleta.negativo).celdaDinero(anchoCol)
-                        Text(Money.fmt(a.balance)).fontWeight(.semibold).celdaDinero(anchoCol)
-                    }
-                    .font(compacto ? .caption.weight(.semibold) : .subheadline.weight(.semibold)).monospacedDigit()
-                    .padding(.vertical, 9)
-                    .background(Paleta.brandFill)
+                // Misma regla que la tabla del estado financiero: la elige el
+                // ancho. Aquí sin variación que ceder, así que lo que cede es
+                // el ancho de las cifras. Sin esto, en una columna estrecha el
+                // nombre del mes se quedaba sin sitio y salía en vertical, una
+                // letra por renglón: "M / O / N / T / H".
+                ViewThatFits(in: .horizontal) {
+                    filasAnual(a, ancho: 112, pequena: false)
+                    filasAnual(a, ancho: 74, pequena: true)
                 }
             }
+        }
+    }
+
+    private func filasAnual(_ a: ReporteAnual, ancho: CGFloat, pequena: Bool) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                Text(L.t("MES", "MONTH")).frame(maxWidth: .infinity, alignment: .leading)
+                Text(L.t("INGRESOS", "INCOME")).frame(width: ancho, alignment: .trailing)
+                Text(L.t("GASTOS", "EXPENSES")).frame(width: ancho, alignment: .trailing)
+                Text(L.t("BALANCE", "BALANCE")).frame(width: ancho, alignment: .trailing)
+            }
+            .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            .padding(.vertical, 8)
+            Divider()
+            ForEach(a.meses) { f in
+                HStack(spacing: 6) {
+                    Text(f.mes).lineLimit(1).minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).celdaDinero(ancho)
+                    Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).celdaDinero(ancho)
+                    Text(Money.fmt(f.balance)).fontWeight(.semibold).celdaDinero(ancho)
+                }
+                .font(pequena ? .caption : .subheadline).monospacedDigit()
+                .padding(.vertical, 9)
+                Divider()
+            }
+            // El total del año cierra la tabla: es la fila por la que
+            // existe el documento.
+            HStack(spacing: 6) {
+                Text(L.t("Total \(a.anio)", "Total \(a.anio)")).fontWeight(.semibold)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(Money.fmt(a.totalIngresos)).foregroundStyle(Paleta.brand).celdaDinero(ancho)
+                Text(Money.fmt(a.totalGastos)).foregroundStyle(Paleta.negativo).celdaDinero(ancho)
+                Text(Money.fmt(a.balance)).fontWeight(.semibold).celdaDinero(ancho)
+            }
+            .font(pequena ? .caption.weight(.semibold) : .subheadline.weight(.semibold)).monospacedDigit()
+            .padding(.vertical, 9)
+            .background(Paleta.brandFill)
         }
     }
 
@@ -676,56 +723,74 @@ struct ReportesView: View {
         VStack(alignment: .leading, spacing: 8) {
             TituloSeccion(texto: L.t("RESUMEN MENSUAL", "MONTHLY SUMMARY"))
             Tarjeta {
-                VStack(spacing: 0) {
-                    HStack(spacing: 6) {
-                        Text(L.t("MES", "MONTH")).frame(maxWidth: .infinity, alignment: .leading)
-                        Text(L.t("INGRESOS", "INCOME")).frame(width: anchoCol, alignment: .trailing)
-                        Text(L.t("GASTOS", "EXPENSES")).frame(width: anchoCol, alignment: .trailing)
-                        Text(L.t("BALANCE", "BALANCE")).frame(width: anchoCol, alignment: .trailing)
-                        if !compacto { Text("").frame(width: anchoVariacion, alignment: .trailing) }
-                    }
-                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
-                    Divider()
-                    ForEach(e.mensual) { f in
-                        // El mes destacado es el que se está viendo, no el
-                        // último de la tabla: con el filtro puesto en junio, la
-                        // fila resaltada tiene que ser junio.
-                        let esActual = f.clave == e.periodo.clave
-                        HStack(spacing: 6) {
-                            Text(f.mes).fontWeight(esActual ? .semibold : .regular)
-                                .lineLimit(1).minimumScaleFactor(0.8)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).celdaDinero(anchoCol)
-                            Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).celdaDinero(anchoCol)
-                            Text(Money.fmt(f.balance)).fontWeight(.semibold).celdaDinero(anchoCol)
-                            // La variación se cae en el teléfono: con cuatro
-                            // columnas de dinero no cabe, y es lo único que se
-                            // puede deducir mirando las dos filas.
-                            if !compacto {
-                                Group { if let d = f.delta { DeltaBadge(pct: d).fixedSize() } else { Text("") } }
-                                    .frame(width: anchoVariacion, alignment: .trailing)
-                            }
-                        }
-                        .font(compacto ? .caption : .subheadline).monospacedDigit()
-                        .padding(.vertical, 9)
-                        .background(esActual ? Paleta.brandFill : .clear)
-                        if f.id != e.mensual.last?.id { Divider() }
-                    }
+                // **La tabla se elige por lo que CABE, no por la clase de
+                // tamaño.** Con `compacto` mandaba, un iPad con la columna
+                // estrecha —el mini, la app a la mitad, el 13" en vertical con
+                // la sidebar— pedía las cinco columnas anchas: 560 pt mínimos
+                // en 453, así que la tabla se salía por la derecha, sin scroll
+                // y arrastrando con ella al resto del reporte.
+                //
+                // Las tres versiones son las mismas columnas cediendo por
+                // orden de lo que menos se echa de menos: primero la variación
+                // —es lo único que se deduce mirando dos filas—, y después el
+                // ancho de las cifras con la letra pequeña.
+                ViewThatFits(in: .horizontal) {
+                    filasMensual(e, ancho: 112, variacion: true, pequena: false)
+                    filasMensual(e, ancho: 112, variacion: false, pequena: false)
+                    filasMensual(e, ancho: 74, variacion: false, pequena: true)
                 }
             }
         }
     }
 
-    /// Las columnas de dinero se estrechan en el teléfono: con el ancho del
-    /// iPad no quedaba sitio para el nombre del mes.
-    ///
+    private func filasMensual(_ e: EstadoFinanciero, ancho: CGFloat,
+                              variacion: Bool, pequena: Bool) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                Text(L.t("MES", "MONTH")).frame(maxWidth: .infinity, alignment: .leading)
+                Text(L.t("INGRESOS", "INCOME")).frame(width: ancho, alignment: .trailing)
+                Text(L.t("GASTOS", "EXPENSES")).frame(width: ancho, alignment: .trailing)
+                Text(L.t("BALANCE", "BALANCE")).frame(width: ancho, alignment: .trailing)
+                if variacion { Text("").frame(width: anchoVariacion, alignment: .trailing) }
+            }
+            .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            .padding(.vertical, 8)
+            Divider()
+            ForEach(e.mensual) { f in
+                // El mes destacado es el que se está viendo, no el
+                // último de la tabla: con el filtro puesto en junio, la
+                // fila resaltada tiene que ser junio.
+                let esActual = f.clave == e.periodo.clave
+                HStack(spacing: 6) {
+                    Text(f.mes).fontWeight(esActual ? .semibold : .regular)
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).celdaDinero(ancho)
+                    Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).celdaDinero(ancho)
+                    Text(Money.fmt(f.balance)).fontWeight(.semibold).celdaDinero(ancho)
+                    if variacion {
+                        Group { if let d = f.delta { DeltaBadge(pct: d).fixedSize() } else { Text("") } }
+                            .frame(width: anchoVariacion, alignment: .trailing)
+                    }
+                }
+                .font(pequena ? .caption : .subheadline).monospacedDigit()
+                .padding(.vertical, 9)
+                .background(esActual ? Paleta.brandFill : .clear)
+                if f.id != e.mensual.last?.id { Divider() }
+            }
+        }
+    }
+
     /// **112 pt es una medida, no un gusto.** `$9,999,999.99` —el importe más
     /// largo que la tabla puede tener que escribir— mide 110.2 pt a
     /// `.subheadline` en seminegrita, que es como va la columna de balance.
-    /// Con los 92 anteriores agosto salía partido en dos renglones:
-    /// `$2,640,685.` sobre `50`.
-    private var anchoCol: CGFloat { compacto ? 74 : 112 }
+    /// Con 92 agosto salía partido en dos renglones: `$2,640,685.` sobre `50`.
+    /// Los 74 de la versión estrecha van con la letra pequeña, y es lo que
+    /// caben las cuatro columnas en el ancho del teléfono.
+    ///
+    /// Quién usa cuál lo decide el `ViewThatFits` de cada tabla, no la clase de
+    /// tamaño: la misma pantalla se dibuja en la columna de un iPad y a
+    /// pantalla completa en un teléfono.
 
     /// La columna de variación. "▲3459.4%" mide 75.2 pt a `.subheadline`, y
     /// con los 52 anteriores se rompía en tres líneas.
