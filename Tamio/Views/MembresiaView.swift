@@ -841,15 +841,17 @@ private struct PanelAsistencia: View {
     }
 
     // KPIs del periodo
-    /// **Cuatro en fila solo caben en la columna del iPad.** Este panel ahora
-    /// también es la pantalla de Asistencia del teléfono, y a 390 pt las
-    /// cuatro tarjetas salían de unos 85 pt: "Presentes en promedio" ocupaba
-    /// tres renglones encima de su número. En compacto van de dos en dos.
+    /// **Cuatro en fila solo si caben.** A 390 pt las cuatro tarjetas salían
+    /// de unos 85 pt: "Presentes en promedio" ocupaba tres renglones encima de
+    /// su número.
+    ///
+    /// La pregunta era "¿es un teléfono?" y la buena es "¿cuánto ancho hay?":
+    /// la columna del padrón en un iPad mini, o el 13" en vertical con la
+    /// sidebar, se quedan en 450 pt y allí también salían cuatro, con
+    /// "Average attenda…" recortado y "Best service 214 · Aug 23" en cuatro
+    /// renglones. Con `adaptive` caben las que quepan y todas miden lo mismo.
     private var kpisAsistencia: some View {
-        let columnas: [GridItem] = sizeClass == .compact
-            ? [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
-            : Array(repeating: GridItem(.flexible(), spacing: 12), count: 4)
-        return LazyVGrid(columns: columnas, spacing: 12) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
             kpiCard(L.t("Promedio del periodo", "Period average"),
                     "\(asistencia.promedioPct)%",
                     L.t("del roster", "of roster"))

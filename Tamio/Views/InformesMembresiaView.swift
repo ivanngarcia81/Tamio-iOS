@@ -547,10 +547,8 @@ struct InformesMembresiaView: View {
                                 in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
                 }
 
-                LazyVGrid(columns: sizeClass == .regular
-                          ? [GridItem(.flexible()), GridItem(.flexible()),
-                             GridItem(.flexible()), GridItem(.flexible())]
-                          : [GridItem(.flexible()), GridItem(.flexible())],
+                // Ver `colsKPI`: las que quepan, no las que diga el aparato.
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
                           spacing: 12) {
                     cifraAsistencia(L.t("Servicios", "Services"), "\(vm.serviciosDelPeriodo)")
                     cifraAsistencia(L.t("Asistencia total", "Total attendance"), "\(vm.asistenciaTotal)")
@@ -654,8 +652,9 @@ struct InformesMembresiaView: View {
                 }
 
                 if sizeClass == .regular {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()),
-                                        GridItem(.flexible()), GridItem(.flexible())],
+                    // Cuatro por fila si caben; si no, las que quepan. Ver
+                    // `colsKPI`: la pregunta es el ancho.
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
                               spacing: 12) {
                         ForEach(TarjetaPadron.allCases) { t in tarjetaPadron(t) }
                     }
@@ -764,6 +763,52 @@ struct InformesMembresiaView: View {
         .accessibilityAddTraits(activa ? .isSelected : [])
     }
 
+    /// La tabla ancha de traslados: cinco columnas de ancho fijo, 580 pt en
+    /// total. Es lo que mide el `ViewThatFits` que la elige.
+    private func tablaTraslados(_ r: InformeResumen) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) {
+                Text(L.t("FOLIO", "FOLIO")).frame(width: 110, alignment: .leading)
+                Text(L.t("MOVIMIENTO", "MOVEMENT")).frame(width: 90, alignment: .leading)
+                Text(L.t("PERSONA / IGLESIA", "PERSON / CHURCH")).frame(width: 180, alignment: .leading)
+                Text(L.t("FECHA", "DATE")).frame(width: 80, alignment: .trailing)
+                Text(L.t("ESTADO", "STATUS")).frame(width: 120, alignment: .trailing)
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.bottom, 6)
+            Divider()
+
+            ForEach(r.traslados) { t in
+                HStack(spacing: 0) {
+                    Text(t.folioLegible).font(.caption).monospacedDigit()
+                        .frame(width: 110, alignment: .leading)
+                    Pill(texto: t.tipoTraslado,
+                         color: t.sentido == .salida ? Paleta.aviso : Paleta.brand)
+                        .frame(width: 90, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(t.persona).font(.subheadline.weight(.medium)).lineLimit(1)
+                        Text(t.iglesia).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    .frame(width: 180, alignment: .leading)
+                    Text(t.fecha).font(.caption).foregroundStyle(.secondary)
+                        .frame(width: 80, alignment: .trailing)
+                    Text(t.estado).font(.caption).foregroundStyle(.secondary)
+                        .frame(width: 120, alignment: .trailing)
+                }
+                .padding(.vertical, 8)
+                .overlay(alignment: .bottom) {
+                    if t.id != r.traslados.last?.id { Divider() }
+                }
+            }
+        }
+        // Los 580 pt de las cinco columnas, dichos también aquí: sin esto la
+        // línea de la cabecera se estiraba hasta el borde de la tarjeta y las
+        // de las filas no, que es lo que hacía el `ScrollView` de antes sin
+        // que se notara.
+        .frame(width: 580, alignment: .leading)
+    }
+
     /// La fila del informe NO es la de Membresía: aquí no se abre a nadie —un
     /// informe se lee y se exporta—, así que enseña lo que el recorte explica,
     /// el estado y el porcentaje, sin chevron que prometa una ficha.
@@ -819,10 +864,13 @@ struct InformesMembresiaView: View {
                         .contentTransition(.numericText())
                 }
 
-                // Dos columnas de KPIs — siempre 2 en iPad, 1 en iPhone
-                let colsKPI: [GridItem] = sizeClass == .regular
-                    ? [GridItem(.flexible()), GridItem(.flexible())]
-                    : [GridItem(.flexible())]
+                // **Las columnas las decide el ANCHO, no el aparato.** Con
+                // dos fijas en cuanto la clase era regular, en una columna
+                // estrecha —el 13" en vertical con la sidebar, la app a la
+                // mitad— cada tarjeta se quedaba en unos 220 pt: la gráfica de
+                // altas metía doce meses ahí y los nombres salían al 70 % de
+                // un `.caption2`, o sea rayas.
+                let colsKPI = [GridItem(.adaptive(minimum: 300), spacing: 16)]
                 LazyVGrid(columns: colsKPI, spacing: 16) {
                     // Por estado
                     Tarjeta {
@@ -967,55 +1015,31 @@ struct InformesMembresiaView: View {
                             .buttonStyle(.plain)
                         }
 
-                        // **En el teléfono no hay tabla.** Las cinco columnas
-                        // suman 580 puntos y aquí había un scroll horizontal
-                        // con `showsIndicators: false`: la fecha y el estado
-                        // existían, pero fuera de la pantalla y sin nada que
-                        // insinuara que se podía arrastrar. Un informe que se
-                        // enseña en una junta no puede esconder dos columnas
-                        // detrás de un gesto que nadie sabe que está.
-                        if compacto {
+                        // **Tabla si cabe entera, filas si no.**
+                        //
+                        // Las cinco columnas suman 580 pt, y quien elegía era
+                        // la clase de tamaño: un iPad con la columna estrecha
+                        // —el 13" en vertical con la sidebar, la app a la
+                        // mitad— se quedaba con la tabla y perdía por la
+                        // derecha la fecha y el estado. Y las perdía dentro de
+                        // un `ScrollView` horizontal sin indicador: existían,
+                        // pero fuera de la pantalla y sin nada que insinuara
+                        // que se podía arrastrar. Un informe que se enseña en
+                        // una junta no puede esconder dos columnas detrás de
+                        // un gesto que nadie sabe que está —eso ya estaba
+                        // escrito aquí, y valía igual para el iPad—.
+                        //
+                        // El teléfono ya tenía la respuesta: las mismas filas
+                        // en vertical. Ahora la elige el ancho y sirve para
+                        // los dos.
+                        ViewThatFits(in: .horizontal) {
+                            tablaTraslados(r)
                             VStack(alignment: .leading, spacing: 0) {
                                 ForEach(r.traslados) { t in
                                     filaTrasladoCompacta(t)
                                     if t.id != r.traslados.last?.id { Divider() }
                                 }
                             }
-                        } else {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            VStack(alignment: .leading, spacing: 0) {
-                                // Cabecera
-                                HStack(spacing: 0) {
-                                    Text(L.t("FOLIO", "FOLIO")).frame(width: 110, alignment: .leading)
-                                    Text(L.t("MOVIMIENTO", "MOVEMENT")).frame(width: 90, alignment: .leading)
-                                    Text(L.t("PERSONA / IGLESIA", "PERSON / CHURCH")).frame(width: 180, alignment: .leading)
-                                    Text(L.t("FECHA", "DATE")).frame(width: 80, alignment: .trailing)
-                                    Text(L.t("ESTADO", "STATUS")).frame(width: 120, alignment: .trailing)
-                                }
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .padding(.bottom, 6)
-                                Divider()
-
-                                ForEach(r.traslados) { t in
-                                    HStack(spacing: 0) {
-                                        Text(t.folioLegible).font(.caption).monospacedDigit().frame(width: 110, alignment: .leading)
-                                        Pill(texto: t.tipoTraslado,
-                                             color: t.sentido == .salida ? Paleta.aviso : Paleta.brand)
-                                            .frame(width: 90, alignment: .leading)
-                                        VStack(alignment: .leading, spacing: 1) {
-                                            Text(t.persona).font(.subheadline.weight(.medium)).lineLimit(1)
-                                            Text(t.iglesia).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                                        }
-                                        .frame(width: 180, alignment: .leading)
-                                        Text(t.fecha).font(.caption).foregroundStyle(.secondary).frame(width: 80, alignment: .trailing)
-                                        Text(t.estado).font(.caption).foregroundStyle(.secondary).frame(width: 120, alignment: .trailing)
-                                    }
-                                    .padding(.vertical, 8)
-                                    if t.id != r.traslados.last?.id { Divider() }
-                                }
-                            }
-                        }
                         }
                     }
                 }
