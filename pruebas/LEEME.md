@@ -33,3 +33,37 @@ las operaciones se quedan en la cola de salida y el motor no se llama.
   plantillas. Sirve de control para cualquier cambio en `CartasViewModel`.
 - **`contraste.py`** — mide el contraste de un rectángulo de una captura, sin
   dependencias. `python3 pruebas/contraste.py captura.png rect X0 Y0 X1 Y1`.
+
+## Las de la pasada del iPad · 9 de septiembre
+
+Se corren igual (§3), pero con `XCUIDevice.shared.orientation` en el `setUp` y
+—las de columna estrecha— **en el iPad mini**, que es donde la columna del
+detalle baja de 640 pt con la sidebar fijada.
+
+- **`EstrechoIPadUITests.swift`** — iPad mini vertical: que tocar una fila abra
+  la ficha, que cambiar de sección la deje en la raíz y que el reporte abra con
+  sus controles una sola vez.
+- **`ReportesEstrechoUITests.swift`** — que ninguna cabecera de la tabla se
+  salga del ancho de la ventana y que ninguna etiqueta de botón mida más de un
+  renglón. Cuatro posturas.
+- **`InicioEstrechoUITests.swift`**, **`SecretariaEstrechoUITests.swift`** — lo
+  mismo para los indicadores de Inicio, los informes del padrón y el panel de
+  Asistencia.
+- **`FirmaUITests.swift`** — que un trazo encienda "Guardar", en iPad y en
+  teléfono. `PKCanvasView` no es observable: es la prueba de que el cuerpo lee
+  el contador.
+- **`FichaAportanteUITests.swift`**, **`FilaTrasladoUITests.swift`**,
+  **`TextoGrandeUITests.swift`** — que las cifras y las pastillas se dibujen
+  todas al mismo tamaño, con el tamaño de letra de fábrica y en AX1.
+- **`AjustesAccesoUITests.swift`** — la parada para medir el contraste de los
+  dos botones apagados de Acceso y áreas, y que vuelvan a ser botón al escribir
+  un correo.
+- **`SeleccionAnunciadaUITests.swift`** — que la sección y la fila abiertas
+  digan `isSelected`.
+- **`TelefonoParadasUITests.swift`**, **`MembresiaTelefonoUITests.swift`** — las
+  paradas del teléfono para el diff de píxeles cuando se toca una vista
+  compartida.
+- **`pixdiff.py`** — el diff de píxeles, sin dependencias. Salta la franja
+  superior (reloj y aviso del modo revisión) y da el porcentaje distinto:
+  `python3 pruebas/pixdiff.py antes.png despues.png`. **Solo vale con corrida
+  de control**: dos corridas del mismo código dan 0.000 %.
