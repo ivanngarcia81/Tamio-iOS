@@ -39,6 +39,40 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var nav = nav
+        contenido
+            // **Las dos formas de la app se pasan el sitio al cruzar.**
+            //
+            // En iPadOS 26 la ventana se estrecha con el asa de la esquina, y
+            // a 375 pt la clase pasa a compacta: la app deja de dibujar la
+            // sidebar y dibuja el `TabView` del teléfono. Cada forma tiene su
+            // propio estado de navegación —`seccion` la sidebar, `pestana` las
+            // pestañas—, así que sin esto cruzar la frontera aterrizaba
+            // siempre en Inicio: estabas en Ingresos, movías el tamaño de la
+            // ventana y aparecías en la portada.
+            //
+            // **Va en `onChange` del `sizeClass` y no en un `task`**, para que
+            // corra EXACTAMENTE al cruzar y no cada vez que se redibuja: como
+            // `task`, en un iPad que nunca fue compacto rebotaba a Inicio al
+            // elegir cualquier sección, porque `pestana` seguía en su valor de
+            // partida. Un teléfono nunca cambia de clase, así que allí esto no
+            // corre nunca.
+            .onChange(of: sizeClass) { anterior, nueva in
+                if nueva == .compact {
+                    nav.pestana = Navegacion.pestana(de: nav.seccion)
+                } else if anterior == .compact {
+                    // Al ensanchar, la sección sigue a la pestaña **solo si se
+                    // cambió de pestaña mientras tanto**: quien solo movió el
+                    // tamaño de la ventana vuelve a Depósitos, no a Ingresos.
+                    if Navegacion.pestana(de: nav.seccion) != nav.pestana {
+                        nav.seccion = Navegacion.seccion(de: nav.pestana)
+                    }
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var contenido: some View {
+        @Bindable var nav = nav
         if sizeClass == .regular {
             NavigationSplitView(columnVisibility: $columnas) {
                 Sidebar(seleccion: $nav.seccion)
@@ -80,14 +114,6 @@ struct RootView: View {
                 // `navigationDestination(item:)` de cada pantalla, así que
                 // quien la cierra tiene que ser ese mismo `item`.
                 detalle
-                    // Y al ensanchar, la sección sigue a la pestaña **solo si
-                    // se cambió de pestaña mientras la ventana era estrecha**:
-                    // quien solo movió el tamaño vuelve donde estaba.
-                    .task {
-                        if Navegacion.pestana(de: nav.seccion) != nav.pestana {
-                            nav.seccion = Navegacion.seccion(de: nav.pestana)
-                        }
-                    }
             }
         } else {
             IPhoneRootView()
@@ -301,13 +327,7 @@ private struct IPhoneRootView: View {
         // nunca tuvo, porque `inicio` es el valor por omisión—. Sin esto, la
         // secretaria abriría la app en una pestaña que no existe y vería el
         // TabView en blanco.
-        // **La pestaña sigue a la sección al caer a compacto.** Ver
-        // `Navegacion.pestana(de:)`: estrechar la ventana desde Ingresos
-        // aterrizaba en Inicio.
-        .task {
-            nav.pestana = Navegacion.pestana(de: nav.seccion)
-            corregirPestana()
-        }
+        .task { corregirPestana() }
         .onChange(of: permisos.rol) { _, _ in corregirPestana() }
         .tint(Paleta.brand)
         // `.ultraThinMaterial` es el material más transparente del sistema: dejaba
