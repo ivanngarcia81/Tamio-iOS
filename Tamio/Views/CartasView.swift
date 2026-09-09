@@ -150,7 +150,13 @@ struct CartasView: View {
             .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
-        .filaDeLista(seleccionada: sel, tarjeta: sizeClass != .regular)
+        // La selección persistente es idioma de iPad, donde la lista y el
+        // detalle conviven. En el teléfono la fila NAVEGA, y al volver se
+        // quedaba pintada como si siguiera abierta —y en la bitácora de cultos
+        // encima prometía algo que el menú "Acciones" niega a propósito: sus
+        // tres acciones se apagan porque no hay culto delante—. Misma línea que
+        // ya llevan Ingresos y Aportantes.
+        .filaDeLista(seleccionada: sel && sizeClass == .regular, tarjeta: sizeClass != .regular)
     }
 
     private func filaEmitida(_ carta: CartaEmitida) -> some View {

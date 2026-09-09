@@ -566,7 +566,13 @@ struct MembresiaView: View {
             .minimumScaleFactor(0.75)
         }
         .padding(.vertical, 10)
-        .filaDeLista(seleccionada: esSel, tarjeta: sizeClass != .regular)
+        // La selección persistente es idioma de iPad, donde la lista y el
+        // detalle conviven. En el teléfono la fila NAVEGA, y al volver se
+        // quedaba pintada como si siguiera abierta —y en la bitácora de cultos
+        // encima prometía algo que el menú "Acciones" niega a propósito: sus
+        // tres acciones se apagan porque no hay culto delante—. Misma línea que
+        // ya llevan Ingresos y Aportantes.
+        .filaDeLista(seleccionada: esSel && !compacto, tarjeta: compacto)
     }
 
     private func filaSeguimiento(_ m: Miembro) -> some View {
@@ -591,7 +597,13 @@ struct MembresiaView: View {
             }
         }
         .padding(.vertical, 10)
-        .filaDeLista(seleccionada: esSel, tarjeta: sizeClass != .regular)
+        // La selección persistente es idioma de iPad, donde la lista y el
+        // detalle conviven. En el teléfono la fila NAVEGA, y al volver se
+        // quedaba pintada como si siguiera abierta —y en la bitácora de cultos
+        // encima prometía algo que el menú "Acciones" niega a propósito: sus
+        // tres acciones se apagan porque no hay culto delante—. Misma línea que
+        // ya llevan Ingresos y Aportantes.
+        .filaDeLista(seleccionada: esSel && !compacto, tarjeta: compacto)
     }
 
     // MARK: - Helpers

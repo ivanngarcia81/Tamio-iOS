@@ -313,7 +313,13 @@ struct DepositosView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .filaDeLista(seleccionada: esSel, tarjeta: !wide)
+        // La selección persistente es idioma de iPad, donde la lista y el
+        // detalle conviven. En el teléfono la fila NAVEGA, y al volver se
+        // quedaba pintada como si siguiera abierta —y en la bitácora de cultos
+        // encima prometía algo que el menú "Acciones" niega a propósito: sus
+        // tres acciones se apagan porque no hay culto delante—. Misma línea que
+        // ya llevan Ingresos y Aportantes.
+        .filaDeLista(seleccionada: esSel && !compacto, tarjeta: !wide)
     }
 }
 

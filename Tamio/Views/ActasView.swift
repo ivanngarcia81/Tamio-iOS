@@ -174,7 +174,13 @@ struct ActasView: View {
             Pill(texto: acta.estado.etiqueta, color: acta.estado.color)
         }
         .padding(.vertical, 11)
-        .filaDeLista(seleccionada: sel, tarjeta: sizeClass != .regular)
+        // La selección persistente es idioma de iPad, donde la lista y el
+        // detalle conviven. En el teléfono la fila NAVEGA, y al volver se
+        // quedaba pintada como si siguiera abierta —y en la bitácora de cultos
+        // encima prometía algo que el menú "Acciones" niega a propósito: sus
+        // tres acciones se apagan porque no hay culto delante—. Misma línea que
+        // ya llevan Ingresos y Aportantes.
+        .filaDeLista(seleccionada: sel && !compacto, tarjeta: compacto)
     }
 
     // MARK: - Detalle
