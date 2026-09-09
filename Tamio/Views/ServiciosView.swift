@@ -266,8 +266,29 @@ struct ServiciosView: View {
                                             .frame(height: 48 * a.pct)
                                     }
                                     .frame(height: 48)
+                                    // **El carril de detrás, que es el 100 %.**
+                                    // Sin él la barra no se ve fracción de
+                                    // nada: la asistencia de una iglesia vive
+                                    // entre el 75 y el 100 %, así que sobre 48
+                                    // pt un 78 % y un 94 % se separan ocho
+                                    // píxeles y las cuatro barras parecen
+                                    // iguales. Medido: 0.84, 0.94, 0.78 y 0.91
+                                    // —el cálculo estaba bien, lo que no se
+                                    // podía era leerlo—. El carril no añade
+                                    // ningún dato; enseña el que ya había.
+                                    //
+                                    // Y de paso arregla el caso del culto sin
+                                    // roster: con `total` a cero la barra mide
+                                    // cero y la columna desaparecía entera.
+                                    .background(RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                        .fill(Paleta.brand.opacity(0.12)))
                                     Text(a.fecha).font(.caption2).foregroundStyle(.secondary)
                                 }
+                                // Las cifras que el ojo tiene que estimar,
+                                // dichas enteras para VoiceOver.
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(L.t("\(a.fecha): \(a.presentes) de \(a.total)",
+                                                        "\(a.fecha): \(a.presentes) of \(a.total)"))
                                 .frame(maxWidth: .infinity)
                             }
                         }
