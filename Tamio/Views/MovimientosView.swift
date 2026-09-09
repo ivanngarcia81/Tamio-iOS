@@ -824,6 +824,12 @@ struct MovimientosView: View {
                 let etiqueta = etiquetaEstado(m)
                 Text(etiqueta?.texto ?? L.t("Sin depositar", "Not deposited"))
                     .font(.caption2.weight(.semibold))
+                    // Una pastilla de estado no se parte: en AX1 "Not
+                    // deposited" salía en dos renglones dentro de la cápsula y
+                    // estiraba la fila, así que el ritmo de la lista se rompía
+                    // en todas. Es lo mismo que ya lleva escrito la fila del
+                    // padrón.
+                    .lineLimit(1).minimumScaleFactor(0.75)
                     .foregroundStyle(etiqueta?.tinta ?? Paleta.aviso)
                     .padding(.horizontal, Esp.hueco).padding(.vertical, 2)
                     .background(etiqueta?.fondo ?? Paleta.avisoFill, in: Capsule())

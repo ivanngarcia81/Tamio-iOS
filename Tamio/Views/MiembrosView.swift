@@ -474,7 +474,12 @@ struct MiembrosView: View {
             }
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 4) {
+                // La regla de §4: una cifra de dinero no se parte ni se
+                // recorta. Sin ella, en AX1 esta columna sacaba "$19,600"
+                // sobre ".00" y "$4,050." sobre "00", que es peor que una
+                // cifra pequeña: parecen dos números.
                 Text(Money.fmt(a.total(anio: vm.anio))).font(.subheadline.weight(.semibold)).monospacedDigit()
+                    .lineLimit(1).minimumScaleFactor(0.5)
                 // Solo las bajas por traslado: el traslado EN CURSO no es un
                 // estado de la persona sino un expediente, y aquí no se ve.
                 if a.estado.baja?.motivo == "traslado" {
