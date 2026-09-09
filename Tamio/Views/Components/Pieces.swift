@@ -225,6 +225,21 @@ struct HojaCartaEscalada<Contenido: View>: View {
             })
             .overlay(alignment: .top) {
                 contenido
+                    // **La hoja se dibuja a su alto natural, pase lo que pase.**
+                    //
+                    // `altoHoja` arranca en 0, así que en la primera pasada el
+                    // contenido se mide dentro de una caja de alto cero: un
+                    // párrafo que necesita dos renglones se conforma con uno y
+                    // se recorta con puntos suspensivos, y el alto que se
+                    // publica es el del párrafo YA recortado. El bucle converge
+                    // ahí y la hoja se queda así.
+                    //
+                    // Se veía en la constancia anual: "This certifies that the
+                    // person named above made the following voluntary co…" en
+                    // el documento que se le entrega a quien aporta. Con
+                    // `fixedSize` vertical el texto pide su alto de verdad y la
+                    // medida sale de una hoja entera.
+                    .fixedSize(horizontal: false, vertical: true)
                     // La medida del alto se toma ANTES de escalar y las escalas
                     // se aplican después: así ninguna de las dos depende de la
                     // otra y el layout converge en vez de ciclar.
