@@ -1993,6 +1993,41 @@ Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.
   código ya devolvía texto y no botón. Se quita con
   `sharedBackgroundVisibility(.hidden)`.
 
+- **`.sheet(isPresented:)` con un `if let` dentro presenta la hoja EN BLANCO.**
+  Medido con antes y después el 9-sep sobre el botón de CSV del informe de
+  membresía, que Iván vio en blanco en su iPhone: la acción escribe el archivo,
+  pone la URL y levanta la bandera en la MISMA pasada, y la hoja puede evaluar
+  su contenido antes de que la URL esté puesta — entonces el `if let` no entra y
+  se presenta una hoja vacía. El archivo estaba bien: 571 bytes bien formados.
+
+  **La forma correcta ya estaba en la app**: los tres
+  `.sheet(item:) { CompartirArchivo(url: $0) }` de Ajustes, con `URL` hecho
+  `Identifiable` en `CompartirArchivo.swift` **precisamente para esto** —lo dice
+  su propio comentario—. Informes se había escrito su copia privada de la hoja
+  de compartir y el otro patrón. Con `item:` la hoja no existe hasta que hay
+  valor, así que no puede salir vacía.
+
+  Con `grep` apareció **un segundo sitio**: "Recopilar firmas" de un acta, que
+  además leía `vm.seleccion` mientras el botón vive dentro de un acta concreta
+  —si las dos no coincidieran se firmaría un acta distinta de la que se mira—.
+  Los dos arreglados. **Si aparece otro `.sheet(isPresented:)` con un `if let`
+  dentro, es este mismo caso.**
+
+- **Los controles de una vista EMPUJADA con `NavigationLink` dentro de un
+  `Form` no se repintan** cuando cambia el `@State` del padre. El enlace SÍ
+  escribe —el valor viaja y sube— pero lo que se ve se queda viejo hasta salir
+  y volver a entrar. Encontrado por Iván en su iPhone dos veces —el estado
+  civil y los chips de habilidades— y **no reproducible en el simulador**, así
+  que no se puede medir aquí: solo se ve en el aparato.
+
+  Le pasa a cualquier control cuyo aspecto se derive del modelo: en la hoja de
+  miembro son **diez** —cinco chips, cuatro interruptores y cuatro fechas—.
+  Un `TextField` se salva porque lleva su propio estado mientras se escribe.
+  Arreglarlos uno a uno deja el fallo esperando al siguiente que se añada: las
+  cuatro páginas llevan un `vivo(_:)` que envuelve el enlace y, al escribir,
+  toca un `@State` propio de la página. **El estado propio de una vista siempre
+  la invalida**, y ese es el único mecanismo con el que se puede contar.
+
 - **El tamaño de letra de fábrica es `large`, no `medium`.** El `medium` de
   `simctl ui content_size` está un escalón por DEBAJO del de fábrica, así que
   comparar contra él hace creer que un arreglo encoge la tipografía.
