@@ -40,7 +40,12 @@ struct RevisarView: View {
         // no scrollea y el título grande dejaba una franja vacía.
         .navigationBarTitleDisplayMode(sizeClass == .compact ? .inline : .large)
         .toolbar {
+            // **Sin cápsula cuando no es un botón.** Con cero aprobables esto
+            // es un texto —lo dice `aprobarTodo`—, pero el sistema le pone su
+            // cristal igual y "0 of 16 ready" se lee como un control que no
+            // responde, que es justo lo que esta pantalla dejó de hacer.
             ToolbarItem(placement: .topBarTrailing) { aprobarTodo }
+                .sharedBackgroundVisibility(vm.aprobablesCount == 0 ? .hidden : .automatic)
         }
         .overlay(alignment: .bottom) { toastView }
         .animation(.snappy, value: vm.toast?.id)
