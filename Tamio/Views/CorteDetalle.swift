@@ -304,7 +304,13 @@ struct CorteDetalle: View {
                 Label(L.t("Otra cuenta…", "Another account…"), systemImage: "plus")
             }
         } label: {
-            etiqueta().foregroundStyle(Paleta.enlace)
+            // **Verde de marca, no el azul de enlace.** `Paleta.enlace` es para
+            // lo que lleva a otro sitio —"Abrir bandeja →", "Ver ficha"—, y
+            // esto no lleva a ninguna parte: cambia un valor del corte, igual
+            // que los `Picker` de "Registrar depósito". Medido sobre las dos
+            // capturas, los MISMOS tres campos —cuenta, fecha y periodo— salían
+            // (37,99,235) aquí y (21,122,75) allá.
+            etiqueta().foregroundStyle(Paleta.brand)
         }
     }
 
@@ -323,7 +329,7 @@ struct CorteDetalle: View {
                 }
             }
         } label: {
-            etiqueta().foregroundStyle(Paleta.enlace)
+            etiqueta().foregroundStyle(Paleta.brand)   // ver `menuCuentas`
         }
     }
 
@@ -564,7 +570,7 @@ struct CorteDetalle: View {
                         Text(Fechas.diaLegible(corte.registro.fecha)).font(.subheadline)
                         Image(systemName: "calendar").font(.caption2)
                     }
-                    .foregroundStyle(Paleta.enlace)
+                    .foregroundStyle(Paleta.brand)   // ver `menuCuentas`
                 }
                 .buttonStyle(.plain)
             } else {

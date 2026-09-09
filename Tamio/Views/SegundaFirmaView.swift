@@ -143,7 +143,10 @@ struct SegundaFirmaView: View {
                             Text(nombreLimpio.isEmpty ? L.t("Elegir", "Choose") : nombreLimpio)
                             Image(systemName: "chevron.up.chevron.down").font(.caption2)
                         }
-                        .foregroundStyle(Paleta.enlace)
+                        // Verde como los demás selectores de la app: elegir
+                        // quién firma cambia un valor, no lleva a otra pantalla.
+                        // El "Elegir…" de "Añadir pariente" ya sale así.
+                        .foregroundStyle(Paleta.brand)
                     }
                 }
             }
