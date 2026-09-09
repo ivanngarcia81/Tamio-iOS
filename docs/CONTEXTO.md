@@ -1665,8 +1665,22 @@ de dar por bueno el estado de la rama.
 
 Rama viva: **`liquid-glass`**, sincronizada con `origin/liquid-glass`.
 
-**`main` está al día en `46dd4fe`**, adelantada por avance rápido el 7 de
-septiembre por la tarde (veintinueve commits desde `3ffc483`). Se había quedado
+**`main` está al día en `6a39845`**, adelantada por avance rápido el **9 de
+septiembre** a petición de Iván: setenta y cuatro commits desde `e4099f4`, con
+`main` sin nada propio.
+
+Antes de empujarla se comprobaron cuatro cosas, y conviene repetirlas: que el
+avance es rápido de verdad —`main` antecesora, cero commits solo suyos—, que el
+árbol no tiene nada sin commitear, y que **ninguno de los setenta y cuatro
+lleva `ModoRevision.activada = true`**, que es lo que la regla 3 prohíbe y lo
+único que un `git log` no te va a recordar solo.
+
+**La condición que este archivo ponía —"cuando lo de `liquid-glass` esté
+probado"— se cumplió ese mismo día**: la sincronización se ejercitó de punta a
+punta desde el iPhone de Iván y se verificó contra la BASE (§0.-6). Lo que
+todavía NO estaba probado en el aparato al fusionar: el guardado de la carta
+con las variables resueltas y el repintado de las cuatro páginas de la hoja de
+miembro, que no llegaron a instalarse. Se había quedado
 atrás en `4a571ff` a propósito mientras las cuatro migraciones nuevas (v18–v21)
 y las cuatro entidades de sincronización estaban sin probar contra la red; se
 probaron con la cuenta real, así que el motivo se acabó. **Repetirlo cuando lo
