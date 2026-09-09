@@ -1283,6 +1283,27 @@ private struct DatosPersonaPage: View {
     @Binding var tieneFecha: Bool
     @Binding var fechaNacimiento: Date
 
+    /// **El estado civil se lleva en estado LOCAL y se escribe de vuelta.**
+    ///
+    /// Enlazado directo a `$m.estadoCivil`, en el iPhone de Iván el valor se
+    /// guardaba pero la fila seguía diciendo "Sin especificar" hasta salir de
+    /// la página y volver a entrar. En el simulador no pasa, así que el fallo
+    /// no se pudo medir aquí.
+    ///
+    /// Lo que hace único a este control: de los quince de las cuatro páginas
+    /// que cuelgan de la hoja, es el ÚNICO que tiene que volver a derivar lo
+    /// que enseña a partir de `m`. Un `Toggle` y un `TextField` llevan su
+    /// estado dentro y se repintan solos; la etiqueta plegada de un `Picker`
+    /// hay que recalcularla, y para eso el cuerpo de esta página tiene que
+    /// volver a evaluarse. Estas páginas se empujan con `NavigationLink`
+    /// dentro de un `Form`, y ahí SwiftUI no garantiza que la vista ya
+    /// empujada se refresque cuando cambia el `@State` del padre: por eso el
+    /// valor viajaba —el enlace sí escribe— y el rótulo no.
+    ///
+    /// El estado propio de una vista SIEMPRE la invalida, así que con él la
+    /// etiqueta se repinta pase lo que pase con el padre.
+    @State private var estadoCivil = ""
+
     var body: some View {
         Form {
             Section {
@@ -1294,10 +1315,11 @@ private struct DatosPersonaPage: View {
                 }
                 // Claves del web. Sin valor no es "soltero": es que no se ha
                 // preguntado, y así se guarda.
-                Picker(L.t("Estado civil", "Marital status"), selection: $m.estadoCivil) {
+                Picker(L.t("Estado civil", "Marital status"), selection: $estadoCivil) {
                     Text(L.t("Sin especificar", "Not specified")).tag("")
                     ForEach(Padron.estadosCiviles, id: \.self) { Text(Padron.etiqueta($0)).tag($0) }
                 }
+                .onChange(of: estadoCivil) { m.estadoCivil = estadoCivil }
                 TextField(L.t("Dirección (opcional)", "Address (optional)"), text: $m.direccion)
                     .accessibilityLabel(L.t("Dirección (opcional)", "Address (optional)"))
             } footer: {
@@ -1307,6 +1329,9 @@ private struct DatosPersonaPage: View {
         }
         .navigationTitle(L.t("Datos de la persona", "Personal data"))
         .navigationBarTitleDisplayMode(.inline)
+        // Al entrar, lo que ya tenga la ficha; al volver a entrar, lo que se
+        // eligió la vez anterior.
+        .onAppear { estadoCivil = m.estadoCivil }
     }
 }
 
