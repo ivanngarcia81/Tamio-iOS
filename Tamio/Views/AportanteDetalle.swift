@@ -307,13 +307,19 @@ struct AportanteDetalle: View {
                     HStack {
                         Text(Fechas.corta(ap.fecha)).font(.subheadline).foregroundStyle(.secondary)
                             .frame(width: 120, alignment: .leading)
-                        Text(ap.concepto).font(.subheadline)
-                        Spacer()
+                        // Ver la tarjeta de aportes: el concepto cede, la cifra
+                        // no.
+                        Text(ap.concepto).font(.subheadline).lineLimit(1)
+                        Spacer(minLength: 8)
                         Text(Money.fmt(ap.monto)).font(.subheadline.weight(.semibold)).monospacedDigit()
                             .lineLimit(1).minimumScaleFactor(0.5)
                     }
                     .padding(.vertical, 10)
-                    if i < a.aportes.count - 1 { Divider() }
+                    // Ver la tarjeta de aportes recientes: el separador va
+                    // colgado de la fila y no de hermano suyo.
+                    .overlay(alignment: .bottom) {
+                        if i < a.aportes.count - 1 { Divider() }
+                    }
                 }
             }
         }
@@ -389,13 +395,39 @@ struct AportanteDetalle: View {
 
                 ForEach(Array(a.aportesRecientes.enumerated()), id: \.element.id) { i, ap in
                     HStack {
-                        Text("\(ap.concepto) · \(Fechas.corta(ap.fecha))").font(.subheadline)
-                        Spacer()
+                        // **El que cede es el concepto, no el importe.** Sin
+                        // `lineLimit`, esta etiqueta pedía todo su ancho y el
+                        // `minimumScaleFactor` del importe se lo daba
+                        // encogiéndolo: en la misma tarjeta salían dos aportes
+                        // con la cifra pequeña y uno con la cifra grande, como
+                        // si fueran de distinta clase. La regla de §4 es que
+                        // una cifra de dinero no se parte ni se recorta; aquí
+                        // hacía falta además que no se encoja sola.
+                        //
+                        // **Y quien la encogía era el `Divider` de en medio**,
+                        // no el ancho: medido, las dos filas que llevan
+                        // separador debajo salían al 50 % y la última —que no
+                        // lo lleva— a tamaño entero, con la MISMA etiqueta a la
+                        // izquierda y sitio de sobra. Ver el separador, abajo.
+                        Text("\(ap.concepto) · \(Fechas.corta(ap.fecha))")
+                            .font(.subheadline).lineLimit(1)
+                        Spacer(minLength: 8)
                         Text(Money.fmt(ap.monto)).font(.subheadline.weight(.semibold)).monospacedDigit()
                             .lineLimit(1).minimumScaleFactor(0.5)
                     }
                     .padding(.vertical, 6)
-                    if i < a.aportesRecientes.count - 1 { Divider() }
+                    // **El separador va COLGADO de la fila, no al lado.** Como
+                    // hermano dentro del `ForEach` apretaba a su fila: medido,
+                    // las dos que llevaban `Divider` debajo salían con el
+                    // importe al 50 % y la última —la que no lo lleva— a tamaño
+                    // entero, con la misma etiqueta a la izquierda y sitio de
+                    // sobra. Ni `lineLimit`, ni `layoutPriority`, ni
+                    // `fixedSize` en el importe lo evitan; quitar el separador
+                    // sí, así que es él. En un `overlay` dibuja lo mismo y deja
+                    // de opinar sobre el ancho.
+                    .overlay(alignment: .bottom) {
+                        if i < a.aportesRecientes.count - 1 { Divider() }
+                    }
                 }
             }
         }
