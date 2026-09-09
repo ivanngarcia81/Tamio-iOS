@@ -1,0 +1,16 @@
+import XCTest
+
+/// La lista del padrón en el teléfono, para el diff de píxeles: `filaMiembro`
+/// es la misma vista en las dos plataformas.
+final class MembresiaTelefono: XCTestCase {
+    func testParadaEnLaLista() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        app.launch(); sleep(3)
+        app.tabBars.buttons["Secretary"].tap(); sleep(2)
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Membership,'")).firstMatch.tap(); sleep(3)
+        let p = app.staticTexts["Transfer in progress"].firstMatch
+        print("### pastilla en el teléfono \(p.frame)")
+        print("MARCA:MT-lista"); fflush(stdout); Thread.sleep(forTimeInterval: 3)
+    }
+}

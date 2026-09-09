@@ -564,6 +564,15 @@ struct MembresiaView: View {
             // en español, que es más corto, no se nota.
             .lineLimit(1)
             .minimumScaleFactor(0.75)
+            // **Y en la columna del iPad el que cede es el NOMBRE.** En 390 pt
+            // de teléfono el encogido no llegaba a notarse; en los 320 de la
+            // columna sí: medido, "Transfer in progress" salía a 75.5 pt de
+            // ancho y 11 de alto contra los 14.5 de "Active" al lado, o sea la
+            // pastilla de un estado dibujada más pequeña que las demás. Con
+            // `fixedSize` la columna de la derecha pide lo que mide y el
+            // nombre —que ya lleva `lineLimit(1)`— se recorta un poco más, que
+            // es lo que este bloque lleva decidido desde el principio.
+            .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.vertical, 10)
         // La selección persistente es idioma de iPad, donde la lista y el
