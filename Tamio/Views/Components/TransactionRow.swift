@@ -38,17 +38,28 @@ struct TransactionRow: View {
 struct AgendaRow: View {
     let item: AgendaItem
 
+    /// **El bloque de fecha crece con la letra.** Eran 36 pt fijos, y en AX1
+    /// no cabía ni el día ni el número: "SUN" salía "SU / N" y un 21 se partía
+    /// en "2 / 1". Una fecha en dos renglones no es una fila apretada, es una
+    /// fecha que se lee mal. `ScaledMetric` da el mismo ancho en tamaño normal
+    /// —el diseño no se mueve— y a partir de ahí lo escala como al texto.
+    /// Relativo a `.caption2`, que es el rótulo más ancho de los dos y el que
+    /// más crece: los estilos pequeños escalan más que los grandes.
+    @ScaledMetric(relativeTo: .caption2) private var anchoFecha: CGFloat = 36
+
     var body: some View {
         HStack(spacing: 12) {
             VStack(spacing: 0) {
                 Text(item.dia)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 Text(item.num)
                     .font(.headline)
                     .monospacedDigit()
+                    .lineLimit(1)
             }
-            .frame(width: 36)
+            .frame(width: anchoFecha)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.titulo).font(.subheadline.weight(.medium)).lineLimit(1)

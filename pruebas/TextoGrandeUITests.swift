@@ -57,4 +57,43 @@ final class TextoGrande: XCTestCase {
         }
         print("### pastillas \(pastillas.map { Int($0.frame.height) })")
     }
+
+    /// El bloque de fecha de "Esta semana" iba en 36 pt fijos: en AX1 el día
+    /// salía "SU / N" y el número "2 / 1". Ahora el ancho escala con la letra.
+    func testLaFechaDeLaAgendaDeInicioNoSeParte() {
+        seccion("Home")
+        parada("X-inicio-agenda")
+        // Los días de la semana en tres letras y los números del mes: los dos
+        // rótulos que viven dentro del bloque estrecho.
+        let dias = app.staticTexts.matching(NSPredicate(
+            format: "label IN {'MON','TUE','WED','THU','FRI','SAT','SUN'}")).allElementsBoundByIndex
+        XCTAssertGreaterThan(dias.count, 1, "### no encontré la agenda de Inicio")
+        for d in dias {
+            XCTAssertLessThan(d.frame.height, 40,
+                              "### '\(d.label)' salió en dos renglones: \(d.frame)")
+        }
+        print("### días \(dias.map { "\($0.label)=\(Int($0.frame.height))" })")
+    }
+
+    /// El selector de vista y la cabecera de días de la Agenda, en la columna
+    /// estrecha: "Month" salía "Mont / h" y "MON" salía "MO / N".
+    func testElSelectorDeLaAgendaNoSeParte() {
+        XCUIDevice.shared.orientation = .portrait; sleep(3)
+        seccion("Calendar")
+        parada("X-agenda")
+        for nombre in ["Month", "Week", "List"] {
+            let e = app.buttons.matching(NSPredicate(format: "label == %@", nombre)).firstMatch
+            guard e.exists else { continue }
+            XCTAssertLessThan(e.frame.height, 60,
+                              "### '\(nombre)' salió en dos renglones: \(e.frame)")
+            print("### \(nombre)=\(Int(e.frame.height))")
+        }
+        let dias = app.staticTexts.matching(NSPredicate(
+            format: "label IN {'MON','TUE','WED','THU','FRI','SAT','SUN'}")).allElementsBoundByIndex
+        for d in dias {
+            XCTAssertLessThan(d.frame.height, 40,
+                              "### la cabecera '\(d.label)' salió en dos renglones: \(d.frame)")
+        }
+        print("### cabecera \(dias.map { "\($0.label)=\(Int($0.frame.height))" })")
+    }
 }

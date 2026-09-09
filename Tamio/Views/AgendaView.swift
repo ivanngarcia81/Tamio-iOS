@@ -192,6 +192,11 @@ struct AgendaView: View {
     private func etiquetaVista(_ nombre: String, activa: Bool) -> some View {
         Text(nombre)
             .font(.subheadline.weight(activa ? .semibold : .regular))
+            // El nombre de una vista no se parte: en AX1, y en la columna de
+            // 320 del iPad, "Month" salía "Mont / h" dentro de la cápsula y el
+            // control crecía a dos renglones. Es la regla que ya llevan las
+            // pastillas de estado de Ingresos y del padrón.
+            .lineLimit(1).minimumScaleFactor(0.75)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 5)
     }
@@ -202,6 +207,10 @@ struct AgendaView: View {
                 Text(d)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    // Por lo mismo: siete columnas a partes iguales dan poco
+                    // más de 40 pt en la columna del iPad, y en AX1 "MON" y
+                    // "WED" salían partidos sobre la rejilla del mes.
+                    .lineLimit(1).minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity)
             }
         }
