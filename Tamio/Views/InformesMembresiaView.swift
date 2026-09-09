@@ -5,7 +5,6 @@ struct InformesMembresiaView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var vm = InformesMembresiaViewModel()
     @State private var mostrarFiltros = false
-    @State private var mostrarShareCSV = false
     @State private var urlCSV: URL? = nil
 
     private let informes = [
@@ -27,9 +26,19 @@ struct InformesMembresiaView: View {
             .task { await vm.cargarPadron() }
             .sincronizable { await vm.cargarPadron() }
             .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
-            .sheet(isPresented: $mostrarShareCSV) {
-                if let url = urlCSV { ShareSheet(items: [url]) }
-            }
+            // **`item:` y no `isPresented:` + `if let`.** Con lo segundo, el
+            // botón del CSV abría una hoja EN BLANCO: `prepararCSV` pone la URL
+            // y levanta la bandera en la misma pasada, y `.sheet(isPresented:)`
+            // puede evaluar su contenido antes de que la URL esté puesta —
+            // entonces el `if let` no entra y la hoja se presenta vacía. Con
+            // `item:` la hoja no existe hasta que hay URL, así que no puede
+            // salir vacía. Lo vio Iván en su iPhone.
+            //
+            // Es además el patrón que ya usa el resto de la app: los tres
+            // `.sheet(item:) { CompartirArchivo(url: $0) }` de Ajustes. `URL`
+            // está hecho `Identifiable` en `CompartirArchivo.swift`
+            // precisamente para esto, y su comentario lo dice.
+            .sheet(item: $urlCSV) { CompartirArchivo(url: $0) }
     }
 
     /// En iPad: columna maestra de informes a la izquierda y contenido a la
@@ -267,7 +276,6 @@ struct InformesMembresiaView: View {
             .appendingPathComponent("Membresia-\(nombre).csv")
         try? vm.csvExportString.write(to: url, atomically: true, encoding: .utf8)
         urlCSV = url
-        mostrarShareCSV = true
     }
 
     // MARK: - Hoja del periodo
@@ -1061,14 +1069,6 @@ struct InformesMembresiaView: View {
 }
 
 // MARK: - Share sheet (UIKit bridge)
-
-private struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-    func updateUIViewController(_ uvc: UIActivityViewController, context: Context) {}
-}
 
 // MARK: - Sheet de rango de fechas
 

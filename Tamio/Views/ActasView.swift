@@ -4,7 +4,7 @@ struct ActasView: View {
     @State private var vm = ActasViewModel()
     @State private var abierto: Acta?
     @State private var mostrarNueva = false
-    @State private var mostrarFirmas = false
+    @State private var actaFirmando: Acta?
     @State private var mostrarCerrarAlert = false
     /// El acta que se está viendo como documento. Se guarda el acta y no un
     /// `Bool` porque en iPad la hoja se abre sobre la seleccionada y en el
@@ -88,11 +88,16 @@ struct ActasView: View {
                 ActaHojaPDF(acta: acta, iglesia: iglesia)
             }
         }
-        .sheet(isPresented: $mostrarFirmas) {
-            if let acta = vm.seleccion {
-                FirmasSheet(acta: acta) { firmas in
-                    Task { await vm.firmarActa(id: acta.id, firmas: firmas) }
-                }
+        // **`item:` con el acta, no `isPresented:` + `if let`.** Dos motivos,
+        // y el primero se midió en Informes de membresía: con `isPresented:` la
+        // hoja se puede presentar antes de que el opcional esté puesto, y
+        // entonces sale EN BLANCO —así salía el CSV—. El segundo es de aquí: el
+        // botón vive dentro de un acta concreta y la hoja leía `vm.seleccion`,
+        // que es otra cosa; si alguna vez no coincidieran, se firmaría un acta
+        // distinta de la que se está mirando. Ahora se le pasa la que se abrió.
+        .sheet(item: $actaFirmando) { acta in
+            FirmasSheet(acta: acta) { firmas in
+                Task { await vm.firmarActa(id: acta.id, firmas: firmas) }
             }
         }
         .alert(L.t("Cerrar acta", "Close minutes"), isPresented: $mostrarCerrarAlert) {
@@ -216,7 +221,7 @@ struct ActasView: View {
             // resto de la app. Ahora son botones de verdad, con el estilo que
             // ya llevan los demás: glass con el verde de marca el que actúa,
             // glass en gris el otro.
-            Button { mostrarFirmas = true } label: {
+            Button { actaFirmando = acta } label: {
                 Text(L.t("Recopilar firmas", "Collect signatures"))
                     .font(.subheadline.weight(.medium)).lineLimit(1)
             }

@@ -456,7 +456,14 @@ struct ReportesView: View {
     private func tarjetas(_ e: EstadoFinanciero) -> some View {
         // Rejilla adaptable: cada tarjeta mínimo 260pt de ancho → 3 en 12.9",
         // 2 o 1 en 11". Evita que la dona y su leyenda queden aplastadas.
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
+        //
+        // **`alignment: .top`, o la fila se descuadra.** Sin él la rejilla
+        // centra cada celda en el alto de su fila, y como las tarjetas no
+        // miden lo mismo —"Saldo del periodo" 513 pt contra los 497 de la
+        // dona— la de al lado empezaba ocho píxeles más abajo. Se ve como un
+        // escalón entre dos tarjetas que deberían arrancar a la misma altura.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16, alignment: .top)],
+                  spacing: 16) {
             tarjetaSaldo(e)
             CategoryDonutChart(categorias: e.composicion, mesCorto: e.composicionMesCorto)
             tarjetaGastos(e)
@@ -553,7 +560,9 @@ struct ReportesView: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) { chipsAnual(a) }
                 }
                 if a.pendientes > 0 { avisoPendientesAnual(a) }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
+                // Ver `tarjetas`: `.top` para que las dos empiecen igual.
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16, alignment: .top)],
+                          spacing: 16) {
                     tablaCategorias(L.t("INGRESOS POR CATEGORÍA", "INCOME BY CATEGORY"),
                                     a.ingresosPorCategoria, total: a.totalIngresos)
                     // El % del gasto va contra el total de GASTOS y no contra
