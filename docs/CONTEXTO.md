@@ -221,6 +221,60 @@ existe** —no hay un solo `keyboardShortcut` en toda la app—. O se conecta o 
 borra el rótulo, pero prometer una tecla que no hace nada es peor que no
 prometerla.
 
+### La cuarta vuelta: el camino del dinero, y una raíz que explica mucho
+
+Al automatizar "¿lo que se importa queda escrito como venía?"
+(`pruebas/ImportarIPadUITests.swift`, `testElAporteImportadoQuedaComoVenia`)
+salieron tres cosas de una sola prueba. La primera es buena: **el aporte SÍ se
+escribe** —el total sube de $19,600 a $21,100 y la fila aparece—. Las otras dos
+no, y **las dos van marcadas con `XCTExpectFailure`, así que la prueba se pone
+en rojo sola el día que se arreglen**.
+
+**1. `==` por id: la raíz de "cambié algo y la pantalla sigue igual".**
+
+`Aportante` define `static func == (l, r) { l.id == r.id }`. Dos fichas con el
+mismo id y distinto contenido son **iguales** para Swift, así que SwiftUI decide
+que la vista no ha cambiado y no la vuelve a dibujar. Medido: tras importar, la
+ficha abierta y la fila de la lista siguen enseñando $19,600 **catorce segundos
+después**, y solo se actualizan saliendo a otra ficha y volviendo. Mientras
+tanto el modelo ya tenía el dato bien **a los 140 ms** (instrumentado con
+`NSLog` y leído con `simctl spawn log stream`: el `print` de la app NO llega al
+runner de las pruebas).
+
+**Y no es solo `Aportante`: lo mismo está escrito en `Movimiento`, `Acta`,
+`Servicio`, `Corte`, `Miembro`, `Apunte` y `Revision`.** Ocho modelos.
+
+Descartado antes de llegar ahí: no es el mock (persiste en un `static`), no es
+el `@Observable` (el modelo se actualiza), y no es la carrera del cierre de la
+hoja (se probó importar en el `onDismiss` y sigue igual).
+
+**El arreglo no es de una línea**: quitar el `==` a mano exige que `Aporte` y
+`Pariente` sean `Equatable` —hoy solo son `Identifiable`, y por eso no compila
+la síntesis—, y cambiar la igualdad mueve todos los `Picker`, los `onChange` y
+los `Set` de la app. **Es decisión de Iván**, con una tanda de regresión
+detrás, no un cambio de última hora.
+
+**2. La fecha se corre un día, y alcanza a lo que baja del web.**
+
+`Fechas.desdeTexto("2026-09-06")` da medianoche **UTC** y `Fechas.corta` lo
+formatea con `L.formateador`, que no fija zona y usa la del aparato: en
+Monterrey, UTC-6, sale "Sep 5". La semilla no lo sufre porque construye sus
+fechas con `Calendar.current` a la hora local. **`MotorSincronizacion:2843` usa
+el mismo parser**, así que esto no es del importador: es de toda fecha que
+llegue como texto suelto. Varios ayudantes ya fuerzan UTC a propósito
+(`diaSemanaCorto`, `numeroDeDia`, `calendarioUTC`) — `Fechas.corta`, que es el
+más usado, no.
+
+No se tocó: arreglarlo bien es fijar la convención de fechas de toda la app.
+
+### Lo que hay que comprobar a mano, y por qué
+
+`docs/COMPROBACION-DINERO.md` es la lista para el iPad de Iván con la cuenta
+real: el camino del dinero, las fechas contra el web en los dos sentidos, las
+pantallas que no se enteran, la sincronización con modo avión, el teclado y
+VoiceOver con el candado. **Está escrita a partir de lo que ESTA sesión no pudo
+medir**, no como ceremonia: cada punto dice por qué está ahí.
+
 ### El aviso que más caro puede salir
 
 **Otra sesión trabaja este mismo árbol.** Un `git add -A` se llevó dos arreglos

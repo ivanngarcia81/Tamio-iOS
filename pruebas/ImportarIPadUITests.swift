@@ -61,6 +61,81 @@ final class ImportarIPad: HojasIPad {
         importar("Import gifts", archivo: "gifts-template", marca: "I-05-aportes")
     }
 
+    /// **El camino del dinero, de punta a punta.** No basta con que la app
+    /// diga que importó: hay que ir a ver qué quedó escrito. El CSV trae
+    /// `2026-09-06 · 1500.00` para Ana Lucía, que ya tiene $19,600 en 2026.
+    ///
+    /// Esta prueba encontró tres cosas y las tres siguen aquí como red:
+    /// el aporte SÍ se escribe (lo verde), la ficha abierta no se entera, y la
+    /// fecha se corre un día. Las dos últimas van con `XCTExpectFailure`, así
+    /// que **se ponen en rojo solas el día que se arreglen**.
+    func testElAporteImportadoQuedaComoVenia() {
+        seccion("Contributors")
+        guard toca("File") else { return XCTFail("no hay menú Archivo") }
+        sleep(1)
+        guard toca("Import gifts") else { return XCTFail("no hay Import gifts") }
+        sleep(3)
+        let sb = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for a in [app, sb] {
+            let d = a!.staticTexts["On My iPad"].firstMatch
+            if d.exists && d.isHittable { d.tap(); sleep(2); break }
+        }
+        var tocado = false
+        for a in [app, sb] {
+            let csv = a!.staticTexts.matching(NSPredicate(format: "label CONTAINS 'gifts-template'")).firstMatch
+            guard csv.waitForExistence(timeout: 5) else { continue }
+            csv.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: -1.8)).tap()
+            tocado = true; break
+        }
+        guard tocado else { return XCTFail("el CSV no aparece en el selector") }
+        sleep(5)
+        let cont = app.buttons["Continue"].firstMatch
+        XCTAssertTrue(cont.waitForExistence(timeout: 6), "el CSV no llegó al mapeo")
+        cont.tap(); sleep(4)
+
+        // La previa dice lo que va a escribir. El CSV pone 2026-09-06.
+        let previa = app.staticTexts.matching(NSPredicate(
+            format: "label CONTAINS 'Sep' AND label CONTAINS '2026'")).allElementsBoundByIndex.map(\.label)
+        print("### la previa dice: \(previa)")
+        // La fila importada es la que trae el concepto crudo del CSV
+        // ("diezmo"); las sembradas dicen "Tithe" y están bien fechadas.
+        let importada = previa.first { $0.contains("diezmo") } ?? "(no la encontré)"
+        XCTExpectFailure("La fecha se corre un día: `Fechas.desdeTexto` parsea la fecha suelta a medianoche UTC y `Fechas.corta` la formatea en la zona del aparato. Alcanza también a lo que baja del web (MotorSincronizacion:2843).") {
+            XCTAssertTrue(importada.contains("Sep 6"),
+                          "el CSV dice 2026-09-06 y la previa dice '\(importada)'")
+        }
+
+        let imp = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Import '")).firstMatch
+        XCTAssertTrue(imp.exists, "no llegó a la previa de importación")
+        imp.tap()
+
+        // ¿Se entera la ficha que está abierta? Medido: no, ni en 14 segundos.
+        var totalTrasImportar: [String] = []
+        for _ in 1...7 {
+            sleep(2)
+            totalTrasImportar = app.staticTexts.matching(NSPredicate(
+                format: "label CONTAINS '19,600' OR label CONTAINS '21,100'"))
+                .allElementsBoundByIndex.map(\.label)
+            if totalTrasImportar.contains(where: { $0.contains("21,100") }) { break }
+        }
+        print("### total tras importar: \(totalTrasImportar)")
+        XCTExpectFailure("La ficha abierta no se refresca: `Aportante` define `==` como `l.id == r.id`, así que para SwiftUI la ficha vieja y la nueva son la misma vista y no vuelve a dibujarla. Lo mismo en Movimiento, Acta, Servicio, Corte, Miembro, Apunte y Revision.") {
+            XCTAssertTrue(totalTrasImportar.contains { $0.contains("21,100") },
+                          "el total siguió en \(totalTrasImportar) tras importar $1,500")
+        }
+
+        // Y lo que de verdad importa: que el dato esté escrito. Saliendo y
+        // volviendo se relee, y ahí sí tiene que estar.
+        tocaTexto("Javier Medina Cruz"); sleep(2)
+        tocaTexto("Ana Lucía Torres Beltrán"); sleep(3)
+        if toca("Giving") { sleep(2) }
+        print("MARCA:I-07-tras-importar"); fflush(stdout); Thread.sleep(forTimeInterval: 2)
+        let total = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '21,100'")).firstMatch
+        XCTAssertTrue(total.exists, "el aporte importado no quedó escrito: el total no subió a $21,100")
+        let fila = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '1,500'")).firstMatch
+        XCTAssertTrue(fila.exists, "el aporte de $1,500 no aparece en el historial")
+    }
+
     func testCamaraDelRecibo() {
         seccion("Deposits")
         tocaTexto("Sunday, September 6 service")
