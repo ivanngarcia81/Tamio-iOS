@@ -85,7 +85,20 @@ struct MockConfiguracionIglesiaRepository: ConfiguracionIglesiaRepository {
         codigoPostal: "64000", idFiscal: "INV010203AB4",
         telefono: "81 1234 5678", correo: "contacto@nuevavida.mx",
         pieInstitucional: "Asociación Religiosa registrada",
-        pastorNombre: "Samuel Ruvalcaba",
+        // **"Pastor Abel Ramos", que es quien la maqueta dice que es.** Aquí
+        // ponía "Samuel Ruvalcaba", el apellido de la familia ficticia que Iván
+        // mandó borrar el 6 de septiembre —"la familia Rubalcaba es ficticio lo
+        // puedes borrar"— y que el §6 de `docs/CONTEXTO.md` da por "borrada del
+        // todo": sobrevivió este.
+        //
+        // Y no era solo un resto: contradecía al resto de la maqueta, que
+        // nombra al pastor "Pastor Abel Ramos" en cinco sitios —las cuatro
+        // actas y quien predica en el culto—. Con dos nombres distintos, las
+        // tres comparaciones de `SecretariaPDF` y `ReportePDF` que buscan la
+        // firma del pastor (`acta.preside == iglesia.pastorNombre`,
+        // `carta.firma == iglesia.pastorNombre`) no casaban NUNCA en modo
+        // revisión, así que la rúbrica no se probaba con la maqueta.
+        pastorNombre: "Pastor Abel Ramos",
         tesoreroNombre: "Iván García",
         secretarioNombre: "Lucía Márquez"
     )
