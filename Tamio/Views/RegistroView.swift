@@ -95,7 +95,12 @@ struct RegistroView: View {
     /// está.
     private var listaColumna: some View {
         scrollApuntes
-            .background(Color(.secondarySystemGroupedBackground))
+            // **La regla del suelo, que aquí faltaba.** De las once listas de
+            // la app, esta era la única con el color escrito a mano, y era el
+            // de la COLUMNA del iPad: en el teléfono dejaba blanco sobre
+            // blanco y las filas no se veían como tarjetas. Lo dijo Iván
+            // mirándolo en su iPhone.
+            .background(Paleta.sueloLista(tarjeta: compacto))
             .scrollEdgeEffectStyle(.soft, for: .all)
             .colchonInferior()
     }
@@ -110,10 +115,6 @@ struct RegistroView: View {
                         encabezadoDia(grupo.titulo, grupo.apuntes.count)
                     }
                 }
-                Text(L.plural(vm.visibles.count, es: "apunte", en: "entry", enPlural: "entries"))
-                    .font(.caption).foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(Esp.tarjeta)
             }
         }
     }
@@ -202,11 +203,19 @@ struct RegistroView: View {
                 }
                 Spacer(minLength: 6)
             }
-            .padding(.horizontal, Esp.fila).padding(.vertical, 11)
-            .background(fondoFila(a, sel: sel))
+            // El mismo trato que `filaDeLista` da a las otras diez listas:
+            // tarjeta redondeada sobre el suelo gris en el teléfono, y fila a
+            // ancho completo en la columna del iPad.
+            .padding(.horizontal, compacto ? Esp.fila : Esp.pantalla)
+            .padding(.vertical, 11)
+            .background(fondoFila(a, sel: sel),
+                        in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
             .overlay(alignment: .leading) {
                 if sel { Rectangle().fill(Paleta.brand).frame(width: 3) }
             }
+            .clipShape(RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
+            .padding(.horizontal, compacto ? Esp.pantalla : 0)
+            .padding(.bottom, compacto ? Esp.hueco : 0)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -226,7 +235,9 @@ struct RegistroView: View {
         if sel { return Paleta.brandFill }
         if a.esNota { return Paleta.avisoFill }
         if a.esAlerta { return Paleta.negativoFill }
-        return .clear
+        // Sin tinte propio, la tarjeta blanca del teléfono; en la columna del
+        // iPad la fila va transparente, como en las demás listas.
+        return compacto ? Paleta.superficieFila : .clear
     }
 
     // MARK: - Detalle de un apunte
