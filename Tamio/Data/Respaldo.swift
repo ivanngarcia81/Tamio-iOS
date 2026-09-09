@@ -497,7 +497,8 @@ enum ExportadorMovimientos {
                 m.estadoRevision.rawValue,
             ]
         }
-        return CSV.archivo(nombre: "movimientos-\(CSV.fecha(Date()))",
+        // Ver `ExportadorAportantes`: el nombre del archivo se traduce.
+        return CSV.archivo(nombre: L.t("movimientos", "transactions") + "-\(CSV.fecha(Date()))",
                            encabezados: columnas, filas: filas)
     }
 }

@@ -26,7 +26,11 @@ enum ExportadorAportantes {
              a.estadoCivil, a.idFiscal, a.frecuencia.rawValue,
              CSV.importe(a.aportesTotal)]
         }
-        return CSV.archivo(nombre: "aportantes-\(CSV.fecha(Date()))",
+        // **El nombre del archivo también se traduce.** Con la app en inglés
+        // se descargaba "aportantes-2026-09-09.csv", que es lo único en
+        // español que se lleva quien exporta —y lo que ve el destinatario si lo
+        // manda por correo—. La plantilla de más abajo ya lo hacía bien.
+        return CSV.archivo(nombre: L.t("aportantes", "givers") + "-\(CSV.fecha(Date()))",
                            encabezados: columnasAportantes, filas: filas)
     }
 
