@@ -167,10 +167,21 @@ struct DashboardView: View {
         }
 
         if esIPad {
-            HStack(alignment: .top) {
-                saludoView
-                Spacer(minLength: 16)
-                segmentado.frame(width: 240).padding(.top, 6)
+            // El saludo y el periodo en la misma fila mientras quepan. En una
+            // columna estrecha el segmentado se lleva sus 240 pt fijos y el
+            // saludo se quedaba en "Good morning,…": el nombre de quien entra
+            // es lo único personal de esta pantalla y se perdía por el
+            // control que tiene al lado.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top) {
+                    saludoView
+                    Spacer(minLength: 16)
+                    segmentado.frame(width: 240).padding(.top, 6)
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    saludoView
+                    segmentado.frame(maxWidth: 320)
+                }
             }
         } else {
             // La tira de controles entre el saludo y las tarjetas desaparece:
@@ -190,8 +201,20 @@ struct DashboardView: View {
 
     @ViewBuilder
     private func contenidoIPad(_ data: DashboardData) -> some View {
-        HStack(alignment: .top, spacing: 16) {
-            kpiSaldo(data); kpiIngresos(data); kpiGastos(data); kpiPorRevisar(data)
+        // **Cuatro en fila mientras quepan.** La fila era fija, y en una
+        // columna estrecha —el iPad mini en vertical con la sidebar, la app a
+        // la mitad— las cuatro tarjetas se repartían unos 95 pt: "Cash on h…",
+        // "$28,633…" y el 13 de la bandeja partido en "1" sobre "3". Un número
+        // de dos cifras en dos renglones no es una tarjeta apretada, es una
+        // cifra que se lee mal.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 16) {
+                kpiSaldo(data); kpiIngresos(data); kpiGastos(data); kpiPorRevisar(data)
+            }
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 16),
+                                GridItem(.flexible(), spacing: 16)], spacing: 16) {
+                kpiSaldo(data); kpiIngresos(data); kpiGastos(data); kpiPorRevisar(data)
+            }
         }
 
         ViewThatFits(in: .horizontal) {
