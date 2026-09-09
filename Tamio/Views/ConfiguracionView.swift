@@ -882,6 +882,40 @@ private struct SeccionAcceso: View {
         }
     }
 
+    /// La fila de invitar, con botón o sin él. Ver el cuerpo.
+    @ViewBuilder
+    private var filaInvitar: some View {
+        HStack(spacing: 8) {
+            Text(invitando
+                 ? L.t("Enviando…", "Sending…")
+                 : L.t("Enviar invitación", "Send invitation"))
+                .font(.system(size: 16))
+                // **Un solo `foregroundStyle` con la condición dentro.** Con
+                // dos encadenados —el verde y `apagadoLegible`— gana uno u
+                // otro según el orden y no se puede razonar de memoria:
+                // medido en pantalla, las dos combinaciones dejaban el rótulo
+                // verde. Así el color apagado es el mismo `.primary` rebajado
+                // que §4 dejó medido, y además dice lo que es: gris, no una
+                // acción.
+                .foregroundStyle(puedeInvitar
+                                 ? AnyShapeStyle(Paleta.brand)
+                                 : AnyShapeStyle(.primary.opacity(0.7)))
+            if invitando { ProgressView() }
+        }
+        .frame(maxWidth: .infinity).frame(minHeight: 52)
+    }
+
+    /// La fila de sincronizar, con botón o sin él. Ver el cuerpo.
+    private var filaSincronizar: some View {
+        Text(L.t("Sincronizar ahora", "Sync now"))
+            .font(.system(size: 16))
+            // Ver `filaInvitar`: un solo `foregroundStyle`.
+            .foregroundStyle(motor.puedeSincronizar
+                             ? AnyShapeStyle(Paleta.brand)
+                             : AnyShapeStyle(.primary.opacity(0.7)))
+            .frame(maxWidth: .infinity).frame(minHeight: 52)
+    }
+
     private func invitar() async {
         invitando = true
         avisoInvitacion = nil
@@ -951,19 +985,31 @@ private struct SeccionAcceso: View {
                     }
                     .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
                     Divider()
-                    Button { Task { await invitar() } } label: {
-                        HStack(spacing: 8) {
-                            Text(invitando
-                                 ? L.t("Enviando…", "Sending…")
-                                 : L.t("Enviar invitación", "Send invitation"))
-                                .font(.system(size: 16))
-                                .foregroundStyle(puedeInvitar ? Paleta.brand : .secondary)
-                            if invitando { ProgressView() }
-                        }
-                        .frame(maxWidth: .infinity).frame(minHeight: 52)
+                    // **Sin correo escrito no hay botón, hay una frase.**
+                    //
+                    // Iba siempre en `Button` con `.disabled`, y ese estado se
+                    // medía en **1.74:1** en claro y 2.48:1 en oscuro —el
+                    // mínimo de un texto normal es 4.5:1—: el rótulo se
+                    // borraba. El gris estaba puesto dos veces, el de
+                    // `.secondary` y el que el sistema añade al apagar.
+                    //
+                    // Y no se arregla con color: medido, `apagadoLegible` deja
+                    // 2.14:1 y darle la vuelta al orden de los
+                    // `foregroundStyle` 1.67:1, porque `.disabled` sobre un
+                    // botón `.plain` atenúa por encima de lo que pinte la
+                    // etiqueta. Es la misma trampa que §4 tiene medida en
+                    // `.borderedProminent`.
+                    //
+                    // Así que se hace lo que ya decidió `RevisarView` con "0
+                    // de N listos": cuando no puede hacer nada, no se dibuja
+                    // como botón. Sin `disabled` que atenúe, el texto se lee, y
+                    // deja de prometer lo que no cumple.
+                    if puedeInvitar {
+                        Button { Task { await invitar() } } label: { filaInvitar }
+                            .buttonStyle(.plain)
+                    } else {
+                        filaInvitar
                     }
-                    .buttonStyle(.plain)
-                    .disabled(!puedeInvitar)
                 }
 
                 // Sincronización
@@ -978,16 +1024,16 @@ private struct SeccionAcceso: View {
                     FilaConf(label: L.t("Sin subir", "Not uploaded"),
                              valor: motor.pendientesLegible)
                     Divider()
-                    Button {
-                        Task { await motor.sincronizar(reintentarLoAtascado: true) }
-                    } label: {
-                        Text(L.t("Sincronizar ahora", "Sync now"))
-                            .font(.system(size: 16))
-                            .foregroundStyle(motor.puedeSincronizar ? Paleta.brand : .secondary)
-                            .frame(maxWidth: .infinity).frame(minHeight: 52)
+                    // Ver "Enviar invitación": sin nada que sincronizar no
+                    // hay botón, hay una frase legible.
+                    if motor.puedeSincronizar {
+                        Button {
+                            Task { await motor.sincronizar(reintentarLoAtascado: true) }
+                        } label: { filaSincronizar }
+                        .buttonStyle(.plain)
+                    } else {
+                        filaSincronizar
                     }
-                    .buttonStyle(.plain)
-                    .disabled(!motor.puedeSincronizar)
                 }
 
                 // Plan
