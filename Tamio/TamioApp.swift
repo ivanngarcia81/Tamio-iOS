@@ -155,6 +155,15 @@ struct TamioApp: App {
                     // candado en un castigo.
                     if nueva == .background { bloqueo.alIrseAlFondo() }
                     if nueva == .active {
+                        // **La cara se pide AQUÍ, no al aparecer la pantalla de
+                        // bloqueo.** Esa pantalla se pone al irse al fondo, así
+                        // que su `.task` preguntaba con la app todavía detrás y
+                        // el sistema devolvía `notInteractive`; el diálogo no
+                        // salía y en su lugar quedaba el error. Al volver al
+                        // frente sí se puede preguntar. El `.task` se queda
+                        // para el arranque en frío, donde este `onChange` no
+                        // llega a dispararse.
+                        if bloqueo.cerrado { Task { await bloqueo.abrir() } }
                         Task {
                             await MotorSincronizacion.compartido.sincronizar()
                             // Después de bajar: una categoría creada en la app

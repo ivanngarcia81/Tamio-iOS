@@ -125,15 +125,31 @@ final class BloqueoBiometrico {
                 error = nil
             }
         } catch {
-            // Cancelar no es un fallo que haya que explicar: la persona cerró
-            // el diálogo a propósito y la pantalla ya dice qué hacer.
-            let codigo = (error as? LAError)?.code
-            if codigo == .userCancel || codigo == .appCancel || codigo == .systemCancel {
-                self.error = nil
-            } else if codigo == .userFallback {
-                self.error = nil
-            } else {
+            // **Solo se explican los fallos que piden algo a quien mira.**
+            //
+            // Antes era al revés: se callaban cuatro códigos y se enseñaba
+            // `localizedDescription` para el resto. El resto incluía los que
+            // devuelve el sistema cuando la app NO está delante —medidos aquí,
+            // 6 y -1000, ninguno con constante nombrada—, y la pantalla de
+            // bloqueo se pone al IRSE al fondo, así que su `.task` preguntaba
+            // desde segundo plano y fallaba siempre. Resultado: al volver, el
+            // candado con "The operation couldn't be completed.
+            // (com.apple.LocalAuthentication error 6.)" debajo. Medido: 5 de 6
+            // vueltas al fondo y de vuelta.
+            //
+            // Una lista de códigos que callar no cierra el caso, porque el
+            // sistema puede devolver otro mañana y volvería el error crudo. La
+            // lista buena es la corta: los cuatro que sí se arreglan haciendo
+            // algo. Con cualquier otro la pantalla se queda como está —dice que
+            // está bloqueada y tiene su botón—, que es lo que quien vuelve
+            // necesita, y quien pide la cara otra vez es la vuelta a `.active`
+            // de `TamioApp`.
+            switch (error as? LAError)?.code {
+            case .authenticationFailed, .biometryLockout,
+                 .biometryNotEnrolled, .passcodeNotSet:
                 self.error = error.localizedDescription
+            default:
+                self.error = nil
             }
         }
     }
