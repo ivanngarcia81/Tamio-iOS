@@ -673,6 +673,31 @@ struct CartaEnEdicion {
     }
     var camposTotales: Int { 4 }
 
+    /// **El contexto con el que se rellenan las `{{variables}}` de la
+    /// plantilla.** Reflejo de `contextoDe` del web, con lo que esta pantalla
+    /// tiene: los cuatro campos de la carta y la ficha de la iglesia.
+    ///
+    /// Las que aquí no se pueden llenar —`numero_documento`, que lo da el
+    /// servidor al guardar, `estado_membresia` e `iglesia_procedencia`— se
+    /// dejan fuera a propósito: sin valor, `VariablesCarta.aplicar` las deja a
+    /// la vista, que es lo que el web decidió y lo que avisa de que falta algo.
+    func contextoVariables(_ iglesia: ConfiguracionIglesia) -> [String: String] {
+        [
+            "iglesia_nombre":    iglesia.nombre,
+            "iglesia_direccion": iglesia.direccion,
+            "iglesia_telefono":  iglesia.telefono,
+            "iglesia_correo":    iglesia.correo,
+            "ciudad":            iglesia.ciudad,
+            "fecha_actual":      Fechas.diaLegibleLargo(Date()),
+            "miembro_nombre":    aportante,
+            "fecha_membresia":   miembroDesde,
+            "iglesia_destino":   iglesiaDestino,
+            "pastor_nombre":     iglesia.pastorNombre,
+            "secretaria_nombre": iglesia.secretarioNombre,
+            "fecha_emision":     Fechas.diaLegibleLargo(fechaEmision),
+        ]
+    }
+
     // Campos del formulario de creación
     var fechaEmision: Date = Date()
     var lugarEmision: String = ""

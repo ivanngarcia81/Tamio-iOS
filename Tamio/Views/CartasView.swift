@@ -269,7 +269,15 @@ struct CartasView: View {
         // congregación en un certificado de miembro es peor que dejarlo vacío.
         let propia  = iglesia.nombre.isEmpty ? "___" : iglesia.nombre
 
-        if !vm.carta.cuerpoTexto.isEmpty { return vm.carta.cuerpoTexto }
+        // **Con las variables sustituidas.** El cuerpo de una plantilla de la
+        // iglesia llega del web con `{{miembro_nombre}}` y compañía dentro, y
+        // aquí se devolvía crudo: al llenar los campos de la carta, la vista
+        // previa seguía diciendo "We certify that {{miembro_nombre}} is an
+        // active member of {{iglesia_nombre}}". Lo vio Iván en su iPhone.
+        if !vm.carta.cuerpoTexto.isEmpty {
+            return VariablesCarta.aplicar(vm.carta.cuerpoTexto,
+                                          vm.carta.contextoVariables(iglesia))
+        }
 
         switch vm.plantillaSeleccionada {
         case .traslado:

@@ -274,6 +274,52 @@ struct OfflineCartasRepository: CartasRepository {
 // MARK: - Las plantillas
 
 /// Una plantilla de carta, como la guarda el web.
+/// **Las `{{variables}}` de una plantilla, sustituidas.** Reflejo de
+/// `aplicarVariables` y `contextoDe` de `services/cartas/plantillas.ts` del web:
+/// mismas quince claves, misma expresión regular y —lo que más importa— la
+/// misma regla para las que no tienen valor.
+///
+/// **Una variable sin valor se deja A LA VISTA.** No se borra ni se cambia por
+/// un hueco: el web lo decidió así para que quien redacta note qué falta antes
+/// de firmar, y una carta que dice `{{iglesia_destino}}` es menos peligrosa que
+/// una que dice "a la congregación " y se firma igual.
+///
+/// **Esto no existía.** El cuerpo de una plantilla de la iglesia llega del web
+/// con sus variables dentro, `cuerpoLlano` las conserva a propósito —el editor
+/// del iPhone es de texto llano— y el comentario que lo explica decía que "las
+/// sustituye quien imprime". No las sustituía nadie: ni la vista previa ni el
+/// PDF. Al llenar "Nombre del miembro" con "Jose", la carta seguía diciendo
+/// "We certify that {{miembro_nombre}} is an active member of
+/// {{iglesia_nombre}}". Lo vio Iván en su iPhone, con una carta de verdad.
+enum VariablesCarta {
+
+    /// Las quince del web, en su orden. Están escritas aquí para que se vea qué
+    /// se puede poner en una plantilla; el `switch` de abajo es quien las llena.
+    static let claves = [
+        "iglesia_nombre", "iglesia_direccion", "iglesia_telefono", "iglesia_correo",
+        "ciudad", "fecha_actual", "miembro_nombre", "fecha_membresia",
+        "estado_membresia", "iglesia_destino", "iglesia_procedencia",
+        "pastor_nombre", "secretaria_nombre", "numero_documento", "fecha_emision",
+    ]
+
+    /// Sustituye `{{clave}}` por su valor; deja intacta la que no lo tenga.
+    static func aplicar(_ texto: String, _ contexto: [String: String]) -> String {
+        guard texto.contains("{{") else { return texto }
+        // La misma expresión que el web: admite espacios dentro de las llaves.
+        guard let re = try? NSRegularExpression(pattern: "\\{\\{\\s*([a-z_]+)\\s*\\}\\}") else { return texto }
+        var salida = texto
+        let ns = texto as NSString
+        // De atrás hacia delante, para que los rangos no se muevan al sustituir.
+        for m in re.matches(in: texto, range: NSRange(location: 0, length: ns.length)).reversed() {
+            let clave = ns.substring(with: m.range(at: 1))
+            guard let valor = contexto[clave], !valor.isEmpty else { continue }
+            let r = Range(m.range, in: salida)!
+            salida.replaceSubrange(r, with: valor)
+        }
+        return salida
+    }
+}
+
 struct Plantilla: Identifiable, Hashable {
     let id: String
     let nombre: String
