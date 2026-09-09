@@ -180,6 +180,10 @@ struct CartasView: View {
                     Text(L.t("Campos: \(vm.carta.camposCompletos) de \(vm.carta.camposTotales) completos",
                              "Fields: \(vm.carta.camposCompletos) of \(vm.carta.camposTotales) complete"))
                         .font(.subheadline).foregroundStyle(.secondary)
+                        // En una línea: con los dos botones al lado se partía
+                        // por la mitad de la cifra —"Fields: 1 of" / "4
+                        // complete"—, que es justo donde no se puede cortar.
+                        .lineLimit(1).minimumScaleFactor(0.75)
                     Spacer()
                     // Pintados a mano: el primario iba con `Paleta.brand` de
                     // fondo y el texto en blanco, los mismos ~2.4:1 en oscuro
