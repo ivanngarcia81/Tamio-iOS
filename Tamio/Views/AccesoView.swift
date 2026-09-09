@@ -865,7 +865,11 @@ struct ConfiguracionInicialView: View {
                           L.t("p. ej. Iglesia Nueva Vida", "e.g. New Life Church"))
                         .focused($enfocado)
                         .submitLabel(.go)
-                        .onSubmit { if !nombreVacio { comenzar() } }
+                        .onChange(of: nombre) { if !nombreVacio { error = nil } }
+                        // Sin el `if`: con el nombre vacío, "go" no hacía
+                        // nada y no decía por qué. Ahora entra en `comenzar`,
+                        // que es quien avisa.
+                        .onSubmit { comenzar() }
                     campo(L.t("Ciudad", "City"), $ciudad,
                           L.t("Opcional", "Optional"))
                     HStack {
@@ -909,7 +913,22 @@ struct ConfiguracionInicialView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(nombreVacio || guardando)
+                // **Solo se apaga mientras guarda, no por estar el nombre
+                // vacío.** Deshabilitado por defecto, este botón medía 1.42:1
+                // de contraste —lo peor de la app— y era lo PRIMERO que veía
+                // alguien que estrena Tamio: un formulario y una barra gris sin
+                // texto. No se puede arreglar desde la etiqueta: `.disabled`
+                // sobre `.borderedProminent` no atenúa el texto, repinta el
+                // botón entero, así que ni `apagadoLegible` ni un color
+                // explícito ni el `tint` mueven el número (medido: 1.42:1 las
+                // tres veces).
+                //
+                // Así que no se maquilla el botón apagado: se quita el motivo
+                // de apagarlo. Ahora dice qué falta y lleva al campo, que es lo
+                // que el usuario necesita saber. Mismo razonamiento que ya está
+                // escrito en `RevisarView`: una cápsula que parece botón y no
+                // responde promete algo que no cumple.
+                .disabled(guardando)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
                 .background(.bar)
@@ -937,6 +956,14 @@ struct ConfiguracionInicialView: View {
     /// se queda sin nombre y la pantalla vuelve a salir en el próximo arranque
     /// como si no se hubiera hecho nada.
     private func comenzar() {
+        // Sin nombre no se puede seguir —una iglesia sin nombre no tiene
+        // membrete—, pero eso se DICE, no se deja adivinar por un botón gris.
+        guard !nombreVacio else {
+            error = L.t("Escribe el nombre de la iglesia para continuar.",
+                        "Enter your church's name to continue.")
+            enfocado = true
+            return
+        }
         guardando = true
         error = nil
         cfg.config.nombre = nombre.trimmingCharacters(in: .whitespaces)
