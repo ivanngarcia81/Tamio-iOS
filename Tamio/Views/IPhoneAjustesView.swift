@@ -1102,16 +1102,72 @@ private struct AjustesCategoriasView: View {
 
     private var filas: [CategoriasViewModel.FilaCategoria] { vm.filas(tipo) }
 
+    /// **Dos cápsulas de cristal, no un `Picker(.segmented)`.** Lo pidió Iván
+    /// rodeándolo en una captura, igual que el de Agenda en su día.
+    ///
+    /// El `Picker` no se envuelve en `.glassEffect`: su fondo es opaco y taparía
+    /// el cristal —la misma razón por la que las bandas de `.regularMaterial`
+    /// había que quitarlas y no esconderlas—. Van cápsulas en un
+    /// `GlassEffectContainer`, que además se funden entre sí al estar cerca.
+    ///
+    /// Y **no contradice al segmentado de Ingresos**, que se queda `Picker` a
+    /// propósito: aquel vive en el `toolbar` y el sistema ya le pone su cápsula
+    /// —glass dentro de glass, que es lo que Apple desaconseja—. Este vive en el
+    /// cuerpo de la lista, donde no hay ninguna.
+    private var selectorTipo: some View {
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                chipTipo(.ingreso, L.t("Ingresos", "Income"))
+                chipTipo(.gasto,   L.t("Gastos", "Expenses"))
+            }
+        }
+    }
+
+    /// La elegida va `.glassProminent` y teñida: en un control de "elige uno" el
+    /// relleno es lo único que dice cuál está activa, y sin él dos cápsulas
+    /// iguales se leen como dos acciones. `isSelected` lo dice para quien no ve
+    /// el relleno.
+    /// Dos ramas y no un `buttonStyle` calculado: los estilos de botón no se
+    /// pueden borrar de tipo en SwiftUI, así que no hay forma de elegir entre
+    /// `.glassProminent` y `.glass` en una sola expresión. Es la misma forma que
+    /// tiene `chipVista` en Agenda.
+    @ViewBuilder
+    private func chipTipo(_ valor: TipoMovimiento, _ nombre: String) -> some View {
+        let activa = tipo == valor
+        if activa {
+            Button { tipo = valor } label: { etiquetaTipo(nombre, activa: true) }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+                .accessibilityAddTraits(.isSelected)
+        } else {
+            Button { tipo = valor } label: { etiquetaTipo(nombre, activa: false) }
+                // **El tinte a `.primary` en la NO elegida.** `.glass` hereda el
+                // del TabView, así que las dos salían en verde y las dos se
+                // leían activas. Se hace con `.tint` y NO con `.foregroundStyle`
+                // en la etiqueta: probado en Agenda, el estilo de botón pinta
+                // por encima.
+                .buttonStyle(.glass)
+                .tint(Color.primary)
+        }
+    }
+
+    private func etiquetaTipo(_ nombre: String, activa: Bool) -> some View {
+        Text(nombre)
+            .font(.subheadline.weight(activa ? .semibold : .regular))
+            // No se parte: en AX1 "Expenses" salía a dos renglones dentro de la
+            // cápsula y el control crecía. Misma regla que Agenda.
+            .lineLimit(1).minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
+    }
+
+
     var body: some View {
         List {
             Section {
-                Picker("", selection: $tipo) {
-                    Text(L.t("Ingresos", "Income")).tag(TipoMovimiento.ingreso)
-                    Text(L.t("Gastos", "Expenses")).tag(TipoMovimiento.gasto)
-                }
-                .pickerStyle(.segmented)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                selectorTipo
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             }
 
             Section {
