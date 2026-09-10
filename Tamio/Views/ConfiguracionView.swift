@@ -920,17 +920,6 @@ private struct SeccionAcceso: View {
         .frame(maxWidth: .infinity).frame(minHeight: 52)
     }
 
-    /// La fila de sincronizar, con botón o sin él. Ver el cuerpo.
-    private var filaSincronizar: some View {
-        Text(L.t("Sincronizar ahora", "Sync now"))
-            .font(.escalada(16, relativeTo: .body))
-            // Ver `filaInvitar`: un solo `foregroundStyle`.
-            .foregroundStyle(motor.puedeSincronizar
-                             ? AnyShapeStyle(Paleta.brand)
-                             : AnyShapeStyle(.primary.opacity(0.7)))
-            .frame(maxWidth: .infinity).frame(minHeight: 52)
-    }
-
     private func invitar() async {
         invitando = true
         avisoInvitacion = nil
@@ -1024,30 +1013,6 @@ private struct SeccionAcceso: View {
                             .buttonStyle(.plain)
                     } else {
                         filaInvitar
-                    }
-                }
-
-                // Sincronización
-                GrupoConf(titulo: L.t("SINCRONIZACIÓN", "SYNC"),
-                          nota: L.t("Se sincroniza sola al abrir, al guardar y al reconectar. Aquí puedes forzarla a mano.",
-                                    "Syncs automatically on open, save, and reconnect. Tap to force a manual sync.")) {
-                    FilaConf(label: L.t("Estado", "Status"), valor: motor.estadoLegible)
-                    Divider()
-                    // "Sin subir" y no "último cambio": lo que le importa a
-                    // quien mira esto es si algo suyo se quedó en el aparato,
-                    // no cuántas filas viajaron la última vez.
-                    FilaConf(label: L.t("Sin subir", "Not uploaded"),
-                             valor: motor.pendientesLegible)
-                    Divider()
-                    // Ver "Enviar invitación": sin nada que sincronizar no
-                    // hay botón, hay una frase legible.
-                    if motor.puedeSincronizar {
-                        Button {
-                            Task { await motor.sincronizar(reintentarLoAtascado: true) }
-                        } label: { filaSincronizar }
-                        .buttonStyle(.plain)
-                    } else {
-                        filaSincronizar
                     }
                 }
 
@@ -1374,11 +1339,52 @@ private struct SeccionZona: View {
     @State private var porRestaurar: (url: URL, manifiesto: Respaldo.Manifiesto)?
     @State private var hecho: String?
     @State private var estadoBase: Compactacion.Estado?
+    private let motor = MotorSincronizacion.compartido
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+
+    /// La fila de sincronizar, con botón o sin él. Ver el cuerpo.
+    private var filaSincronizar: some View {
+        Text(L.t("Sincronizar ahora", "Sync now"))
+            .font(.escalada(16, relativeTo: .body))
+            // Un solo `foregroundStyle`, como `filaInvitar`.
+            .foregroundStyle(motor.puedeSincronizar
+                             ? AnyShapeStyle(Paleta.brand)
+                             : AnyShapeStyle(.primary.opacity(0.7)))
+            .frame(maxWidth: .infinity).frame(minHeight: 52)
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                // **La sincronización va aquí y no en Acceso y áreas.** Estaba
+                // entre los permisos y las invitaciones, que no tienen nada que
+                // ver: lo que responde es "¿mis datos están en algún sitio
+                // además de este aparato?", que es la pregunta de los respaldos.
+                //
+                // Va la PRIMERA, y no junto a los borrados, porque es lo único
+                // de esta pantalla que se hace a diario y no rompe nada.
+                GrupoConf(titulo: L.t("SINCRONIZACIÓN", "SYNC"),
+                          nota: L.t("Se sincroniza sola al abrir, al guardar y al reconectar. Aquí puedes forzarla a mano.",
+                                    "Syncs automatically on open, save, and reconnect. Tap to force a manual sync.")) {
+                    FilaConf(label: L.t("Estado", "Status"), valor: motor.estadoLegible)
+                    Divider()
+                    // "Sin subir" y no "último cambio": lo que le importa a
+                    // quien mira esto es si algo suyo se quedó en el aparato,
+                    // no cuántas filas viajaron la última vez.
+                    FilaConf(label: L.t("Sin subir", "Not uploaded"),
+                             valor: motor.pendientesLegible)
+                    Divider()
+                    // Sin nada que sincronizar no hay botón, hay una frase.
+                    if motor.puedeSincronizar {
+                        Button {
+                            Task { await motor.sincronizar(reintentarLoAtascado: true) }
+                        } label: { filaSincronizar }
+                        .buttonStyle(.plain)
+                    } else {
+                        filaSincronizar
+                    }
+                }
+
                 HeroCard(seccion: .zona)
 
                 // Advertencia + respaldar

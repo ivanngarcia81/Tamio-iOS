@@ -67,8 +67,12 @@ struct IPhoneAjustesView: View {
                     // de pestañas, así que ese texto acababa impreso encima de
                     // la fila de Preferencias.
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(L.t("Respaldos, restauración y borrado de datos. Los cambios aquí no se pueden deshacer.",
-                                 "Backups, restoration, and data deletion. Changes here cannot be undone."))
+                        // Nombra lo que hay DENTRO, y en el orden en que sale.
+                        // Al mover aquí la sincronización, la frase anterior
+                        // —"los cambios aquí no se pueden deshacer"— pasó a ser
+                        // falsa para lo primero que se ve.
+                        Text(L.t("Sincronización, respaldos y borrado de datos. Lo de abajo no se puede deshacer.",
+                                 "Sync, backups, and data deletion. What's at the bottom cannot be undone."))
                         pieVersion
                     }
                 }
@@ -883,23 +887,6 @@ private struct AjustesAccesoView: View {
             .listRowBackground(Color(.secondarySystemGroupedBackground))
 
             Section {
-                valorF(L.t("Estado", "Status"), motor.estadoLegible)
-                valorF(L.t("Sin subir", "Not uploaded"), motor.pendientesLegible)
-                Button { Task { await motor.sincronizar(reintentarLoAtascado: true) } } label: {
-                    Text(L.t("Sincronizar ahora", "Sync now")).font(.subheadline)
-                        .foregroundStyle(motor.puedeSincronizar ? Paleta.brand : .secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .disabled(!motor.puedeSincronizar)
-            } header: {
-                Text(L.t("Sincronización", "Sync")).textCase(nil)
-            } footer: {
-                Text(L.t("Se sincroniza sola al abrir, al guardar y al reconectar. Aquí puedes forzarla a mano.",
-                         "Syncs automatically on open, save, and reconnect. Tap to force a manual sync."))
-            }
-            .listRowBackground(Color(.secondarySystemGroupedBackground))
-
-            Section {
                 valorF(L.t("Plan", "Plan"), cfg.config.planLegible)
                 valorF(L.t("Suscripción", "Subscription"), cfg.config.suscripcionLegible)
             } header: {
@@ -1066,14 +1053,6 @@ private struct AjustesAccesoView: View {
             avisoInvitacion = error.localizedDescription
         }
         invitando = false
-    }
-
-    private func valorF(_ label: String, _ val: String) -> some View {
-        HStack {
-            Text(label).font(.subheadline)
-            Spacer()
-            Text(val).font(.subheadline).foregroundStyle(.secondary)
-        }
     }
 
     /// Un permiso. **El interruptor no es la fuente**: enseña lo que hay
@@ -1345,6 +1324,19 @@ private struct AjustesPreferenciasView: View {
 /// "Respaldar ahora" estaba apagado y "Último respaldo" decía "Ninguno" para
 /// siempre, los dos justo debajo de un texto que asegura que un respaldo es lo
 /// único que puede devolver lo que se pierda.
+/// Una fila de "etiqueta a la izquierda, valor a la derecha".
+///
+/// A ámbito de archivo y no dentro de una vista porque la usan DOS desde que la
+/// sincronización se mudó a la Zona de riesgo. Duplicarla era la otra salida, y
+/// dos filas que tienen que verse iguales no pueden estar escritas dos veces.
+private func valorF(_ label: String, _ val: String) -> some View {
+    HStack {
+        Text(label).font(.subheadline)
+        Spacer()
+        Text(val).font(.subheadline).foregroundStyle(.secondary)
+    }
+}
+
 private struct AjustesZonaView: View {
     @State private var confirmarBorrar = false
     @State private var confirmarReinicio = false
@@ -1372,10 +1364,38 @@ private struct AjustesZonaView: View {
     /// `UserDefaults` y no es observable.
     @State private var ultimo = Respaldo.ultimoLegible
     @State private var estadoBase: Compactacion.Estado?
+    private let motor = MotorSincronizacion.compartido
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
 
     var body: some View {
         List {
+            // **La sincronización va aquí y no en Acceso y áreas.** Estaba
+            // entre los permisos y las invitaciones, que no tienen nada que ver:
+            // lo que responde esta sección es "¿mis datos están en algún sitio
+            // además de este teléfono?", que es exactamente la pregunta de los
+            // respaldos, dos secciones más abajo.
+            //
+            // Va la PRIMERA, y no junto a los borrados, porque es lo único de
+            // esta pantalla que se hace a diario y no rompe nada: quien viene a
+            // mirar "Sin subir" no tiene por qué pasar por delante del reinicio
+            // de fábrica para llegar.
+            Section {
+                valorF(L.t("Estado", "Status"), motor.estadoLegible)
+                valorF(L.t("Sin subir", "Not uploaded"), motor.pendientesLegible)
+                Button { Task { await motor.sincronizar(reintentarLoAtascado: true) } } label: {
+                    Text(L.t("Sincronizar ahora", "Sync now")).font(.subheadline)
+                        .foregroundStyle(motor.puedeSincronizar ? Paleta.brand : .secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .disabled(!motor.puedeSincronizar)
+            } header: {
+                Text(L.t("Sincronización", "Sync")).textCase(nil)
+            } footer: {
+                Text(L.t("Se sincroniza sola al abrir, al guardar y al reconectar. Aquí puedes forzarla a mano.",
+                         "Syncs automatically on open, save, and reconnect. Tap to force a manual sync."))
+            }
+            .listRowBackground(Color(.secondarySystemGroupedBackground))
+
             Section {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(L.t("Antes de tocar nada", "Before touching anything"))
