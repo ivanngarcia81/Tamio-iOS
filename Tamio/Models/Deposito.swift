@@ -1,12 +1,12 @@
 import Foundation
 
 /// Estado de un corte: pendiente de llevar al banco, o ya depositado.
-enum EstadoDeposito {
+enum EstadoDeposito: Equatable {
     case pendiente, depositado
 }
 
 /// Tipo de aviso en el checklist "Antes de depositar".
-enum TipoChequeo {
+enum TipoChequeo: Equatable {
     case aviso   // naranja, algo que revisar
     case ok      // verde, todo en orden
     case duda    // gris, decisión del usuario
@@ -16,7 +16,7 @@ enum TipoChequeo {
 /// suelto que la vista comparaba contra el literal "Asignar cuenta": con la
 /// app en inglés la comparación fallaba y el menú no salía. La acción es un
 /// caso, no un texto traducido.
-enum AccionChequeo {
+enum AccionChequeo: Equatable {
     case asignarCuenta
     case irAPorRevisar
     case cambiarPeriodo
@@ -38,7 +38,7 @@ enum ModoSegundaFirma: String {
 }
 
 /// Un ítem del checklist "Antes de depositar".
-struct Chequeo: Identifiable {
+struct Chequeo: Identifiable, Equatable {
     let id: Int
     let tipo: TipoChequeo
     let titulo: String
@@ -59,7 +59,7 @@ struct Chequeo: Identifiable {
 
 /// Cómo se registrará el depósito ("Se registrará así"). Solo lo que el
 /// usuario decide: el monto NO vive aquí, se calcula desde la selección.
-struct RegistroDeposito {
+struct RegistroDeposito: Equatable {
     var cuenta: String
     var fecha: String
     var periodo: String
@@ -302,6 +302,16 @@ struct Corte: Identifiable, Hashable {
         return lista
     }
 
-    static func == (l: Corte, r: Corte) -> Bool { l.id == r.id }
+    // **La igualdad es el CONTENIDO, no el id.** Swift la sintetiza a partir de
+    // todos los campos; aquí había `l.id == r.id`, y con eso SwiftUI da por
+    // buena la vista que ya tiene: dos fichas con el mismo id y distinto
+    // contenido son "iguales", así que se cambiaba un dato y la pantalla seguía
+    // enseñando el viejo. Visto por Iván en su iPhone el 10-sep: la ficha de un
+    // donativo decía "Folio P-9" —sin subir— mientras la lista y el servidor ya
+    // decían "Folio 9".
+    //
+    // **El `hash` sigue siendo el id a propósito:** dos valores iguales tienen
+    // el mismo id, así que se cumple que lo igual comparta hash, y nada de lo
+    // que ya lo usara cambia de comportamiento.
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }

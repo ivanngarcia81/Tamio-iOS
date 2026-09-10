@@ -142,7 +142,7 @@ struct AsistenciaMiembro: Hashable {
 }
 
 /// Un punto de la gráfica de asistencia del miembro (un mes).
-struct MesAsistencia: Identifiable {
+struct MesAsistencia: Identifiable, Equatable {
     var id: String { mes }
     let mes: String
     let valor: Double   // 0…1
@@ -405,7 +405,17 @@ struct Miembro: Identifiable, Hashable {
         return m.sorted { $0.1 > $1.1 }.map { MovMembresia(titulo: $0.0, fecha: Fechas.diaLegible($0.1)) }
     }
 
-    static func == (l: Miembro, r: Miembro) -> Bool { l.id == r.id }
+    // **La igualdad es el CONTENIDO, no el id.** Swift la sintetiza a partir de
+    // todos los campos; aquí había `l.id == r.id`, y con eso SwiftUI da por
+    // buena la vista que ya tiene: dos fichas con el mismo id y distinto
+    // contenido son "iguales", así que se cambiaba un dato y la pantalla seguía
+    // enseñando el viejo. Visto por Iván en su iPhone el 10-sep: la ficha de un
+    // donativo decía "Folio P-9" —sin subir— mientras la lista y el servidor ya
+    // decían "Folio 9".
+    //
+    // **El `hash` sigue siendo el id a propósito:** dos valores iguales tienen
+    // el mismo id, así que se cumple que lo igual comparta hash, y nada de lo
+    // que ya lo usara cambia de comportamiento.
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 

@@ -10,7 +10,7 @@ import SwiftUI
 /// firmar un acta la enseñaba como "Aprobada" al volver a entrar, porque
 /// `firmada` sube como `aprobada` y volvía como `aprobada`. Lo cazó una
 /// prueba, no se vio en pantalla.
-enum EstadoActa: String {
+enum EstadoActa: String, Equatable {
     case borrador, pendienteAprobacion, aprobada, enmendada, archivada, firmada, cerrada
 
     var etiqueta: String {
@@ -96,7 +96,7 @@ struct FirmaActa: Identifiable, Hashable {
     var id: String { rol.rawValue }
 }
 
-struct AcuerdoActa: Identifiable {
+struct AcuerdoActa: Identifiable, Equatable {
     let id: Int
     let texto: String
 }
@@ -255,7 +255,17 @@ struct Acta: Identifiable, Hashable {
         return partes.joined(separator: "\n\n")
     }
 
-    static func == (l: Acta, r: Acta) -> Bool { l.id == r.id }
+    // **La igualdad es el CONTENIDO, no el id.** Swift la sintetiza a partir de
+    // todos los campos; aquí había `l.id == r.id`, y con eso SwiftUI da por
+    // buena la vista que ya tiene: dos fichas con el mismo id y distinto
+    // contenido son "iguales", así que se cambiaba un dato y la pantalla seguía
+    // enseñando el viejo. Visto por Iván en su iPhone el 10-sep: la ficha de un
+    // donativo decía "Folio P-9" —sin subir— mientras la lista y el servidor ya
+    // decían "Folio 9".
+    //
+    // **El `hash` sigue siendo el id a propósito:** dos valores iguales tienen
+    // el mismo id, así que se cumple que lo igual comparta hash, y nada de lo
+    // que ya lo usara cambia de comportamiento.
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
@@ -263,7 +273,7 @@ struct Acta: Identifiable, Hashable {
 /// guardaba la ETIQUETA traducida —"Consejo", y en inglés "Council"—, así que
 /// la misma acta cambiaba de tipo al cambiar de idioma y ninguno de los dos
 /// valores era el que el web sabe leer.
-enum TipoActa: String, CaseIterable {
+enum TipoActa: String, CaseIterable, Equatable {
     case administrativa, lideres, asamblea, pastoral, eleccion
     case nombramiento, recepcion, compraventa, presupuesto, disciplina, otra
 
@@ -316,7 +326,7 @@ enum TipoActa: String, CaseIterable {
 /// Cuánto del roster está cubierto. **Se deduce de los puestos**, no se
 /// guarda: un estado escrito a mano y una lista de puestos son dos verdades
 /// sobre lo mismo.
-enum EstadoRoster {
+enum EstadoRoster: Equatable {
     case completo, parcial, sinAsignar
 
     /// **En mayúscula, como las demás píldoras.** Estas tres eran la única
@@ -347,7 +357,7 @@ enum EstadoRoster {
 }
 
 /// Un culto pasado con lo que se contó, para la gráfica del detalle.
-struct AsistenciaServicio: Identifiable {
+struct AsistenciaServicio: Identifiable, Equatable {
     let id: String
     let fecha: String
     let presentes: Int
@@ -475,7 +485,17 @@ struct Servicio: Identifiable, Hashable {
     /// puesto al lado. La fecha sí, que la pastilla no la dice.
     var subtitulo: String { fechaLegible }
 
-    static func == (l: Servicio, r: Servicio) -> Bool { l.id == r.id }
+    // **La igualdad es el CONTENIDO, no el id.** Swift la sintetiza a partir de
+    // todos los campos; aquí había `l.id == r.id`, y con eso SwiftUI da por
+    // buena la vista que ya tiene: dos fichas con el mismo id y distinto
+    // contenido son "iguales", así que se cambiaba un dato y la pantalla seguía
+    // enseñando el viejo. Visto por Iván en su iPhone el 10-sep: la ficha de un
+    // donativo decía "Folio P-9" —sin subir— mientras la lista y el servidor ya
+    // decían "Folio 9".
+    //
+    // **El `hash` sigue siendo el id a propósito:** dos valores iguales tienen
+    // el mismo id, así que se cumple que lo igual comparta hash, y nada de lo
+    // que ya lo usara cambia de comportamiento.
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 

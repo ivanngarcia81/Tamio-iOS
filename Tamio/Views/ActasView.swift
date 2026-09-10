@@ -40,7 +40,15 @@ struct ActasView: View {
             } else {
                 listaColumna
                     .navigationDestination(item: $abierto) { acta in
-                        detalle(acta)
+                        // **La ficha se busca por id, no se usa la copia que la abrió.**
+                        // `abierto` guarda un VALOR, y un valor no cambia: lo
+                        // que se edite o lo que llegue al sincronizar se veía
+                        // en la lista y no en la ficha abierta encima. Lo vio
+                        // Iván en su iPhone el 10-sep con un donativo cuya
+                        // ficha decía "Folio P-9" —sin subir— mientras la lista
+                        // y el servidor ya decían "Folio 9". Es el mismo
+                        // remedio que ya usaban Depósitos y Membresía.
+                        detalle(vm.lista.first { $0.id == acta.id } ?? acta)
                             .navigationBarTitleDisplayMode(.inline)
                     }
             }

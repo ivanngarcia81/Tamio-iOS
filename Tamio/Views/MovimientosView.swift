@@ -170,8 +170,17 @@ struct MovimientosView: View {
             } else {
                 listaColumna
                     .navigationDestination(item: $abierto) { m in
-                        MovimientoDetalle(m: m, onEditar: { hoja = .editar(m) },
-                                          onComprobante: { nombre in adjuntarComprobante(m, nombre) })
+                        // **La ficha se busca por id, no se usa la copia que la abrió.**
+                        // `abierto` guarda un VALOR, y un valor no cambia: lo
+                        // que se edite o lo que llegue al sincronizar se veía
+                        // en la lista y no en la ficha abierta encima. Lo vio
+                        // Iván en su iPhone el 10-sep con un donativo cuya
+                        // ficha decía "Folio P-9" —sin subir— mientras la lista
+                        // y el servidor ya decían "Folio 9". Es el mismo
+                        // remedio que ya usaban Depósitos y Membresía.
+                        let vigente = vm.items.first { $0.id == m.id } ?? m
+                        MovimientoDetalle(m: vigente, onEditar: { hoja = .editar(vigente) },
+                                          onComprobante: { nombre in adjuntarComprobante(vigente, nombre) })
                             // El H1 de la ficha ya dice el titular; repetirlo en la
                             // barra lo dejaba tres veces en pantalla, con el chip
                             // de categoría. La barra va vacía.
