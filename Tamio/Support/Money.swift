@@ -112,7 +112,31 @@ extension Money {
     /// La regla es simple: **manda el último separador que aparezca**, porque
     /// el decimal siempre va al final.
     static func desdeTexto(_ texto: String) -> Centavos? {
-        var limpio = texto.trimmingCharacters(in: .whitespaces)
+        // **Lo que sobra solo puede estar en los EXTREMOS.**
+        //
+        // Antes esto era `removeAll { !"0123456789.,-".contains($0) }`, o sea
+        // borrar todo lo que no fuera dígito o separador venga de donde venga.
+        // Eso permite el símbolo de moneda, que es lo que se buscaba, pero
+        // también convierte en dinero cosas que no lo son y **sin avisar**:
+        // "1e9" salía $19.00 y "12 pesos 34" salía $1,234.00. En un importador
+        // que ya rechaza lo que no entiende —y enseña "Monto no válido" en la
+        // previa— eso es peor que rechazarlo: entra una cifra plausible y falsa
+        // que nadie va a mirar dos veces.
+        //
+        // Un símbolo o un código de moneda va delante o detrás ("$1,960.00",
+        // "1.960,00 MXN"), nunca entre los dígitos. Así que se recorta por los
+        // extremos y lo que queda tiene que ser un número: si dentro aparece
+        // cualquier otra cosa, no se adivina.
+        let nucleo = texto.trimmingCharacters(in: CharacterSet(charactersIn: "0123456789").inverted
+                                                  .subtracting(CharacterSet(charactersIn: "-")))
+        // Los espacios de miles sí se aceptan DENTRO ("1 960,00" es como se
+        // escribe en español y en francés), incluidos el duro y el fino, que es
+        // lo que pega una hoja de cálculo.
+        let separadoresDeMiles = CharacterSet.whitespaces.union(CharacterSet(charactersIn: "\u{00A0}\u{202F}"))
+        let permitidos = CharacterSet(charactersIn: "0123456789.,-").union(separadoresDeMiles)
+        guard !nucleo.isEmpty, nucleo.unicodeScalars.allSatisfy(permitidos.contains) else { return nil }
+
+        var limpio = nucleo
         limpio.removeAll { !"0123456789.,-".contains($0) }
         guard !limpio.isEmpty else { return nil }
 

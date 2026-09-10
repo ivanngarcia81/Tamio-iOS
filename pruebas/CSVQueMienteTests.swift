@@ -34,20 +34,32 @@ final class CSVQueMiente: XCTestCase {
     }
 
     /// **Columnas duplicadas.** Un Excel con dos columnas llamadas igual —pasa
-    /// al pegar dos hojas— deja al usuario eligiendo entre dos opciones que se
-    /// llaman igual, y `aplicar` resuelve siempre por `firstIndex(of:)`: elija
-    /// la que elija, se lleva la PRIMERA. Si la buena era la segunda, el
-    /// importe que entra es otro y nada lo dice.
-    func testColumnasDuplicadas() throws {
+    /// al pegar dos hojas— dejaba al usuario eligiendo entre dos opciones con el
+    /// mismo nombre, y `aplicar` resolvía por `firstIndex(of:)`: elija la que
+    /// elija, se llevaba la PRIMERA. Ahora la segunda se llama "monto (2)", así
+    /// que se puede pedir, y el `Picker` del mapeo deja de tener dos ids
+    /// iguales.
+    func testSeLlegaALaSegundaColumnaDuplicada() throws {
         let doc = try CSVLector.leer(escribir("nombre,monto,monto\nAna,100,999\n"))
-        XCTAssertEqual(doc.encabezados, ["nombre", "monto", "monto"])
+        XCTAssertEqual(doc.encabezados, ["nombre", "monto", "monto (2)"])
         let campos = [CSVLector.Campo("nombre", "Nombre", obligatorio: true),
                       CSVLector.Campo("monto", "Monto", obligatorio: true)]
-        // El usuario elige a mano la SEGUNDA columna "monto" (la de 999).
-        let mapeo = ["nombre": "nombre", "monto": "monto"]
-        let salida = CSVLector.aplicar(mapeo, a: doc, campos: campos)
-        XCTAssertEqual(salida.valor(salida.filas[0], "monto"), "999",
-                       "No hay forma de elegir la segunda columna con el mismo nombre")
+        // El usuario elige a mano la SEGUNDA columna (la de 999).
+        let salida = CSVLector.aplicar(["nombre": "nombre", "monto": "monto (2)"],
+                                       a: doc, campos: campos)
+        XCTAssertEqual(salida.valor(salida.filas[0], "monto"), "999")
+        // Y la primera sigue siendo alcanzable.
+        let primera = CSVLector.aplicar(["nombre": "nombre", "monto": "monto"],
+                                        a: doc, campos: campos)
+        XCTAssertEqual(primera.valor(primera.filas[0], "monto"), "100")
+    }
+
+    /// Y la sugerencia automática sigue cogiendo la primera, que es lo sensato
+    /// cuando nadie ha dicho nada.
+    func testLaSugerenciaCogeLaPrimeraDeLasDuplicadas() throws {
+        let doc = try CSVLector.leer(escribir("nombre,monto,monto\nAna,100,999\n"))
+        let campos = [CSVLector.Campo("monto", "Monto", obligatorio: true)]
+        XCTAssertEqual(CSVLector.mapeoSugerido(doc, campos: campos)["monto"], "monto")
     }
 
     /// El mismo archivo con los encabezados en el otro idioma.
@@ -71,15 +83,28 @@ final class CSVQueMiente: XCTestCase {
         XCTAssertEqual(Money.desdeTexto("1960"), 196_000)
     }
 
-    /// **Un importe con letras dentro NO debería colarse.** `desdeTexto` borra
-    /// todo lo que no sea dígito, punto, coma o menos: "1e9" se lee $19.00 y
-    /// "12 pesos 34" se lee $1,234.00, sin avisar. En un importador que ya
-    /// rechaza lo que no entiende, esto es peor que rechazarlo: entra una cifra
-    /// plausible y falsa.
-    func testUnImporteConLetrasSeDeberiaRechazar() {
-        XCTAssertNil(Money.desdeTexto("1e9"), "se leyó como \(Money.desdeTexto("1e9") ?? -1) centavos")
-        XCTAssertNil(Money.desdeTexto("12 pesos 34"),
-                     "se leyó como \(Money.desdeTexto("12 pesos 34") ?? -1) centavos")
+    /// **Un importe con letras DENTRO se rechaza.** `desdeTexto` borraba todo
+    /// lo que no fuera dígito o separador viniera de donde viniera, así que
+    /// "1e9" se leía $19.00 y "12 pesos 34" se leía $1,234.00, sin avisar. En un
+    /// importador que ya rechaza lo que no entiende —y lo enseña en la previa—
+    /// eso es peor que rechazarlo: entra una cifra plausible y falsa.
+    func testUnImporteConLetrasDentroSeRechaza() {
+        for basura in ["1e9", "12 pesos 34", "1.2.3.4x", "N/D", "—", "pendiente"] {
+            XCTAssertNil(Money.desdeTexto(basura),
+                         "«\(basura)» se leyó como \(Money.desdeTexto(basura) ?? -1) centavos")
+        }
+    }
+
+    /// **Y el símbolo o el código de moneda, que van en los extremos, siguen
+    /// pasando.** Es la lenience que había que conservar al apretar la regla.
+    func testElSimboloYElCodigoDeMonedaSiguenPasando() {
+        XCTAssertEqual(Money.desdeTexto("$1,960.00"), 196_000)
+        XCTAssertEqual(Money.desdeTexto("1.960,00 MXN"), 196_000)
+        XCTAssertEqual(Money.desdeTexto("USD 1960"), 196_000)
+        XCTAssertEqual(Money.desdeTexto("€ 1 960,00"), 196_000)
+        XCTAssertEqual(Money.desdeTexto("  1960,00  "), 196_000)
+        XCTAssertEqual(Money.desdeTexto("-50"), -5_000)
+        XCTAssertEqual(Money.desdeTexto("MXN -50"), -5_000)
     }
 
     /// Un archivo grande no debe tardar una eternidad ni perder filas.
@@ -95,11 +120,20 @@ final class CSVQueMiente: XCTestCase {
         XCTAssertLessThan(tardo, 5.0, "tardó \(tardo) s en leer 5.000 filas")
     }
 
-    /// El separador se decide con la PRIMERA línea. Un archivo cuyo encabezado
-    /// lleva una coma dentro de comillas y usa punto y coma se troceará mal.
+    /// El separador se decide con la PRIMERA línea, y **sin mirar dentro de las
+    /// comillas**: con `"nombre, apellido";monto` ganaba la coma y el archivo
+    /// entero se quedaba en una sola columna. El archivo era correcto y la app
+    /// decía que le faltaban las columnas obligatorias.
     func testSeparadorConComaEnElEncabezado() throws {
         let doc = try CSVLector.leer(escribir("\"nombre, apellido\";monto\nAna;100\n"))
-        XCTAssertEqual(doc.encabezados.count, 2,
-                       "el separador se detectó mal: \(doc.encabezados)")
+        XCTAssertEqual(doc.encabezados, ["nombre, apellido", "monto"])
+        XCTAssertEqual(doc.valor(doc.filas[0], "nombre, apellido"), "Ana")
+    }
+
+    /// El control del de arriba: un archivo de comas de verdad se sigue
+    /// detectando como tal aunque un campo entrecomillado lleve un punto y coma.
+    func testSeparadorDeComasConPuntoYComaEntreComillas() throws {
+        let doc = try CSVLector.leer(escribir("\"apellido; nombre\",monto\nAna,100\n"))
+        XCTAssertEqual(doc.encabezados, ["apellido; nombre", "monto"])
     }
 }
