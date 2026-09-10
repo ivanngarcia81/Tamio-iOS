@@ -2093,9 +2093,18 @@ Detalles que hacen perder tiempo si no se saben:
 
 ### Cómo probar una migración, que es lo que no puede fallar en silencio
 
-Si `migrate` lanza, `BaseLocal` **se cae a una base EN MEMORIA sin avisar** y se
-pierde todo lo local: una migración rota no se ve, se nota tarde. Además, **en
-modo revisión la base ni se abre**, así que arrancar la app no prueba nada.
+Si `migrate` lanza, `BaseLocal` **se cae a una base EN MEMORIA** y se pierde
+todo lo local. **Desde el 9 de septiembre eso ya NO es silencioso**: la app
+pinta una franja roja fija en todas las pantallas ("NADA SE ESTÁ GUARDANDO EN
+ESTE APARATO"), lo escribe en el log del sistema y enseña el error de SQLite en
+Ajustes · Zona de riesgo. Sigue perdiéndose lo capturado —eso no se arregló—,
+pero ya se ve al arrancar en vez de notarse tarde.
+
+**Y la base se abre SIEMPRE al arrancar, también en modo revisión**
+(`TamioApp.init`). Antes no se abría con el modo encendido, y aquí decía que por
+eso "arrancar la app no prueba nada": ahora sí prueba que las migraciones corren
+—se abre la base aunque los datos los sirvan los `Mock*`—. Lo que sigue sin
+probar en modo revisión es todo lo demás: red, folios y sincronización.
 
 Lo que sí lo prueba, y funcionó con la v15:
 

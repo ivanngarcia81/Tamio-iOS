@@ -1,5 +1,14 @@
 # Roturas del iPhone · pasada de QA adversario · 9 de septiembre de 2026
 
+> **Estado: los tres primeros están ARREGLADOS y verificados en la app
+> corriendo** (misma sesión, más abajo cada uno lleva su apartado "Cómo quedó").
+> Los hallazgos 5 a 8 siguen abiertos, y sus pruebas siguen en rojo a propósito.
+>
+> **Y el hallazgo 4 era peor de lo que este informe decía en su primera
+> versión.** Al escribir la prueba con ids de verdad —UUID, no los "1"/"207" de
+> la maqueta— salió que no era solo la edición: **aprobar y devolver al tesorero
+> tampoco hacían nada**. La corrección está dentro del apartado 4.
+
 **Solo iPhone.** El árbol compacto (`IPhoneRootView`, `RootView:322`), en
 iPhone 17e (`535B863C-BCD2-4D92-AB5D-6FE9ED41FF02`), en los dos idiomas, con el
 tamaño de letra de fábrica (`large`) y con AX1. El iPad va en otra sesión: aquí
@@ -70,15 +79,19 @@ es el parseador bueno y el que usa el importador de aportes:
 propio comentario —"manda el último separador que aparezca"—; lo usan el
 importador de aportes, los recurrentes y la segunda firma. El alta, no.
 
-**Prueba:** `pruebas/ImporteDelAltaTests.swift` (8 casos, 11 asertos en rojo hoy)
-y `pruebas/ImporteEnPantallaUITests.swift`.
+**Prueba:** `pruebas/ImporteDelAltaTests.swift` y
+`pruebas/ImporteEnPantallaUITests.swift`.
 
-**Y una segunda mitad, para quien lo arregle:** `aTexto` escribe con
-`String(format: "%.2f")`, o sea siempre con punto. Al **editar** un movimiento
-en región española el campo se abre con `1960.00` y el teclado no tiene con qué
-escribir ese punto. Vuelve a entrar redondo (`aCentavos("1960.00")` = 196000),
-pero si la tesorera corrige un dígito y reescribe la parte decimal con la única
-tecla que tiene, sale `1960,00` → **$196,000.00**.
+**Cómo quedó (arreglado).** El alta usa `Money.desdeTexto`, el mismo parseador
+que el importador: `NuevoMovimientoView.aCentavos` ya no existe y en su lugar hay
+`centavos(_:)`, que devuelve **opcional** —lo que no se entiende no vale cero, y
+quien llama tiene que decidir—. Verificado con la app corriendo en región
+`es_ES`: tecleado `12,50`, la fila del libro dice `+$12,50` (antes `+$1250,00`).
+Las 8 pruebas pasan, incluida una de ida y vuelta sobre siete importes.
+
+De paso, el campo ya no propone un punto que ese teclado no tiene: `aTexto` y el
+marcador de posición usan el separador del aparato, en el alta y en la hoja de
+«Por revisar».
 
 ---
 
@@ -137,6 +150,34 @@ avisar". Esto lo confirma y añade lo que faltaba: no es solo que el fallo se
 note tarde, es que **la salida de emergencia está cerrada con llave desde
 dentro**.
 
+**Cómo quedó (arreglado LA MITAD, y es la mitad que importaba hoy).**
+
+Ya no es mudo. `BaseLocal` guarda el error, lo escribe en el log del sistema, y
+la app lo dice en dos sitios:
+
+- Una **franja roja fija en todas las pantallas** —"NADA SE ESTÁ GUARDANDO EN
+  ESTE APARATO · cierra la app y vuelve a abrirla"—, por delante de la del modo
+  revisión. Verificado con la app corriendo, con control positivo: con la base
+  sana no sale, con la base estropeada sale en Inicio, Tesorería, Secretaría y
+  Ajustes.
+- En **Ajustes · Zona de riesgo**, qué hacer y el error tal cual
+  (`SQLite error 26: file is not a database…`, seleccionable). Y ahí se acabó el
+  "Midiendo…" eterno: `Compactacion.medir()` devuelve `nil` en dos casos que no
+  se parecen —aún no terminó, o no hay base— y la vista ya los distingue.
+
+Para que el aviso salga **a la primera** la base se abre ahora en
+`TamioApp.init`, antes del primer dibujo: era perezosa y se construía dentro de
+un `.task` posterior, así que la franja se habría evaluado antes de que nadie
+supiera que la base estaba rota. Efecto lateral buscado: **también se abre en
+modo revisión**, así que una migración rota se ve al arrancar en vez de
+esconderse. El §3 del traspaso queda corregido.
+
+**Lo que NO se hizo, y es decisión tuya:** la app sigue sin recuperar nada. No
+aparta el archivo malo para empezar uno limpio (eso tira lo único que un forense
+podría rescatar) ni se niega a escribir (eso deja a la tesorera sin capturar un
+domingo). `pruebas/BaseMudaTests.swift` **sigue en rojo a propósito** para que no
+se olvide, y su cabecera explica las dos opciones.
+
 ---
 
 ### 3 · El alta guarda movimientos de $0.00, negativos y de mil millones
@@ -169,35 +210,63 @@ pantalla**. `EditarRecurrenteView:92` apaga su botón con
 `.disabled((Money.desdeTexto(importe) ?? 0) <= 0)` y vuelve a comprobarlo antes
 de guardar (`:112`). Es exactamente la validación que le falta al alta.
 
-**Prueba:** `pruebas/ImporteDelAltaTests.swift`
-(`testLoQueNoSeEntiendeNoDebeValerCero`, `testNoSeCuelaUnImporteNegativo`,
-`testNotacionCientifica`) y `pruebas/MonedaYCeroUITests.swift`.
+**Prueba:** `pruebas/ImporteDelAltaTests.swift` y
+`pruebas/MonedaYCeroUITests.swift`.
+
+**Cómo quedó (arreglado).** `guardadoHabilitado` exige ahora
+`(centavos(importe) ?? 0) > 0`, que es la misma condición que
+`EditarRecurrenteView` ya usaba. Verificado con la app corriendo: con `..` en el
+importe, **Guardar sale apagado** (antes encendido, y guardaba $0.00). Con eso
+caen los tres a la vez: cero, negativo y notación científica, porque
+`Money.desdeTexto` no acepta ninguno de los tres.
+
+La misma condición se puso en la hoja de «Por revisar», que tenía el mismo
+`importe.isEmpty` y además ni leía el texto.
 
 ---
 
-### 4 · Corregir un asunto en «Por revisar» no guarda nada de lo que se corrige
+### 4 · La bandeja «Por revisar» entera es inerte con datos de verdad
 
-**Severidad: cifra falsa que la tesorera cree haber arreglado.**
+**Severidad: cifra falsa que la tesorera cree haber arreglado — y la pantalla
+que existe para arreglar cifras no arregla ninguna.**
 
-La bandeja existe para arreglar lo que está mal. Su hoja de edición
-(`EditarAsuntoView`) ofrece seis campos: concepto, importe, categoría, método,
-aportante y fecha. **Ninguno se queda.**
+> **Corrección de la primera versión de este informe.** Aquí decía "corregir un
+> asunto no guarda nada de lo que se corrige", y se quedaba corto. Al escribir
+> la prueba con **ids de verdad** salió que no era solo la hoja de edición:
+> **aprobar y devolver al tesorero tampoco hacían nada**. Es la trampa de la
+> maqueta otra vez, y esta vez me la tragué yo en la primera pasada.
 
-**Reproducción**, dos veces (`pruebas/RevisarEdicionUITests.swift`):
+**La raíz: el id de un asunto se partía por el primer guion de un UUID.**
 
-1. Por revisar → abrir *"Missions · La Esperanza Mission Church"* (−$600.00).
-2. Editar → cambiar el importe de `600.00` a `1.00`.
-3. "Save changes".
+Un asunto se identifica como `"tx-<id del movimiento>-<tipo>"`, y para
+deshacerlo `RevisarCalculado.movimiento(de:)` hacía
+`split(separator: "-", maxSplits: 2)` y se quedaba con `partes[1]`. Con los ids
+de la maqueta —`"1"`, `"207"`— eso funciona, **y por eso la pantalla parecía
+sana en modo revisión**. Los de verdad los genera
+`OfflineMovimientosRepository.crear` con `UUID().uuidString`:
 
-**Lo que pasa:** el detalle sigue diciendo `Amount −$600.00`, y la descripción
-sigue diciendo *"for $600.00"*.
-**Lo que se esperaba:** −$1.00.
+```
+tx-C9583C40-0389-4E75-B34B-4B356E2D3808-vistoBueno
+   └─ partes[1] = "C9583C40"  ← no existe ningún movimiento con ese id
+```
 
-**El control que hace precisa la queja** (`testLaCategoriaSiSeQueda`): se repitió
-cambiando **la categoría** de Missions a Cleaning, que es el único campo que el
-repositorio dice escribir. Tampoco se queda: el detalle sigue en `Missions`.
+`porId` no encontraba nada, el `guard` devolvía y **todo se iba en silencio**:
+aprobar, devolver, revertir, editar y reactivar a un miembro dado de baja
+(`reactivarMiembro` tenía el mismo `split`).
 
-La causa está a la vista en `RevisarRepository.swift:85`:
+**Reproducción**, con `pruebas/BandejaConIdRealTests.swift` (modo revisión
+APAGADO, contra la base local):
+
+1. Sembrar un gasto pendiente con un id `UUID().uuidString`.
+2. Sacarlo de `RevisarCalculado.asuntos()`.
+3. `aprobar(id:)`.
+
+**Lo que pasaba:** el movimiento seguía en `pendiente`. Igual con `devolver`
+(seguía en `pendiente`) y con editar (`monto` seguía en 60000, la categoría en
+"Cleaning", el método en "Cash" y la nota sin tocar).
+
+**Y encima, la hoja tiraba cinco de sus seis campos.** Aunque el id se hubiera
+resuelto, `RevisarRepository.swift:85` era:
 
 ```swift
 func actualizar(_ r: Revision) async {
@@ -207,18 +276,52 @@ func actualizar(_ r: Revision) async {
 }
 ```
 
-Cinco de los seis campos **no se escriben en ninguna parte**. El sexto sí se
-escribe y aun así no se ve, y ahí hay dos candidatos que quien lo arregle tendrá
-que separar: o el `try?` se está tragando el fallo, o la pantalla lee
-`categoriaCompleta` mientras la escritura toca `categoria`
-(`CalculadoraRevisiones.swift:213` compone la `Revision` con `m.categoria`, pero
-la fila "Category" del detalle sale de `campos(m)`). **No lo he determinado**:
-lo que está medido es que al usuario no le llega ninguno de los seis.
+Importe, concepto, método, aportante y fecha no se escribían en ninguna parte.
 
-El cableado está comprobado y no es el problema: `RevisarView:52` llama a
-`vm.editar`, y `RevisarViewModel.editar:109` construye la `Revision` con los seis
-valores nuevos antes de pasársela al repositorio. Es el repositorio el que los
-tira.
+**Cómo quedó (arreglado).** Cuatro cosas, y las cuatro hicieron falta para que
+la tesorera vea su corrección. Se descubrieron en ese orden porque cada una
+tapaba a la siguiente:
+
+1. **El id.** `idDelRegistro(_:prefijo:)` se queda con todo lo que hay entre el
+   prefijo y el ÚLTIMO guion, así que un UUID entra entero. Lo usan las cinco
+   acciones, `reactivarMiembro` incluido.
+2. **Los seis campos.** `actualizar` escribe importe (con `Money.desdeTexto`, y
+   **no escribe** lo que no entienda: mejor la cifra vieja que un cero), nota,
+   categoría —y `categoriaCompleta` con ella, que es lo que leen las listas y
+   los reportes—, método, fecha y aportante. `Movimiento` tenía esos campos como
+   `let`; ahora son `var`, con el porqué escrito en el modelo.
+3. **La ficha empujada no se enteraba.** El teléfono empujaba el detalle con una
+   COPIA del asunto (`navigationDestination(item: $abierto)`), así que se quedaba
+   con la cifra vieja. Ahora lo busca por id, como ya hacía bien la columna del
+   iPad con `vm.seleccion`.
+4. **`Revision` definía `==` por id.** Con eso SwiftUI da por buena la vista que
+   ya tiene, y la LISTA seguía en −$600.00 con el dato ya cambiado. Medido con
+   `NSLog`: `asuntos(): 106 vale 100` mientras la pantalla enseñaba −$600.00.
+
+   **Solo se tocó `Revision`.** El mismo `==` por id está en `Movimiento`,
+   `Aportante`, `Acta`, `Servicio`, `Corte`, `Miembro` y `Apunte` (§0.-7 del
+   traspaso), y cambiarlos todos es una tanda de regresión y una decisión tuya.
+   Aquí se pudo suelto porque `Revision` no está en ningún `Set` ni en ningún
+   `onChange` —comprobado con grep— y su identidad para `ForEach` y
+   `.sheet(item:)` sigue siendo el id.
+
+Verificado con la app corriendo (`pruebas/RevisarRedibujoUITests.swift`), que
+mide el importe en tres momentos para distinguir cuál de las capas se rompe si
+vuelve a fallar: al guardar (`−$1.00`), en la lista (`−$1.00`) y al salir y
+volver a entrar (`−$1.00`). Antes: `−$600.00` en los tres.
+
+**Dos cosas más que salieron de la misma hoja y se arreglaron de paso:**
+
+- **El selector de aportante tenía cuatro nombres inventados escritos a mano**
+  —"Pedro Salas Aguirre", "Karla Villalobos Ruiz"…—, que es exactamente lo que se
+  quitó de los tres selectores de Secretaría el 6-sep y que a este se le pasó.
+  Corregir el aportante de un ingreso le ponía el nombre de alguien que puede no
+  existir en el padrón. Ahora lee `padronParaSelector()`.
+- **El campo "Concepto" se prellenaba con el TITULAR** (`"Misiones · Iglesia La
+  Esperanza"`), que es un valor compuesto de categoría y persona y no un campo
+  que exista para escribirlo: guardarlo habría metido eso dentro de la nota.
+  Ahora prellena y guarda `nota`, que es lo que la hoja de alta llama "Concepto"
+  desde siempre.
 
 ---
 
@@ -354,62 +457,69 @@ adivinar sin preguntar. Se anota, no se propone cambiarlo.
 
 ---
 
-## Orden de arreglo que propongo
+## Lo que queda por arreglar
 
-Decide tú; esto es solo cómo lo ordenaría yo, y por qué.
+Los tres primeros están hechos y verificados corriendo. Lo que sigue abierto,
+por el orden en que yo lo haría:
 
-1. **El nº 1 y el nº 3 juntos, en `NuevoMovimientoView`.** Son el mismo arreglo:
-   que el alta use `Money.desdeTexto` y que Guardar exija un importe > 0, como
-   ya hace `EditarRecurrenteView`. Es el cambio más pequeño de la lista y el que
-   más dinero toca. Con las pruebas ya escritas, se sabe al momento si entró.
-2. **El nº 2, la base muda.** Es el único que pierde datos, pero va después
-   porque el arreglo es más de diseño que de código: hay que decidir **qué se le
-   enseña** a la tesorera —un aviso fijo como el del modo revisión es lo que ya
-   hay en la casa— y si la app debe **negarse a escribir** en vez de aceptar
-   trabajo que va a tirar. Lo segundo es lo que yo defendería: una app que no
-   deja capturar es un mal día; una que acepta la captura y la pierde es un mes
-   descuadrado.
-3. **El nº 4, «Por revisar».** Bloquea un trabajo entero —la bandeja existe para
-   corregir— y el diagnóstico ya está hecho hasta la línea. Antes de escribir el
-   arreglo, separar los dos candidatos del campo `categoria`: son dos bugs o
-   uno, y no se sabe todavía.
-4. **El nº 5**, el importe con letras. Una condición en `Money.desdeTexto`: si
-   se borró algo que no era símbolo de moneda ni espacio, devolver `nil`.
-5. **El nº 7**, los cuatro `$`. Cuatro líneas, cero riesgo.
-6. **El nº 6 y el nº 8**, los dos del CSV. Los dos piden pensar el caso raro y
-   ninguno corre prisa.
+1. **El nº 5**, el importe con letras en el importador. Una condición en
+   `Money.desdeTexto`: si se borró algo que no era símbolo de moneda ni espacio,
+   devolver `nil`. Es el único que queda de la familia "cifra falsa".
+2. **El nº 7**, los cuatro `$` escritos a mano. Cuatro líneas, cero riesgo.
+   `NuevoMovimientoView:385`, `EditarAsuntoView:64`, `CategoryDonutChart:21` y
+   `RevisarView:298`.
+3. **El nº 6 y el nº 8**, los dos del CSV. Piden pensar el caso raro y ninguno
+   corre prisa.
+
+**Y una que no es un arreglo sino una decisión tuya**, la mitad que quedó del
+nº 2: la app avisa de que la base se cayó, pero **sigue sin recuperar nada**.
+Las dos salidas son apartar el archivo malo y empezar uno limpio —que tira lo
+único que un forense podría rescatar— o negarse a escribir —que deja a la
+tesorera sin capturar un domingo—. `pruebas/BaseMudaTests.swift` sigue en rojo
+para que no se pierda de vista.
+
+**La otra decisión pendiente, de la misma familia:** el `==` por id de los otros
+siete modelos (§0.-7 del traspaso). Aquí se arregló solo el de `Revision`, y se
+arregló porque sin él la corrección del nº 4 no se veía en pantalla. Los demás
+siguen igual, y ahora hay un precedente medido de qué cuesta dejarlos así.
 
 ---
 
 ## Lo que probablemente comparte el árbol del iPad · para la sesión siguiente
 
-**No comprobado.** Sale de mirar quién dibuja cada vista, no de correr nada en
-un iPad.
+**No comprobado en un iPad.** Sale de mirar quién dibuja cada vista.
 
-**Lo que es la MISMA vista en los dos árboles**, así que el fallo es idéntico y
-el arreglo lo cura de una vez:
+**Lo que YA quedó arreglado también en el iPad**, porque es la misma vista o el
+mismo repositorio en los dos árboles — hay que **confirmarlo corriendo allí**,
+no darlo por hecho:
 
 - **Nº 1 y nº 3 (el importe del alta).** `NuevoMovimientoView` la presentan
   `MovimientosView` y `DashboardView`, que sirven a los dos árboles. En el iPad
-  cambia una cosa que conviene medir allí: **con teclado físico el `.decimalPad`
-  no manda**, así que el punto sí se puede escribir y el fallo puede no aparecer
-  — lo cual lo hace *peor*, no mejor: aparece solo con el teclado en pantalla.
-- **Nº 4 («Por revisar»).** `RevisarView` y `RevisarRepository` son comunes.
-- **Nº 5 y nº 6 (CSV).** `Money.desdeTexto` y `CSVLector` son comunes, y el
-  importador del iPad ya está probado en `pruebas/ImportarIPadUITests.swift`.
-- **Nº 7 (los cuatro `$`).** `NuevoMovimientoView:385`, `EditarAsuntoView:64`,
-  `CategoryDonutChart:21` y `RevisarView:298` se dibujan igual en iPad. Y hay
-  **un quinto sitio propio del iPad que no he mirado**: `ConfiguracionView:550`
-  lleva su propio `Picker` de moneda.
+  hay algo que medir aparte: **con teclado físico el `.decimalPad` no manda**,
+  así que el punto sí se puede escribir. Eso hacía el fallo *más* traicionero
+  —aparecía solo con el teclado en pantalla— y ahora da igual, porque las dos
+  formas entran por el mismo parseador.
+- **Nº 4 (la bandeja inerte).** `RevisarRepository` es común, así que aprobar,
+  devolver, revertir, editar y reactivar estaban rotos también allí y ya no lo
+  están. **La parte del redibujo es a medias**: la columna del iPad lee
+  `vm.seleccion` y ya iba bien, y el `==` de `Revision` era común. Lo que no
+  toqué es el `navigationDestination` del iPad estrecho, que conviene mirar.
+- **Nº 2, la mitad del aviso.** La franja vive en `TamioApp`, encima de
+  `RootView`, así que sale igual en las dos formas. Y `BaseLocal` se abre ahora
+  en `init`, que también es común.
 
-**Lo que es OTRA vista y hay que volver a mirar allí:**
+**Lo que es OTRA vista y sigue sin mirar allí:**
 
-- **Nº 2 (la base muda) en `SeccionZona`**, la Zona de riesgo del iPad
-  (`ConfiguracionView:1364`). Es código separado de `AjustesZonaView`, pero llama
-  a los mismos `Respaldo.crear()` (`:1596`) y `Compactacion.medir()` (`:1502`),
-  así que **hereda las dos mitades del fallo**: el "no está disponible" tardío y
-  el "Measuring…" eterno. Hay que comprobar si además enseña algo más o menos que
-  la del teléfono.
+- **La Zona de riesgo del iPad, `SeccionZona`** (`ConfiguracionView:1364`). Es
+  código separado de `AjustesZonaView`, y **el "Midiendo…" eterno solo se
+  arregló en la del teléfono**: ella llama al mismo `Compactacion.medir()`
+  (`:1502`) y `Respaldo.crear()` (`:1596`), así que hereda las dos mitades del
+  fallo original. Es el primer sitio que miraría la sesión del iPad.
+- **Nº 7 (los `$` a mano).** Sigue abierto, y en el iPad hay **un quinto sitio
+  propio**: `ConfiguracionView:550` lleva su propio `Picker` de moneda.
+- **Nº 5 y nº 6 (CSV).** `Money.desdeTexto` y `CSVLector` son comunes y siguen
+  abiertos; el importador del iPad ya está probado en
+  `pruebas/ImportarIPadUITests.swift`.
 - **Las cápsulas de la barra.** En el teléfono salieron limpias en AX1, pero la
   barra del iPad es de la pantalla entera y con la sidebar fijada el ancho útil
   baja: el recuento hay que rehacerlo allí, no heredarlo.

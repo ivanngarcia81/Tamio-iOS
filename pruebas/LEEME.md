@@ -129,13 +129,21 @@ se arregle lo que cazan, y hasta entonces son la medida.
 Unitarias (target `bundle.unit-test`, receta del §3):
 
 - **`ImporteDelAltaTests.swift`** — los dos parseadores de dinero enfrentados.
-  Compara `NuevoMovimientoView.aCentavos` (el que usa el alta manual) contra
-  `Money.desdeTexto` (el del importador) con el mismo texto. 8 casos, 11 asertos
-  en rojo. Es la prueba del hallazgo nº 1 y del nº 3.
-- **`BaseMudaTests.swift`** — la base que cae a memoria sin avisar. **Se corre en
-  DOS pasadas sobre el mismo contenedor**, con el shell estropeando el archivo
-  entre una y otra; la cabecera lleva los dos comandos. Es la única prueba del
-  repo que necesita que alguien toque el disco a media faena.
+  Compara `NuevoMovimientoView.centavos` (el del alta manual) contra
+  `Money.desdeTexto` (el del importador) con el mismo texto. **Estaba en rojo y
+  ahora pasa**: si vuelve a fallar, es que el alta se volvió a escribir su propio
+  parseador. Es la prueba del hallazgo nº 1 y del nº 3.
+- **`BandejaConIdRealTests.swift`** — aprobar, devolver y editar un asunto de
+  «Por revisar» **con un id como los de verdad**, que es un UUID con guiones. El
+  id del asunto se partía por el primer guion y las cinco acciones de la bandeja
+  no hacían nada; con los ids de la maqueta —"1", "207"— eso no se ve, y por eso
+  esta prueba se pasa el id hecho a mano. Modo revisión APAGADO.
+- **`BaseMudaTests.swift`** — la base que cae a memoria. **Se corre en DOS
+  pasadas sobre el mismo contenedor**, con el shell estropeando el archivo entre
+  una y otra; la cabecera lleva los dos comandos. Es la única prueba del repo que
+  necesita que alguien toque el disco a media faena. **Sigue en rojo a
+  propósito**: la caída ya no es silenciosa, pero la app tampoco recupera nada, y
+  eso es una decisión pendiente. Su cabecera explica las dos opciones.
 - **`CSVQueMienteTests.swift`** — BOM, filas vacías, comas dentro del nombre,
   columnas duplicadas, encabezados en el otro idioma, 5.000 filas, los dos
   formatos de importe y los importes con letras dentro. Seis pasan; tres cazan.
@@ -148,9 +156,15 @@ De interfaz (con el modo revisión **ENCENDIDO** en la copia):
   (`-AppleLocale es_ES`) y el camino entero de un importe con coma hasta la fila
   del libro. **La medida que lo destapó todo es el volcado de teclas**: con esa
   región el `.decimalPad` no tiene tecla de punto.
-- **`RevisarEdicionUITests.swift`** — corregir un asunto de «Por revisar» y
-  comprobar que la corrección se queda. Lleva su propio control: se repite con la
-  categoría, que es el único campo que el repositorio dice escribir.
+- **`RevisarRedibujoUITests.swift`** — corregir el importe de un asunto y verlo
+  corregido. **Mide el importe en TRES momentos a propósito** —al guardar, en la
+  lista, y al salir y volver a entrar—, porque hicieron falta tres arreglos en
+  capas distintas y cada uno tapaba al siguiente: que se escriba, que la ficha
+  empujada se entere, y que la lista se entere. El momento en el que falle dice
+  cuál se rompió.
+- **`BaseCaidaUITests.swift`** — lo que ve la tesorera con la base estropeada.
+  Dos pasadas como `BaseMudaTests`, y **lleva su control positivo**: con la base
+  sana el aviso NO puede salir.
 - **`MonedaYCeroUITests.swift`** — cambiar la moneda de la iglesia a euros y
   recorrer Tesorería buscando dólares; y guardar un movimiento de $0.00.
 - **`CapsulasDeBarraUITests.swift`** — cuenta las cápsulas de las cuatro
