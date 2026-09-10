@@ -222,17 +222,41 @@ struct RootView: View {
     /// quien pueda hacer algo con él.
     @ViewBuilder
     static var avisoBaseCaida: some View {
-        if BaseLocal.caida != nil {
-            Text(L.t("NO SE GUARDA NADA EN ESTE APARATO · cierra la app y vuelve a abrirla",
-                     "NOTHING IS BEING SAVED ON THIS DEVICE · close the app and reopen it"))
+        switch BaseLocal.caida?.que {
+        case .enMemoria:
+            franjaAviso(L.t("NO SE GUARDA NADA EN ESTE APARATO · cierra la app y vuelve a abrirla",
+                            "NOTHING IS BEING SAVED ON THIS DEVICE · close the app and reopen it"),
+                        fondo: Paleta.negativo)
+        case .seEmpezoDeCero:
+            // **Naranja y no rojo, y con otro texto.** Aquí la app SÍ guarda:
+            // decir "no se guarda nada" sería mentir en el sentido contrario, y
+            // un rojo permanente sobre una app que funciona se aprende a
+            // ignorar. Lo que hay que contar es qué falta y de dónde vuelve.
+            //
+            // No hace falta que se pueda descartar: la caída solo existe
+            // mientras dura esta ejecución, así que el aviso se va solo en el
+            // siguiente arranque, que es cuando ya no hay nada que contar.
+            franjaAviso(L.t("LA BASE DE ESTE APARATO ESTABA DAÑADA · se empezó de cero; lo sincronizado vuelve solo",
+                            "THIS DEVICE'S DATABASE WAS DAMAGED · started fresh; synced data comes back on its own"),
+                        fondo: Paleta.aviso, texto: .black)
+        case nil:
+            EmptyView()
+        }
+    }
+
+    /// La franja de aviso de la app entera. El texto en negro sobre el naranja y
+    /// en blanco sobre el rojo: son las dos combinaciones de la paleta que pasan
+    /// 4.5:1 en claro y en oscuro a este tamaño (el blanco sobre naranja da 3.6
+    /// y 2.0, medido — ver `avisoRevision`).
+    @ViewBuilder
+    private static func franjaAviso(_ texto: String, fondo: Color,
+                                    texto color: Color = .white) -> some View {
+        Text(texto)
             .font(.caption2.weight(.bold))
-            // Blanco sobre el rojo de la marca, que es la única combinación de
-            // la paleta que pasa 4.5:1 en las dos apariencias con este tamaño.
-            .foregroundStyle(.white)
+            .foregroundStyle(color)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 4)
-            .background(Paleta.negativo)
-        }
+            .background(fondo)
     }
 
     /// Nombre legible de una sección aún no construida, para el placeholder.

@@ -39,10 +39,73 @@ final class BaseLocal {
     /// que puede ser otro hilo. Se escribe una sola vez, en el `init`.
     nonisolated(unsafe) private(set) static var caida: Caida?
 
-    /// Lo que hay que poder decir de una caída: que pasó, y por qué.
+    /// Lo que hay que poder decir de una caída: qué pasó, y por qué.
     struct Caida {
+        /// **Las dos caídas no son la misma y no se avisan igual.**
+        enum Que {
+            /// El archivo estaba dañado —SQLite no lo reconoce como base—, se
+            /// apartó con su fecha y se empezó una limpia. **La app SÍ guarda**;
+            /// lo que falta vuelve al sincronizar o desde un respaldo.
+            case seEmpezoDeCero(apartadoEn: String)
+            /// No se pudo ni eso: se trabaja en memoria y **nada se guarda**.
+            case enMemoria
+        }
+        let que: Que
         let motivo: String
         let cuando: Date
+    }
+
+    /// **Cuándo se aparta el archivo y cuándo no**, que es la única parte
+    /// delicada de esto.
+    ///
+    /// Empezar de cero es lo correcto cuando el archivo no es una base: nadie
+    /// puede leerlo, así que no se pierde nada que no estuviera perdido, y a
+    /// cambio la tesorera vuelve a tener una app que guarda. Pero aplicado a
+    /// ciegas sería mucho peor que el fallo:
+    ///
+    /// - **Un fallo pasajero** —el aparato bloqueado con la clase
+    ///   `completeUnlessOpen`, el disco lleno, el archivo ocupado— apartaría una
+    ///   base SANA, y la tesorera vería su trabajo desaparecer hasta que la
+    ///   sincronización se lo devolviera.
+    /// - **Una migración rota** es un fallo NUESTRO, no del archivo. Apartarlo
+    ///   borraría los datos de todo el que instale esa versión, en cada
+    ///   arranque, sin que hubiera nada malo en su aparato.
+    ///
+    /// Así que solo cuentan los dos códigos con los que SQLite dice "esto no es
+    /// una base": `SQLITE_NOTADB` y `SQLITE_CORRUPT`. Cualquier otra cosa —una
+    /// migración que lanza, permisos, ocupado— se queda en memoria y con su
+    /// aviso, que es el comportamiento de antes.
+    private static func esArchivoDaniado(_ error: Error) -> Bool {
+        guard let e = error as? DatabaseError else { return false }
+        return e.resultCode == .SQLITE_NOTADB || e.resultCode == .SQLITE_CORRUPT
+            || e.extendedResultCode.primaryResultCode == .SQLITE_CORRUPT
+    }
+
+    /// Aparta el archivo dañado **con sus dos acompañantes**: el `-wal` guarda
+    /// lo último escrito y el `-shm` el índice de ese registro, así que dejar
+    /// cualquiera de los dos haría que la base nueva naciera con restos de la
+    /// vieja. Devuelve el nombre con el que quedó, para poder decirlo.
+    private static func apartar(_ ruta: URL) -> String? {
+        let fm = FileManager.default
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd-HHmmss"
+        let sello = f.string(from: Date())
+        let nombre = "tamio-danada-\(sello).sqlite"
+        let destino = ruta.deletingLastPathComponent().appendingPathComponent(nombre)
+        do {
+            try fm.moveItem(at: ruta, to: destino)
+        } catch {
+            NSLog("[Tamio] no se pudo apartar la base dañada: %@", "\(error)")
+            return nil
+        }
+        // Los acompañantes se mueven si están; que falten no es un problema.
+        for sufijo in ["-wal", "-shm"] {
+            let extra = URL(fileURLWithPath: ruta.path + sufijo)
+            guard fm.fileExists(atPath: extra.path) else { continue }
+            try? fm.moveItem(at: extra, to: URL(fileURLWithPath: destino.path + sufijo))
+        }
+        return nombre
     }
 
     private init() {
@@ -51,9 +114,9 @@ final class BaseLocal {
         let carpeta = try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                   appropriateFor: nil, create: true)
         if let carpeta {
-            let ruta = carpeta.appendingPathComponent("tamio.sqlite").path
+            let ruta = carpeta.appendingPathComponent("tamio.sqlite")
             do {
-                let cola = try DatabaseQueue(path: ruta)
+                let cola = try DatabaseQueue(path: ruta.path)
                 try Self.migrador.migrate(cola)
                 self.cola = cola
                 return
@@ -63,6 +126,21 @@ final class BaseLocal {
                 // error", el identificador de la migración que falló— se perdía
                 // en el sitio exacto donde hacía falta.
                 porQue = "\(error)"
+
+                // **Si el archivo está dañado, se aparta y se empieza de cero.**
+                // Ver `esArchivoDaniado` para por qué solo en ese caso. La
+                // alternativa era quedarse en memoria, que es lo que había: la
+                // app parece funcionar y al cerrarla no queda nada.
+                if Self.esArchivoDaniado(error), let apartado = Self.apartar(ruta),
+                   let limpia = try? DatabaseQueue(path: ruta.path),
+                   (try? Self.migrador.migrate(limpia)) != nil {
+                    self.cola = limpia
+                    Self.caida = Caida(que: .seEmpezoDeCero(apartadoEn: apartado),
+                                       motivo: porQue, cuando: Date())
+                    NSLog("[Tamio] BASE LOCAL DAÑADA: apartada como %@ y empezada de cero. %@",
+                          apartado, porQue)
+                    return
+                }
             }
         }
         // swiftlint:disable:next force_try — una base en memoria no puede fallar.
@@ -70,7 +148,7 @@ final class BaseLocal {
         try? Self.migrador.migrate(self.cola)
         enMemoria = true
         motivoCaida = porQue
-        Self.caida = Caida(motivo: porQue, cuando: Date())
+        Self.caida = Caida(que: .enMemoria, motivo: porQue, cuando: Date())
         NSLog("[Tamio] BASE LOCAL CAÍDA A MEMORIA: %@", porQue)
     }
 
