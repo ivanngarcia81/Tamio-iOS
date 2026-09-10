@@ -51,8 +51,6 @@ struct EditarAsuntoView: View {
         _categoria = State(initialValue: r.editCategoria ?? (cats.first ?? ""))
         _metodo = State(initialValue: r.editMetodo ?? (Catalogos.metodos.first ?? ""))
         _aportante = State(initialValue: r.editAportante)
-        // La fecha sale del campo "Fecha" del asunto. Esta hoja se abre desde
-        // el ítem marcado como duplicado, donde corregirla es lo más probable.
         // La fecha viene ya hecha del movimiento. Antes se recomponía leyendo
         // el TEXTO del campo "Fecha" del asunto con `desdeSemilla`, que es un
         // parseador de la maqueta: con un formato que no reconociera caía en
@@ -74,7 +72,8 @@ struct EditarAsuntoView: View {
             Form {
                 Section {
                     HStack(spacing: 4) {
-                        Text("$").foregroundStyle(.secondary)
+                        // La moneda de la iglesia, como en la hoja de alta.
+                        Text(Money.moneda.simbolo).foregroundStyle(.secondary)
                         // El marcador con el separador del aparato, como en la
                         // hoja de alta: en región española decía "0.00" y
                         // proponía un punto que el `.decimalPad` de esa región

@@ -603,11 +603,19 @@ struct DashboardView: View {
 
     // MARK: - Textos
 
+    /// **Con el símbolo de la moneda configurada**, que iba escrito a mano.
+    /// Es el quinto sitio con el "$" fijo, y el más visible: encabeza Inicio.
+    ///
+    /// No se sustituye por `Money.compact`, que hace lo mismo pero redondea
+    /// distinto por encima de diez mil ("$48k" en vez de "$48.3k"): eso cambia
+    /// lo que se lee en la pantalla principal y no es lo que se está
+    /// arreglando aquí.
     private func montoCompacto(_ cents: Centavos) -> String {
         let valor = Double(Int(cents)) / 100.0
-        if valor >= 1_000_000 { return String(format: "$%.1fM", valor / 1_000_000) }
-        if valor >= 1_000 { return String(format: "$%.1fk", valor / 1_000) }
-        return String(format: "$%.0f", valor)
+        let simbolo = Money.moneda.simbolo
+        if valor >= 1_000_000 { return simbolo + String(format: "%.1fM", valor / 1_000_000) }
+        if valor >= 1_000 { return simbolo + String(format: "%.1fk", valor / 1_000) }
+        return simbolo + String(format: "%.0f", valor)
     }
 
     private func saludo(_ d: DashboardData) -> String {

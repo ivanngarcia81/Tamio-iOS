@@ -191,7 +191,14 @@ struct RevisarView: View {
                             .lineLimit(1)
                         Spacer(minLength: 8)
                         if let imp = a.editImporte {
-                            Text((a.esGasto ? "−$" : "+$") + imp)
+                            // **El símbolo de la moneda, no un "$" pegado al
+                            // signo.** Este es el sexto sitio del "$" a mano y
+                            // el que más costó encontrar: iba dentro del mismo
+                            // literal que el signo ("−$"), así que no lo cazaba
+                            // ningún grep de `"$"` suelto. Es la fila de la
+                            // LISTA de la bandeja; la del detalle es la de
+                            // abajo, y estaban las dos.
+                            Text((a.esGasto ? "−" : "+") + Money.moneda.simbolo + imp)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(a.esGasto ? Paleta.negativo : Paleta.brand)
                                 .monospacedDigit()
@@ -304,7 +311,10 @@ struct RevisarView: View {
                             .lineLimit(1)
                         Spacer(minLength: 8)
                         if let imp = a.editImporte {
-                            Text((a.esGasto ? "−" : "+") + "$" + imp)
+                            // `editImporte` viene ya sin símbolo
+                            // (`CalculadoraRevisiones` se lo quita), así que
+                            // aquí se vuelve a poner: el de la iglesia, no "$".
+                            Text((a.esGasto ? "−" : "+") + Money.moneda.simbolo + imp)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(a.esGasto ? Paleta.negativo : Paleta.brand)
                                 .monospacedDigit()

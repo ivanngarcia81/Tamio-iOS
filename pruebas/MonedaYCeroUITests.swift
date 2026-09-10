@@ -78,6 +78,36 @@ final class MonedaYCero: XCTestCase {
         print("ALTA-EUR:" + alta.prefix(15).joined(separator: "|"))
         XCTAssertFalse(alta.contains("$"),
                        "El campo de importe sigue diciendo «$» con la iglesia en euros")
+        app.buttons["Cancel"].tap(); sleep(2)
+        volver()
+
+        // **Los otros cuatro sitios donde el "$" iba escrito a mano.** Se
+        // recorren enteros porque el símbolo suelto no se ve en un volcado si
+        // no se busca: aquí se busca cualquier rótulo que empiece por "$", por
+        // "+$" o por "−$".
+        func dolaresEn(_ pantalla: String) -> [String] {
+            let sueltos = app.staticTexts.allElementsBoundByIndex.map(\.label).filter {
+                $0 == "$" || $0.hasPrefix("$") || $0.hasPrefix("+$") || $0.hasPrefix("−$")
+            }
+            print("DOLARES-EN-\(pantalla):" + sueltos.joined(separator: "|"))
+            return sueltos
+        }
+
+        // **Sin relanzar.** En modo revisión la moneda la sirve el repositorio
+        // de maqueta y no sobrevive a un `terminate()`, así que relanzar aquí
+        // mide una iglesia otra vez en dólares y no el arreglo. Las pantallas
+        // que siguen se visitan por PRIMERA vez en esta corrida, así que su
+        // cuerpo se construye después del cambio.
+        pestana("Home")            // el monto compacto de Inicio y la dona
+        parada("inicio-eur")
+        XCTAssertTrue(dolaresEn("inicio").isEmpty, "Inicio sigue en dólares")
+        for _ in 0..<4 { app.swipeUp(velocity: .slow); sleep(1) }
+        parada("inicio-eur-abajo")
+        XCTAssertTrue(dolaresEn("inicio-abajo").isEmpty, "la dona de Inicio sigue en dólares")
+
+        pestana("To review")       // la fila de la bandeja
+        parada("revisar-eur")
+        XCTAssertTrue(dolaresEn("revisar").isEmpty, "Por revisar sigue en dólares")
     }
 
     /// **Un movimiento de $0.00 NO se puede guardar.** El botón miraba solo que

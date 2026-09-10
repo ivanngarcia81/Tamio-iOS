@@ -395,7 +395,11 @@ struct NuevoMovimientoView: View {
     private var importeView: some View {
         VStack(spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("$")
+                // El símbolo de la moneda de la iglesia, no un "$" fijo: con
+                // la iglesia en euros la lista decía "+€2,500.00" y esta misma
+                // pantalla, dos renglones por encima del código "EUR", seguía
+                // diciendo "$".
+                Text(Money.moneda.simbolo)
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
                 // El marcador con el separador del aparato, no con un punto

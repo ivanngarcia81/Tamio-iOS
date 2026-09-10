@@ -15,10 +15,13 @@ struct CategoryDonutChart: View {
     private var pcts: [Int] { Money.reparto(categorias.map(\.monto), total: total) }
 
     /// El centro de la dona: "$48.3k" (miles con un decimal), como el diseño.
+    /// **Con el símbolo de la moneda configurada**, que iba escrito a mano: la
+    /// dona seguía en dólares con la iglesia en euros.
     private var centroTexto: String {
         let unidad = Double(total) / 100.0
-        if unidad >= 1_000 { return String(format: "$%.1fk", unidad / 1_000) }
-        return "$" + String(Int(unidad.rounded()))
+        let simbolo = Money.moneda.simbolo
+        if unidad >= 1_000 { return simbolo + String(format: "%.1fk", unidad / 1_000) }
+        return simbolo + String(Int(unidad.rounded()))
     }
 
     var body: some View {
