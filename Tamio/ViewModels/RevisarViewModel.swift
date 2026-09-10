@@ -105,30 +105,26 @@ final class RevisarViewModel {
     }
 
     /// Guarda los cambios del formulario "Editar"; el asunto sigue en la bandeja.
+    ///
+    /// **Solo se rellenan los campos `edit*`, que son los que el repositorio
+    /// escribe.** Antes esto recomponía además los `campos` del detalle y el
+    /// `concepto` de la fila, uno por uno y a mano, para que la pantalla se
+    /// viera al día antes de recargar. Era trabajo perdido y además mentía: la
+    /// bandeja **se calcula del movimiento** (`CalculadoraRevisiones`), así que
+    /// el `cargar()` de la línea siguiente rehace esos mismos campos con lo que
+    /// de verdad quedó guardado. Mientras el repositorio no escribía nada, esa
+    /// recomposición era justo lo que hacía parecer que la edición había
+    /// entrado durante un instante.
     @MainActor
     func editar(id: String, concepto: String, importe: String, categoria: String,
                 metodo: String, aportante: String?, fecha: Date) async {
         guard var r = todos.first(where: { $0.id == id }) else { return }
-        let signo = r.esGasto ? "−" : "+"
-        var campos = r.campos.map { c -> CampoRevision in
-            switch c.label {
-            case L.t("Concepto", "Concept"): return .init(label: c.label, valor: concepto)
-            case L.t("Importe", "Amount"): return .init(label: c.label, valor: "\(signo)\(Money.moneda.simbolo)\(importe) \(Money.codigo)", resalte: r.esGasto ? .rojo : .verde)
-            case L.t("Categoría", "Category"): return .init(label: c.label, valor: categoria)
-            case L.t("Método de pago", "Payment method"): return .init(label: c.label, valor: metodo)
-            case L.t("Fecha", "Date"): return .init(label: c.label, valor: Fechas.corta(fecha))
-            case L.t("Aportante", "Giver"): return .init(label: c.label, valor: aportante ?? c.valor, resalte: aportante == nil ? .rojo : .ninguno)
-            default: return c
-            }
-        }
-        // Si tenía "Sin categoría" en rojo y ahora hay categoría, ya no va en rojo.
-        campos = campos.map { $0.label == L.t("Categoría", "Category") ? .init(label: $0.label, valor: $0.valor) : $0 }
-        r = Revision(id: r.id, tipo: r.tipo, concepto: concepto, detalleLista: r.detalleLista,
-                     archivado: r.archivado, descripcion: r.descripcion, seccionTitulo: r.seccionTitulo,
-                     campos: campos, seccionSecundaria: r.seccionSecundaria, camposSecundarios: r.camposSecundarios,
-                     notaPie: r.notaPie, acciones: r.acciones, esGasto: r.esGasto,
-                     editImporte: importe, editCategoria: categoria, editMetodo: metodo,
-                     editAportante: aportante, toastResuelto: r.toastResuelto)
+        r.editImporte = importe
+        r.editCategoria = categoria
+        r.editMetodo = metodo
+        r.editAportante = aportante
+        r.editNota = concepto
+        r.editFecha = fecha
         await repo.actualizar(r)
         await cargar()
     }

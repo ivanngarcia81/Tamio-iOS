@@ -26,19 +26,28 @@ struct Movimiento: Identifiable {
     /// `var`: la bandeja "Por revisar" la asigna cuando un movimiento llegó sin
     /// ella —lo típico al importar un CSV con la columna en blanco—.
     var categoria: String
-    let persona: String?
+    /// **Los siete campos que la bandeja «Por revisar» corrige.**
+    ///
+    /// `persona`, `metodo`, `monto`, `fecha`, `miembro`, `categoriaCompleta` y
+    /// `nota` eran `let`. No era una decisión: nadie los escribía porque
+    /// `RevisarCalculado.actualizar` solo tocaba `categoria`, así que la hoja
+    /// "Editar ingreso/gasto" ofrecía seis campos y tiraba cinco. Ahora se
+    /// escriben, y por eso son `var` — como ya lo eran `categoria`, `folio`,
+    /// `sinDepositar`, `comprobante`, `pagadoA` y `estadoRevision`, cada uno
+    /// por su motivo.
+    var persona: String?
     /// `var` por el mismo motivo que `id`: el número definitivo lo asigna el
     /// contador del servidor al guardar, no la hoja de captura.
     var folio: String
-    let metodo: String
-    let monto: Centavos
+    var metodo: String
+    var monto: Centavos
     let hora: String            // "11:20"
-    let fecha: Date
+    var fecha: Date
     let registradoPor: String
     /// Valores largos del detalle.
-    let miembro: String?
-    let categoriaCompleta: String
-    let nota: String?
+    var miembro: String?
+    var categoriaCompleta: String
+    var nota: String?
     /// **Derivado, no capturado.** Un ingreso está "sin depositar" mientras
     /// ningún corte YA DEPOSITADO lo reclame. No es una casilla que alguien
     /// marca: es una ausencia en la tabla puente `corte_movimientos`. `var`

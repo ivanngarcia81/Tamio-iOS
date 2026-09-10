@@ -64,7 +64,7 @@ enum RevisionTipo: String, CaseIterable, Identifiable {
 /// llamada y solo cambiaba el texto del aviso, así que devolver un movimiento
 /// al tesorero hacía lo mismo que aprobarlo. Y `pedir` no pedía nada a nadie:
 /// enseñaba "Se pidió más información" y ahí acababa.
-enum AccionKind {
+enum AccionKind: Equatable {
     /// Da el visto bueno: el movimiento pasa a `aprobado` y cuenta en los
     /// totales. **Solo tiene sentido en un movimiento pendiente**: las demás
     /// alertas no cuelgan del estado sino del dato, así que aprobar no las
@@ -83,7 +83,7 @@ enum AccionKind {
 }
 
 /// Un botón de acción del detalle ("Aprobar", "Editar", "Adjuntar comprobante"…).
-struct AccionRevision: Identifiable {
+struct AccionRevision: Identifiable, Equatable {
     var id: String { label }
     let label: String
     let kind: AccionKind
@@ -95,10 +95,10 @@ struct AccionRevision: Identifiable {
 }
 
 /// Resalte de un campo del detalle (verde para montos, rojo para faltantes).
-enum ResalteCampo { case ninguno, verde, rojo }
+enum ResalteCampo: Equatable { case ninguno, verde, rojo }
 
 /// Un campo "etiqueta: valor" del detalle del asunto.
-struct CampoRevision: Identifiable {
+struct CampoRevision: Identifiable, Equatable {
     var id: String { label }
     let label: String
     let valor: String
@@ -106,7 +106,7 @@ struct CampoRevision: Identifiable {
 }
 
 /// Un asunto por revisar (bandeja de Tesorería/Secretaría).
-struct Revision: Identifiable, Hashable {
+struct Revision: Identifiable {
     let id: String
     let tipo: RevisionTipo
     let concepto: String        // "Ofrenda del domingo" / nombre del miembro
@@ -128,12 +128,62 @@ struct Revision: Identifiable, Hashable {
     var editCategoria: String? = nil
     var editMetodo: String? = nil
     var editAportante: String? = nil
+    /// **La nota del movimiento, que es lo que la hoja llama "Concepto".**
+    /// Va aparte de `concepto` a propósito: ese es el TITULAR de la lista y sale
+    /// compuesto de categoría y persona (`Movimiento.titular`), o sea que no es
+    /// un campo que exista para escribirlo. La hoja prellenaba el campo con el
+    /// titular, así que guardarlo habría metido "Misiones · Iglesia La
+    /// Esperanza" dentro de la nota. La hoja de alta ya mapea su "Concepto" a
+    /// `nota`; ahora las dos coinciden.
+    var editNota: String? = nil
+    /// La fecha del movimiento. La hoja la ofrece con un `DatePicker` y hasta
+    /// ahora no se escribía en ninguna parte.
+    var editFecha: Date? = nil
 
     /// Mensaje del toast al resolver con la acción primaria (kind .resolver).
     var toastResuelto: String = ""
 
     var editable: Bool { editImporte != nil }
+}
 
-    static func == (l: Revision, r: Revision) -> Bool { l.id == r.id }
+// MARK: - Igualdad
+
+/// **La igualdad de un asunto es su CONTENIDO, no su id.**
+///
+/// Aquí había `static func == (l, r) { l.id == r.id }`, y eso hace que SwiftUI
+/// dé por buena la vista que ya tiene: dos asuntos con el mismo id y distinto
+/// importe son "iguales", así que corregir la cifra escribía el dato y **la
+/// pantalla se quedaba con la vieja**. Medido con la app corriendo el 9-sep: el
+/// log decía `asuntos(): 106 vale 100` mientras la ficha seguía enseñando
+/// −$600.00, y salir del detalle y volver a entrar tampoco lo refrescaba.
+///
+/// **Solo se toca `Revision`.** El mismo `==` por id está escrito en
+/// `Movimiento`, `Aportante`, `Acta`, `Servicio`, `Corte`, `Miembro` y
+/// `Apunte`, y cambiarlos todos mueve los `Picker`, los `onChange` y los `Set`
+/// de la app entera: eso es una decisión de Iván con una tanda de regresión
+/// detrás, y está anotado como tal en `docs/CONTEXTO.md` §0.-7. Aquí se puede
+/// hacer suelto porque **`Revision` no está en ningún `Set` ni en ningún
+/// `onChange`** —comprobado con grep— y su `Identifiable` sigue siendo el id,
+/// que es lo que usan `ForEach` y `.sheet(item:)`.
+///
+/// El `hash` sigue siendo el id a propósito: dos asuntos iguales tienen el mismo
+/// id, así que sigue cumpliendo que lo igual comparta hash, y no cambia el
+/// comportamiento de nada que ya lo estuviera usando.
+extension Revision: Equatable {
+    static func == (l: Revision, r: Revision) -> Bool {
+        l.id == r.id && l.tipo == r.tipo && l.concepto == r.concepto
+            && l.detalleLista == r.detalleLista && l.archivado == r.archivado
+            && l.descripcion == r.descripcion && l.seccionTitulo == r.seccionTitulo
+            && l.campos == r.campos && l.seccionSecundaria == r.seccionSecundaria
+            && l.camposSecundarios == r.camposSecundarios && l.notaPie == r.notaPie
+            && l.acciones == r.acciones && l.esGasto == r.esGasto
+            && l.editImporte == r.editImporte && l.editCategoria == r.editCategoria
+            && l.editMetodo == r.editMetodo && l.editAportante == r.editAportante
+            && l.editNota == r.editNota && l.editFecha == r.editFecha
+            && l.toastResuelto == r.toastResuelto
+    }
+}
+
+extension Revision: Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }

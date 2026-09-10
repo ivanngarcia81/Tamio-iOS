@@ -214,6 +214,10 @@ extension CalculadoraRevisiones {
             editCategoria: m.categoria,
             editMetodo: m.metodo,
             editAportante: m.miembro,
+            // La nota, no el titular: el titular sale compuesto de categoría y
+            // persona y no es un campo que se escriba. Ver `Revision.editNota`.
+            editNota: m.nota,
+            editFecha: m.fecha,
             toastResuelto: toast)
     }
 

@@ -30,8 +30,17 @@ struct RevisarView: View {
                 listaPhone
                     .background(Color(.systemGroupedBackground))
                     .navigationDestination(item: $abierto) { a in
+                        // **El asunto se busca por id, no se usa la copia que
+                        // se empujó.** `abierto` guarda el valor que había al
+                        // tocar la fila, así que tras corregir el importe la
+                        // ficha seguía enseñando la cifra vieja hasta salir y
+                        // volver a entrar —medido el 9-sep: la lista decía
+                        // −$1.00 y la ficha abierta encima, −$600.00—. La
+                        // columna del iPad ya lo hacía bien porque lee
+                        // `vm.seleccion`, que es una búsqueda por id.
                         // Barra vacía: el H1 del detalle ya dice el asunto.
-                        detalle(a).navigationTitle("").navigationBarTitleDisplayMode(.inline)
+                        detalle(vm.todos.first { $0.id == a.id } ?? a)
+                            .navigationTitle("").navigationBarTitleDisplayMode(.inline)
                     }
             }
         }
