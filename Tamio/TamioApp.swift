@@ -22,6 +22,24 @@ struct TamioApp: App {
     @State private var pedirConfiguracion = false
     @Environment(\.scenePhase) private var fase
 
+    /// **Abrir la base ANTES de dibujar nada.**
+    ///
+    /// `BaseLocal.compartida` es perezosa: se construye la primera vez que
+    /// alguien la toca, que hasta ahora era dentro del `.task` de más abajo, o
+    /// sea **después** del primer dibujo. La franja que avisa de que la base se
+    /// cayó a memoria (`RootView.avisoBaseCaida`) lee un `static`, no algo
+    /// observable, así que si la caída se descubre después del primer dibujo el
+    /// aviso no aparece nunca. Forzándola aquí el estado está decidido antes de
+    /// que exista la primera vista, y la franja sale a la primera.
+    ///
+    /// **También en modo revisión**, aunque ahí los datos los sirvan los
+    /// `Mock*`. Cuesta lo mismo, y hace que una migración rota se vea al
+    /// arrancar en vez de esconderse: el §3 del traspaso decía "en modo revisión
+    /// la base ni se abre", y era justo lo que impedía notarlo.
+    init() {
+        _ = BaseLocal.compartida
+    }
+
     var body: some Scene {
         WindowGroup {
             contenido
@@ -84,6 +102,10 @@ struct TamioApp: App {
                 }
             case .autenticada:
                 VStack(spacing: 0) {
+                    // La base caída va PRIMERO: el modo revisión es una nota
+                    // para quien desarrolla, esta es la que le cuesta el día a
+                    // la tesorera.
+                    RootView.avisoBaseCaida
                     RootView.avisoRevision
                     RootView()
                 }

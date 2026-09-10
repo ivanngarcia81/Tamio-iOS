@@ -1455,8 +1455,30 @@ private struct AjustesZonaView: View {
                     // INFORMA, así que se llama por lo que hace.
                     Text(L.t("Espacio en este aparato", "Storage on this device"))
                         .font(.subheadline.weight(.medium))
-                    Text(estadoBase?.resumen ?? L.t("Midiendo…", "Measuring…"))
-                        .font(.caption).foregroundStyle(.secondary)
+                    // **"Midiendo…" no puede quedarse puesto para siempre.**
+                    // `Compactacion.medir()` devuelve `nil` en dos casos que no
+                    // se parecen en nada: aún no ha terminado, o la base de este
+                    // aparato no se pudo abrir y no hay nada que medir. Con la
+                    // base caída esta fila se quedaba en "Midiendo…" indefinida,
+                    // que es exactamente lo contrario de avisar.
+                    if let e = estadoBase {
+                        Text(e.resumen).font(.caption).foregroundStyle(.secondary)
+                    } else if let caida = BaseLocal.caida {
+                        // Sin markdown: `L.t` devuelve un `String`, y `Text`
+                        // solo interpreta los asteriscos en un literal. Puestos
+                        // ahí salen tal cual en pantalla.
+                        Text(L.t("La base de datos de este aparato no se pudo abrir, así que nada de lo que captures aquí se está guardando. Cierra la app y vuelve a abrirla; si el aviso sigue, reinstálala y restaura tu último respaldo.",
+                                 "This device's database couldn't be opened, so nothing you record here is being saved. Close the app and reopen it; if the warning persists, reinstall it and restore your latest backup."))
+                            .font(.caption).foregroundStyle(Paleta.negativo)
+                        // El error tal cual, para quien pueda hacer algo con él.
+                        // No se traduce: es lo que dijo SQLite.
+                        Text(caida.motivo)
+                            .font(.caption2.monospaced()).foregroundStyle(.tertiary)
+                            .textSelection(.enabled)
+                    } else {
+                        Text(L.t("Midiendo…", "Measuring…"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 .padding(.vertical, 4)
 

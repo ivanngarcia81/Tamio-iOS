@@ -2,7 +2,23 @@ import XCTest
 import GRDB
 @testable import Tamio
 
-/// **La base en memoria es muda: caza el peor fallo que puede tener la app.**
+/// **La base en memoria: lo que se arregló y lo que sigue en pie.**
+///
+/// **YA NO ES MUDA** (9-sep). `BaseLocal` guarda por qué se cayó, lo escribe en
+/// el log del sistema, y la app pinta una franja roja fija en todas las
+/// pantallas —`RootView.avisoBaseCaida`— más el error y qué hacer en Ajustes ·
+/// Zona de riesgo. Eso lo comprueba `BaseCaidaUITests`.
+///
+/// **Lo que sigue en pie, y por eso esta prueba sigue en ROJO:** la app no
+/// recupera nada. Con el archivo estropeado se sigue trabajando sobre una base
+/// en memoria y al cerrar no queda nada. Hacer que se recupere —apartar el
+/// archivo malo y empezar uno limpio, o negarse a escribir— es una decisión de
+/// producto, no un arreglo: apartar el archivo tira lo único que un forense
+/// podría rescatar, y negarse a escribir deja a la tesorera sin poder capturar
+/// un domingo. **El fallo de esta prueba es el recordatorio de que está
+/// pendiente**, no una regresión.
+///
+/// Lo que sigue describe el fallo original:
 ///
 /// `BaseLocal.init` abre `tamio.sqlite`; si el archivo no abre o si `migrate`
 /// lanza, se cae a una base EN MEMORIA y sigue. La app funciona toda la tarde

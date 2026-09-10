@@ -18,22 +18,60 @@ final class BaseLocal {
     /// Verdadero si se está trabajando sobre la base de emergencia en memoria.
     private(set) var enMemoria = false
 
+    /// **Por qué se cayó a memoria**, para poder decirlo y para poder
+    /// diagnosticarlo. Antes no se guardaba, así que ni el usuario ni nadie
+    /// podía saber si el archivo no abría o si era una migración.
+    private(set) var motivoCaida: String?
+
+    /// **Que la caída no sea muda.**
+    ///
+    /// Si el archivo no abre o si `migrate` lanza, la app sigue sobre una base
+    /// en memoria: se puede trabajar toda la tarde, y al cerrarla no queda nada
+    /// —ni los movimientos ni la cola de salida, así que tampoco subió nada—.
+    /// Eso estaba escrito y medido, y **no se le enseñaba al usuario en ninguna
+    /// pantalla**: `enMemoria` solo lo miraban `Respaldo`, `Compactacion` y
+    /// `BorradoMasivo` para lanzar `sinBase`, o sea que el primer aviso llegaba
+    /// al intentar respaldar, que es cuando ya no hay nada que salvar.
+    ///
+    /// Es `nonisolated(unsafe)` y no una propiedad de instancia porque la franja
+    /// de aviso la lee el `body` de una vista en el hilo principal y
+    /// `BaseLocal.compartida` se construye la primera vez que alguien la toca,
+    /// que puede ser otro hilo. Se escribe una sola vez, en el `init`.
+    nonisolated(unsafe) private(set) static var caida: Caida?
+
+    /// Lo que hay que poder decir de una caída: que pasó, y por qué.
+    struct Caida {
+        let motivo: String
+        let cuando: Date
+    }
+
     private init() {
         let fm = FileManager.default
+        var porQue = "no se pudo abrir la carpeta de la app"
         let carpeta = try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                   appropriateFor: nil, create: true)
         if let carpeta {
             let ruta = carpeta.appendingPathComponent("tamio.sqlite").path
-            if let cola = try? DatabaseQueue(path: ruta),
-               (try? Self.migrador.migrate(cola)) != nil {
+            do {
+                let cola = try DatabaseQueue(path: ruta)
+                try Self.migrador.migrate(cola)
                 self.cola = cola
                 return
+            } catch {
+                // El error se GUARDA. Antes eran dos `try?` encadenados, así que
+                // lo que dijera SQLite —"file is not a database", "disk I/O
+                // error", el identificador de la migración que falló— se perdía
+                // en el sitio exacto donde hacía falta.
+                porQue = "\(error)"
             }
         }
         // swiftlint:disable:next force_try — una base en memoria no puede fallar.
         self.cola = try! DatabaseQueue()
         try? Self.migrador.migrate(self.cola)
         enMemoria = true
+        motivoCaida = porQue
+        Self.caida = Caida(motivo: porQue, cuando: Date())
+        NSLog("[Tamio] BASE LOCAL CAÍDA A MEMORIA: %@", porQue)
     }
 
     // MARK: - Esquema

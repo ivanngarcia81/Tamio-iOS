@@ -202,6 +202,39 @@ struct RootView: View {
         }
     }
 
+    /// **Franja de aviso de que la base de este aparato no se pudo abrir.**
+    ///
+    /// La app sigue funcionando sobre una base en memoria —se puede capturar,
+    /// cerrar un corte, firmar un acta— y **al cerrarla no queda nada**: ni los
+    /// registros ni la cola de salida, así que tampoco llegó nada al servidor.
+    /// Hasta ahora eso era mudo: el único rastro en toda la app era el error
+    /// «La base de datos de este aparato no está disponible» al pulsar
+    /// "Respaldar ahora", o sea el aviso llegaba cuando ya no había nada que
+    /// salvar.
+    ///
+    /// Va en rojo y no en naranja como el del modo revisión, y **por delante**
+    /// de él: son dos cosas distintas y esta es la que cuesta dinero.
+    ///
+    /// **El texto dice qué hacer, no qué pasó.** "Base de datos no disponible"
+    /// no le dice nada a una tesorera; "no guardes nada aquí" sí. Se descartó
+    /// poner el error técnico: va al Registro del sistema (`NSLog` en
+    /// `BaseLocal.init`) y a Ajustes · Zona de riesgo, que es donde lo mirará
+    /// quien pueda hacer algo con él.
+    @ViewBuilder
+    static var avisoBaseCaida: some View {
+        if BaseLocal.caida != nil {
+            Text(L.t("NO SE GUARDA NADA EN ESTE APARATO · cierra la app y vuelve a abrirla",
+                     "NOTHING IS BEING SAVED ON THIS DEVICE · close the app and reopen it"))
+            .font(.caption2.weight(.bold))
+            // Blanco sobre el rojo de la marca, que es la única combinación de
+            // la paleta que pasa 4.5:1 en las dos apariencias con este tamaño.
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+            .background(Paleta.negativo)
+        }
+    }
+
     /// Nombre legible de una sección aún no construida, para el placeholder.
     private func etiquetaSeccion(_ id: String) -> String {
         switch id {
