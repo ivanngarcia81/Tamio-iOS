@@ -56,9 +56,9 @@ enum CSVLector {
         var filas = trocear(texto, separador: separador)
         guard !filas.isEmpty else { throw Fallo.vacio }
 
-        let encabezados = filas.removeFirst().map {
+        let encabezados = desambiguar(filas.removeFirst().map {
             $0.trimmingCharacters(in: .whitespaces).lowercased()
-        }
+        })
         // Una fila con un solo campo vacío es la línea en blanco del final.
         let utiles = filas.filter { !($0.count == 1 && $0[0].isEmpty) }
         guard !utiles.isEmpty else { throw Fallo.vacio }
@@ -66,11 +66,45 @@ enum CSVLector {
         return Documento(encabezados: encabezados, filas: utiles)
     }
 
+    /// **Dos columnas que se llaman igual dejan de llamarse igual.**
+    ///
+    /// Pasa al pegar dos hojas en Excel, y rompía dos cosas a la vez: el
+    /// `Picker` del paso de mapeo hace `ForEach(encabezados, id: \.self)`, así
+    /// que con nombres repetidos hay ids repetidos y SwiftUI enseña una sola
+    /// opción; y `aplicar` resuelve con `firstIndex(of:)`, así que **elija la
+    /// que elija el usuario, se llevaba la primera**. Medido con
+    /// `nombre,monto,monto` y la fila `Ana,100,999`: pedir "monto" daba 100 y
+    /// no había forma de pedir el 999.
+    ///
+    /// La segunda pasa a ser "monto (2)". No se descarta ninguna: cuál de las
+    /// dos vale lo sabe quien exportó el archivo, no nosotros.
+    private static func desambiguar(_ encabezados: [String]) -> [String] {
+        var vistos: [String: Int] = [:]
+        return encabezados.map { nombre in
+            let n = (vistos[nombre] ?? 0) + 1
+            vistos[nombre] = n
+            return n == 1 ? nombre : "\(nombre) (\(n))"
+        }
+    }
+
     /// Gana el separador que más aparece en la primera línea. Contar en todo el
     /// archivo daría falsos positivos: un texto libre con muchas comas.
+    ///
+    /// **Sin mirar dentro de las comillas**, que es lo que fallaba: con
+    /// `"nombre, apellido";monto` ganaba la coma y el archivo entero se quedaba
+    /// en UNA columna llamada `nombre, apellido;monto`. El archivo era correcto
+    /// y la app decía que le faltaban las columnas obligatorias.
     private static func detectarSeparador(_ texto: String) -> Character {
-        let primera = texto.split(whereSeparator: \.isNewline).first ?? ""
-        return primera.filter { $0 == ";" }.count > primera.filter { $0 == "," }.count ? ";" : ","
+        let primera = texto.prefix { !$0.isNewline }
+        var comas = 0, puntoYComa = 0
+        var dentroDeComillas = false
+        for c in primera {
+            if c == "\"" { dentroDeComillas.toggle() }
+            else if dentroDeComillas { continue }
+            else if c == "," { comas += 1 }
+            else if c == ";" { puntoYComa += 1 }
+        }
+        return puntoYComa > comas ? ";" : ","
     }
 
     /// Recorre carácter a carácter porque `split` no entiende comillas: un
