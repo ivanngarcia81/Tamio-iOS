@@ -159,7 +159,10 @@ struct DepositosView: View {
             onDescuadre: { conteo in
                 Task { await vm.registrarDescuadre(corteId: c.id, conteo: conteo) }
             },
-            onQuitarFirma: { Task { await vm.quitarFirma(corteId: c.id) } }
+            onQuitarFirma: { Task { await vm.quitarFirma(corteId: c.id) } },
+            onPedirSegundaFirma: { pedida in
+                Task { await vm.pedirSegundaFirma(corteId: c.id, pedida) }
+            }
         )
     }
 

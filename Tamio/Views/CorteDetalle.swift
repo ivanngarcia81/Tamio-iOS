@@ -22,6 +22,7 @@ struct CorteDetalle: View {
                     _ modo: ModoSegundaFirma, _ conteo: Centavos?) -> Void)? = nil
     var onDescuadre: ((Centavos) -> Void)? = nil
     var onQuitarFirma: (() -> Void)? = nil
+    var onPedirSegundaFirma: ((Bool) -> Void)? = nil
 
     @State private var mostrarRegistro = false
     @State private var mostrarNuevoMovimiento = false
@@ -384,13 +385,42 @@ struct CorteDetalle: View {
     /// nació sin la marca no está incompleto —esa iglesia no usa doble firma, o
     /// ese domingo no hacía falta— y anunciarlo como pendiente sería convertir
     /// una opción en un reproche.
+    /// **La tarjeta se ve SIEMPRE mientras el corte no esté depositado**, con el
+    /// interruptor dentro.
+    ///
+    /// Antes solo aparecía si `dobleFirmaPedida` ya estaba encendido, y **no
+    /// había en toda la app un sitio que lo encendiera**: el único `true` vivía
+    /// en los datos de ejemplo. O sea que la segunda firma funcionaba entera
+    /// —el conteo a ciegas, el veredicto, quitar la firma— y no había forma de
+    /// llegar a ella con datos de verdad; de paso, el aviso "Falta la segunda
+    /// firma" de Por revisar no podía dispararse nunca.
+    ///
+    /// Enseñarla apagada es lo que la hace existir: un control interno que hay
+    /// que saber que está no es un control, es un secreto.
     @ViewBuilder
     private var tarjetaSegundaFirma: some View {
-        if corte.dobleFirmaPedida {
+        if corte.dobleFirmaPedida || corte.sinDepositar {
             Tarjeta {
                 VStack(alignment: .leading, spacing: 10) {
                     TituloSeccion(texto: L.t("SEGUNDA FIRMA", "SECOND SIGNATURE"))
-                    if corte.tieneSegundaFirma {
+                    if corte.sinDepositar, let onPedirSegundaFirma {
+                        Toggle(isOn: Binding(get: { corte.dobleFirmaPedida },
+                                             set: { onPedirSegundaFirma($0) })) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(L.t("Que otra persona cuente este dinero",
+                                         "Have someone else count this money"))
+                                    .font(.subheadline)
+                                Text(L.t("Se le pide su cifra sin enseñarle el total, y la app compara.",
+                                         "They're asked for their figure without being shown the total, and the app compares."))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        .tint(Paleta.brand)
+                    }
+                    if !corte.dobleFirmaPedida {
+                        // Apagado no hay nada más que contar: ni aviso, ni botón.
+                        EmptyView()
+                    } else if corte.tieneSegundaFirma {
                         firmaDada
                     } else if let contado = corte.segundaConteo {
                         // Contó y NO cuadró: la cifra queda escrita aunque no

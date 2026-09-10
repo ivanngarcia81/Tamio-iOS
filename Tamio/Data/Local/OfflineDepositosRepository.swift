@@ -230,6 +230,27 @@ struct OfflineDepositosRepository: DepositosRepository {
         }
     }
 
+    /// **Pedir (o dejar de pedir) la segunda firma de este corte.**
+    ///
+    /// Apagarla borra la firma que hubiera: un comprobante que dice que alguien
+    /// contó el dinero no puede quedarse colgando de un corte que ya no pide
+    /// que nadie lo cuente. Es la misma limpieza que hace `quitarFirma`.
+    func pedirSegundaFirma(corteId: String, _ pedida: Bool) async throws {
+        try await cola.write { db in
+            guard var fila = try CorteFila.fetchOne(db, key: corteId) else { return }
+            fila.dobleFirmaPedida = pedida
+            if !pedida {
+                fila.segundaFirma = nil
+                fila.segundaFirmaRol = nil
+                fila.segundaFirmaEn = nil
+                fila.segundaFirmaModo = nil
+                fila.segundaConteo = nil
+            }
+            try fila.update(db)
+            try Self.encolar(db, entidad: "corte", id: corteId, operacion: .actualizar)
+        }
+    }
+
     // MARK: - Resolución
 
     /// Cuántos movimientos vivos apunta un corte. Es el `JOIN` reducido a un

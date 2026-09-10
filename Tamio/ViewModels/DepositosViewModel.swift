@@ -154,6 +154,12 @@ final class DepositosViewModel {
         await cargar()
     }
 
+    @MainActor
+    func pedirSegundaFirma(corteId: String, _ pedida: Bool) async {
+        try? await repo.pedirSegundaFirma(corteId: corteId, pedida)
+        await cargar()
+    }
+
     /// Quién puede firmar: los cargos de la iglesia menos quien armó el corte.
     func candidatos(para corte: Corte) -> [(nombre: String, cargo: String)] {
         let registro = corte.registradoPor.trimmingCharacters(in: .whitespaces)

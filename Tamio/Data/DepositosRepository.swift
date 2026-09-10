@@ -27,6 +27,13 @@ protocol DepositosRepository {
     func firmar(corteId: String, nombre: String?, rol: String?,
                 modo: ModoSegundaFirma, conteo: Centavos?) async throws
     func quitarFirma(corteId: String) async throws
+    /// **Pedir (o dejar de pedir) que otra persona cuente este dinero.**
+    /// El campo existía en el modelo, en la base local y en Supabase desde el
+    /// principio; lo que no había era **ningún sitio en la app que lo
+    /// encendiera**, así que la tarjeta de la segunda firma solo salía en los
+    /// datos de ejemplo y el aviso "Falta la segunda firma" de Por revisar no
+    /// podía dispararse nunca con datos de verdad.
+    func pedirSegundaFirma(corteId: String, _ pedida: Bool) async throws
 }
 
 /// **La tabla puente `corte_movimientos`, mientras no hay GRDB.**
@@ -239,6 +246,20 @@ struct MockDepositosRepository: DepositosRepository {
         Self.almacen[i].segundaFirmaEn = nil
         Self.almacen[i].segundaFirmaModo = nil
         Self.almacen[i].segundaConteo = nil
+    }
+
+    func pedirSegundaFirma(corteId: String, _ pedida: Bool) async throws {
+        guard let k = Self.almacen.firstIndex(where: { $0.id == corteId }) else { return }
+        Self.almacen[k].dobleFirmaPedida = pedida
+        if !pedida {
+            // Dejar de pedirla no puede dejar una firma colgando de un corte
+            // que ya no la pide: sería un comprobante sin nada que comprobar.
+            Self.almacen[k].segundaFirma = nil
+            Self.almacen[k].segundaFirmaRol = nil
+            Self.almacen[k].segundaFirmaEn = nil
+            Self.almacen[k].segundaFirmaModo = nil
+            Self.almacen[k].segundaConteo = nil
+        }
     }
 
     // MARK: - Semilla
