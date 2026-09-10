@@ -169,6 +169,11 @@ De interfaz (con el modo revisión **ENCENDIDO** en la copia):
   capas distintas y cada uno tapaba al siguiente: que se escriba, que la ficha
   empujada se entere, y que la lista se entere. El momento en el que falle dice
   cuál se rompió.
+- **`FichaAlDiaUITests.swift`** — que la ficha abierta enseñe el dato de ahora y
+  no el de cuando se abrió. **Lleva su control dentro de la cabecera**: sin él la
+  prueba no demostraría nada, porque también pasaría si la lista se redibujara
+  por su cuenta. Para comprobar que muerde, se devuelve el `==` por id a
+  `Movimiento` y se deshace el `vigente` de `MovimientosView`.
 - **`BaseCaidaUITests.swift`** — lo que ve la tesorera, que son **dos avisos
   distintos**: rojo "no se guarda nada" y naranja "estaba dañada, se empezó de
   cero". Tres pasadas, y la primera es el control positivo: con la base sana no

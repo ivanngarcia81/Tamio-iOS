@@ -535,13 +535,21 @@ adivinar sin preguntar. Se anota, no se propone cambiarlo.
 
 De este informe, **nada**: los ocho están hechos y verificados corriendo.
 
-Lo que sí queda vivo es **una decisión que este informe no puede tomar**: el `==`
-por id de los otros siete modelos —`Movimiento`, `Aportante`, `Acta`, `Servicio`,
-`Corte`, `Miembro` y `Apunte`— que el §0.-7 del traspaso ya tenía anotada. Aquí
-se arregló solo el de `Revision`, y se arregló porque sin él la corrección del
-hallazgo 4 no llegaba a verse en pantalla. Los demás siguen igual, y ahora hay un
-precedente medido de lo que cuesta dejarlos así: el dato estaba bien a los pocos
-milisegundos y la pantalla enseñaba la cifra vieja indefinidamente.
+**El `==` por id de los siete modelos restantes también quedó cerrado**, el
+10-sep, y lo destapó Iván usando la app en su iPhone: la ficha de un donativo
+decía "Folio P-9" —sin subir— mientras la lista y el servidor ya decían
+"Folio 9".
+
+La decisión llevaba desde el §0.-7 pendiente porque "cambiarlos todos mueve los
+`Picker`, los `onChange` y los `Set` de la app entera". **Contarlo lo resolvió
+sin decidir nada**, que es la misma lección que ya dejó escrita el B5 del §0.0:
+cero `Set<>`, cero `selection:`, cero diccionarios con esos modelos de clave, y
+los veintinueve `.tag($0)` de la app etiquetan cadenas y enums. El trabajo real
+fue la síntesis, que exige que lo de dentro también sea comparable: ocho tipos
+anidados y cinco enums, todos planos.
+
+Va con su control, que es lo que hace que la prueba valga: con el código de antes
+la ficha se queda en `+$2,500.00` tras guardar 7.77.
 
 Y lo que esta pasada **no pudo tocar** sigue sin tocar, porque el entorno no
 tiene red y sin sesión la app se queda en la puerta: cola de salida,
