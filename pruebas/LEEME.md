@@ -119,3 +119,63 @@ elementos aunque lleven `accessibilityHidden(true)` —comprobado poniéndoselo 
 aviso del modo revisión, que siguió apareciendo en el volcado—. Así que con el
 árbol de XCUITest no se puede saber qué lee VoiceOver: eso pide VoiceOver de
 verdad.
+
+## Las de la pasada de QA adversario del iPhone · 9 de septiembre
+
+Los hallazgos y cómo se reprodujeron están en `docs/ROTURAS-IPHONE.md`. **Las
+que cazan un fallo están HOY en rojo a propósito**: se ponen verdes el día que
+se arregle lo que cazan, y hasta entonces son la medida.
+
+Unitarias (target `bundle.unit-test`, receta del §3):
+
+- **`ImporteDelAltaTests.swift`** — los dos parseadores de dinero enfrentados.
+  Compara `NuevoMovimientoView.aCentavos` (el que usa el alta manual) contra
+  `Money.desdeTexto` (el del importador) con el mismo texto. 8 casos, 11 asertos
+  en rojo. Es la prueba del hallazgo nº 1 y del nº 3.
+- **`BaseMudaTests.swift`** — la base que cae a memoria sin avisar. **Se corre en
+  DOS pasadas sobre el mismo contenedor**, con el shell estropeando el archivo
+  entre una y otra; la cabecera lleva los dos comandos. Es la única prueba del
+  repo que necesita que alguien toque el disco a media faena.
+- **`CSVQueMienteTests.swift`** — BOM, filas vacías, comas dentro del nombre,
+  columnas duplicadas, encabezados en el otro idioma, 5.000 filas, los dos
+  formatos de importe y los importes con letras dentro. Seis pasan; tres cazan.
+- **`FechasImposiblesTests.swift`** — 31 de febrero, año 1900, año 2999 y la
+  ambigüedad día/mes. Pasan todas: están para que no se rompa lo que hoy va bien.
+
+De interfaz (con el modo revisión **ENCENDIDO** en la copia):
+
+- **`ImporteEnPantallaUITests.swift`** — el teclado que sale en región española
+  (`-AppleLocale es_ES`) y el camino entero de un importe con coma hasta la fila
+  del libro. **La medida que lo destapó todo es el volcado de teclas**: con esa
+  región el `.decimalPad` no tiene tecla de punto.
+- **`RevisarEdicionUITests.swift`** — corregir un asunto de «Por revisar» y
+  comprobar que la corrección se queda. Lleva su propio control: se repite con la
+  categoría, que es el único campo que el repositorio dice escribir.
+- **`MonedaYCeroUITests.swift`** — cambiar la moneda de la iglesia a euros y
+  recorrer Tesorería buscando dólares; y guardar un movimiento de $0.00.
+- **`CapsulasDeBarraUITests.swift`** — cuenta las cápsulas de las cuatro
+  pantallas de lista. **Se corre dos veces sin tocar el código**, con
+  `content_size large` y `accessibility-medium`, y se comparan los dos volcados.
+  Hoy pasa: no se descarta ninguna.
+- **`PresentacionesUITests.swift`**, **`TecladoYHojasUITests.swift`**,
+  **`DobleToqueUITests.swift`** — las tres son **controles negativos**: las hojas
+  apiladas sí salen, el teclado no tapa el importe y el doble toque no duplica.
+  Valen para no volver a sospechar de lo mismo, y para enterarse el día que
+  cambie.
+- **`RespaldoUITests.swift`** — el botón "Respaldar ahora" mirado despacio, con
+  paradas para fotografiar. Es la otra mitad de `BaseMudaTests`: lo que la
+  tesorera ve cuando la base ya está caída.
+- **`TextoBrutoUITests.swift`** — **NO sirve todavía.** Su cabecera dice qué dos
+  cosas hay que arreglarle antes de creerse nada de lo que imprima.
+
+**Dos cosas de esta pasada que cuestan una vuelta si no se saben:**
+
+1. **Al añadir un archivo de prueba hay que volver a correr `xcodegen` en la
+   copia Y comprobar que entró** (`grep -c NombreDeLaClase Tamio.xcodeproj/project.pbxproj`).
+   Si no, `xcodebuild` contesta `Executed 0 tests` y **da TEST SUCCEEDED**, que
+   se lee como que todo va bien.
+2. **Sin red no se puede compilar la copia** tal cual: la resolución de paquetes
+   sale a GitHub. Se arregla copiando el `Package.resolved` del repo y un
+   `SourcePackages` ya resuelto, y añadiendo
+   `-clonedSourcePackagesDirPath <dir> -disableAutomaticPackageResolution
+   -onlyUsePackageVersionsFromResolvedFile`.
