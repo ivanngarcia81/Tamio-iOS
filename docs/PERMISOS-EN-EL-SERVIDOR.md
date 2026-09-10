@@ -1,7 +1,14 @@
 # Los permisos, en el servidor · propuesta
 
-**Escrito el 10 de septiembre de 2026.** No está aplicado: es lo que habría que
-hacer y con qué orden. La decisión es de Iván, y toca los dos repos.
+**Escrito el 10 de septiembre de 2026.** La decisión es de Iván, y toca los dos
+repos.
+
+> **Revisado el 10-sep por la tarde, contrastándolo con el web.** El §1 está
+> **aplicado** (migración `20260910c`). Los §4 y §5 **no se pueden aplicar tal
+> como estaban escritos**: partían de una premisa falsa, y abajo va corregida
+> con lo que se midió. Este aviso vale por sí solo: lo que sigue se escribió
+> mirando únicamente el lado de iOS, que es el error que el propio apartado de
+> riesgos avisaba de no cometer.
 
 ---
 
@@ -87,8 +94,20 @@ create or replace function public.mi_rol() returns text
 language sql stable security definer set search_path = ''
 as $$ select p.rol from public.perfiles p where p.id = (select auth.uid()) $$;
 
-revoke all on function public.mi_rol() from public, anon, authenticated;
+revoke all on function public.mi_rol() from public, anon;
+grant execute on function public.mi_rol() to authenticated, service_role;
 ```
+
+**Ojo con el `revoke`.** El borrador decía `revoke all ... from authenticated`, y
+eso está mal: una política se evalúa con los permisos de QUIEN CONSULTA, así que
+sin `execute` toda política que la use devuelve **cero filas y ningún error** —
+el modo de fallo exacto contra el que avisa el apartado de riesgos—. `mi_iglesia()`
+lo tiene concedido y por eso funciona. `anon` no lo necesita: sin sesión no hay rol.
+
+**Aplicado y comprobado** (migración `20260910c`, en el servidor como
+`20260910224221`), suplantando dentro de una transacción que se deshace:
+`tesorero` → `tesorero`, `administrador` → `administrador`, y `anon` recibe
+`42501: permission denied for function mi_rol`.
 
 `stable` y **envuelto en `(select ...)` al usarlo**: sin eso la función se evalúa
 una vez por fila y, según la propia guía de Supabase, eso cuesta un orden de
@@ -145,39 +164,81 @@ no distingue.
 
 ### 4. El registro, que solo debería crecer
 
-```sql
-drop policy registro_update on public.registro;
-drop policy registro_delete on public.registro;
-```
+> **CORREGIDO el 10-sep por la tarde. Esto NO se puede aplicar tal cual.**
 
-Sin sustituirlas por nada. Un apunte de auditoría se escribe una vez y no se
-toca; lo que la app hace hoy es insertar, así que quitarlas no le quita nada. Y
-la lectura se acota al área del rol, igual que ya hace `areasDelRegistro`.
+Lo que decía este apartado —*«lo que la app hace hoy es insertar, así que
+quitarlas no le quita nada»*— es **falso en los dos clientes**:
 
-Esto por sí solo ya vale la pena aunque no se haga nada más.
+| Quién | Qué hace | Dónde |
+|---|---|---|
+| iOS | «Borrar todos los datos» encola bajas de `registro`, y el motor las manda como `UPDATE` | `BorradoMasivo.swift:39` y `MotorSincronizacion.swift:1049` |
+| Web | `upsert` sobre `registro`, que **en conflicto es un UPDATE** | `sync.ts:1358`, vía `sincronizarTablaSimple` |
+| Web | `compactarBase` hace un `DELETE` **de verdad** contra la nube, y su lista de tablas no excluye `registro` | `sync.ts:1822`, vía `tablasConDeleted` |
+
+Y no fallaría en silencio: iOS envuelve cada escritura en `exigir(...)`, que
+lanza cuando RLS descarta la fila. O sea que quitar las dos políticas rompe el
+borrado masivo del teléfono, la subida del web y la compactación del web —las
+tres a la vez y de forma visible.
+
+**Lo que sí se puede hacer, y en este orden:**
+
+1. **Decidir primero en el web** si `registro` deja de purgarse, alineándolo con
+   `Compactacion.nuncaSePurga` de iOS, que ya lo protege. Es una decisión de
+   producto y del otro repo: un rastro que el auditado puede purgar no es un
+   rastro. **Sin esto, nada de lo de abajo se puede aplicar.**
+2. Hecho eso, en vez de `drop policy registro_delete`, **quitarla de verdad** ya
+   no rompe nada.
+3. Para el `UPDATE`, no quitarlo: **acotarlo**. Lo único legítimo que cambia en
+   un apunte ya escrito es la lápida. Un `BEFORE UPDATE` que rechace cualquier
+   cambio en `tipo`, `area`, `datos`, `cuerpo`, `quien` y `creado_en`, dejando
+   pasar `deleted` y `updated_at`, conserva el borrado masivo y cierra el hueco.
+   **El nombre importa**: tiene que ordenar DESPUÉS de `a0_marcar_updated_at`,
+   porque Postgres dispara los BEFORE por orden alfabético (§0.-8 del contexto).
+
+Sigue siendo el agujero más feo y sigue valiendo la pena, pero cuesta más de lo
+que este documento decía.
 
 ### 5. El borrado de verdad
 
 Dos caminos, y prefiero el primero:
 
-- **Quitar la política de `DELETE` de las tablas de datos.** La app nunca borra
-  de verdad —da de baja con `deleted`, que es lo que permite propagar la baja—,
-  así que no pierde nada y se cierra el hueco entero.
+> **CORREGIDO el 10-sep por la tarde.** *«La app nunca borra de verdad»* es
+> cierto **en iOS y falso en el web**. `compactarBase` (`sync.ts:1822`) hace
+> `supabase.from(tabla).delete()` sobre toda tabla con `deleted` y `church_id`
+> —hoy las 21 que tienen política de `DELETE`—. Quitarlas rompe la
+> compactación del web entera.
+
+- **Quitar la política de `DELETE` de las tablas de datos.** Cierra el hueco
+  entero y a iOS no le quita nada, porque da de baja con `deleted`. **Pero hay
+  que resolver antes qué hace el web con la compactación**: o la purga se mueve
+  al servidor (una función `security definer` que compruebe el rol), o el web
+  deja de purgar en la nube y lo hace solo en local.
 - O añadir disparadores `BEFORE DELETE` que repitan lo de los de `UPDATE`. Más
-  código para el mismo fin.
+  código, pero **no rompe al web**, que es la ventaja que antes no se veía.
 
 ---
 
 ## En qué orden
 
-Por relación entre lo que cierra y lo que puede romper:
+> **CORREGIDO el 10-sep.** El orden de abajo estaba escrito sobre la idea de
+> que el §4 y el §5 «no tocan a la app». Los dos la tocan, y al web más. El
+> orden bueno es este:
 
-1. **El registro** (§4). No toca a la app y cierra el agujero más feo.
-2. **El borrado de verdad** (§5). Mismo argumento: la app no lo usa.
-3. **Escritura por área** (§2). Es el grueso. Se puede ir tabla por tabla
-   empezando por `transactions` y `actas`, que son las dos más claras.
-4. **El padrón** (§3). El último porque es el que tiene excepciones y el que más
-   fácil se equivoca.
+0. **`mi_rol()`** (§1). **HECHO** — migración `20260910c`.
+1. **Una cuenta de secretaria**, que es la que falta y sin la que no se prueba
+   nada de lo demás en condiciones.
+2. **Escritura por área** (§2), que ahora es lo primero que se puede aplicar sin
+   depender del otro repo. Tabla por tabla, empezando por `transactions` y
+   `actas`. Cuidado con no cerrar la LECTURA de Tesorería a la secretaria:
+   Reportes es una función real que hoy usa.
+3. **El padrón** (§3), después, por las excepciones del plan.
+4. **El registro y el borrado de verdad** (§4 y §5) **al final**, y solo cuando
+   el web haya decidido qué hace con la compactación. Son los que más cierran y
+   los únicos que necesitan acuerdo entre los dos repos.
+
+El orden viejo, para que se vea por qué cambió: registro → borrado → escritura
+por área → padrón. Se ordenó por «lo que menos rompe», y esa estimación estaba
+hecha sin mirar `sync.ts`.
 
 ---
 
@@ -194,10 +255,16 @@ Por relación entre lo que cierra y lo que puede romper:
 - **Las Edge Functions y los RPC no pasan por RLS** si son `security definer`.
   `invitar-usuario`, `siguiente_folio` y `fijar_permisos_tesoreria` hay que
   revisarlos aparte: ahí la comprobación va dentro de la función.
-- **Hace falta una cuenta de cada rol para probar.** Hoy solo existe la de
-  administrador, así que el primer paso real es crear una de tesorero y una de
-  secretaria — que además es la prueba de que las invitaciones funcionan, que
-  tampoco se ha ejercitado nunca.
+- **Hace falta una cuenta de cada rol para probar.** Medido el 10-sep: en
+  `perfiles` hay **cuatro administradores repartidos en tres iglesias y dos
+  tesoreros**; **de secretaria no hay ninguna**. Así que falta esa, y crearla es
+  además la prueba de que las invitaciones funcionan, que nunca se ha
+  ejercitado. (Este apartado decía que solo existía la de administrador: ya no
+  era verdad.)
+- **Y no hace falta una cuenta para todo.** Con `set local role authenticated` y
+  `request.jwt.claims` dentro de una transacción que se deshace se prueban las
+  tres vistas del mundo desde el servidor. Está ejercitado y funciona: es como
+  se comprobó `mi_rol()`.
 
 ## Cómo se comprueba
 

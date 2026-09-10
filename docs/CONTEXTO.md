@@ -5,8 +5,73 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **10 de septiembre de 2026**, tras la pasada de QA
-adversario del iPhone y lo que salió de ella (§0.-8).
+Última actualización: **10 de septiembre de 2026** por la tarde, al empezar los
+permisos del servidor y descubrir que la propuesta estaba escrita a medias
+(§0.-9).
+
+---
+
+## 0.-9 Los permisos del servidor, empezados · 10 de septiembre, tarde
+
+### Lo que se hizo
+
+**`mi_rol()` está aplicada** (migración `20260910c`, en el servidor como
+`20260910224221`). Es el §1 de `docs/PERMISOS-EN-EL-SERVIDOR.md` y es aditiva:
+no cambia ningún permiso, solo permite escribirlos. Comprobada suplantando
+dentro de una transacción que se deshace — `tesorero` → `tesorero`,
+`administrador` → `administrador`, `anon` → `42501`.
+
+Y las dos apps quedaron **instaladas en el iPhone 17 Pro Max y en el iPad Pro**
+con la versión de hoy.
+
+### Lo que NO se hizo, y es lo importante
+
+**El §4 y el §5 de la propuesta no se pueden aplicar como estaban escritos.** Los
+dos decían que la app «solo inserta» y «nunca borra de verdad», y las dos frases
+son falsas en cuanto se mira el web:
+
+- iOS: «Borrar todos los datos» encola bajas de `registro` y el motor las manda
+  como `UPDATE` (`MotorSincronizacion.swift:1049`).
+- Web: `upsert` sobre `registro`, que en conflicto es un `UPDATE`
+  (`sync.ts:1358`).
+- Web: `compactarBase` hace un `DELETE` de verdad contra la nube sobre **toda**
+  tabla con `deleted` (`sync.ts:1822`) — incluida `registro`, que iOS sí protege
+  con `Compactacion.nuncaSePurga`.
+
+Quitar esas políticas rompía las tres cosas a la vez. El documento está
+corregido con la medida y con el orden nuevo.
+
+### La lección, que es la de siempre con una vuelta más
+
+El propio documento avisaba: *«el web usa la misma base; hay que mirar `sync.ts`
+y `export.ts` ANTES, no después»*. Y estaba escrito sin haberlo mirado. **Un
+aviso que uno mismo escribe no cuenta como cumplido**: la propuesta se redactó
+leyendo solo el lado de iOS, y sus dos apartados «seguros» eran los dos que más
+rompían.
+
+Es la regla del §0.-8 —*contar primero, no decidir*— aplicada al otro repo. Con
+un matiz que conviene guardar: **cuando una regla toque a los dos clientes, la
+premisa hay que comprobarla en los dos**, y el que no tienes abierto es
+precisamente el que la desmiente.
+
+Dos premisas más que estaban caducadas y ya no hace falta rediscutir:
+
+- **`revoke all ... from authenticated` sobre una función que usan las
+  políticas está mal.** Una política se evalúa con los permisos de quien
+  consulta: sin `execute`, devuelve cero filas y NINGÚN error. `mi_iglesia()`
+  lo tiene concedido y por eso funciona.
+- **Ya hay cuentas de tesorero.** En `perfiles`: cuatro administradores en tres
+  iglesias y dos tesoreros. **De secretaria no hay ninguna**, y ese es el
+  siguiente paso real.
+
+### Lo siguiente, en orden
+
+1. Una cuenta de secretaria (y de paso, la primera prueba de las invitaciones).
+2. Escritura por área (§2), que ya no depende del otro repo. Sin cerrarle la
+   LECTURA de Tesorería a la secretaria: Reportes la usa.
+3. El padrón (§3).
+4. El registro y el borrado (§4 y §5), cuando el web decida qué hace con la
+   compactación.
 
 ---
 
