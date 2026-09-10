@@ -138,15 +138,22 @@ Unitarias (target `bundle.unit-test`, receta del §3):
   id del asunto se partía por el primer guion y las cinco acciones de la bandeja
   no hacían nada; con los ids de la maqueta —"1", "207"— eso no se ve, y por eso
   esta prueba se pasa el id hecho a mano. Modo revisión APAGADO.
-- **`BaseMudaTests.swift`** — la base que cae a memoria. **Se corre en DOS
-  pasadas sobre el mismo contenedor**, con el shell estropeando el archivo entre
-  una y otra; la cabecera lleva los dos comandos. Es la única prueba del repo que
-  necesita que alguien toque el disco a media faena. **Sigue en rojo a
-  propósito**: la caída ya no es silenciosa, pero la app tampoco recupera nada, y
-  eso es una decisión pendiente. Su cabecera explica las dos opciones.
+- **`BaseMudaTests.swift`** — la base local cuando el archivo no abre, y **cuál
+  de las dos salidas toca**: apartar y empezar de cero (archivo dañado) o quedarse
+  en memoria sin tocar nada (todo lo demás). Se corre en DOS pasadas sobre el
+  mismo contenedor, con el shell estropeando el archivo entre una y otra; la
+  cabecera lleva los comandos. **Las dos pasadas SALTAN** si el contenedor no está
+  como cada una espera, en vez de fallar: una suite que siempre tiene un rojo es
+  una suite que se deja de mirar. La tercera prueba es la que más falta hacía —que
+  una migración rota NO caiga en la rama de apartar—, y esa corre siempre.
 - **`CSVQueMienteTests.swift`** — BOM, filas vacías, comas dentro del nombre,
   columnas duplicadas, encabezados en el otro idioma, 5.000 filas, los dos
-  formatos de importe y los importes con letras dentro. Seis pasan; tres cazan.
+  formatos de importe y los importes con letras dentro. **Cada regla que se
+  aprieta lleva su control al lado**: junto a "1e9 se rechaza" está "$1,960.00 y
+  1.960,00 MXN siguen pasando", y junto a "el separador no mira dentro de las
+  comillas" está "un archivo de comas con un punto y coma dentro sigue siendo de
+  comas". Sin ese par, apretar una regla que existía por una razón rompe la
+  razón.
 - **`FechasImposiblesTests.swift`** — 31 de febrero, año 1900, año 2999 y la
   ambigüedad día/mes. Pasan todas: están para que no se rompa lo que hoy va bien.
 
@@ -162,9 +169,12 @@ De interfaz (con el modo revisión **ENCENDIDO** en la copia):
   capas distintas y cada uno tapaba al siguiente: que se escriba, que la ficha
   empujada se entere, y que la lista se entere. El momento en el que falle dice
   cuál se rompió.
-- **`BaseCaidaUITests.swift`** — lo que ve la tesorera con la base estropeada.
-  Dos pasadas como `BaseMudaTests`, y **lleva su control positivo**: con la base
-  sana el aviso NO puede salir.
+- **`BaseCaidaUITests.swift`** — lo que ve la tesorera, que son **dos avisos
+  distintos**: rojo "no se guarda nada" y naranja "estaba dañada, se empezó de
+  cero". Tres pasadas, y la primera es el control positivo: con la base sana no
+  puede salir ninguno. Para provocar el rojo **no vale corromper el archivo**
+  —eso ahora se recupera—: hay que sustituirlo por un DIRECTORIO, que da
+  `CANTOPEN` en vez de `NOTADB`.
 - **`MonedaYCeroUITests.swift`** — cambiar la moneda de la iglesia a euros y
   recorrer Tesorería buscando dólares; y guardar un movimiento de $0.00.
 - **`CapsulasDeBarraUITests.swift`** — cuenta las cápsulas de las cuatro

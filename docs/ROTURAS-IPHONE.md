@@ -1,13 +1,20 @@
 # Roturas del iPhone · pasada de QA adversario · 9 de septiembre de 2026
 
-> **Estado: los tres primeros están ARREGLADOS y verificados en la app
-> corriendo** (misma sesión, más abajo cada uno lleva su apartado "Cómo quedó").
-> Los hallazgos 5 a 8 siguen abiertos, y sus pruebas siguen en rojo a propósito.
+> **Estado: los ocho están ARREGLADOS y verificados en la app corriendo**
+> (misma sesión; cada uno lleva abajo su apartado "Cómo quedó"). La suite queda
+> en **173 unitarias, 1 saltada, 0 fallos**.
 >
-> **Y el hallazgo 4 era peor de lo que este informe decía en su primera
-> versión.** Al escribir la prueba con ids de verdad —UUID, no los "1"/"207" de
-> la maqueta— salió que no era solo la edición: **aprobar y devolver al tesorero
-> tampoco hacían nada**. La corrección está dentro del apartado 4.
+> **Dos correcciones a la primera versión de este informe**, las dos por haber
+> medido en modo revisión:
+>
+> - **El hallazgo 4 era peor.** Con ids de verdad —UUID, no los "1"/"207" de la
+>   maqueta— no era solo que la edición no guardara: **aprobar y devolver al
+>   tesorero tampoco hacían nada**. La bandeja entera era inerte.
+> - **El hallazgo 7 tenía seis sitios, no cuatro.** Los dos que faltaban no los
+>   encuentra un grep de `"$"`: uno va dentro de un formato
+>   (`String(format: "$%.1fk")`) y otro pegado al signo en el mismo literal
+>   (`a.esGasto ? "−$" : "+$"`). El patrón que sí los caza es un `$` justo antes
+>   de cerrar comillas.
 
 **Solo iPhone.** El árbol compacto (`IPhoneRootView`, `RootView:322`), en
 iPhone 17e (`535B863C-BCD2-4D92-AB5D-6FE9ED41FF02`), en los dos idiomas, con el
@@ -172,11 +179,34 @@ supiera que la base estaba rota. Efecto lateral buscado: **también se abre en
 modo revisión**, así que una migración rota se ve al arrancar en vez de
 esconderse. El §3 del traspaso queda corregido.
 
-**Lo que NO se hizo, y es decisión tuya:** la app sigue sin recuperar nada. No
-aparta el archivo malo para empezar uno limpio (eso tira lo único que un forense
-podría rescatar) ni se niega a escribir (eso deja a la tesorera sin capturar un
-domingo). `pruebas/BaseMudaTests.swift` **sigue en rojo a propósito** para que no
-se olvide, y su cabecera explica las dos opciones.
+**Y la otra mitad, cerrada después.** Aquí quedó escrito que recuperar era una
+decisión con dos salidas malas —apartar el archivo tira lo único rescatable,
+negarse a escribir deja a la tesorera sin capturar un domingo—. Mirándolo otra
+vez, la primera no tenía por qué tirar nada: **apartar no es borrar**. El archivo
+se conserva con su fecha (`tamio-danada-<sello>.sqlite`, con su `-wal` y su
+`-shm`) y la app arranca una base limpia; lo que ya estaba sincronizado baja
+solo.
+
+Lo delicado no es cómo sino **cuándo**, y ahí está el límite que hace que esto no
+sea peligroso: solo se aparta con los dos códigos con los que SQLite dice "esto
+no es una base" (`SQLITE_NOTADB`, `SQLITE_CORRUPT`). Cualquier otra cosa se queda
+en memoria con su franja roja y **sin tocar el archivo**, porque:
+
+- un fallo pasajero —aparato bloqueado, disco lleno, archivo ocupado— apartaría
+  una base SANA;
+- **una migración rota es un fallo nuestro**, y apartar por eso borraría los
+  datos de todo el que instale esa versión, en cada arranque. Comprobado que una
+  migración mal escrita da `SQLITE_ERROR (1)` y no cae en esa rama: es la prueba
+  que más falta hacía.
+
+Los dos avisos dejan de ser el mismo: el rojo "no se guarda nada" sobre una app
+que SÍ guarda sería mentir en el otro sentido, así que la recuperación avisa en
+naranja y Zona de riesgo dice además con qué nombre quedó la dañada.
+
+Verificado con la app corriendo, **tres pasadas con control positivo**: base sana
+sin aviso; archivo a cero → naranja, la app guarda otra vez y la dañada sigue en
+la carpeta; `tamio.sqlite` convertido en un DIRECTORIO —que da `CANTOPEN 14`, no
+`NOTADB`— → rojo, en memoria, archivo sin tocar.
 
 ---
 
@@ -344,8 +374,18 @@ válido"* en la previa (`ImportadorAportes.swift:121`, con su `centavos > 0`), a
 que la tesorera confía en esa previa. Aquí no hay nada que rechazar: la fila sale
 en verde con una cifra que no es la del archivo.
 
-**Prueba:** `pruebas/CSVQueMienteTests.swift`,
-`testUnImporteConLetrasSeDeberiaRechazar`.
+**Prueba:** `pruebas/CSVQueMienteTests.swift`.
+
+**Cómo quedó (arreglado).** La regla nueva sale de mirar **dónde** puede estar lo
+que sobra: un símbolo o un código de moneda va delante o detrás, nunca entre los
+dígitos. Así que se recorta por los extremos y lo que queda tiene que ser un
+número; si dentro aparece una letra, no se adivina. Los espacios de miles sí se
+aceptan dentro —"1 960,00"—, incluidos el duro y el fino, que es lo que pega una
+hoja de cálculo.
+
+La prueba lleva su control al lado, que era lo necesario al apretar una regla que
+existía por una razón: `$1,960.00`, `1.960,00 MXN`, `USD 1960`, `€ 1 960,00` y
+`MXN -50` siguen entrando igual.
 
 ---
 
@@ -361,7 +401,17 @@ que elija, se lleva la primera**.
 Medido con `nombre,monto,monto` y la fila `Ana,100,999`: pidiendo la columna
 `monto` sale `100`, y no hay ninguna forma de pedir el `999`.
 
-**Prueba:** `pruebas/CSVQueMienteTests.swift`, `testColumnasDuplicadas`.
+**Prueba:** `pruebas/CSVQueMienteTests.swift`.
+
+**Cómo quedó (arreglado).** La segunda pasa a llamarse "monto (2)". No se
+descarta ninguna —cuál vale lo sabe quien exportó el archivo, no nosotros— y la
+sugerencia automática sigue cogiendo la primera, que es lo sensato cuando nadie
+ha dicho nada.
+
+**Y arreglaba algo que no estaba en el informe:** el `Picker` del mapeo hace
+`ForEach(encabezados, id: \.self)`, así que con nombres repetidos había ids
+repetidos y SwiftUI enseñaba una sola opción. O sea que la columna duplicada no
+solo se resolvía mal: ni siquiera se podía elegir.
 
 ---
 
@@ -387,7 +437,28 @@ Los cuatro sitios, encontrados con `grep` y confirmados en pantalla el primero:
 El resto de la app lee `Money.moneda`, que existe precisamente para esto y lo
 dice en su comentario: *"antes 'MXN' y el '$' iban escritos a mano en cada
 pantalla, así que cambiar de moneda en Ajustes no cambiaba nada en ninguna"*.
-Quedaron cuatro.
+
+**Cómo quedó (arreglado) — y eran SEIS, no cuatro.** Los dos que faltaban en la
+lista de arriba: el monto compacto de Inicio (`DashboardView.montoCompacto`) y
+**la fila de la LISTA de la bandeja** (`RevisarView:194`), que es distinta de la
+del detalle. Los dos se escaparon por el mismo motivo, y vale la pena dejarlo
+anotado: **el grep de `"$"` no los encuentra**, porque en uno el símbolo va
+dentro de un formato y en el otro pegado al signo en el mismo literal. El patrón
+que sí los caza es un `$` justo antes de cerrar comillas.
+
+`montoCompacto` no se sustituyó por `Money.compact`, que hace lo mismo pero
+redondea distinto por encima de diez mil ("$48k" en vez de "$48.3k"): eso cambia
+lo que se lee en la pantalla principal y no es lo que se estaba arreglando.
+
+Verificado en pantalla, no solo en el volcado: con la iglesia en euros se
+recorren Ingresos, el alta, Inicio con su dona y la bandeja buscando cualquier
+rótulo que empiece por "$", "+$" o "−$". Cero.
+
+**Un aviso para quien lo repita:** en modo revisión la moneda la sirve el
+repositorio de maqueta y **no sobrevive a un `terminate()`**, así que relanzar la
+app para comprobarlo mide una iglesia otra vez en dólares. Las pantallas se
+visitan por primera vez DESPUÉS del cambio, y eso es lo que garantiza que su
+cuerpo se construya con la moneda nueva.
 
 ---
 
@@ -401,8 +472,11 @@ queda en una columna llamada `nombre, apellido;monto`. La previa dice que faltan
 las columnas obligatorias, así que nadie importa nada mal — pero el archivo es
 correcto y la app dice que no.
 
-**Prueba:** `pruebas/CSVQueMienteTests.swift`,
-`testSeparadorConComaEnElEncabezado`.
+**Prueba:** `pruebas/CSVQueMienteTests.swift`.
+
+**Cómo quedó (arreglado).** `detectarSeparador` salta lo entrecomillado. La
+prueba lleva el control al revés: un archivo de comas de verdad con un punto y
+coma dentro de un campo se sigue detectando como de comas.
 
 ---
 
@@ -459,29 +533,23 @@ adivinar sin preguntar. Se anota, no se propone cambiarlo.
 
 ## Lo que queda por arreglar
 
-Los tres primeros están hechos y verificados corriendo. Lo que sigue abierto,
-por el orden en que yo lo haría:
+De este informe, **nada**: los ocho están hechos y verificados corriendo.
 
-1. **El nº 5**, el importe con letras en el importador. Una condición en
-   `Money.desdeTexto`: si se borró algo que no era símbolo de moneda ni espacio,
-   devolver `nil`. Es el único que queda de la familia "cifra falsa".
-2. **El nº 7**, los cuatro `$` escritos a mano. Cuatro líneas, cero riesgo.
-   `NuevoMovimientoView:385`, `EditarAsuntoView:64`, `CategoryDonutChart:21` y
-   `RevisarView:298`.
-3. **El nº 6 y el nº 8**, los dos del CSV. Piden pensar el caso raro y ninguno
-   corre prisa.
+Lo que sí queda vivo es **una decisión que este informe no puede tomar**: el `==`
+por id de los otros siete modelos —`Movimiento`, `Aportante`, `Acta`, `Servicio`,
+`Corte`, `Miembro` y `Apunte`— que el §0.-7 del traspaso ya tenía anotada. Aquí
+se arregló solo el de `Revision`, y se arregló porque sin él la corrección del
+hallazgo 4 no llegaba a verse en pantalla. Los demás siguen igual, y ahora hay un
+precedente medido de lo que cuesta dejarlos así: el dato estaba bien a los pocos
+milisegundos y la pantalla enseñaba la cifra vieja indefinidamente.
 
-**Y una que no es un arreglo sino una decisión tuya**, la mitad que quedó del
-nº 2: la app avisa de que la base se cayó, pero **sigue sin recuperar nada**.
-Las dos salidas son apartar el archivo malo y empezar uno limpio —que tira lo
-único que un forense podría rescatar— o negarse a escribir —que deja a la
-tesorera sin capturar un domingo—. `pruebas/BaseMudaTests.swift` sigue en rojo
-para que no se pierda de vista.
-
-**La otra decisión pendiente, de la misma familia:** el `==` por id de los otros
-siete modelos (§0.-7 del traspaso). Aquí se arregló solo el de `Revision`, y se
-arregló porque sin él la corrección del nº 4 no se veía en pantalla. Los demás
-siguen igual, y ahora hay un precedente medido de qué cuesta dejarlos así.
+Y lo que esta pasada **no pudo tocar** sigue sin tocar, porque el entorno no
+tiene red y sin sesión la app se queda en la puerta: cola de salida,
+sincronización, reintento idempotente, el mismo registro editado en dos aparatos,
+token expirado, roles contra RLS, borrar cuenta y candado biométrico. Más los
+PDF —mes vacío, 500 movimientos, sin logo ni firmas, compartir mientras se
+genera— y las fichas de `CorteDetalle` y `ActasView`, que se listaron pero no se
+abrieron.
 
 ---
 
@@ -515,11 +583,14 @@ no darlo por hecho:
   arregló en la del teléfono**: ella llama al mismo `Compactacion.medir()`
   (`:1502`) y `Respaldo.crear()` (`:1596`), así que hereda las dos mitades del
   fallo original. Es el primer sitio que miraría la sesión del iPad.
-- **Nº 7 (los `$` a mano).** Sigue abierto, y en el iPad hay **un quinto sitio
-  propio**: `ConfiguracionView:550` lleva su propio `Picker` de moneda.
-- **Nº 5 y nº 6 (CSV).** `Money.desdeTexto` y `CSVLector` son comunes y siguen
-  abiertos; el importador del iPad ya está probado en
-  `pruebas/ImportarIPadUITests.swift`.
+- **Nº 7 (los `$` a mano).** Los seis eran de vistas comunes y quedaron
+  arreglados, pero **hay uno propio del iPad sin mirar**:
+  `ConfiguracionView:550`, su propio `Picker` de moneda. Y conviene rehacer allí
+  el barrido con el patrón bueno (`$` justo antes de cerrar comillas), que es el
+  que destapó los dos que se me habían escapado en el teléfono.
+- **Nº 5, nº 6 y nº 8 (CSV e importes).** `Money.desdeTexto` y `CSVLector` son
+  comunes, así que el iPad los hereda arreglados; el importador del iPad ya está
+  probado en `pruebas/ImportarIPadUITests.swift` y conviene volver a correrlo.
 - **Las cápsulas de la barra.** En el teléfono salieron limpias en AX1, pero la
   barra del iPad es de la pantalla entera y con la sidebar fijada el ancho útil
   baja: el recuento hay que rehacerlo allí, no heredarlo.
