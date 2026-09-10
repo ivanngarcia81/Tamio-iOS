@@ -5,8 +5,160 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **9 de septiembre de 2026**, tras la pasada de interfaz
-del iPad (§0.-7).
+Última actualización: **10 de septiembre de 2026**, tras la pasada de QA
+adversario del iPhone y lo que salió de ella (§0.-8).
+
+---
+
+## 0.-8 QA adversario del iPhone, y lo que destapó · 10 de septiembre
+
+### LO PRIMERO, o la sesión nueva no encuentra nada
+
+**El repo ya NO está en `~/Desktop/Tamio-iOS`. Está en `~/Developer/Tamio-iOS`.**
+
+Se movió el 10-sep. El Escritorio tiene activado *«Carpetas Escritorio y
+Documentos»* de iCloud Drive (`CLOUDDESKTOP` en `MobileMeAccounts`), así que el
+repo entero —incluidos los 28 MB de `.git`— se estaba sincronizando. Aparecieron
+**87 archivos duplicados con sufijo « 2»**: `BorradoMasivo 2.swift`,
+`LogoIglesia 2.swift`, sesenta y tantos en `pruebas/`. Todos idénticos byte a
+byte a su original y ninguno en git, así que no se perdió trabajo.
+
+**La trampa que cuesta una tarde:** el `.pbxproj` lista los archivos uno a uno y
+los ignora, así que **el proyecto de verdad compila y la copia de `xcodegen`
+no** — y los errores que da son fantasmas (`invalid redeclaration`,
+`ambiguous use`) en archivos que nadie tocó. Si vuelve a pasar,
+`find . -name "* [0-9].*"` los saca.
+
+Quedan en el Escritorio, con el mismo problema y sin mover: `Tamio-iOS-ipad`,
+`Tamio-web` y `Tamio-versiones`.
+
+### La pasada, y por qué encontró tanto
+
+Ocho hallazgos en el árbol del teléfono, **todos arreglados y verificados
+corriendo**. El informe entero, con la reproducción y la medida de cada uno, en
+`docs/ROTURAS-IPHONE.md`. Los tres que más pesaban:
+
+1. **Con la región en español, cada importe con céntimos se guardaba
+   multiplicado por cien.** El `.decimalPad` de esa región ofrece
+   `1|2|3|4|5|6|7|8|9|,|0|Delete` —**no hay tecla de punto**— y `aCentavos`
+   borraba las comas. Tecleado `12,50`, el libro decía `+$1250,00`.
+2. **La base local caía a memoria sin decirlo.** Se trabajaba toda la tarde y al
+   cerrar no quedaba nada; el único rastro era un error tardío al respaldar.
+3. **La bandeja «Por revisar» entera era inerte con datos reales.** El id del
+   asunto se partía por el primer guion de un UUID, así que aprobar, devolver,
+   revertir, editar y reactivar no hacían **nada**.
+
+**Las dos veces que este informe se quedó corto fue por lo mismo**, y conviene
+saberlo antes de la próxima pasada:
+
+- **Medir en modo revisión.** Los ids de la maqueta son "1" y "207"; los de
+  verdad son UUID. Por eso la bandeja parecía sana.
+- **Buscar con el patrón fácil.** Un `grep` de `"$"` no encuentra
+  `String(format: "$%.1fk")` ni `a.esGasto ? "−$" : "+$"`. El patrón que sí los
+  caza es un `$` justo antes de cerrar comillas — y con él aparecieron dos
+  sitios más de los cuatro que el informe daba.
+
+### Lo que salió después, tirando del hilo
+
+- **El `==` por id de los siete modelos restantes**, que el §0.-7 dejaba como
+  decisión pendiente. **Contarlo la resolvió sin decidir nada**: cero `Set<>`,
+  cero `selection:`, cero diccionarios con esos modelos de clave. Lo destapó
+  Iván en su iPhone —una ficha decía "Folio P-9" mientras la lista y el servidor
+  decían "Folio 9"—. Es la lección del B5 del §0.0 otra vez: **cuando un
+  pendiente pida decidir un criterio, contar primero.**
+- **La segunda firma estaba construida entera y no había forma de llegar a
+  ella.** La tarjeta solo salía con `dobleFirmaPedida`, y el único `true` vivía
+  en `MockDepositosRepository`. Ahora la tarjeta se ve siempre mientras el corte
+  no esté depositado, con el interruptor dentro.
+- **La sincronización se mudó de «Acceso y áreas» a «Zona de riesgo»**, en las
+  dos formas de la app, y el selector de Categorías pasó a cristal siguiendo la
+  receta del §5.
+
+### El servidor, que es donde estaba lo gordo
+
+**`updated_at` no se movía al ACTUALIZAR, y es el cursor de toda la
+sincronización.** Un registro NUEVO llegaba a los demás aparatos; **editar o dar
+de baja uno existente no se enteraba nadie**. Explica lo del 7-sep que este
+archivo ya contaba: el servidor con 66 filas de baja y el teléfono con sus
+movimientos intactos — no era desobediencia, es que nunca se enteró.
+
+Arreglado con un disparador en las 23 tablas
+(`supabase/migrations/20260910_...`). **Y con una regresión mía el mismo día**,
+encontrada horas después: pisaba el empujón de `frenar_borrado_tesorero`, que
+mueve `updated_at` a propósito para que la fila revertida vuelva al aparato que
+lo intentó. Postgres dispara los BEFORE **por orden alfabético**, así que
+`frenar_` corría antes. Corregido en `20260910b_...`: el prefijo **`a0_` es
+funcional**, hace que el sello corra ANTES que cualquier guarda para que la
+política tenga la última palabra. Renombrarlo lo rompe otra vez y en silencio.
+
+**La lección:** un disparador nuevo sobre tablas que ya tenían disparadores no se
+prueba solo, se prueba CON los que ya estaban. Se hizo con una maqueta de dos
+disparadores, sin tocar las tablas de la app.
+
+### Lo que hay que hacer, y en qué orden
+
+**1. Los permisos en el servidor.** Es lo único que separa a la app de poder
+usarla otra iglesia. **89 políticas y ninguna mira el rol**: el servidor solo
+garantiza que no toques otra congregación. La propuesta entera, en cuatro etapas
+y con sus riesgos, está en **`docs/PERMISOS-EN-EL-SERVIDOR.md`**. Empezar por
+quitarle `UPDATE` y `DELETE` al `registro`, que no toca la app.
+
+**2. Las pruebas en aparato**, que Iván dejó pendientes de estar en casa:
+
+- Que una corrección de «Por revisar» **llegue al servidor** — es lo que se
+  tocó y lo único sin probar de ese arreglo.
+- Modo avión: capturar sin señal y ver que sube al volver.
+- Los cortes y los depósitos, que la pasada **listó pero no abrió**.
+- Un PDF de verdad: reporte, carta y acta.
+
+**3. El rastro de auditoría no se guarda nunca.** No hay columna para él ni en la
+base local ni en Supabase, y `MovimientoFila` lo reconstruye vacío siempre. La
+tarjeta dice "sin eventos registrados" en todos los movimientos, para siempre.
+Dos tamaños: deducirlo de lo que ya hay (barato, deja de mentir) o guardarlo de
+verdad (migración en los dos lados y acuerdo con el web).
+
+**4. El importe se guarda en Supabase como `double precision`**, contra la regla
+que la propia app se escribió —*"nunca en coma flotante: en una tesorería eso no
+se perdona"*—. Hoy no cuesta dinero; cambiarlo con datos dentro se encarece.
+
+**5. Las contraseñas filtradas siguen apagadas** (§6.b · E). Panel, 30 segundos.
+
+**6. Los recurrentes de prueba** —Utilities $200, Utilities $500, Limpieza
+$300— **empiezan a generar movimientos solos el 1 de octubre**.
+
+### Lo que quedó comprobado y ya no hace falta discutir
+
+- **Los datos son TODOS ficticios.** No hay ninguna iglesia real usando la app;
+  se puede romper, borrar y restaurar sin pedir permiso. Lo dijo Iván dos veces
+  en la sesión, y yo volví a tratarlos como reales a mitad: no hace falta.
+- **Respaldo con contraseña, borrado y restauración: funcionan** de punta a
+  punta en el iPhone (§6.b · C, que nunca se había ejecutado). Y **la protección
+  de archivos dice "Completa salvo si ya estaba abierto"** en el aparato, que
+  cierra el §6.b · B sin necesitar un iPad.
+- **Las hojas apiladas NO se pisan en iOS 26.** Lo que rompió los importadores
+  era el otro patrón, `.sheet(isPresented:)` con un `if let` dentro.
+- **La barra no descarta ninguna cápsula, ni en AX1**, en las cuatro listas.
+- **El doble toque en Guardar no duplica.**
+- El lector de CSV aguanta BOM, filas vacías, comas en un nombre entrecomillado,
+  encabezados en el otro idioma y 5.000 filas en 0,02 s.
+
+### Cómo se verifica ahora
+
+`pruebas/LEEME.md` tiene las once pruebas nuevas con su receta. Tres avisos de
+instrumento que costaron una captura cada uno:
+
+- **`simctl ui appearance` NO pone la app en oscuro**: la app fija
+  `preferredColorScheme` desde `prefs.tema` e ignora al sistema. Va por argumento
+  de lanzamiento, `-prefs.tema oscuro`.
+- **`ProcessInfo.environment` dentro de un test es el del runner en el
+  simulador**, no el del shell: `xcodebuild` no reenvía variables.
+- **Con una hoja arriba, XCUITest sigue listando los textos de la pantalla de
+  DEBAJO.** `isHittable` distingue lo que de verdad se ve.
+
+Y **sin red, la copia no compila**: la resolución de paquetes sale a GitHub. Se
+arregla copiando el `Package.resolved` del repo y un `SourcePackages` ya resuelto,
+con `-clonedSourcePackagesDirPath`, `-disableAutomaticPackageResolution` y
+`-onlyUsePackageVersionsFromResolvedFile`.
 
 ---
 
