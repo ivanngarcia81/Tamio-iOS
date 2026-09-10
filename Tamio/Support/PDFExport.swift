@@ -39,7 +39,20 @@ enum PDFExport {
             // banda MÁS ALTA del contenido: se desplaza el dibujo entero hacia
             // abajo y cada página enseña su franja. La última puede quedar con
             // blanco al pie, que es lo que hace cualquier documento.
-            let paginas = max(1, Int(ceil(size.height / altoCarta)))
+            // **El margen de pie no merece una página para él solo.**
+            //
+            // `ceil` sobre la altura entera daba una página EN BLANCO cada vez
+            // que el contenido se pasaba de un múltiplo de la página por menos
+            // de lo que mide el margen: el estado financiero de septiembre
+            // salía en tres páginas y la tercera estaba vacía.
+            //
+            // No es una tolerancia a ojo. **Toda hoja que pasa por aquí acaba
+            // con un margen**, y el más pequeño de los que hay es `Esp.hoja`
+            // —las de Secretaría usan 48—, así que un sobrante que no llegue a
+            // eso es blanco por construcción y no puede llevarse contenido por
+            // delante. Un sobrante mayor sí trae texto y conserva su página.
+            let blancoDePie = Esp.hoja
+            let paginas = max(1, Int(ceil((size.height - blancoDePie) / altoCarta)))
             for p in 0..<paginas {
                 ctx.beginPDFPage(nil)
                 ctx.saveGState()

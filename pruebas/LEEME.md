@@ -208,3 +208,47 @@ De interfaz (con el modo revisión **ENCENDIDO** en la copia):
    `SourcePackages` ya resuelto, y añadiendo
    `-clonedSourcePackagesDirPath <dir> -disableAutomaticPackageResolution
    -onlyUsePackageVersionsFromResolvedFile`.
+
+## Las de APARATO · 10 de septiembre
+
+Estas cuatro corren **en el iPhone y el iPad de Iván**, no en el simulador, y
+por eso su receta es distinta de la de arriba:
+
+- **El bundle id de la copia tiene que ser el REAL** (`church.tamio.native`).
+  En un aparato físico el llavero NO se comparte entre apps —al revés que en el
+  simulador, que es de lo que avisa el §3 del traspaso—, así que una copia con
+  id propio arranca **sin sesión y sin datos**, en la pantalla de acceso.
+- El target unitario va con `TEST_HOST`/`BUNDLE_LOADER` a `Tamio.app/Tamio`:
+  así la prueba tiene la sesión de verdad y puede consultar Supabase ella misma.
+- `xcodebuild ... -destination 'id=<UDID del aparato>' -allowProvisioningUpdates`.
+
+- **`CorreccionLlegaAlServidorTests`** — siembra un gasto pendiente con id de
+  verdad, sincroniza, lo aprueba desde la bandeja y vuelve a sincronizar.
+- **`ActualizarLlegaAlServidorTests`** — la misma historia pero **preguntándole
+  al servidor entre las dos sincronizaciones**. Es la que de verdad prueba el
+  `UPDATE`: sin esa consulta intermedia, una fila que sube ya aprobada da el
+  mismo resultado final que una que sube pendiente y se actualiza después.
+- **`PDFDeVerdadTests`** — genera reporte, acta y carta con los datos del
+  aparato y los deja en `Documents/` para poder SACARLOS y mirarlos:
+  `xcrun devicectl device copy from --device <UDID> --domain-type
+  appDataContainer --domain-identifier church.tamio.native --source
+  Documents/qa-reporte.pdf --destination .`
+- **`CortesYDepositosUITests`** — abre Depósitos y su primer corte. Distingue
+  teléfono de iPad: el primero navega por `tabBars` y hub, el segundo por la
+  sidebar. Sin esa distinción falla con "No matches found for Descendants
+  matching type TabBar", que parece un fallo del producto y no lo es.
+
+**Tres avisos que costaron una vuelta cada uno:**
+
+- **NO pasar `xcodebuild` por un `grep`**: el código de salida pasa a ser el del
+  grep. Una compilación fallida dio "exit 0" y las pruebas corrieron con el
+  paquete VIEJO. Redirigir a un archivo y confirmar `** TEST BUILD SUCCEEDED **`.
+- **`Not authorized for performing UI testing actions` a mitad = el aparato se
+  bloqueó o se lo llevaron.** No es del producto.
+- **Un volcado que recorre todos los elementos es inviable en el iPad**:
+  `allElementsBoundByIndex` + `isHittable` es un viaje por elemento y pasa de
+  veinte minutos. Volcar solo lo que se va a mirar.
+
+**Y limpiar lo que siembran.** Marcan `registrado_por = "prueba-aparato"`
+justamente para poder darlas de baja después; los folios que consumen no se
+recuperan.

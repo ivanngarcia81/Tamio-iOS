@@ -23,6 +23,48 @@ private func columnaPct(_ filas: [CategoriaMonto],
     return Money.reparto(filas.map(\.monto), total: total).map { "\($0)%" }
 }
 
+/// **Una cifra en columna de ancho fijo no puede partirse en dos renglones.**
+///
+/// Las columnas de estas tablas miden 110 o 120 puntos, y `Money.fmt` de una
+/// cantidad de siete cifras —`$2,421,585.50`— no cabe. SwiftUI no avisa: parte
+/// el número y deja `$2,421,585.5` encima de un `0` suelto, que en un estado
+/// financiero es peor que un número mal alineado.
+///
+/// Se destapó el 10-sep-2026 al generar el PDF con los datos de la iglesia de
+/// verdad; con los de maqueta ninguna cifra pasaba de cinco dígitos. Y la que
+/// se partía era **solo la de BALANCE** teniendo las tres el mismo número de
+/// caracteres: es la única en `semibold`, y la negrita ensancha lo justo para
+/// desbordar. Por eso esto se aplica a TODAS las cifras en columna fija y no
+/// solo a la que se vio romperse.
+///
+/// **No es `private` a propósito**: el mismo patrón —cifra dentro de un ancho
+/// fijo— está también en `AportantePDF.swift`, y una regla que solo se aplica
+/// en el archivo donde se descubrió es la mitad del arreglo.
+extension View {
+    /// **Una cifra en columna de ancho fijo no puede partirse en dos
+    /// renglones.** `Money.fmt` de siete cifras —`$2,421,585.50`— no cabía en
+    /// los 110 puntos de la columna de BALANCE, y SwiftUI la partía sin avisar:
+    /// `$2,421,585.5` encima de un `0` suelto. En un estado financiero eso es
+    /// peor que un número mal alineado.
+    ///
+    /// Se vio el 10-sep-2026 generando el PDF con los datos de una iglesia de
+    /// verdad; con los de maqueta ninguna cifra pasaba de cinco dígitos. Y se
+    /// partía **solo la de BALANCE** teniendo las tres los mismos caracteres:
+    /// es la única en `semibold`, y la negrita ensancha lo justo.
+    ///
+    /// **Aquí NO se puede usar `minimumScaleFactor`, y costó dos vueltas
+    /// descubrirlo.** Dentro de `ImageRenderer` —que es como se hace el PDF—
+    /// no mide: aplica el factor MÍNIMO siempre, quepa o no. El resultado eran
+    /// todas las cantidades al 60 % al lado de su rótulo a tamaño normal. Se
+    /// arregla dando ancho suficiente, no encogiendo.
+    ///
+    /// Se aplica a TODAS las cifras en columna fija —también en
+    /// `AportantePDF.swift`— y no solo a la que se vio romperse.
+    func cifraDeColumna() -> some View {
+        self.lineLimit(1)
+    }
+}
+
 struct ReporteHojaPDF: View {
     let e: EstadoFinanciero
     /// El periodo sale del propio reporte. Venía por parámetro y era la clave
@@ -103,7 +145,12 @@ struct ReporteHojaPDF: View {
                 Divider()
                 filaSaldo(L.t("Total de ingresos", "Total income"), e.ingresosMes)
                 Divider()
-                filaSaldo(L.t("Menos egresos", "Less expenses"), -e.gastosMes)
+                // **El rótulo ya dice "Menos": la cifra no repite el signo.**
+                // Salía "Menos egresos  $-850.00", que se lee como un doble
+                // negativo justo en el papel que va a la junta. El resto de la
+                // tabla enseña la cantidad, no el operando, y esta fila estaba
+                // sola en pasar el importe en negativo.
+                filaSaldo(L.t("Menos egresos", "Less expenses"), e.gastosMes)
                 Divider()
                 filaSaldo(L.t("Saldo final", "Ending balance"), e.saldoFinal, negrita: true,
                           color: e.saldoFinal < 0 ? Paleta.negativo : Paleta.brand)
@@ -118,7 +165,7 @@ struct ReporteHojaPDF: View {
                     HStack {
                         Text(L.t("FECHA", "DATE")).frame(width: 120, alignment: .leading)
                         Text(L.t("BANCO", "BANK")).frame(maxWidth: .infinity, alignment: .leading)
-                        Text(L.t("MONTO", "AMOUNT")).frame(width: 120, alignment: .trailing)
+                        Text(L.t("MONTO", "AMOUNT")).frame(width: 130, alignment: .trailing)
                     }
                     .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     .padding(.vertical, 8)
@@ -129,7 +176,7 @@ struct ReporteHojaPDF: View {
                                 .frame(width: 120, alignment: .leading)
                             Text(d.referencia.isEmpty ? d.cuenta : "\(d.cuenta) · \(d.referencia)")
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            Text(Money.fmt(d.monto)).frame(width: 120, alignment: .trailing)
+                            Text(Money.fmt(d.monto)).cifraDeColumna().frame(width: 130, alignment: .trailing)
                         }
                         .font(.subheadline).monospacedDigit()
                         .padding(.vertical, 7)
@@ -155,9 +202,9 @@ struct ReporteHojaPDF: View {
             VStack(spacing: 0) {
                 HStack {
                     Text(L.t("MES", "MONTH")).frame(maxWidth: .infinity, alignment: .leading)
-                    Text(L.t("INGRESOS", "INCOME")).frame(width: 110, alignment: .trailing)
-                    Text(L.t("GASTOS", "EXPENSES")).frame(width: 110, alignment: .trailing)
-                    Text(L.t("BALANCE", "BALANCE")).frame(width: 110, alignment: .trailing)
+                    Text(L.t("INGRESOS", "INCOME")).frame(width: 130, alignment: .trailing)
+                    Text(L.t("GASTOS", "EXPENSES")).frame(width: 130, alignment: .trailing)
+                    Text(L.t("BALANCE", "BALANCE")).frame(width: 130, alignment: .trailing)
                 }
                 .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 .padding(.vertical, 8)
@@ -165,9 +212,9 @@ struct ReporteHojaPDF: View {
                 ForEach(e.mensual) { f in
                     HStack {
                         Text(f.mes).frame(maxWidth: .infinity, alignment: .leading)
-                        Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).frame(width: 110, alignment: .trailing)
-                        Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).frame(width: 110, alignment: .trailing)
-                        Text(Money.fmt(f.balance)).fontWeight(.semibold).frame(width: 110, alignment: .trailing)
+                        Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).cifraDeColumna().frame(width: 130, alignment: .trailing)
+                        Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).cifraDeColumna().frame(width: 130, alignment: .trailing)
+                        Text(Money.fmt(f.balance)).fontWeight(.semibold).cifraDeColumna().frame(width: 130, alignment: .trailing)
                     }
                     .font(.subheadline).monospacedDigit()
                     .padding(.vertical, 7)
@@ -207,7 +254,7 @@ struct ReporteHojaPDF: View {
             ForEach(Array(filas.enumerated()), id: \.element.id) { i, c in
                 HStack {
                     Text(c.nombre).frame(maxWidth: .infinity, alignment: .leading)
-                    Text(Money.fmt(c.monto)).foregroundStyle(color).frame(width: 120, alignment: .trailing)
+                    Text(Money.fmt(c.monto)).foregroundStyle(color).cifraDeColumna().frame(width: 130, alignment: .trailing)
                     Text(porcentajes[i]).foregroundStyle(.secondary)
                         .frame(width: 60, alignment: .trailing)
                 }
@@ -220,8 +267,9 @@ struct ReporteHojaPDF: View {
                 // dice cuánto suma, no de qué tabla es.
                 Text(L.t("Total", "Total")).fontWeight(.semibold)
                 Spacer()
-                Text(Money.fmt(total)).fontWeight(.semibold).monospacedDigit()
-                    .frame(width: 120, alignment: .trailing)
+                Text(Money.fmt(total))
+                    .fontWeight(.semibold).cifraDeColumna()
+                    .frame(width: 130, alignment: .trailing)
                 Text("").frame(width: 60)
             }
             .font(.subheadline).padding(.vertical, 7)
@@ -423,9 +471,9 @@ struct ReporteAnualHojaPDF: View {
             VStack(spacing: 0) {
                 HStack {
                     Text(L.t("MES", "MONTH")).frame(maxWidth: .infinity, alignment: .leading)
-                    Text(L.t("INGRESOS", "INCOME")).frame(width: 110, alignment: .trailing)
-                    Text(L.t("GASTOS", "EXPENSES")).frame(width: 110, alignment: .trailing)
-                    Text(L.t("BALANCE", "BALANCE")).frame(width: 110, alignment: .trailing)
+                    Text(L.t("INGRESOS", "INCOME")).frame(width: 130, alignment: .trailing)
+                    Text(L.t("GASTOS", "EXPENSES")).frame(width: 130, alignment: .trailing)
+                    Text(L.t("BALANCE", "BALANCE")).frame(width: 130, alignment: .trailing)
                 }
                 .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 .padding(.vertical, 8)
@@ -441,9 +489,9 @@ struct ReporteAnualHojaPDF: View {
                 ForEach(a.meses) { f in
                     HStack {
                         Text(f.mes).frame(maxWidth: .infinity, alignment: .leading)
-                        Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).frame(width: 110, alignment: .trailing)
-                        Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).frame(width: 110, alignment: .trailing)
-                        Text(Money.fmt(f.balance)).frame(width: 110, alignment: .trailing)
+                        Text(Money.fmt(f.ingresos)).foregroundStyle(Paleta.brand).cifraDeColumna().frame(width: 130, alignment: .trailing)
+                        Text(Money.fmt(f.gastos)).foregroundStyle(Paleta.negativo).cifraDeColumna().frame(width: 130, alignment: .trailing)
+                        Text(Money.fmt(f.balance)).cifraDeColumna().frame(width: 130, alignment: .trailing)
                     }
                     .font(.subheadline).monospacedDigit()
                     .padding(.vertical, 7)
@@ -452,9 +500,9 @@ struct ReporteAnualHojaPDF: View {
                 HStack {
                     Text(L.t("Total \(a.anio)", "Total \(a.anio)")).fontWeight(.semibold)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(Money.fmt(a.totalIngresos)).foregroundStyle(Paleta.brand).frame(width: 110, alignment: .trailing)
-                    Text(Money.fmt(a.totalGastos)).foregroundStyle(Paleta.negativo).frame(width: 110, alignment: .trailing)
-                    Text(Money.fmt(a.balance)).frame(width: 110, alignment: .trailing)
+                    Text(Money.fmt(a.totalIngresos)).foregroundStyle(Paleta.brand).fontWeight(.semibold).cifraDeColumna().frame(width: 130, alignment: .trailing)
+                    Text(Money.fmt(a.totalGastos)).foregroundStyle(Paleta.negativo).fontWeight(.semibold).cifraDeColumna().frame(width: 130, alignment: .trailing)
+                    Text(Money.fmt(a.balance)).fontWeight(.semibold).cifraDeColumna().frame(width: 130, alignment: .trailing)
                 }
                 .font(.subheadline.weight(.semibold)).monospacedDigit()
                 .padding(.vertical, 8)
@@ -518,7 +566,7 @@ struct ReporteAnualHojaPDF: View {
             ForEach(Array(filas.enumerated()), id: \.element.id) { i, c in
                 HStack {
                     Text(c.nombre).frame(maxWidth: .infinity, alignment: .leading)
-                    Text(Money.fmt(c.monto)).foregroundStyle(color).frame(width: 120, alignment: .trailing)
+                    Text(Money.fmt(c.monto)).foregroundStyle(color).cifraDeColumna().frame(width: 130, alignment: .trailing)
                     Text(porcentajes[i])
                         .foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
                 }
@@ -529,8 +577,9 @@ struct ReporteAnualHojaPDF: View {
             HStack {
                 Text(L.t("Total", "Total")).fontWeight(.semibold)
                 Spacer()
-                Text(Money.fmt(total)).fontWeight(.semibold).monospacedDigit()
-                    .frame(width: 120, alignment: .trailing)
+                Text(Money.fmt(total))
+                    .fontWeight(.semibold).cifraDeColumna()
+                    .frame(width: 130, alignment: .trailing)
                 Text(total > 0 ? "100%" : "").foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
             }
             .font(.subheadline).padding(.vertical, 7)

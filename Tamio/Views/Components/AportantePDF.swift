@@ -113,7 +113,7 @@ struct ReporteAportesHojaPDF: View {
             HStack {
                 Text(L.t("FECHA", "DATE")).frame(width: 120, alignment: .leading)
                 Text(L.t("CONCEPTO", "CONCEPT")).frame(maxWidth: .infinity, alignment: .leading)
-                Text(L.t("MONTO", "AMOUNT")).frame(width: 120, alignment: .trailing)
+                Text(L.t("MONTO", "AMOUNT")).frame(width: 130, alignment: .trailing)
             }
             .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             .padding(.vertical, 8)
@@ -122,7 +122,7 @@ struct ReporteAportesHojaPDF: View {
                 HStack {
                     Text(Fechas.corta(ap.fecha)).frame(width: 120, alignment: .leading)
                     Text(ap.concepto).frame(maxWidth: .infinity, alignment: .leading)
-                    Text(Money.fmt(ap.monto)).frame(width: 120, alignment: .trailing)
+                    Text(Money.fmt(ap.monto)).cifraDeColumna().frame(width: 130, alignment: .trailing)
                 }
                 .font(.subheadline).monospacedDigit()
                 .padding(.vertical, 7)
@@ -202,7 +202,7 @@ struct ConstanciaHojaPDF: View {
                 ForEach(Array(porConcepto.enumerated()), id: \.offset) { i, fila in
                     HStack {
                         Text(fila.concepto).frame(maxWidth: .infinity, alignment: .leading)
-                        Text(Money.fmt(fila.monto)).frame(width: 140, alignment: .trailing)
+                        Text(Money.fmt(fila.monto)).cifraDeColumna().frame(width: 140, alignment: .trailing)
                     }
                     .font(.subheadline).monospacedDigit()
                     .padding(.vertical, 8)
