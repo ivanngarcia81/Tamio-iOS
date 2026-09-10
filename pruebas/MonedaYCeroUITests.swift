@@ -80,14 +80,18 @@ final class MonedaYCero: XCTestCase {
                        "El campo de importe sigue diciendo «$» con la iglesia en euros")
     }
 
-    /// **Un movimiento de $0.00 se puede guardar**: el botón solo mira que el
-    /// campo no esté vacío y `aCentavos` devuelve 0 ante lo que no entiende.
+    /// **Un movimiento de $0.00 NO se puede guardar.** El botón miraba solo que
+    /// el campo no estuviera vacío, y el parseador viejo devolvía 0 ante lo que
+    /// no entendía: con ".." entraba una fila de $0.00 con su folio gastado.
+    /// Ahora `guardadoHabilitado` exige un importe que se entienda y sea > 0.
     func testGuardarUnMovimientoDeCero() {
         arrancar()
         pestana("Treasury")
         abrirFila("Transactions")
         app.buttons["New"].tap(); sleep(3)
-        let campo = app.textFields["0.00"]
+// No por el marcador: ahora lleva el separador del aparato, así
+        // que en región española es "0,00".
+        let campo = app.textFields.element(boundBy: 0)
         XCTAssertTrue(campo.waitForExistence(timeout: 6))
         campo.tap(); campo.typeText(".."); sleep(1)
         let guardar = app.navigationBars.buttons["Save"]

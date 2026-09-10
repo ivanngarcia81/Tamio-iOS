@@ -23,7 +23,13 @@ struct EditarAsuntoView: View {
     @State private var fecha: Date
     @FocusState private var importeEnfocado: Bool
 
-    private let aportantes = ["Pedro Salas Aguirre", "Karla Villalobos Ruiz", "María Hernández Ríos", "Ana Lucía Torres Beltrán"]
+    /// **El padrón de la iglesia, no una lista inventada.** Aquí había cuatro
+    /// nombres escritos a mano —"Pedro Salas Aguirre", "Karla Villalobos
+    /// Ruiz"…—, que es exactamente lo que se quitó el 6-sep de los tres
+    /// selectores de Secretaría y que a este se le pasó: corregir el aportante
+    /// de un ingreso le ponía el nombre de alguien que puede no existir en el
+    /// padrón, y eso rompe la constancia anual y el total del aportante.
+    @State private var aportantes: [PersonaDelPadron] = []
 
     /// Centinela de "sin aportante" en el Picker, como en la hoja de alta.
     private static let sinAsignar = L.t("Sin asignar", "Unassigned")
@@ -32,7 +38,11 @@ struct EditarAsuntoView: View {
          onGuardar: @escaping (String, String, String, String, String?, Date) -> Void) {
         self.r = r
         self.onGuardar = onGuardar
-        _concepto = State(initialValue: r.concepto)
+        // **La nota, no el titular.** El titular sale compuesto de categoría y
+        // persona, así que prellenar con él y guardarlo metía "Misiones ·
+        // Iglesia La Esperanza" dentro de la nota. Es el mismo campo que la
+        // hoja de alta llama "Concepto".
+        _concepto = State(initialValue: r.editNota ?? "")
         _importe = State(initialValue: r.editImporte ?? "")
         // El asunto puede llegar sin categoría ("Sin categoría", en rojo); si
         // trae una que no está en el catálogo, `conValorVigente` la conserva
@@ -43,8 +53,11 @@ struct EditarAsuntoView: View {
         _aportante = State(initialValue: r.editAportante)
         // La fecha sale del campo "Fecha" del asunto. Esta hoja se abre desde
         // el ítem marcado como duplicado, donde corregirla es lo más probable.
-        let textoFecha = r.campos.first { $0.label == L.t("Fecha", "Date") }?.valor ?? ""
-        _fecha = State(initialValue: Fechas.desdeSemilla(textoFecha) ?? Date())
+        // La fecha viene ya hecha del movimiento. Antes se recomponía leyendo
+        // el TEXTO del campo "Fecha" del asunto con `desdeSemilla`, que es un
+        // parseador de la maqueta: con un formato que no reconociera caía en
+        // `Date()` y la hoja proponía hoy en lugar del día del movimiento.
+        _fecha = State(initialValue: r.editFecha ?? Date())
     }
 
     /// Mismo catálogo y misma regla que la hoja de alta.
@@ -62,7 +75,11 @@ struct EditarAsuntoView: View {
                 Section {
                     HStack(spacing: 4) {
                         Text("$").foregroundStyle(.secondary)
-                        TextField("0.00", text: $importe)
+                        // El marcador con el separador del aparato, como en la
+                        // hoja de alta: en región española decía "0.00" y
+                        // proponía un punto que el `.decimalPad` de esa región
+                        // no ofrece.
+                        TextField(NuevoMovimientoView.aTexto(0), text: $importe)
                             .keyboardType(.decimalPad)
                             .focused($importeEnfocado)
                             .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -90,9 +107,10 @@ struct EditarAsuntoView: View {
                     Section(header: Text(L.t("APORTANTE", "CONTRIBUTOR"))) {
                         Picker(L.t("Aportante", "Giver"), selection: aportanteBinding) {
                             Text(Self.sinAsignar).tag(Self.sinAsignar)
-                            ForEach(aportantes, id: \.self) { Text($0).tag($0) }
+                            ForEach(opcionesAportante, id: \.self) { Text($0).tag($0) }
                         }
                         .pickerStyle(.menu)
+                        .task { if aportantes.isEmpty { aportantes = await padronParaSelector() } }
                     }
                 }
 
@@ -113,7 +131,12 @@ struct EditarAsuntoView: View {
                         dismiss()
                     }
                     .fontWeight(.semibold).tint(Paleta.brand)
-                    .disabled(concepto.isEmpty || importe.isEmpty)
+                    // **Un importe que no se entiende no se guarda.** Antes
+                    // bastaba con que el campo no estuviera vacío, y el texto
+                    // viajaba sin que nadie lo leyera nunca. Y el concepto ya
+                    // no apaga el botón: es la nota, y una nota vacía es
+                    // legítima —la hoja de alta tampoco la exige—.
+                    .disabled((Money.desdeTexto(importe) ?? 0) <= 0)
                 }
             }
         }
@@ -148,5 +171,15 @@ struct EditarAsuntoView: View {
     private var aportanteBinding: Binding<String> {
         Binding(get: { aportante ?? Self.sinAsignar },
                 set: { aportante = $0 == Self.sinAsignar ? nil : $0 })
+    }
+
+    /// El padrón, más el aportante que ya tuviera el movimiento si no está en
+    /// él: un `Picker` no puede marcar una opción que no exista entre las
+    /// suyas, y el que hay puede ser un nombre suelto de un visitante o de
+    /// alguien dado de baja. Es la misma regla que `NuevoMovimientoView`.
+    private var opcionesAportante: [String] {
+        let nombres = aportantes.map(\.nombre)
+        guard let aportante, !aportante.isEmpty, !nombres.contains(aportante) else { return nombres }
+        return [aportante] + nombres
     }
 }

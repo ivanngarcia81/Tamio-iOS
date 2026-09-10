@@ -1,80 +1,80 @@
 import XCTest
 @testable import Tamio
 
-/// **Caza el segundo parseador de dinero.**
+/// **El importe del alta manual: el mismo texto tiene que valer lo mismo en las
+/// dos puertas por las que entra dinero.**
 ///
-/// En la app hay dos formas de leer un importe escrito por una persona:
-/// `Money.desdeTexto`, que aguanta los dos mundos ("1.960,00" y "1,960.00"), y
-/// `NuevoMovimientoView.aCentavos`, que borra las comas y hace
-/// `Double(...) ?? 0`. El alta manual —la pantalla por la que entra CADA
-/// ingreso y CADA gasto del teléfono— usa la segunda.
+/// Había dos parseadores. `Money.desdeTexto` aguanta los dos mundos —"1.960,00"
+/// y "1,960.00"— y lo usan el importador de aportes, los recurrentes y la
+/// segunda firma; `NuevoMovimientoView.aCentavos` borraba las comas y hacía
+/// `Double(...) ?? 0`, y era el que usaba **el alta manual**, o sea la pantalla
+/// por la que entra cada ingreso y cada gasto tecleado en el teléfono.
 ///
-/// Con la región del aparato en español el `.decimalPad` escribe COMA, así que
-/// "12,50" es lo que la tesorera teclea para doce cincuenta. Estas pruebas
-/// comparan lo que guardaría el alta con lo que el importador de aportes
-/// —`Money.desdeTexto`, el parseador bueno— entiende del mismo texto.
+/// Con la región del aparato en español eso costaba un factor de cien: el
+/// `.decimalPad` de esa región ofrece `1|2|3|4|5|6|7|8|9|,|0|Delete` —volcado
+/// del teclado con la app corriendo, en `ImporteEnPantallaUITests`—, así que
+/// "12,50" es lo que se teclea para doce cincuenta, y borrando la coma quedaba
+/// $1,250.00 en el libro.
+///
+/// Estas pruebas comparan las dos puertas con el mismo texto. **Estaban en rojo
+/// y ahora pasan**: si alguna vuelve a fallar, es que el alta se volvió a
+/// escribir su propio parseador.
 final class ImporteDelAltaTests: XCTestCase {
 
-    /// Doce cincuenta con coma decimal se guarda como MIL DOSCIENTOS CINCUENTA.
-    func testLaComaDecimalMultiplicaPorCien() {
-        XCTAssertEqual(Money.desdeTexto("12,50"), 1250)
-        XCTAssertEqual(NuevoMovimientoView.aCentavos("12,50"), 1250,
-                       "Guardó \(Money.fmt(NuevoMovimientoView.aCentavos("12,50"))) en vez de $12.50")
+    /// El alta y el importador leen igual, caso por caso.
+    func comprobar(_ texto: String, _ esperado: Centavos?,
+                   _ linea: UInt = #line) {
+        XCTAssertEqual(Money.desdeTexto(texto), esperado,
+                       "el importador leyó otra cosa de «\(texto)»", line: linea)
+        XCTAssertEqual(NuevoMovimientoView.centavos(texto), esperado,
+                       "el alta leyó otra cosa de «\(texto)»", line: linea)
     }
 
-    /// Mil novecientos sesenta con formato español se guarda como $1.96.
-    func testElFormatoEspanolEnteroSeVaAlSuelo() {
-        XCTAssertEqual(Money.desdeTexto("1.960,00"), 196_000)
-        XCTAssertEqual(NuevoMovimientoView.aCentavos("1.960,00"), 196_000,
-                       "Guardó \(Money.fmt(NuevoMovimientoView.aCentavos("1.960,00"))) en vez de $1,960.00")
-    }
+    /// Doce cincuenta con coma decimal, que es lo único que el teclado español
+    /// deja escribir.
+    func testLaComaDecimalNoMultiplicaPorCien() { comprobar("12,50", 1250) }
 
-    /// Un peso cincuenta.
-    func testUnDecimalSuelto() {
-        XCTAssertEqual(Money.desdeTexto("1,5"), 150)
-        XCTAssertEqual(NuevoMovimientoView.aCentavos("1,5"), 150,
-                       "Guardó \(Money.fmt(NuevoMovimientoView.aCentavos("1,5")))")
-    }
+    /// Mil novecientos sesenta con formato español entero.
+    func testElFormatoEspanolEntero() { comprobar("1.960,00", 196_000) }
+
+    /// Y el mismo importe con formato inglés.
+    func testElFormatoInglesEntero() { comprobar("1,960.00", 196_000) }
+
+    /// Un decimal suelto.
+    func testUnDecimalSuelto() { comprobar("1,5", 150) }
 
     /// Pegado desde el portapapeles —un correo del banco, una hoja de cálculo—
-    /// con símbolo y espacio de miles. `Money.desdeTexto` lo entiende.
-    func testPegarUnImporteConSimbolo() {
-        XCTAssertEqual(Money.desdeTexto("$ 1 960,00"), 196_000)
-        XCTAssertEqual(NuevoMovimientoView.aCentavos("$ 1 960,00"), 196_000,
-                       "Guardó \(Money.fmt(NuevoMovimientoView.aCentavos("$ 1 960,00")))")
-    }
+    /// con símbolo de moneda y espacio de miles.
+    func testPegarUnImporteConSimbolo() { comprobar("$ 1 960,00", 196_000) }
 
     /// **Lo que no se entiende NO puede valer cero.** `Double(...) ?? 0`
-    /// convierte cualquier basura en un movimiento de $0.00 que sí se guarda:
-    /// el botón solo mira `!importe.isEmpty`.
-    func testLoQueNoSeEntiendeNoDebeValerCero() {
-        for basura in ["$ 1 960,00", "1.960,00 MXN", "mil", "..", "—"] {
-            XCTAssertNotEqual(NuevoMovimientoView.aCentavos(basura), 0,
-                              "\"\(basura)\" se guardaría como $0.00")
+    /// convertía cualquier basura en un movimiento de $0.00 que sí se guardaba,
+    /// porque el botón solo miraba `!importe.isEmpty`. Ahora devuelve `nil` y
+    /// `guardadoHabilitado` no enciende Guardar.
+    func testLoQueNoSeEntiendeNoValeCero() {
+        for basura in ["", "   ", "mil", "—", "abc"] {
+            XCTAssertNil(NuevoMovimientoView.centavos(basura),
+                         "«\(basura)» se leería como \(NuevoMovimientoView.centavos(basura) ?? -1)")
         }
     }
 
-    /// Un importe negativo entra tal cual: el signo no se filtra en ningún
-    /// sitio y el tipo (ingreso/gasto) ya lleva la dirección del dinero.
-    func testNoSeCuelaUnImporteNegativo() {
-        let c = NuevoMovimientoView.aCentavos("-50")
-        XCTAssertGreaterThanOrEqual(c, 0,
-            "Un ingreso de \(Money.fmt(c)) entra con el signo puesto: la dirección del "
-            + "dinero ya la lleva el tipo, así que un importe negativo la invierte dos veces")
+    /// El campo se rellena con el separador del aparato, no con un punto fijo:
+    /// en región española se abría con "1960.00" y el teclado de esa región no
+    /// tiene con qué escribir ese punto.
+    func testElCampoSeRellenaConElSeparadorDelAparato() {
+        let escrito = NuevoMovimientoView.aTexto(196_000)
+        XCTAssertEqual(NuevoMovimientoView.centavos(escrito), 196_000,
+                       "lo que el campo escribe («\(escrito)») no vuelve a entrar igual")
+        XCTAssertFalse(escrito.contains(","), "no debe llevar separador de miles: «\(escrito)»")
     }
 
-    /// Notación científica: `Double` la acepta y el campo la deja escribir con
-    /// teclado externo o pegando.
-    func testNotacionCientifica() {
-        XCTAssertLessThan(NuevoMovimientoView.aCentavos("1e9"), 100_000_000,
-                          "Guardó \(Money.fmt(NuevoMovimientoView.aCentavos("1e9"))) "
-                          + "de un campo en el que solo se tecleó «1e9»")
-    }
-
-    /// El otro sentido: lo que el alta escribe en el campo al EDITAR usa punto
-    /// fijo (`%.2f`), así que en región española el campo se abre con un punto
-    /// que el teclado de esa región no sabe escribir.
-    func testElCampoSeRellenaConPuntoSiempre() {
-        XCTAssertEqual(NuevoMovimientoView.aTexto(196_000), "1960.00")
+    /// **La ida y vuelta, que es lo que hace una edición segura.** Abrir un
+    /// movimiento para corregirlo y guardarlo sin tocar el importe no puede
+    /// cambiar la cifra.
+    func testLaIdaYVueltaNoMueveLaCifra() {
+        for c: Centavos in [1, 99, 100, 1250, 196_000, 1_234_567, 100_000_000] {
+            XCTAssertEqual(NuevoMovimientoView.centavos(NuevoMovimientoView.aTexto(c)), c,
+                           "\(c) centavos no sobrevivieron a la ida y vuelta")
+        }
     }
 }

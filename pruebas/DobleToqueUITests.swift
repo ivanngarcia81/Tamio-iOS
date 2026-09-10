@@ -27,7 +27,9 @@ final class DobleToque: XCTestCase {
     /// «Guardar y agregar otro», dos veces seguidas y rápido.
     func testGuardarYAgregarDosVeces() {
         abrirAlta()
-        let campo = app.textFields["0.00"]
+        // No por el marcador: lleva el separador del aparato, así que en
+        // región española es "0,00".
+        let campo = app.textFields.element(boundBy: 0)
         XCTAssertTrue(campo.waitForExistence(timeout: 6))
         campo.tap(); campo.typeText("77"); sleep(1)
 
@@ -59,7 +61,9 @@ final class DobleToque: XCTestCase {
     /// Doble toque en el «Guardar» de la barra.
     func testGuardarDosVeces() {
         abrirAlta()
-        let campo = app.textFields["0.00"]
+        // No por el marcador: lleva el separador del aparato, así que en
+        // región española es "0,00".
+        let campo = app.textFields.element(boundBy: 0)
         XCTAssertTrue(campo.waitForExistence(timeout: 6))
         campo.tap(); campo.typeText("88"); sleep(1)
         let guardar = app.navigationBars.buttons["Save"]

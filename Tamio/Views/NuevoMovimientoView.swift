@@ -143,8 +143,21 @@ struct NuevoMovimientoView: View {
     }
     private var metodos: [String] { Catalogos.conValorVigente(Catalogos.metodos, metodo) }
 
+    /// El importe tecleado, ya leído. `nil` mientras no sea un número.
+    private var montoTecleado: Centavos? { Self.centavos(importe) }
+
+    /// **Un movimiento de cero no es un movimiento, y uno negativo miente dos
+    /// veces.** Antes esto era `!importe.isEmpty`, así que "..", "mil" o un
+    /// importe pegado con símbolo encendían Guardar y entraba una fila de
+    /// $0.00 —con su folio gastado, contando para el corte y para la constancia
+    /// anual del aportante—. El signo lo lleva el tipo (ingreso o gasto): un
+    /// importe negativo lo invertiría por segunda vez.
+    ///
+    /// Es la misma condición que `EditarRecurrenteView` ya usaba —
+    /// `(Money.desdeTexto(importe) ?? 0) <= 0`—, que era la única pantalla de
+    /// dinero que lo hacía bien.
     private var guardadoHabilitado: Bool {
-        !importe.isEmpty && !categoria.isEmpty && (tipo == .ingreso || !pagadoA.isEmpty)
+        (montoTecleado ?? 0) > 0 && !categoria.isEmpty && (tipo == .ingreso || !pagadoA.isEmpty)
     }
 
     var body: some View {
@@ -385,7 +398,10 @@ struct NuevoMovimientoView: View {
                 Text("$")
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
-                TextField("0.00", text: $importe)
+                // El marcador con el separador del aparato, no con un punto
+                // fijo: en región española decía "0.00" y proponía un punto que
+                // el `.decimalPad` de esa región no ofrece.
+                TextField(Self.aTexto(0), text: $importe)
                     .keyboardType(.decimalPad)
                     .focused($importeEnfocado)
                     .multilineTextAlignment(.center)
@@ -442,7 +458,9 @@ struct NuevoMovimientoView: View {
             persona: persona,
             folio: folioActual,
             metodo: metodo,
-            monto: Self.aCentavos(importe),
+            // El `?? 0` no puede darse: `guardadoHabilitado` exige que
+            // `centavos` devuelva algo mayor que cero para encender Guardar.
+            monto: montoTecleado ?? 0,
             hora: f.string(from: fecha),
             fecha: fecha,
             // Quien lo captura, de la sesión. Iba escrito a mano, así que
@@ -543,13 +561,41 @@ struct NuevoMovimientoView: View {
         }
     }
 
+    /// Un importe guardado, escrito en el campo para poder corregirlo.
+    ///
+    /// **Con el separador decimal del aparato, no con el punto siempre.** Antes
+    /// era `String(format: "%.2f")`, o sea un punto pasara lo que pasara: en un
+    /// iPhone con región española el campo se abría con "1960.00" y el
+    /// `.decimalPad` de esa región **no tiene tecla de punto**, así que quien
+    /// corrigiera un dígito no podía volver a escribirlo.
     static func aTexto(_ c: Centavos) -> String {
-        String(format: "%.2f", Double(c) / 100)
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.usesGroupingSeparator = false     // el campo se teclea, no se lee
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = 2
+        return f.string(from: NSNumber(value: Double(c) / 100)) ?? String(format: "%.2f", Double(c) / 100)
     }
 
-    static func aCentavos(_ s: String) -> Centavos {
-        let limpio = s.replacingOccurrences(of: ",", with: "")
-            .trimmingCharacters(in: .whitespaces)
-        return Int(((Double(limpio) ?? 0) * 100).rounded())
+    /// **El importe tecleado, o `nil` si no es un importe.**
+    ///
+    /// Es `Money.desdeTexto`, el mismo parseador que usan el importador de
+    /// aportes, los recurrentes y la segunda firma. Aquí había otro escrito a
+    /// mano que borraba las comas y hacía `Double(...) ?? 0`, y eso costaba dos
+    /// cosas a la vez:
+    ///
+    /// - **Un factor de cien.** Con la región del aparato en español el
+    ///   `.decimalPad` ofrece `1|2|3|4|5|6|7|8|9|,|0|Delete` —volcado del
+    ///   teclado con la app corriendo—: no es que la coma sea una opción, es
+    ///   que no hay punto. Así que "12,50" es lo que se teclea para doce
+    ///   cincuenta, y borrando la coma quedaba $1,250.00.
+    /// - **Un cero.** Lo que no entendía valía 0, y el movimiento se guardaba
+    ///   igual porque el botón solo miraba que el campo no estuviera vacío.
+    ///
+    /// Devuelve opcional a propósito: el que llama tiene que decidir qué hace
+    /// con lo que no es un número, y la respuesta buena —no dejar guardar— no
+    /// se puede dar desde aquí. Ver `guardadoHabilitado`.
+    static func centavos(_ s: String) -> Centavos? {
+        Money.desdeTexto(s)
     }
 }

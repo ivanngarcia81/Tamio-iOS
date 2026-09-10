@@ -34,7 +34,9 @@ final class TecladoYHojas: XCTestCase {
             tapadas.append("\(t.label)@\(Int(t.frame.minY))")
         }
         print("TAPADO:" + tapadas.joined(separator: " / "))
-        let campo = app.textFields["0.00"]
+        // No por el marcador: lleva el separador del aparato, así que en
+        // región española es "0,00".
+        let campo = app.textFields.element(boundBy: 0)
         print("CAMPO-IMPORTE y=\(Int(campo.frame.minY)) visible=\(campo.frame.maxY < libre)")
         XCTAssertTrue(campo.frame.maxY < libre, "el campo enfocado queda bajo el teclado")
     }

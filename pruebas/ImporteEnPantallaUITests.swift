@@ -34,15 +34,29 @@ final class ImporteEnPantalla: XCTestCase {
         mas.tap(); sleep(2)
     }
 
-    /// **¿Qué separador decimal ofrece el teclado?** Si es coma, el segundo
-    /// parseador (`aCentavos`) la borra y multiplica el importe por cien.
-    func testQueTeclaOfreceElTecladoEnEspanol() {
+    /// **La medida que lo destapó todo, y que ahora vigila el arreglo.**
+    ///
+    /// El `.decimalPad` de un iPhone con región española ofrece
+    /// `1|2|3|4|5|6|7|8|9|,|0|Delete`: **no hay tecla de punto**. Eso no es un
+    /// fallo del teclado —es lo correcto para esa región— sino el hecho que
+    /// explica el resto: mientras el alta borraba las comas, la única forma que
+    /// esa tesorera tenía de escribir céntimos multiplicaba el importe por cien.
+    ///
+    /// Lo que esta prueba exige, entonces, no es que el teclado deje de dar
+    /// coma, sino **que el marcador del campo proponga la misma tecla que el
+    /// teclado ofrece**. Un campo que dice "0.00" sobre un teclado sin punto le
+    /// está pidiendo al usuario algo que no puede teclear.
+    func testElMarcadorUsaLaTeclaQueElTecladoOfrece() {
         arrancar("es_ES", idioma: "espanol")
         abrirNuevoIngreso("Tesorería", "Movimientos", "Nuevo")
         let teclas = app.keys.allElementsBoundByIndex.map(\.label)
         print("TECLAS:\(teclas.joined(separator: "|"))")
-        XCTAssertFalse(teclas.contains(","),
-                       "El teclado ofrece coma decimal y el alta la borra")
+
+        let marcador = app.textFields.element(boundBy: 0).placeholderValue ?? ""
+        print("MARCADOR:\(marcador)")
+        let separadorDelMarcador = marcador.contains(",") ? "," : "."
+        XCTAssertTrue(teclas.contains(separadorDelMarcador),
+                      "el campo propone «\(marcador)» y el teclado no tiene «\(separadorDelMarcador)»")
     }
 
     /// El camino entero: teclear doce cincuenta a la española y mirar la cifra
@@ -50,7 +64,10 @@ final class ImporteEnPantalla: XCTestCase {
     func testDoceCincuentaConComa() {
         arrancar("es_ES", idioma: "espanol")
         abrirNuevoIngreso("Tesorería", "Movimientos", "Nuevo")
-        let campo = app.textFields["0.00"]
+        // **No por el marcador.** Ahora lleva el separador del aparato
+        // (`NuevoMovimientoView.aTexto(0)`), así que en `es_ES` es "0,00" y
+        // buscarlo por "0.00" no encuentra nada.
+        let campo = app.textFields.element(boundBy: 0)
         XCTAssertTrue(campo.waitForExistence(timeout: 6), "no encuentro el campo de importe")
         campo.tap()
         campo.typeText("12,50")
@@ -61,12 +78,16 @@ final class ImporteEnPantalla: XCTestCase {
         XCTAssertTrue(guardar.exists)
     }
 
-    /// **El botón Guardar solo mira que el campo no esté vacío.** Con un texto
-    /// que el parseador no entiende se enciende igual, y lo que guarda es $0.00.
-    func testGuardarSeEnciendeConBasura() {
+    /// **Guardar tiene que exigir un importe que se entienda.** Antes solo
+    /// miraba que el campo no estuviera vacío, así que con ".." se encendía y
+    /// guardaba $0.00 —con su folio gastado y contando para el corte—.
+    func testGuardarNoSeEnciendeConBasura() {
         arrancar("en_US", idioma: "ingles")
         abrirNuevoIngreso("Treasury", "Transactions", "New")
-        let campo = app.textFields["0.00"]
+        // **No por el marcador.** Ahora lleva el separador del aparato
+        // (`NuevoMovimientoView.aTexto(0)`), así que en `es_ES` es "0,00" y
+        // buscarlo por "0.00" no encuentra nada.
+        let campo = app.textFields.element(boundBy: 0)
         XCTAssertTrue(campo.waitForExistence(timeout: 6))
         campo.tap()
         // Con `.decimalPad` no hay letras, pero sí puntos: dos puntos seguidos
@@ -89,7 +110,10 @@ extension ImporteEnPantalla {
     func testDoceCincuentaLlegaAlLibroComoMilDoscientos() {
         arrancar("es_ES", idioma: "espanol")
         abrirNuevoIngreso("Tesorería", "Movimientos", "Nuevo")
-        let campo = app.textFields["0.00"]
+        // **No por el marcador.** Ahora lleva el separador del aparato
+        // (`NuevoMovimientoView.aTexto(0)`), así que en `es_ES` es "0,00" y
+        // buscarlo por "0.00" no encuentra nada.
+        let campo = app.textFields.element(boundBy: 0)
         XCTAssertTrue(campo.waitForExistence(timeout: 6))
         campo.tap(); campo.typeText("12,50"); sleep(1)
         app.navigationBars.buttons["Guardar"].tap()
