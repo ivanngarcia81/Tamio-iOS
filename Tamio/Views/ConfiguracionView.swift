@@ -421,6 +421,13 @@ private struct SeccionCuenta: View {
                         Text(motor.estadoLegible)
                             .font(.escalada(14.5, relativeTo: .subheadline))
                             .foregroundStyle(.secondary)
+                        // **El `Spacer` no es de adorno: sin él la tarjeta se
+                        // encoge al texto.** `GrupoConf` no impone ancho, lo
+                        // toma de su contenido, y las demás filas lo llevan;
+                        // esta no, así que "Sin sesión" salía en una tarjeta de
+                        // un tercio de ancho entre seis que ocupan los 640 pt
+                        // del panel.
+                        Spacer(minLength: 0)
                     }
                     .frame(minHeight: Esp.altoFila)
                     .padding(.horizontal, Esp.pantalla)
