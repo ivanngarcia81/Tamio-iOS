@@ -279,7 +279,10 @@ struct RevisarView: View {
 
     private var listaColumna: some View {
         ScrollView {
-            LazyVStack(spacing: 0) {
+            // Las filas son tarjetas separadas, como en las otras diez listas
+            // desde el 11-sep: pegadas y blancas sobre un suelo blanco, la
+            // columna se leía como una hoja en blanco con rayas.
+            LazyVStack(spacing: Esp.hueco) {
                 ForEach(vm.visibles) { filaCompacta($0) }
                 HStack {
                     Text(L.t("\(vm.totalCount) por revisar", "\(vm.totalCount) to review"))
@@ -289,7 +292,7 @@ struct RevisarView: View {
                 .font(.caption2).foregroundStyle(.tertiary).padding(Esp.tarjeta)
             }
         }
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Paleta.sueloColumna)
         // El desvanecido de borde: la fila deja de aparecer y desaparecer de
         // golpe al cruzar por detrás de la barra.
         .scrollEdgeEffectStyle(.soft, for: .all)
@@ -334,7 +337,7 @@ struct RevisarView: View {
                     // lo archivado), así que lo usan la lista y el detalle.
                     Pill(texto: a.tipo.etiquetaCorta, color: a.tipo.color)
                 }
-                .padding(.horizontal, Esp.tarjeta).padding(.top, 14).padding(.bottom, 10)
+                .padding(.horizontal, Esp.chip).padding(.top, 14).padding(.bottom, 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
@@ -353,14 +356,15 @@ struct RevisarView: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, Esp.tarjeta).padding(.bottom, 14)
-
-            Divider().padding(.leading, 16)
+            .padding(.horizontal, Esp.chip).padding(.bottom, 14)
         }
-        .background(esSel ? Paleta.brandFill : Color(.systemBackground))
+        .background(esSel ? Paleta.brandFill : Paleta.superficieFila,
+                    in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
         .overlay(alignment: .leading) {
             if esSel { Rectangle().fill(Paleta.brand).frame(width: 3) }
         }
+        .clipShape(RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
+        .padding(.horizontal, Esp.hueco)
     }
 
     // MARK: - Detalle
