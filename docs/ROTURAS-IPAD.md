@@ -1,10 +1,12 @@
 # Roturas del iPad · pasada de QA adversario · 10 de septiembre de 2026
 
-**Pasada INTERRUMPIDA.** El iPad se bloqueó a los pocos minutos de empezar
-(`Xcode cannot launch … because the device is locked`) y sin él no hay pasada de
-aparato. Este archivo es el inventario de lo que **sí** quedó medido, y sobre
-todo de lo que NO, para que la sesión siguiente no lo confunda con una pasada
-completa. El del teléfono son 619 líneas y ocho hallazgos; esto no es eso.
+**Pasada PARCIAL.** Empezó con el iPad bloqueado, siguió con él desbloqueado, y
+aun así cubre una fracción de lo que cubrió la del teléfono: tres hallazgos, no
+ocho. Este archivo dice **qué quedó medido y qué no**, para que la sesión
+siguiente no lo confunda con una pasada completa.
+
+Lo que sí está aquí está **reproducido corriendo en el aparato y con control
+positivo**, no deducido leyendo.
 
 ---
 
@@ -36,45 +38,66 @@ No son matices: dos de ellas mandan a trabajar al sitio equivocado.
 
 ## Hallazgos
 
-### 1 · La Zona de riesgo del iPad no avisa de que la base está caída · pierde datos
+### 1 · Con la base caída, el iPad queda ATRAPADO en la configuración inicial · pierde datos
 
-**Confirmado leyendo el código; NO reproducido corriendo** (ver "Lo que quedó
-bloqueado"). Lo marco igualmente como el más grave porque el mecanismo no
-admite mucha duda y porque el fallo gemelo ya se arregló en el teléfono.
+**Reproducido corriendo en el iPad, con control positivo.** Empecé buscando lo
+que el encargo señalaba —que la Zona de riesgo no avisa— y resultó ser peor:
+**a esa pantalla no se puede llegar.**
 
-`BaseLocal.caida` se lee en **exactamente dos sitios** de toda la app:
+Cómo se puso la base en ese estado: no vale un archivo basura, que da
+`SQLITE_NOTADB` y `esArchivoDaniado` (`BaseLocal.swift:78`) lo desvía a
+`seEmpezoDeCero`. Se dejó un **DIRECTORIO** llamado `tamio.sqlite` en
+`Library/Application Support`, que da `SQLITE_CANTOPEN` y cae a `.enMemoria`:
 
-| Dónde | Qué hace |
-|---|---|
-| `Tamio/Views/RootView.swift:225` | La franja de aviso, común a las dos formas |
-| `Tamio/Views/IPhoneAjustesView.swift:1540` | El texto que explica qué pasó y qué hacer |
+    xcrun devicectl device copy to --device <UDID> \
+      --domain-type appDataContainer --domain-identifier church.tamio.native \
+      --source <carpeta local llamada tamio.sqlite> \
+      --destination "Library/Application Support/tamio.sqlite"
 
-`SeccionZona`, la Zona de riesgo del iPad (`Tamio/Views/ConfiguracionView.swift:1329`),
-**no lo mira**. Y su fila de espacio es
-`Text(estadoBase?.resumen ?? L.t("Midiendo…", "Measuring…"))` (`:1445`),
-alimentada por `Compactacion.medir()` (`:1508`, `:1570`, `:1584`), que devuelve
-`nil` cuando la base está en memoria (`Tamio/Data/Compactacion.swift:53`).
+Medido con el mismo volcado en los dos estados, mirando `isHittable`, que es lo
+único que distingue lo que se ve de lo que solo está en el árbol:
 
-O sea: **con la base caída, la Zona de riesgo del iPad se queda en «Midiendo…»
-para siempre y no explica nada.** El comentario del teléfono
-(`IPhoneAjustesView.swift:1534-1539`) describe este fallo exacto y dice por qué
-se arregló allí; nadie lo trajo aquí.
+| | Base CAÍDA | Base sana (control) |
+|---|---|---|
+| Franja de `RootView:225` | `NOTHING IS BEING SAVED ON THIS DEVICE · close the app and reopen it` | ausente |
+| Hoja encima | **«Welcome to Tamio — Set up your church in a minute»**, con Church, City, Currency y «Get started» | ausente |
+| `Show Sidebar` | **`·NOHIT`** | tocable |
 
-Por qué es de la severidad más alta: con la base en memoria **nada de lo que se
-captura se guarda**, y esta es la pantalla a la que va quien sospecha que algo
-va mal. La franja de `RootView` sí sale, pero manda a una pantalla que no
-confirma nada.
+**Las tres cosas a la vez son el problema:**
 
-**El arreglo** es el mismo de `IPhoneAjustesView:1540-1560`: leer
-`BaseLocal.caida` antes de la medida y dejar que el detalle de la caída mande
-sobre ella. No es copiar: con `.seEmpezoDeCero` la medida SÍ devuelve algo y
-"0 registros borrados" no es lo que hay que contar.
+1. La franja dice, con razón, que **nada se está guardando**.
+2. La app abre encima el formulario de alta de iglesia —porque la base vacía
+   hace que el nombre sea el de fábrica (§0.-3)— e **invita a configurarla**.
+   Lo que se teclee ahí no se guarda: lo dice la franja de arriba, en la misma
+   pantalla. Dos elementos que se contradicen.
+3. Y esa hoja **bloquea la navegación**: con `Show Sidebar` sin tocar, no hay
+   forma de llegar a Ajustes. O sea que **la Zona de riesgo del iPad no es que
+   no avise: es inalcanzable** justo cuando haría falta.
 
-**Cómo reproducirlo** (no ejecutado): hace falta que la apertura falle **sin**
-ser corrupción —un archivo basura da `SQLITE_NOTADB`, que `esArchivoDaniado`
-(`BaseLocal.swift:78`) desvía a `.seEmpezoDeCero`—. Sirve dejar un DIRECTORIO
-llamado `tamio.sqlite` en `Library/Application Support`, que da `SQLITE_CANTOPEN`
-y cae a `.enMemoria`. Hace falta permiso para escribir en el contenedor.
+El arreglo del teléfono —explicar la caída en Ajustes— no sirve aquí mientras
+no se pueda llegar a Ajustes. Lo que hay que decidir es qué hace la app con la
+base en memoria: o no ofrecer el alta, o dejar salir de ella.
+
+**Y el detalle que lo vuelve más traicionero:** detrás de la hoja el panel
+seguía enseñando cifras —`$500.00`, `$4,714.50`, `7 records`—, porque la
+sincronización llena la base EN MEMORIA. La app parece entera y con datos; solo
+la franja dice que al cerrarla no quedará nada.
+
+Lo de origen sigue siendo cierto y queda como causa: `BaseLocal.caida` se lee
+en **exactamente dos sitios** —`RootView.swift:225` y
+`IPhoneAjustesView.swift:1540`, que es la de TELÉFONO—. `SeccionZona`
+(`ConfiguracionView.swift:1329`), la del iPad, no lo mira, y su fila es
+`estadoBase?.resumen ?? "Midiendo…"` (`:1445`) alimentada por
+`Compactacion.medir()`, que devuelve `nil` con la base en memoria
+(`Compactacion.swift:53`).
+
+**La prueba** está en `pruebas/ZonaDeRiesgoIPadUITests.swift`. Hoy su control
+falla —no se llega a la Zona de riesgo—, y **ese fallo del control ES el
+hallazgo**: sin él habría leído «no avisa» donde lo que pasa es «no se llega».
+`pruebas/VolcadoRapidoUITests.swift` es el volcado con el que se midió.
+
+La base del aparato se respaldó antes y se devolvió después; el control de
+arriba es esa restauración, con sus datos intactos.
 
 ### 2 · La sidebar anuncia ⌘K y ese atajo no existe · molesta
 
@@ -91,6 +114,39 @@ Del mismo bloque queda **sin medir** si **Esc** cierra las hojas: necesita el
 teclado físico y el aparato despierto.
 
 ---
+
+## Las ocho suites de iPad, corridas en el aparato: la tanda NO es admisible
+
+Se copiaron las ocho a un target de interfaz y se corrieron contra el iPad.
+**16 pruebas, 9 fallos — y ninguno cuenta como hallazgo**, porque la corrida
+está contaminada y eso se comprobó, no se supuso:
+
+`CandadoIPad` **enciende el candado y lo deja encendido** (lo dice su propio
+comentario), así que las siguientes corrieron contra la pantalla de bloqueo.
+Rastreado en el registro:
+
+    BLOQUEADA durante → CandadoIPad.testElCandadoEnLasDosOrientaciones
+    BLOQUEADA durante → DetallesIPad.testDetalleDeCarta
+    BLOQUEADA durante → RecorridoIPad.testApaisado
+    BLOQUEADA durante → RecorridoIPad.testInventario
+    BLOQUEADA durante → RecorridoIPad.testVertical
+
+Más una mano humana desbloqueando con Face ID a mitad. Y los fallos que sí se
+explican, se explican **sin culpar al producto**:
+
+| Fallo | Qué era de verdad |
+|---|---|
+| `EstrechoIPad` | `1192.0 no es < 1024.0`: la suite exige **iPad mini**; este es el 12.9". |
+| `ImportarIPad` ×3 | «no hay menú Archivo»: sin proveedor de Archivos ni CSV en el aparato. |
+| `MultitareaIPad` ×3 | El redimensionado de Split View no se automatiza. |
+| `CandadoIPad` | El diálogo de Face ID **sí** salió (lo vio Iván). Instrumento. |
+| `RecorridoIPad.testApaisado` | Corrió con la app bloqueada. |
+
+**La conclusión va contra lo que el encargo daba por hecho.** «Lo que falle aquí
+y pasara en el simulador es hallazgo por sí solo» **no se sostiene**: estas
+suites, corridas tal cual en el aparato, producen ruido. Para que valgan hay que
+(a) dejar `CandadoIPad` la ÚLTIMA o apagar el candado entre suites, (b) correr
+`EstrechoIPad` en el mini, y (c) aceptar que Multitarea e Importar piden mano.
 
 ## Lo que se atacó y aguantó
 
