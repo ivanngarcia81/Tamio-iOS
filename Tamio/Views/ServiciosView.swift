@@ -807,7 +807,7 @@ private struct NuevoServicioSheet: View {
 
     @ViewBuilder
     private var seccionMensaje: some View {
-        Section(L.t("MENSAJE", "PASSAGE")) {
+        Section(L.t("MENSAJE", "MESSAGE")) {
             TextField(L.t("Título del mensaje · opcional", "Message title · optional"), text: $tituloMensaje)
                     // Rótulo largo: como etiqueta a la izquierda se
                     // recortaba ("Place of issue · opti…"), así que se
