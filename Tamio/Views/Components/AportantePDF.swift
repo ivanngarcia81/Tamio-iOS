@@ -113,7 +113,7 @@ struct ReporteAportesHojaPDF: View {
             HStack {
                 Text(L.t("FECHA", "DATE")).frame(width: 120, alignment: .leading)
                 Text(L.t("CONCEPTO", "CONCEPT")).frame(maxWidth: .infinity, alignment: .leading)
-                Text(L.t("MONTO", "AMOUNT")).frame(width: 130, alignment: .trailing)
+                Text(L.t("IMPORTE", "AMOUNT")).frame(width: 130, alignment: .trailing)
             }
             .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             .padding(.vertical, 8)

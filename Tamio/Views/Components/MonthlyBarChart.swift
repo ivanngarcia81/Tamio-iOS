@@ -47,7 +47,7 @@ struct MonthlyBarChart: View {
             Chart(puntos) { p in
                 BarMark(
                     x: .value(L.t("Mes", "Month"), p.mes),
-                    y: .value(L.t("Monto", "Amount"), p.monto)
+                    y: .value(L.t("Importe", "Amount"), p.monto)
                 )
                 .position(by: .value(L.t("Serie", "Series"), p.serie))
                 .foregroundStyle(by: .value(L.t("Serie", "Series"), p.serie))

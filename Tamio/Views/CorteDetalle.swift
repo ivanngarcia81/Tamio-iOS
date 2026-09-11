@@ -372,7 +372,7 @@ struct CorteDetalle: View {
                 Divider()
                 filaPeriodo
                 Divider()
-                filaRegistro(L.t("Monto", "Amount"), Money.fmt(corte.montoTotal), fuerte: true)
+                filaRegistro(L.t("Importe", "Amount"), Money.fmt(corte.montoTotal), fuerte: true)
 
                 if conBoton, corte.sinDepositar {
                     botonDepositar().padding(.top, 14)

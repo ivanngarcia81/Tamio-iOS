@@ -32,7 +32,7 @@ struct CategoryDonutChart: View {
             HStack(alignment: .center, spacing: 20) {
                 Chart(Array(categorias.enumerated()), id: \.element.id) { i, cat in
                     SectorMark(
-                        angle: .value(L.t("Monto", "Amount"), cat.monto),
+                        angle: .value(L.t("Importe", "Amount"), cat.monto),
                         innerRadius: .ratio(0.66),
                         angularInset: 1.5
                     )

@@ -56,7 +56,7 @@ struct RegistrarDepositoView: View {
                             Text(Fechas.periodoLegible($0)).tag($0)
                         }
                     }
-                    filaResumen(L.t("Monto", "Amount"), Money.fmt(corte.montoTotal), fuerte: true)
+                    filaResumen(L.t("Importe", "Amount"), Money.fmt(corte.montoTotal), fuerte: true)
                 } header: {
                     Text(L.t("SE REGISTRA ASÍ", "RECORDED AS"))
                 } footer: {
