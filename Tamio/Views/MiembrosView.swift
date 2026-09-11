@@ -165,7 +165,7 @@ struct MiembrosView: View {
                     if let a = vm.seleccion {
                         AportanteDetalle(a: a, onEditar: { hoja = .editar(a) })
                     } else {
-                        ContentUnavailableView(L.t("Selecciona un aportante", "Select a giver"),
+                        ContentUnavailableView(L.t("Selecciona un aportante", "Select a contributor"),
                                                systemImage: "person.crop.circle")
                     }
                 }
@@ -293,7 +293,7 @@ struct MiembrosView: View {
             Button {
                 importando = .aportantes; eligiendo = true
             } label: {
-                Label(L.t("Importar aportantes…", "Import givers…"),
+                Label(L.t("Importar aportantes…", "Import contributors…"),
                       systemImage: "square.and.arrow.down")
             }
             Button {
@@ -312,7 +312,7 @@ struct MiembrosView: View {
             Button {
                 if let url = ExportadorAportantes.aportantes(vm.itemsFiltrados) { hoja = .compartir(url) }
             } label: {
-                Label(L.t("Aportantes (CSV)", "Givers (CSV)"), systemImage: "person.2")
+                Label(L.t("Aportantes (CSV)", "Contributors (CSV)"), systemImage: "person.2")
             }
             Button {
                 if let url = ExportadorAportantes.aportes(vm.itemsFiltrados) { hoja = .compartir(url) }
@@ -437,7 +437,7 @@ struct MiembrosView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.circle.fill")
                     Text(L.t("\(vm.atrasadosCount) sin aportar últimamente",
-                             "\(vm.atrasadosCount) lapsed givers"))
+                             "\(vm.atrasadosCount) lapsed contributors"))
                     Spacer()
                     if vm.soloAtrasados {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
@@ -462,7 +462,7 @@ struct MiembrosView: View {
         if !compacto {
             HStack {
                 Text(L.t("\(vm.itemsFiltrados.count) aportantes · \(String(vm.anio))",
-                         "\(vm.itemsFiltrados.count) givers · \(String(vm.anio))"))
+                         "\(vm.itemsFiltrados.count) contributors · \(String(vm.anio))"))
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(Money.fmt(vm.total)) \(Money.codigo)").monospacedDigit().fontWeight(.semibold)

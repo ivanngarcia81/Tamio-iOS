@@ -68,7 +68,7 @@ struct NuevoAportanteView: View {
                     FilaCampo(L.t("Congrega desde", "Attends since"), $congregaDesde)
                 }
             }
-            .navigationTitle(editando ? L.t("Editar aportante", "Edit giver") : L.t("Nuevo aportante", "New giver"))
+            .navigationTitle(editando ? L.t("Editar aportante", "Edit contributor") : L.t("Nuevo aportante", "New contributor"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

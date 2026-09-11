@@ -35,7 +35,7 @@ struct ImportarAportantesView: View {
                     Section {
                         resumen(icono: "plus.circle.fill", color: Paleta.brand,
                                 n: analisis.nuevos,
-                                texto: L.t("aportantes nuevos", "new givers"))
+                                texto: L.t("aportantes nuevos", "new contributors"))
                         resumen(icono: "arrow.triangle.2.circlepath", color: Paleta.enlace,
                                 n: analisis.actualizados,
                                 texto: L.t("ya existen y se actualizarán", "already exist, will be updated"))
@@ -85,7 +85,7 @@ struct ImportarAportantesView: View {
                     }
                 }
             }
-            .navigationTitle(L.t("Importar aportantes", "Import givers"))
+            .navigationTitle(L.t("Importar aportantes", "Import contributors"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

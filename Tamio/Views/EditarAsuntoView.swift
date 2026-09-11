@@ -104,7 +104,7 @@ struct EditarAsuntoView: View {
 
                 if !r.esGasto {
                     Section(header: Text(L.t("APORTANTE", "CONTRIBUTOR"))) {
-                        Picker(L.t("Aportante", "Giver"), selection: aportanteBinding) {
+                        Picker(L.t("Aportante", "Contributor"), selection: aportanteBinding) {
                             Text(Self.sinAsignar).tag(Self.sinAsignar)
                             ForEach(opcionesAportante, id: \.self) { Text($0).tag($0) }
                         }
