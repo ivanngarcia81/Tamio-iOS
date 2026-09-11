@@ -283,6 +283,55 @@ por eso su receta es distinta de la de arriba:
   sidebar. Sin esa distinción falla con "No matches found for Descendants
   matching type TabBar", que parece un fallo del producto y no lo es.
 
+### La tanda unitaria del iPad · 11 de septiembre · 51 en verde
+
+Corrida **desde el iPad de Iván contra el servidor**, con el modo revisión
+APAGADO y sobre sus datos (que son de prueba: ver el traspaso). Receta: target
+`bundle.unit-test` con `TEST_HOST`/`BUNDLE_LOADER` a `Tamio.app/Tamio`, id de
+la copia el REAL (`church.tamio.native`), `-destination 'id=<UDID hardware>'` y
+`-allowProvisioningUpdates`. **El `project.yml` generado necesita
+`DEVELOPMENT_TEAM`**, que el `.pbxproj` de verdad sí lleva y `xcodegen` no
+inventa.
+
+Lo que quedó probado y nunca lo había estado desde un aparato:
+
+- **`ActualizarLlegaAlServidorTests` pasa** (4.6 s) — la que pregunta al
+  servidor ENTRE las dos sincronizaciones, o sea la única que prueba el
+  `UPDATE` de verdad. Y **`CorreccionLlegaAlServidorTests`** (2.9 s).
+- **`FechaSoloFechaTests` 5/5**, con su control de que la zona del aparato no
+  es UTC: la regresión de la fecha que retrocedía aguanta.
+- **Los tres PDF generados con los datos del aparato** y mirados: acta
+  `ACTA-2026-001` (23 KB), reporte `2026-09` (42 KB) y carta (20 KB).
+
+- **`QueHayEnElAparatoTests.swift`** — inventario de la base local: si está
+  caída, el estado del motor antes y después de sincronizar, y el conteo de
+  cada tabla. **Los nombres de las tablas se leen de `sqlite_master`, no se
+  adivinan**: la primera versión los puso a mano, las nueve consultas fallaron
+  y el centinela (-2) se leía como "vacío".
+- **`ActasTrasSincronizarTests.swift`** — la prueba que desmontó un hallazgo en
+  tres vueltas. Ver abajo.
+- **`InterfazAparatoUITests.swift`** — el repintado de los controles empujados,
+  el barrido visual en iOS 27 y el texto que faltaba por ver. **Escrita y
+  compilada, sin correr**: el iPad devuelve *"Timed out while enabling
+  automation mode"*. No es conexión ni firma —instalar funciona a la primera—,
+  es el permiso de automatización del aparato: `Ajustes → Desarrollador →
+  Habilitar automatización de interfaz`, o reiniciar el iPad.
+
+**Y el aviso que más vale de esta tanda: sincronizar ANTES de mirar.**
+`PDFDeVerdadTests` falló con «no hay ningún acta» y «no hay ningún periodo
+contable» sobre un aparato con 7 actas y 40 movimientos en su base. La
+sincronización es asíncrona y arranca con la app: la prueba medía una base que
+todavía no había bajado nada. Ahora lleva un `setUp` que sincroniza.
+
+Perseguirlo hasta el final costó tres vueltas, y cada una podía haber quedado
+escrita como hallazgo falso:
+
+1. «El repositorio devuelve 0 actas y la tabla tiene 7» → parecía el caso del
+   folio B7 (§0.0), un filtro que tira el dato al leer.
+2. Tras sincronizar: tabla 7, repositorio **1**. Seguía oliendo mal.
+3. `lista()` filtra `borrado == false`, y **6 de las 7 están borradas**. El
+   repositorio acierta. **No hay hallazgo.**
+
 **Tres avisos que costaron una vuelta cada uno:**
 
 - **NO pasar `xcodebuild` por un `grep`**: el código de salida pasa a ser el del

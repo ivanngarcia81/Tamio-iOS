@@ -36,6 +36,16 @@ final class PDFDeVerdadTests: XCTestCase {
         return true
     }
 
+    /// **Sincronizar ANTES de mirar.** Estas tres pruebas fallaron el
+    /// 11-sep-2026 con «no hay ningún acta» y «no hay ningún periodo contable»
+    /// sobre un aparato que tenía 7 actas y 40 movimientos en su base local: la
+    /// sincronización es asíncrona y arranca con la app, así que medían una base
+    /// que todavía no había bajado nada. El fallo era de la prueba, no del
+    /// producto — y perseguirlo hasta la consulta costó tres vueltas.
+    override func setUp() async throws {
+        await MotorSincronizacion.compartido.sincronizar(reintentarLoAtascado: false)
+    }
+
     func testElReporteDelMesConDatosDeVerdad() async throws {
         let repo = repositorioReportes()
         let periodos = await repo.periodos()
