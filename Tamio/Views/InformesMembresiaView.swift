@@ -339,7 +339,7 @@ struct InformesMembresiaView: View {
                         filtroDePadron(L.t("Ministerio", "Ministry"),
                                        claves: Padron.ministerios,
                                        valor: vm.filtroMinisterio) { vm.filtroMinisterio = $0 }
-                        filtroDePadron(L.t("Cargo", "Role"),
+                        filtroDePadron(L.t("Cargo", "Title"),
                                        claves: Padron.cargos,
                                        valor: vm.filtroCargo) { vm.filtroCargo = $0 }
                         filtroDePadron(L.t("Instrumento", "Instrument"),
