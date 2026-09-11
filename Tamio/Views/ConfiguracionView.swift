@@ -708,8 +708,17 @@ private struct SeccionInstitucion: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption2).foregroundStyle(.tertiary)
+                        // **Sin galón: no hay adónde ir.** Esta tarjeta
+                        // dibujaba un `chevron.right` —el signo con el que
+                        // toda la app anuncia "aquí se entra"— dentro de un
+                        // `GrupoConf` sin `Button` ni `onTapGesture`.
+                        //
+                        // Y no se le puede dar destino, porque **la previa ya
+                        // está arriba en esta misma pantalla**: el membrete se
+                        // pinta en vivo sobre estos mismos datos, tres
+                        // tarjetas más arriba. Que la tarjeta de abajo siga
+                        // anunciando una vista previa aparte es redundante y
+                        // es decisión de Iván si se queda o se va entera.
                     }
                     .frame(minHeight: Esp.altoFilaDoble)
                     .padding(.horizontal, Esp.pantalla)
