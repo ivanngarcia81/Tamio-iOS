@@ -81,6 +81,16 @@ enum Esp {
     /// **54**, el mayor: una acción no puede ser más baja que una fila de
     /// contenido que solo informa.
     static let altoBoton: CGFloat = 54
+    /// Alto mínimo de una fila con subtítulo: baldosa o avatar a la izquierda,
+    /// título y segundo renglón debajo.
+    static let altoFilaDoble: CGFloat = 64
+
+    // **El radio de una baldosa de icono no es un token, es una proporción**, y
+    // por eso no está aquí. Los cinco valores de la app —8 sobre 28 y 30 pt, 9
+    // sobre 36, 11 sobre 40, 15 sobre 60— caen todos entre lado × 0.25 y
+    // × 0.29, así que ya son una regla coherente. Escribirla como
+    // `lado * 0.27` movería cuatro de los cinco (60 pasaría de 15 a 16.2):
+    // sería introducir deriva para quitarla.
 }
 
 extension View {

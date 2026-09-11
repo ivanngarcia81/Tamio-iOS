@@ -704,7 +704,7 @@ private struct SeccionInstitucion: View {
                         Image(systemName: "chevron.right")
                             .font(.caption2).foregroundStyle(.tertiary)
                     }
-                    .frame(minHeight: 64)
+                    .frame(minHeight: Esp.altoFilaDoble)
                     .padding(.horizontal, Esp.pantalla)
                 }
             }
@@ -842,7 +842,7 @@ private struct SeccionTesorero: View {
                             .font(.escalada(15, relativeTo: .subheadline)).foregroundStyle(Paleta.brand)
                     }
                 }
-                .frame(minHeight: 64)
+                .frame(minHeight: Esp.altoFilaDoble)
                 .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
             }
             .buttonStyle(.plain)
@@ -962,7 +962,7 @@ private struct SeccionAcceso: View {
                         Spacer()
                         Text(L.t("Tú", "You")).font(.escalada(14, relativeTo: .subheadline)).foregroundStyle(.tertiary)
                     }
-                    .frame(minHeight: 54).padding(.horizontal, Esp.pantalla)
+                    .frame(minHeight: Esp.altoFilaDoble).padding(.horizontal, Esp.pantalla)
                 }
 
                 // Invitar
