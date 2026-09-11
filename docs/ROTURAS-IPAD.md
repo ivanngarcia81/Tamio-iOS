@@ -160,6 +160,15 @@ hacer para que valgan: `CandadoIPad` la ÚLTIMA o el candado apagado entre
 suites, `EstrechoIPad` en el mini, y aceptar que Multitarea e Importar piden
 mano.
 
+### Tercera tanda: las `Hojas*`, en verde
+
+Al descubrir lo de la clase base se corrieron aparte `HojasTesoreria`,
+`HojasSecretaria` y `HojasAjustes`. **Diez pruebas, diez en verde**, sin un solo
+fallo — incluidas `HojasAjustes testZonaDeRiesgo` (que es el control con la base
+SANA del hallazgo 1), `HojasSecretaria testCartas`, `testActas`, `testInformes`
+y `testMembresiaNuevoEditarYSeguimiento`. Son las más lentas de todas: entre 100
+y 300 segundos cada una.
+
 ### Un aviso de instrumento que se tragó una suite entera
 
 `-only-testing:PruebasAparato/HojasIPad` **no seleccionó nada y no dijo nada**:
@@ -279,6 +288,32 @@ UTC, donde nada de esto se reproduce.
   hace falta para reproducir el hallazgo 1 corriendo.
 - **Modo avión, Esc con teclado físico, Split View a 375 pt, Face ID y
   VoiceOver** no se conmutan por programa en un aparato físico. Piden mano.
+
+## Lo que queda por arreglar, por severidad
+
+1. **`SeguimientoNota` retrocede un día por guardado** (hallazgo 0). Los dos
+   extremos tienen que usar la misma zona: o decodificar en local, o codificar
+   en UTC. La segunda es la que ya eligieron `diaLegible` y compañía.
+2. **Con la base caída, el iPad no tiene salida** (hallazgo 1). Decisión de
+   producto: o no ofrecer el alta con la base en memoria, o dejar salir de ella.
+   Y de paso, que `SeccionZona` lea `BaseLocal.caida` como hace la del teléfono.
+3. **Los cuatro ayudantes de fecha que se corren** —`corta`, `cortaConHora`,
+   `claveDia`, `diaLegibleLargo`—. Hay que decidir uno por uno si su entrada
+   puede venir de un texto «solo fecha»; hoy solo se sabe de `SeguimientoNota`.
+4. **⌘K**: o se conecta o se borra el rótulo (hallazgo 2).
+
+## Lo que NO se pudo medir, y qué haría falta
+
+| Pendiente | Qué hace falta |
+|---|---|
+| Modo avión, cola de salida, reintento | Una mano: no se conmuta por programa |
+| **Esc** con teclado físico | Un teclado puesto |
+| Split View a 375 pt | Un dedo: el gesto no se automatiza (lo dijeron los 3 fallos de Multitarea) |
+| VoiceOver con el candado (§7) | VoiceOver de verdad. **XCUITest no sirve**: lista lo de debajo aunque esté oculto |
+| Si `Sign out` responde con la app bloqueada | `pruebas/CandadoTapaLoDeDebajoUITests.swift`, ya escrita, con el candado encendido |
+| Roles contra RLS, token expirado, borrar cuenta | Una cuenta de secretaria, que sigue sin existir |
+| `EstrechoIPad` | Un iPad mini |
+| El importador | El CSV de prueba en el aparato |
 
 ## Lo que esto obliga a mirar en el árbol del teléfono
 
