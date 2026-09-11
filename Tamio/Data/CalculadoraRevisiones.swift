@@ -176,7 +176,7 @@ extension CalculadoraRevisiones {
     /// rojo cuando falta: es el hueco que la bandeja está señalando.
     private static func campos(_ m: Movimiento) -> [CampoRevision] {
         [
-            .init(label: L.t("Concepto", "Concept"), valor: m.titular),
+            .init(label: L.t("Concepto", "Description"), valor: m.titular),
             importe(m),
             .init(label: L.t("Categoría", "Category"),
                   valor: m.categoria.isEmpty ? L.t("Sin categoría", "No category") : m.categoria,
@@ -256,7 +256,7 @@ extension CalculadoraRevisiones {
              descripcion: L.t("Este ingreso no está vinculado a ningún aportante del padrón, así que NO saldrá en su constancia anual — el papel que la iglesia entrega en enero.",
                               "This income isn't linked to anyone in the directory, so it will NOT appear on their annual giving statement — the paper the church hands out in January."),
              acciones: [editar("Vincular aportante", "Link giver"), devolver],
-             toast: L.t("Aportante vinculado.", "Giver linked."))
+             toast: L.t("Aportante vinculado.", "Contributor linked."))
     }
 
     /// El duplicado enseña LOS DOS movimientos: decidir cuál se queda sin ver
@@ -319,6 +319,6 @@ extension CalculadoraRevisiones {
                 .init(label: L.t("Estado", "Status"), valor: a.estado.etiqueta),
             ],
             acciones: [navegar("Restaurar", "Restore", .restaurar)],
-            toastResuelto: L.t("Aportante restaurado.", "Giver restored."))
+            toastResuelto: L.t("Aportante restaurado.", "Contributor restored."))
     }
 }

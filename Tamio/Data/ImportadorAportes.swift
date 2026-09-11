@@ -62,9 +62,9 @@ enum ImportadorAportes {
                alias: ["date", "dia", "day", "fecha_del_aporte", "fecha_de_pago"]),
          .init("monto", L.t("Importe", "Amount"), obligatorio: true,
                alias: ["amount", "importe", "cantidad", "valor", "total", "monto_del_aporte"]),
-         .init("aportante_nombre", L.t("Aportante", "Giver"),
+         .init("aportante_nombre", L.t("Aportante", "Contributor"),
                alias: ["nombre", "name", "giver", "miembro", "member", "donante"]),
-         .init("aportante_id", L.t("Id del aportante", "Giver ID"),
+         .init("aportante_id", L.t("Id del aportante", "Contributor ID"),
                alias: ["member_uid", "uid", "id"]),
          .init("concepto", L.t("Concepto", "Description"),
                alias: ["description", "descripcion", "detalle", "memo", "nota"])]
@@ -119,7 +119,7 @@ enum ImportadorAportes {
                 continue
             }
             guard let centavos = Money.desdeTexto(textoMonto), centavos > 0 else {
-                analizadas.append(fallo(L.t("Monto no válido", "Invalid amount")))
+                analizadas.append(fallo(L.t("Importe no válido", "Invalid amount")))
                 continue
             }
 

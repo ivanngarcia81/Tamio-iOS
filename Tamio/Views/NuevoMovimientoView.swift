@@ -254,8 +254,8 @@ struct NuevoMovimientoView: View {
             .pickerStyle(.menu)
             // Para ingresos el concepto es opcional y va al final de la sección
             if tipo == .ingreso {
-                TextField(L.t("Concepto · opcional", "Concept · optional"), text: $concepto)
-                    .accessibilityLabel(L.t("Concepto · opcional", "Concept · optional"))
+                TextField(L.t("Concepto · opcional", "Description · optional"), text: $concepto)
+                    .accessibilityLabel(L.t("Concepto · opcional", "Description · optional"))
                     .autocorrectionDisabled()
             }
         }

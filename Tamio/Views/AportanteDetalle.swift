@@ -377,7 +377,7 @@ struct AportanteDetalle: View {
                         .font(.title3.weight(.bold)).monospacedDigit()
                 }
                 Chart(a.serie(anio: anio)) { m in
-                    BarMark(x: .value("Mes", m.mes), y: .value("Monto", m.monto))
+                    BarMark(x: .value("Mes", m.mes), y: .value(L.t("Importe", "Amount"), m.monto))
                         .foregroundStyle(m.mes == mesDestacado ? Paleta.brand : Paleta.brandMuted)
                         .cornerRadius(3)
                 }
