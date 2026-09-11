@@ -234,7 +234,7 @@ struct ServiciosView: View {
                 if !s.puestos.isEmpty {
                 Tarjeta {
                     VStack(alignment: .leading, spacing: 0) {
-                        TituloSeccion(texto: L.t("ROSTER", "ROSTER"))
+                        TituloSeccion(texto: L.t("PADRÓN", "ROSTER"))
                             .padding(.bottom, 12)
                         ForEach(s.puestos) { item in
                             HStack(spacing: 12) {
@@ -939,7 +939,7 @@ private struct AsignarRosterSheet: View {
                             .font(.subheadline)
                     }
                 }
-                Section(L.t("ROSTER", "ROSTER")) {
+                Section(L.t("PADRÓN", "ROSTER")) {
                     ForEach(servicio.puestos) { item in
                         HStack(spacing: 12) {
                             Text(item.etiqueta)
