@@ -86,6 +86,15 @@ secciones, vuelca los marcos y avisa de desbordes y de tocables por debajo de
   corrida siguiente**: se restaura con `Window Controls → Zoom` de SpringBoard,
   porque el asa no ensancha.
 
+- **El marco de XCUITest NO es el área tocable.** Para un `Button` cuya etiqueta
+  lleva relleno transparente, el marco de accesibilidad es el del contenido
+  dibujado. Las celdas de día de Agenda salían a **16×18 pt** en el volcado, y
+  encima el código las declara sin `contentShape`: parecía un hallazgo redondo.
+  Se tocó el hueco de la celda y **abre igual**
+  (`pruebas/DiaTocableUITests.swift`, con control positivo). Un tocable solo se
+  mide tocándolo; el volcado sirve para señalar candidatos, no para confirmarlos.
+  El de la sidebar sí era real porque `SidebarRow` lleva `contentShape`.
+
 Y uno que costó dos vueltas, del §3: **un barrido de texto hay que hacerlo por
 el TÉRMINO y sobre `Tamio/` completo**, no por la llamada entera y solo sobre
 `Views/`. Buscar `L.t("Concepto", "Concept")` no encuentra

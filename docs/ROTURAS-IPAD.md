@@ -396,7 +396,6 @@ pantalla** — el filtro del padrón no se abrió en dos intentos de navegación
 
 | Sev | Dónde | Qué |
 |---|---|---|
-| media | `DashboardView` · «Cambiar periodo» | Tocable de **98×14 pt**, el más pequeño de la app. En AX1 sube a 26; sigue bajo 44 |
 | media | `MiembroDetalle:29` (320) vs `CorteDetalle:52` (300) | Misma columna derecha, 20 pt de salto entre pantallas |
 | media | `DashboardView` · Inicio | Dos columnas con alturas dispares: la dona deja un hueco grande a su derecha |
 | media | `DashboardView:681` | Etiqueta de eje de **9 pt de texto**: 2 por debajo de `.caption2`, y nunca crece |
@@ -406,6 +405,29 @@ pantalla** — el filtro del padrón no se abrió en dos intentos de navegación
 | baja | `ServiciosView:668-676` | «Fecha» es `DatePicker` y «Hora» un `TextField` libre de 70 pt, en el mismo formulario |
 | baja | `ConfiguracionView.listaCompacta` | Código muerto (verificado): ocho filas con galón y sin `Button` |
 | — | los 15 `.system(size:)` de texto | Propuesta de `relativeTo` por rol lista; sin aplicar |
+
+### RETIRADO · un hallazgo mío que no se sostiene
+
+**«Tocables por debajo de 44×44» medido con el volcado NO es una medida del área
+tocable.** El marco que devuelve XCUITest es el de accesibilidad y, para un
+`Button` cuya etiqueta lleva relleno transparente, es el del contenido
+DIBUJADO, no el de la zona que responde.
+
+Se cazó con las celdas de día de Agenda: el volcado daba **27 tocables de
+16×18 pt**, y el código las declara con `.frame(height: 54)` y **sin
+`contentShape`**, que es justo el patrón que encoge el área tocable. Parecía un
+hallazgo redondo. **No lo es**: `pruebas/DiaTocableUITests.swift` toca el hueco
+de la celda, fuera de los dígitos, y **abre igual**. Con control positivo
+—tocar el número también abre—.
+
+Por eso se retira «Cambiar periodo, 98×14 pt» de la lista de abiertos, y por eso
+los 28-30 pt de los botones de tarjeta de «Por revisar» quedan **sin medir**, no
+confirmados.
+
+**Lo que SÍ se sostiene es el de la sidebar**, y la diferencia es concreta:
+`SidebarRow` lleva `.contentShape(Rectangle())`, así que su marco de 36 pt era
+el área tocable de verdad. Medir un tocable pide mirar si hay `contentShape`, y
+si no lo hay, tocarlo en el hueco.
 
 ### DECISIÓN DE IVÁN
 
