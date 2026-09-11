@@ -187,23 +187,46 @@ struct Sidebar: View {
         ]
     }
 
+    /// **El galón prometía una pantalla y no llevaba a ninguna.** Esta cabecera
+    /// dibujaba un `chevron.right` a la derecha —el signo con el que toda la
+    /// app anuncia "aquí se entra"— dentro de un `HStack` sin `Button` ni
+    /// `onTapGesture`: el único elemento de la sidebar que se ofrece y no
+    /// responde. Es el mismo criterio que ya dejó escrito `RevisarView`, que
+    /// una cápsula que parece botón y no responde promete algo que no cumple.
+    ///
+    /// Se le pone destino en vez de quitarle el galón porque el galón no
+    /// estaba ahí por error: el nombre de la iglesia es lo que se va a tocar
+    /// para cambiarlo, y eso vive en Ajustes.
+    ///
+    /// **Entra por la sección que abra Ajustes por omisión, que hoy es
+    /// "Cuenta" y no "Iglesia".** Aterrizar directamente en la iglesia pide
+    /// una pseudo-sección en `RootView.pantallaDeSeccion` o un estado estático
+    /// de una sola vez, y las dos cosas tienen más efectos de lado que el
+    /// punto que ganan. Queda como decisión aparte.
     private var cabeceraIglesia: some View {
-        HStack(spacing: 10) {
-            Text(iglesia.iniciales)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 36, height: 36)
-                .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-            VStack(alignment: .leading, spacing: 1) {
-                Text(iglesia.nombre).font(.subheadline.weight(.semibold)).lineLimit(1)
-                Text(iglesia.ubicacionLegible).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+        Button { seleccion = "config" } label: {
+            HStack(spacing: 10) {
+                Text(iglesia.iniciales)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(iglesia.nombre).font(.subheadline.weight(.semibold)).lineLimit(1)
+                        .foregroundStyle(.primary)
+                    Text(iglesia.ubicacionLegible).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
             }
-            Spacer(minLength: 4)
-            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+            .padding(.horizontal, Esp.pantalla)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, Esp.pantalla)
-        .padding(.top, 8)
-        .padding(.bottom, 12)
+        .buttonStyle(.plain)
+        .accessibilityLabel(L.t("\(iglesia.nombre), ir a Configuración",
+                                "\(iglesia.nombre), go to Settings"))
     }
 
     /// **El rótulo "⌘K" se quitó el 10-sep-2026: prometía un atajo que no
