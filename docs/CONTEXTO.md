@@ -2614,8 +2614,20 @@ Se puede mirar con `sqlite3 "$DB" "select identifier from grdb_migrations"`.
   civil y los chips de habilidades— y **no reproducible en el simulador**, así
   que no se puede medir aquí: solo se ve en el aparato.
 
-  Le pasa a cualquier control cuyo aspecto se derive del modelo: en la hoja de
-  miembro son **diez** —cinco chips, cuatro interruptores y cuatro fechas—.
+  Le pasa a cualquier control cuyo aspecto se derive del modelo. **En la hoja de
+  miembro son QUINCE, y están arreglados por DOS mecanismos distintos** —contados
+  uno a uno el 11-sep-2026; aquí ponía "diez, cinco chips, cuatro interruptores
+  y cuatro fechas", que ni suma diez ni reparte bien—:
+
+  - **Diez con `vivo(_:)`**, el envoltorio que toca un `@State` propio de la
+    página al escribir: **seis interruptores** (`MembresiaView:1227, 1232, 1237,
+    1327, 1390, 1462`) y **cuatro fechas** (`:1230, :1235, :1393, :1465`).
+  - **Cinco con estado local**: los cinco `ChipSection` (`:1306, 1309, 1312,
+    1315, 1318`) no pasan por `vivo`; se arreglan con su propio
+    `@State private var elegidos`, que es el mismo principio por otra puerta.
+
+  O sea que **no hay chips sin arreglar** —era lo que hacía sospechar el número—,
+  pero el conteo de "diez" solo cubría una de las dos familias.
   Un `TextField` se salva porque lleva su propio estado mientras se escribe.
   Arreglarlos uno a uno deja el fallo esperando al siguiente que se añada: las
   cuatro páginas llevan un `vivo(_:)` que envuelve el enlace y, al escribir,
