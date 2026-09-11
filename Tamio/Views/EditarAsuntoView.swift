@@ -92,7 +92,7 @@ struct EditarAsuntoView: View {
                 }
 
                 Section(header: Text(L.t("DETALLE", "DETAILS"))) {
-                    TextField(L.t("Concepto", "Concept"), text: $concepto)
+                    TextField(L.t("Concepto", "Description"), text: $concepto)
                         .autocorrectionDisabled()
                     pickerCategoria
                     DatePicker(L.t("Fecha", "Date"), selection: $fecha, displayedComponents: .date)

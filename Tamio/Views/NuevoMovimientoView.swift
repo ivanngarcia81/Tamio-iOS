@@ -243,8 +243,8 @@ struct NuevoMovimientoView: View {
                 .autocorrectionDisabled()
             // Para gastos el concepto es requerido y va justo tras la categoría
             if tipo == .gasto {
-                TextField(L.t("Concepto", "Concept"), text: $concepto)
-                    .accessibilityLabel(L.t("Concepto", "Concept"))
+                TextField(L.t("Concepto", "Description"), text: $concepto)
+                    .accessibilityLabel(L.t("Concepto", "Description"))
                     .autocorrectionDisabled()
             }
             DatePicker(L.t("Fecha", "Date"), selection: $fecha, displayedComponents: .date)
