@@ -66,6 +66,14 @@ enum Esp {
     /// Gana 18, que es el que usan los seis grupos contra la única tarjeta
     /// grande.
     static let radioTarjeta: CGFloat = 18
+    /// Alto mínimo de una fila de contenido: un rótulo y su valor o su control,
+    /// en un renglón.
+    ///
+    /// **50 no es el valor más repetido: es el que ya declaraban las piezas.**
+    /// `FilaConf` y `FilaEditable` —las dos únicas filas reutilizables de
+    /// Ajustes— miden las dos 50, y los 52 eran filas escritas a mano que se
+    /// las saltaban.
+    static let altoFila: CGFloat = 50
 }
 
 extension View {

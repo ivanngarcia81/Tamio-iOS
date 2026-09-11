@@ -115,7 +115,7 @@ private struct FilaConf: View {
                     .font(.caption2).foregroundStyle(.tertiary)
             }
         }
-        .frame(minHeight: 50)
+        .frame(minHeight: Esp.altoFila)
         .padding(.horizontal, Esp.pantalla)
         .contentShape(Rectangle())
     }
@@ -136,7 +136,7 @@ private struct FilaEditable: View {
                 .font(.escalada(15.5, relativeTo: .subheadline))
                 .multilineTextAlignment(.trailing)
         }
-        .frame(minHeight: 50)
+        .frame(minHeight: Esp.altoFila)
         .padding(.horizontal, Esp.pantalla)
     }
 }
@@ -422,7 +422,7 @@ private struct SeccionCuenta: View {
                             .font(.escalada(14.5, relativeTo: .subheadline))
                             .foregroundStyle(.secondary)
                     }
-                    .frame(minHeight: 50)
+                    .frame(minHeight: Esp.altoFila)
                     .padding(.horizontal, Esp.pantalla)
                 }
 
@@ -810,7 +810,7 @@ private struct SeccionTesorero: View {
                 }
                 .labelsHidden()
             }
-            .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
+            .frame(minHeight: Esp.altoFila).padding(.horizontal, Esp.pantalla)
             Divider()
             FilaEditable(label: L.t("Correo (opcional)", "Email (optional)"), texto: correo)
                 .textContentType(.emailAddress)
@@ -987,7 +987,7 @@ private struct SeccionAcceso: View {
                         }
                         .labelsHidden()
                     }
-                    .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
+                    .frame(minHeight: Esp.altoFila).padding(.horizontal, Esp.pantalla)
                     Divider()
                     // **Sin correo escrito no hay botón, hay una frase.**
                     //
@@ -1184,7 +1184,7 @@ private struct SeccionCategorias: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                        .frame(minHeight: 50)
+                        .frame(minHeight: Esp.altoFila)
                         .padding(.horizontal, Esp.pantalla)
                         if idx < filas.count - 1 { Divider() }
                     }
@@ -1197,7 +1197,7 @@ private struct SeccionCategorias: View {
                             Text(labelNueva).font(.escalada(16, relativeTo: .body)).foregroundStyle(.primary)
                             Spacer()
                         }
-                        .frame(minHeight: 52).padding(.horizontal, Esp.pantalla)
+                        .frame(minHeight: Esp.altoFila).padding(.horizontal, Esp.pantalla)
                     }
                     .buttonStyle(.plain)
                 }
@@ -1269,7 +1269,7 @@ private struct SeccionPreferencias: View {
                                         .foregroundStyle(Paleta.brand)
                                 }
                             }
-                            .frame(minHeight: 52).padding(.horizontal, Esp.pantalla)
+                            .frame(minHeight: Esp.altoFila).padding(.horizontal, Esp.pantalla)
                         }
                         .buttonStyle(.plain)
                         if idx < temas.count - 1 { Divider() }
@@ -1290,7 +1290,7 @@ private struct SeccionPreferencias: View {
                         }
                         .labelsHidden()
                     }
-                    .frame(minHeight: 52).padding(.horizontal, Esp.pantalla)
+                    .frame(minHeight: Esp.altoFila).padding(.horizontal, Esp.pantalla)
                     Divider()
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -1526,7 +1526,7 @@ private struct SeccionZona: View {
                                 .font(.escalada(16, relativeTo: .body)).foregroundStyle(Paleta.negativo)
                             Spacer()
                         }
-                        .frame(minHeight: 50).padding(.horizontal, Esp.pantalla)
+                        .frame(minHeight: Esp.altoFila).padding(.horizontal, Esp.pantalla)
                     }
                     .buttonStyle(.plain)
                     .disabled(trabajando)
