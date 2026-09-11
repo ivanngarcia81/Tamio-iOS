@@ -115,38 +115,59 @@ teclado físico y el aparato despierto.
 
 ---
 
-## Las ocho suites de iPad, corridas en el aparato: la tanda NO es admisible
+## Las suites de iPad, corridas en el aparato: dos tandas y una lección
 
-Se copiaron las ocho a un target de interfaz y se corrieron contra el iPad.
-**16 pruebas, 9 fallos — y ninguno cuenta como hallazgo**, porque la corrida
-está contaminada y eso se comprobó, no se supuso:
+### Primera tanda: CONTAMINADA, no admisible
 
-`CandadoIPad` **enciende el candado y lo deja encendido** (lo dice su propio
-comentario), así que las siguientes corrieron contra la pantalla de bloqueo.
-Rastreado en el registro:
+16 pruebas, 9 fallos, **ninguno cuenta**. `CandadoIPad` **enciende el candado y
+lo deja encendido** (lo dice su propio comentario), así que las siguientes
+corrieron contra la pantalla de bloqueo. Rastreado en el registro, no supuesto:
 
     BLOQUEADA durante → CandadoIPad.testElCandadoEnLasDosOrientaciones
     BLOQUEADA durante → DetallesIPad.testDetalleDeCarta
-    BLOQUEADA durante → RecorridoIPad.testApaisado
-    BLOQUEADA durante → RecorridoIPad.testInventario
-    BLOQUEADA durante → RecorridoIPad.testVertical
+    BLOQUEADA durante → RecorridoIPad.testApaisado / testInventario / testVertical
 
-Más una mano humana desbloqueando con Face ID a mitad. Y los fallos que sí se
-explican, se explican **sin culpar al producto**:
+Más una mano humana desbloqueando con Face ID a mitad.
 
-| Fallo | Qué era de verdad |
+### Segunda tanda: LIMPIA, y aquí está la lección
+
+Sin `CandadoIPad` —que contamina— y sin `EstrechoIPad` —que exige un iPad mini y
+aquí solo mide el modelo equivocado: `1192.0 no es < 1024.0`—. **Cero bloqueos.**
+
+| | Primera (sucia) | Segunda (limpia) |
+|---|---|---|
+| `RecorridoIPad.testApaisado` | **falló** | **pasa** (301 s) |
+| `RecorridoIPad.testVertical` | no llegó | **pasa** (301 s) |
+| `DetallesIPad.testDetalleDeDia` | **falló** | **pasa** (84 s) |
+| `DetallesIPad` · carta y culto | pasaban | pasan |
+| `AccesoIPad` ×2 | pasaban | pasan |
+| `ImportarIPad` | 1 de 4 | 1 de 4 |
+| `MultitareaIPad` | 0 de 3 | 0 de 3 |
+
+**Tres pruebas que "fallaban" en el aparato pasan en cuanto se quita el
+candado.** Y los 6 fallos que quedan son de entorno, con el motivo escrito:
+
+| Fallo | Lo que dijo |
 |---|---|
-| `EstrechoIPad` | `1192.0 no es < 1024.0`: la suite exige **iPad mini**; este es el 12.9". |
-| `ImportarIPad` ×3 | «no hay menú Archivo»: sin proveedor de Archivos ni CSV en el aparato. |
-| `MultitareaIPad` ×3 | El redimensionado de Split View no se automatiza. |
-| `CandadoIPad` | El diálogo de Face ID **sí** salió (lo vio Iván). Instrumento. |
-| `RecorridoIPad.testApaisado` | Corrió con la app bloqueada. |
+| `ImportarIPad` ×3 | «el CSV no aparece en el selector» — no hay fichero en el aparato |
+| `MultitareaIPad` ×3 | `1590.0 no es < 500.0` — **la ventana no se estrechó**: Split View no se automatiza |
 
-**La conclusión va contra lo que el encargo daba por hecho.** «Lo que falle aquí
-y pasara en el simulador es hallazgo por sí solo» **no se sostiene**: estas
-suites, corridas tal cual en el aparato, producen ruido. Para que valgan hay que
-(a) dejar `CandadoIPad` la ÚLTIMA o apagar el candado entre suites, (b) correr
-`EstrechoIPad` en el mini, y (c) aceptar que Multitarea e Importar piden mano.
+**Conclusión, y va contra lo que el encargo daba por hecho.** «Lo que falle aquí
+y pasara en el simulador es hallazgo por sí solo» **no se sostiene**: de 9
+fallos, 3 eran un candado contagiado, 3 un fichero que no está y 3 un gesto que
+no existe sin dedos. **Cero hallazgos de producto en las suites.** Lo que hay que
+hacer para que valgan: `CandadoIPad` la ÚLTIMA o el candado apagado entre
+suites, `EstrechoIPad` en el mini, y aceptar que Multitarea e Importar piden
+mano.
+
+### Un aviso de instrumento que se tragó una suite entera
+
+`-only-testing:PruebasAparato/HojasIPad` **no seleccionó nada y no dijo nada**:
+`HojasIPad` es la clase BASE, no una prueba. Las de verdad son
+`HojasTesoreria`, `HojasSecretaria` y `HojasAjustes` —y `DetallesIPad` e
+`ImportarIPad` también heredan de ella—. Un `-only-testing` que no casa con
+ninguna clase se salta en silencio: hay que contar las pruebas ejecutadas, no
+fiarse del "passed".
 
 ## Lo que se atacó y aguantó
 
