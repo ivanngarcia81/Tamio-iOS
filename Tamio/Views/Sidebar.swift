@@ -37,7 +37,7 @@ private struct SidebarRow: View {
             .padding(.horizontal, Esp.pantalla)
             .padding(.vertical, 9)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous)
                     .fill(seleccionado ? Paleta.brandFill : .clear)
             )
             .contentShape(Rectangle())
