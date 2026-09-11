@@ -303,18 +303,54 @@ UTC, donde nada de esto se reproduce.
 - **Modo avión, Esc con teclado físico, Split View a 375 pt, Face ID y
   VoiceOver** no se conmutan por programa en un aparato físico. Piden mano.
 
-## Lo que queda por arreglar, por severidad
+## ARREGLADOS · 11 de septiembre, y verificados corriendo en el iPad
 
-1. **`SeguimientoNota` retrocede un día por guardado** (hallazgo 0). Los dos
-   extremos tienen que usar la misma zona: o decodificar en local, o codificar
-   en UTC. La segunda es la que ya eligieron `diaLegible` y compañía.
-2. **Con la base caída, el iPad no tiene salida** (hallazgo 1). Decisión de
-   producto: o no ofrecer el alta con la base en memoria, o dejar salir de ella.
-   Y de paso, que `SeccionZona` lea `BaseLocal.caida` como hace la del teléfono.
-3. **Los cuatro ayudantes de fecha que se corren** —`corta`, `cortaConHora`,
-   `claveDia`, `diaLegibleLargo`—. Hay que decidir uno por uno si su entrada
-   puede venir de un texto «solo fecha»; hoy solo se sabe de `SeguimientoNota`.
-4. **⌘K**: o se conecta o se borra el rótulo (hallazgo 2).
+**Hallazgo 0 · la fecha que retrocedía.** `Fechas.diaDeCalendario` lee un
+`"yyyy-MM-dd"` como la medianoche LOCAL de ese día, y `SeguimientoNota` la usa
+al decodificar. Medido en el aparato:
+
+| | Antes | Ahora |
+|---|---|---|
+| Tres guardados seguidos | `06 → 05 → 04` | **`06 → 06 → 06`** |
+| Nota creada a las 23:50 | — | se guarda con el día local ✅ |
+
+**La alternativa obvia no servía, y por eso está escrita en el código:** pasar
+la ESCRITURA a UTC arregla la ida y vuelta y rompe la nota nueva, que nace con
+`Date()` —la hora actual, no medianoche (`MembresiaView:1564`)—; una nota hecha
+a las 23:50 en Nueva York se habría guardado con la fecha de mañana. Hay una
+prueba dedicada a esa mitad.
+
+**Hallazgo 1 · el iPad atrapado.** `ConfiguracionInicialView.haceFalta` recibe
+ahora `baseCaida` y devuelve `false` cuando la base está en memoria: con nada
+guardándose, no se pide configurar nada. Y `SeccionZona` lee `BaseLocal.caida`
+y explica la avería con el MISMO texto que la de teléfono. Medido con la base
+tumbada otra vez:
+
+| | Antes | Ahora |
+|---|---|---|
+| Franja de aviso | presente | presente ✅ |
+| Hoja «Welcome to Tamio» | presente | **ausente** ✅ |
+| `Show Sidebar` | `·NOHIT` | **tocable** ✅ |
+| Llegar a la Zona de riesgo | imposible | **se llega** ✅ |
+| La fila de espacio | «Midiendo…» para siempre | explica la caída ✅ |
+
+**Hallazgo 2 · ⌘K.** Quitado el rótulo. No se conectó porque no hay nada a lo
+que conectarlo: el buscador de la sidebar es un `HStack`, **no un `Button`**, y
+no abre nada. **Queda abierto y es decisión de Iván**: una barra de búsqueda
+que no busca sigue siendo una promesa; o se le pone una búsqueda detrás —y
+entonces el atajo vuelve, ya con algo que hacer— o se quita la barra.
+
+### Y una acusación mía que estaba mal planteada
+
+El informe daba por rotos cuatro ayudantes —`corta`, `cortaConHora`, `claveDia`
+y `diaLegibleLargo`— porque con una fecha «solo fecha» enseñan el día anterior.
+**No están rotos**: formatean un INSTANTE en la hora del aparato, que es lo
+correcto para `transactions`, cuyas 34 fechas vivas llevan hora. El fallo nunca
+fue del ayudante: era alimentarlo con un día de calendario leído como
+medianoche UTC. La prueba se reescribió para fijar el reparto —instantes en
+local, días de calendario en UTC— en vez de acusar al inocente.
+
+## Lo que queda por arreglar
 
 ## Lo que NO se pudo medir, y qué haría falta
 

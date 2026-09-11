@@ -1327,6 +1327,21 @@ private struct SeccionPreferencias: View {
 /// **La zona de riesgo del iPad, con el respaldo funcionando.** Ver la del
 /// teléfono: es el mismo trabajo y las mismas decisiones.
 private struct SeccionZona: View {
+
+    /// El mismo texto que la de teléfono, palabra por palabra: son la misma
+    /// avería contada a la misma persona, y dos redacciones distintas del
+    /// mismo problema es lo que hace que una de las dos envejezca mal.
+    static func explicacion(de que: BaseLocal.Caida.Que) -> String {
+        switch que {
+        case .enMemoria:
+            return L.t("La base de datos de este aparato no se pudo abrir, así que nada de lo que captures aquí se está guardando. Cierra la app y vuelve a abrirla; si el aviso sigue, reinstálala y restaura tu último respaldo.",
+                       "This device's database couldn't be opened, so nothing you record here is being saved. Close the app and reopen it; if the warning persists, reinstall it and restore your latest backup.")
+        case .seEmpezoDeCero(let apartadoEn):
+            return L.t("La base de datos de este aparato estaba dañada y se empezó una limpia. La app vuelve a guardar; lo que ya se había sincronizado baja solo, y lo que no, se recupera restaurando tu último respaldo. La dañada se guardó como \(apartadoEn).",
+                       "This device's database was damaged and a clean one was started. The app is saving again; anything already synced comes back on its own, and the rest is recovered by restoring your latest backup. The damaged one was kept as \(apartadoEn).")
+        }
+    }
+
     @State private var trabajando = false
     @State private var paquete: URL?
     @State private var csvMovimientos: URL?
@@ -1442,9 +1457,31 @@ private struct SeccionZona: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(L.t("Espacio en este aparato", "Storage on this device"))
                             .font(.escalada(16, relativeTo: .body))
-                        Text(estadoBase?.resumen ?? L.t("Midiendo…", "Measuring…"))
-                            .font(.escalada(13.5, relativeTo: .footnote)).foregroundStyle(.tertiary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        // **«Midiendo…» no puede quedarse puesto para
+                        // siempre.** `Compactacion.medir()` devuelve `nil` en
+                        // dos casos que no se parecen: aún no ha terminado, o
+                        // la base no se pudo abrir y no hay nada que medir.
+                        // La del teléfono ya lo distinguía
+                        // (`IPhoneAjustesView:1540`); esta no, y se quedaba
+                        // midiendo indefinidamente con la base caída.
+                        if let caida = BaseLocal.caida {
+                            // Rojo solo cuando NADA se guarda; la base
+                            // empezada de cero sí guarda, así que es aviso.
+                            let enMemoria: Bool = { if case .enMemoria = caida.que { return true }; return false }()
+                            Text(Self.explicacion(de: caida.que))
+                                .font(.escalada(13.5, relativeTo: .footnote))
+                                .foregroundStyle(enMemoria ? Paleta.negativo : Paleta.aviso)
+                                .fixedSize(horizontal: false, vertical: true)
+                            // El error tal cual, para quien pueda hacer algo
+                            // con él. No se traduce: es lo que dijo SQLite.
+                            Text(caida.motivo)
+                                .font(.escalada(11.5, relativeTo: .caption2).monospaced())
+                                .foregroundStyle(.tertiary).textSelection(.enabled)
+                        } else {
+                            Text(estadoBase?.resumen ?? L.t("Midiendo…", "Measuring…"))
+                                .font(.escalada(13.5, relativeTo: .footnote)).foregroundStyle(.tertiary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         if let e = estadoBase, e.filasPurgables > 0 {
                             Button { confirmarPurgar = true } label: {
                                 Text(L.t("Liberar espacio", "Free up space"))

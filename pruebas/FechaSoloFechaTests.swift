@@ -49,35 +49,50 @@ final class FechaSoloFechaTests: XCTestCase {
         XCTAssertEqual(c.hour, 0, "no es medianoche UTC: el resto del diagnóstico no aplica")
     }
 
-    /// **El barrido**, cada ayudante contra su propio formato en UTC.
-    func testQueAyudantesSeCorrenDeDia() throws {
-        try XCTSkipIf(TimeZone.current.secondsFromGMT() == 0, "en UTC no se reproduce")
-        let d = try XCTUnwrap(Fechas.desdeTexto(textoISO))
+    /// **El inventario de quién lee en qué zona.** No acusa a nadie: informa.
+    ///
+    /// La primera versión de esta prueba SÍ acusaba —daba por rotos `corta`,
+    /// `cortaConHora`, `claveDia` y `diaLegibleLargo` porque con una fecha
+    /// «solo fecha» enseñan el día anterior— y la acusación estaba mal
+    /// planteada: esos cuatro formatean un INSTANTE en la hora del aparato, y
+    /// eso es lo correcto para `transactions`, cuyas 34 fechas vivas llevan
+    /// hora. El fallo nunca fue del ayudante: era alimentarlo con un día de
+    /// calendario leído como medianoche UTC.
+    ///
+    /// Lo que esta prueba fija es el reparto, para que no se cruce:
+    ///
+    /// - **Instantes** (`transactions`): se leen con `desdeTexto` y se pintan
+    ///   con `corta` / `cortaConHora` / `diaLegibleLargo`, en hora local.
+    /// - **Días de calendario** (las otras ocho columnas): se leen con
+    ///   `diaDeCalendario` y se pintan con `diaLegible` / `diaSemanaCorto` /
+    ///   `numeroDeDia`, que fijan UTC a propósito.
+    ///
+    /// Cruzarlos es el fallo, y el que estaba cruzado —`SeguimientoNota`— lo
+    /// caza la prueba de abajo.
+    func testElRepartoDeZonasSigueSiendoElQueSeDocumento() throws {
+        try XCTSkipIf(TimeZone.current.secondsFromGMT() == 0, "en UTC no se distingue")
+        let dia = try XCTUnwrap(Fechas.diaDeCalendario(textoISO))
+        let instante = try XCTUnwrap(Fechas.desdeTexto(textoISO))
 
-        var fallan: [String] = []
-        func revisar(_ nombre: String, _ salida: String, esperado: String) {
-            NSLog("[QA-FECHA] %@ → %@ (esperado %@)", nombre, salida, esperado)
-            if salida != esperado { fallan.append("\(nombre): «\(salida)» en vez de «\(esperado)»") }
+        for (nombre, salida) in [("diaLegible", Fechas.diaLegible(textoISO)),
+                                 ("numeroDeDia", Fechas.numeroDeDia(textoISO)),
+                                 ("corta(diaDeCalendario)", Fechas.corta(dia)),
+                                 ("claveDia(diaDeCalendario)", Fechas.claveDia(dia))] {
+            NSLog("[QA-FECHA] %@ → %@", nombre, salida)
         }
 
-        let fCorta = L.t("d MMM yyyy", "MMM d, yyyy")
-        revisar("corta", Fechas.corta(d), esperado: enUTC(fCorta, d))
-        revisar("cortaConHora", Fechas.cortaConHora(d, hora: "10:00"),
-                esperado: enUTC(fCorta, d) + ", 10:00")
-        revisar("claveDia", Fechas.claveDia(d), esperado: "2026-09-06")
-        revisar("diaLegibleLargo", Fechas.diaLegibleLargo(d),
-                esperado: enUTC(L.t("d 'de' MMMM 'de' yyyy", "MMMM d, yyyy"), d))
-        // Estos cuatro YA fijan UTC y son el control negativo del barrido: si
-        // alguno apareciera en la lista, el diagnóstico estaría mal planteado.
-        revisar("diaLegible", Fechas.diaLegible(textoISO), esperado: enUTC(fCorta, d))
-        revisar("diaSemanaCorto", Fechas.diaSemanaCorto(textoISO),
-                esperado: Fechas.diaSemanaCorto(textoISO))
-        revisar("numeroDeDia", Fechas.numeroDeDia(textoISO), esperado: "6")
-        revisar("iso", Fechas.iso(d), esperado: "2026-09-06T00:00:00Z")
+        // **Un día de calendario no se mueve, lo lea quien lo lea.**
+        XCTAssertEqual(Fechas.claveDia(dia), textoISO,
+                       "### diaDeCalendario + claveDia tienen que ser inversos")
+        XCTAssertTrue(Fechas.corta(dia).contains("6"),
+                      "### un día de calendario pintado en local enseña otro día")
+        XCTAssertEqual(Fechas.numeroDeDia(textoISO), "6")
+        XCTAssertTrue(Fechas.diaLegible(textoISO).contains("6"))
 
-        XCTAssertTrue(fallan.isEmpty,
-                      "### con una fecha «solo fecha» estos ayudantes dan el día anterior: "
-                      + fallan.joined(separator: " | "))
+        // Y el instante sigue siendo un instante: medianoche UTC del día 6 ES
+        // el día 5 por la tarde en Nueva York, y enseñarlo así es correcto.
+        XCTAssertNotEqual(Fechas.claveDia(instante), Fechas.claveDia(dia),
+                          "### si estos dos coinciden, el aparato está en UTC y la prueba no mide")
     }
 
     /// **Lo grave no es el rótulo: es que `claveDia` también ESCRIBE.**
@@ -116,6 +131,40 @@ final class FechaSoloFechaTests: XCTestCase {
                        "### una sola escritura ya movió la fecha de la nota de seguimiento")
         XCTAssertEqual(Set(vistas).count, 1,
                        "### y se mueve otra vez en cada vuelta: \(vistas.joined(separator: " → "))")
+    }
+
+    /// **El control del arreglo, y la razón de que no valga codificar en UTC.**
+    ///
+    /// Una nota NUEVA nace con `Date()` —la hora actual, no medianoche
+    /// (`MembresiaView.swift:1564`)—. Si la escritura se pasara a UTC, una nota
+    /// creada de noche en Nueva York se guardaría con la fecha de MAÑANA. Esta
+    /// prueba fija esa mitad: sea cual sea el arreglo, el día que se guarda es
+    /// el día LOCAL de la nota.
+    func testUnaNotaCreadaDeNocheSeGuardaConElDiaDeHoy() throws {
+        try XCTSkipIf(TimeZone.current.secondsFromGMT() == 0, "en UTC no se reproduce")
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = .current
+        // 23:50 de hoy, hora local: en Nueva York ya es mañana en UTC.
+        let hoy = Date()
+        let casiMedianoche = cal.date(bySettingHour: 23, minute: 50, second: 0, of: hoy) ?? hoy
+        let diaLocal = Fechas.claveDia(casiMedianoche)
+
+        let nota = SeguimientoNota(tipo: .otro, fecha: casiMedianoche,
+                                   descripcion: "creada de noche")
+        let texto = String(data: try JSONEncoder().encode(nota), encoding: .utf8) ?? ""
+        let guardado = try JSONDecoder().decode([String: AnyDecodableFecha].self,
+                                                from: Data(texto.utf8))
+        let escrito = guardado["fecha"]?.texto ?? ""
+        NSLog("[QA-FECHA] nota de las 23:50 → se guardó %@ (día local %@)", escrito, diaLocal)
+
+        XCTAssertEqual(escrito, diaLocal,
+                       "### una nota creada de noche se guardó con otro día")
+
+        // Y releerla no la mueve.
+        let releida = try JSONDecoder().decode(SeguimientoNota.self, from: Data(texto.utf8))
+        XCTAssertEqual(Fechas.claveDia(releida.fecha), diaLocal,
+                       "### releer la nota movió su día")
     }
 }
 

@@ -468,7 +468,11 @@ struct SeguimientoNota: Identifiable, Hashable, Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Claves.self)
         let f = try c.decodeIfPresent(String.self, forKey: .fecha) ?? ""
-        fecha = Fechas.desdeTextoFlexible(f) ?? Date()
+        // **Un día de calendario, no un instante.** Con
+        // `desdeTextoFlexible` esto era medianoche UTC y `encode` lo volvía a
+        // escribir con `claveDia`, que usa la zona del aparato: cada guardado
+        // restaba un día y se acumulaba. Ver `Fechas.diaDeCalendario`.
+        fecha = Fechas.diaDeCalendario(f) ?? Date()
         descripcion = try c.decodeIfPresent(String.self, forKey: .texto) ?? ""
         tipo = TipoSeguimiento(rawValue: try c.decodeIfPresent(String.self, forKey: .tipo) ?? "") ?? .otro
         completado = try c.decodeIfPresent(Bool.self, forKey: .completado) ?? false

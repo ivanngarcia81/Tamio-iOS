@@ -105,6 +105,39 @@ enum Fechas {
         return nil
     }
 
+    /// **Un día de CALENDARIO, leído en el calendario del aparato.**
+    ///
+    /// `desdeTexto` y `desdeTextoFlexible` leen `"2026-09-06"` como medianoche
+    /// **UTC**, que es lo correcto cuando lo que va a formatear la fecha
+    /// también fija UTC —`diaLegible`, `diaSemanaCorto` y `numeroDeDia` lo
+    /// hacen a propósito—. Pero para un valor que se vuelve a ESCRIBIR con
+    /// `claveDia`, que formatea en la zona del aparato, esa lectura resta un
+    /// día en cada vuelta al oeste de Greenwich: medido el 10-sep en un iPad
+    /// en Nueva York, la fecha de una nota de seguimiento iba
+    /// `2026-09-06 → 05 → 04 → 03`, una por guardado.
+    ///
+    /// **La alternativa obvia no sirve**, y por eso está escrito aquí: cambiar
+    /// la ESCRITURA a UTC arregla la ida y vuelta y rompe la nota nueva, que
+    /// nace con `Date()` —la hora actual, no medianoche—. Una nota creada a
+    /// las 23:50 en Nueva York son las 03:50 UTC del día siguiente, así que
+    /// escribiría mañana. Los dos extremos tienen que hablar de DÍAS, no de
+    /// instantes, y eso es lo que hace esto: devuelve la medianoche LOCAL del
+    /// día escrito, que es la misma que `claveDia` vuelve a escribir igual.
+    ///
+    /// Solo se desvía para la forma canónica `yyyy-MM-dd`, que es la que
+    /// escriben los dos clientes; cualquier otra cosa —incluido un ISO con
+    /// hora, que sí es un instante— sigue por el camino de siempre.
+    static func diaDeCalendario(_ texto: String) -> Date? {
+        guard texto.count == 10, texto.dropFirst(4).hasPrefix("-") else {
+            return desdeTextoFlexible(texto)
+        }
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.timeZone = .current
+        df.dateFormat = "yyyy-MM-dd"
+        return df.date(from: texto) ?? desdeTextoFlexible(texto)
+    }
+
     /// Fecha escrita por una persona o exportada por otro programa. Se prueba
     /// primero el ISO que genera la app y luego los formatos habituales de
     /// Excel. El día-primero va antes que el mes-primero: la app se usa en

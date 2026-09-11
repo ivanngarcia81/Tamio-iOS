@@ -206,12 +206,21 @@ struct Sidebar: View {
         .padding(.bottom, 12)
     }
 
+    /// **El rótulo "⌘K" se quitó el 10-sep-2026: prometía un atajo que no
+    /// existe.** En toda la app había CERO `keyboardShortcut`, así que en un
+    /// iPad con teclado el rótulo se desmentía al primer intento. Se quita en
+    /// vez de conectarlo porque no hay nada a lo que conectarlo: este buscador
+    /// es un `HStack`, no un `Button`, y no abre nada.
+    ///
+    /// **Queda abierto, y es decisión de Iván:** una barra de búsqueda que no
+    /// busca sigue siendo una promesa. O se le pone detrás una búsqueda de
+    /// verdad —y entonces el atajo vuelve, ya con algo que hacer— o se quita
+    /// la barra entera.
     private var buscador: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").font(.subheadline).foregroundStyle(.secondary)
             Text(L.t("Buscar en Tamio", "Search Tamio")).font(.subheadline).foregroundStyle(.secondary)
             Spacer()
-            Text("⌘K").font(.caption2).foregroundStyle(.tertiary)
         }
         .padding(.horizontal, Esp.chip)
         .padding(.vertical, 8)

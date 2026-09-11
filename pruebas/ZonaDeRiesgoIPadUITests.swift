@@ -41,6 +41,14 @@ final class ZonaDeRiesgoIPadUITests: XCTestCase {
 
     /// Llega a Configuración → Zona de riesgo. En el iPad va por la sidebar.
     private func abrirZonaDeRiesgo() -> Bool {
+        // **La sidebar puede estar plegada, y entonces «Settings» no existe.**
+        // Se nota porque hay un botón «Show Sidebar». La primera versión de
+        // esta prueba no lo miraba y su control fallaba por eso, no por la
+        // pantalla — que es justo el error que el control existe para evitar.
+        let abrir = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] 'show sidebar'")).firstMatch
+        if abrir.waitForExistence(timeout: 3) && abrir.isHittable { abrir.tap(); sleep(2) }
+
         for titulo in ["Settings", "Configuración"] {
             let b = app.buttons[titulo]
             if b.waitForExistence(timeout: 5) && b.isHittable { b.tap(); sleep(2); break }

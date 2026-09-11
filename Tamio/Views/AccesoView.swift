@@ -844,7 +844,16 @@ struct ConfiguracionInicialView: View {
     ///   verdad; sin esta bandera se le pediría configurarse en cada arranque.
     static func haceFalta(nombre: String,
                           ultimaSincronizacion: Date?,
-                          yaConfigurado: Bool = false) -> Bool {
+                          yaConfigurado: Bool = false,
+                          baseCaida: Bool = false) -> Bool {
+        // **Con la base caída no se pide configurar nada.** Medido en un iPad
+        // el 10-sep: con la base en memoria la configuración está vacía, así
+        // que el nombre es el de fábrica y esta hoja se abría encima de la
+        // franja que dice «nada de lo que captures aquí se está guardando».
+        // Dos elementos contradiciéndose en la misma pantalla — y como la hoja
+        // es modal, dejaba el iPad SIN SALIDA a Ajustes (`Show Sidebar` no se
+        // podía tocar), que es justo donde se explica la avería.
+        guard !baseCaida else { return false }
         guard ultimaSincronizacion != nil, !yaConfigurado else { return false }
         let n = nombre.trimmingCharacters(in: .whitespacesAndNewlines)
         return n.isEmpty || n.compare(Self.nombreSembrado,
