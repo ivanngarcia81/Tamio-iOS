@@ -431,6 +431,45 @@ APAISADO (744 pt de alto) las seis secciones de Secretaría quedan bajo el
 pliegue y el recorrido no desplaza. **El rol se fuerza en la inyección, no en
 los `??`, y el recorrido por rol se hace con altura de sobra.**
 
+### EN EL APARATO · iPad Pro 12.9", iOS 27 · cerrado
+
+Corrido en el iPad de Iván, no en simulador. **El aparato reporta 1590×1192 pt**,
+no los 1366×1024 del simulador: está en modo de pantalla densa, así que cabe más
+contenido que en todas las medidas de simulador de esta pasada.
+
+- **El repintado de los controles empujados AGUANTA.** Es el fallo que §4 da por
+  no reproducible en el simulador y que Iván encontró dos veces en su iPhone.
+  Medido con las dos capturas del aparato: tocando el chip «Música» dentro de
+  «Servicio y habilidades» —una página empujada con `NavigationLink` dentro de
+  un `Form`—, **el chip pasa de gris a verde en el acto, sin salir de la
+  página**. Diff de píxeles 0.118 % entre antes y después.
+
+  **`isSelected` no sirve para medir esto**: dio `false` antes y después. Lo que
+  vale es la imagen, como ya avisaba §0.-7 sobre los rasgos de accesibilidad en
+  una `List`.
+
+- **Barrido visual de las quince secciones en iOS 27: cero desbordes, cero
+  saltadas.** 375 s.
+
+- **Los quince controles empujados, contados**: diez con `vivo(_:)` (seis
+  interruptores y cuatro fechas) y cinco con estado local (los `ChipSection`).
+  §4 decía diez y repartía mal; corregido.
+
+**Y tres trampas del aparato que costaron una vuelta cada una:**
+
+1. **Xcode tiene que emparejar con el iOS del aparato.** El Mac estaba en 26.6
+   (SDK 26.5) y el iPad en iOS 27: instalar y las pruebas UNITARIAS funcionaban
+   —no necesitan automatización—, pero las de interfaz no. **Actualizar era
+   necesario y NO fue suficiente.**
+2. **Lo que lo desbloqueó fue REINICIAR el iPad.** Con Xcode y iOS ya
+   emparejados seguía dando *"Timed out while enabling automation mode"*. El
+   runner arranca —el log dice "Running tests…"— y agota 60 s en el saludo.
+   Reiniciar lo arregló a la primera.
+3. **En una prueba de interfaz, las capturas se escriben en el contenedor del
+   RUNNER**, no en el de la app: el código corre en otro proceso. Se sacan con
+   `--domain-identifier church.tamio.native.PruebasAparato.xctrunner`. Y salen
+   **giradas 90°** igual que en el simulador: `sips -r -90`.
+
 ### RETIRADO · un hallazgo mío que no se sostiene
 
 **«Tocables por debajo de 44×44» medido con el volcado NO es una medida del área
@@ -476,9 +515,7 @@ si no lo hay, tocarlo en el hueco.
 
 | Pendiente | Qué hace falta |
 |---|---|
-| Todo lo de aparato | El iPad en la mano y desbloqueado |
 | Cinco secciones en AX1 | El recorrido no hace scroll en la sidebar: quedaron bajo el pliegue. **No se demostró que sean inalcanzables** |
-| El conteo de controles empujados de la hoja de miembro | §4 dice diez y su propia lista suma trece; sigue sin contarse |
 | Truncados dentro de la columna estrecha | El volcado mide contra la ventana, no contra la columna |
 
 ## Lo que queda por arreglar

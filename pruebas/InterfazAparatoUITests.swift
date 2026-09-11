@@ -52,6 +52,15 @@ final class InterfazAparatoUITests: XCTestCase {
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.22, dy: 0.30)).tap(); sleep(2)
         guarda("miembro-ficha")
 
+        // **Las cuatro páginas empujadas viven en la hoja de EDITAR**, no en la
+        // ficha de lectura: la ficha enseña expediente, familia y movimientos,
+        // y los `NavigationLink` están dentro del formulario.
+        guard vaA("Editar") else {
+            print("NO SE LLEGÓ al botón Editar"); guarda("miembro-sin-editar"); return
+        }
+        sleep(2)
+        guarda("miembro-editar")
+
         // Entrar en "Servicio y habilidades", que es donde viven los chips.
         guard vaA("Servicio y habilidades") else {
             print("NO SE LLEGÓ a Servicio y habilidades"); guarda("miembro-sin-pagina"); return
