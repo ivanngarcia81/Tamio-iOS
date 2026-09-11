@@ -54,6 +54,18 @@ enum Esp {
     /// La excepción: las filas de "Por revisar" son tarjetas con tres botones
     /// dentro (Aprobar · Devolver · Pedir dato) y a 320 se apilan.
     static let columnaMaestraAncha: CGFloat = 400
+
+    // MARK: - Radios y altos
+    //
+    // El espaciado se tokenizó y los radios y los altos se quedaron fuera, así
+    // que siguieron escritos a mano. Los Ajustes del iPad solos llevaban ocho
+    // radios y seis altos de fila para cuatro roles.
+
+    /// Radio de una tarjeta. Había 18 en el grupo de ajustes y 20 en la tarjeta
+    /// grande de la misma pantalla, una encima de la otra y con el mismo rol.
+    /// Gana 18, que es el que usan los seis grupos contra la única tarjeta
+    /// grande.
+    static let radioTarjeta: CGFloat = 18
 }
 
 extension View {

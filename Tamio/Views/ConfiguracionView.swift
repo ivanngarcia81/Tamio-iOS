@@ -39,7 +39,7 @@ private struct GrupoConf<C: View>: View {
                 contenido
             }
             .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Esp.radioTarjeta, style: .continuous))
             if let nota {
                 Text(nota)
                     .font(.escalada(12.5, relativeTo: .caption1))
@@ -77,7 +77,7 @@ private struct HeroCard: View {
         .padding(Esp.panel)
         .background(
             Color(.secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+            in: RoundedRectangle(cornerRadius: Esp.radioTarjeta, style: .continuous)
         )
     }
 }
@@ -466,7 +466,7 @@ private struct SeccionCuenta: View {
                             .frame(minHeight: 54)
                             .background(
                                 Color(.secondarySystemGroupedBackground),
-                                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                in: RoundedRectangle(cornerRadius: Esp.radioTarjeta, style: .continuous)
                             )
                     }
                     .buttonStyle(.plain)
