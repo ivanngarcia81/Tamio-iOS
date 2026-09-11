@@ -102,20 +102,61 @@ teclado físico y el aparato despierto.
 
 ---
 
-## La fecha: hasta dónde llega, ya medido
+## 0 · La fecha de una nota de seguimiento retrocede un día CADA VEZ que se guarda · pierde datos
 
-`docs/COMPROBACION-DINERO.md` §2 dice que el corrimiento de un día está medido
-en el importador y que **falta saber hasta dónde llega**. Eso sí quedó
-contestado, midiendo en el servidor en vez de suponiendo.
+**Medido corriendo en el iPad**, zona `America/New_York` (UTC−4), con
+`pruebas/FechaSoloFechaTests.swift`. Es el hallazgo más grave de lo poco que dio
+tiempo a mirar, y no es un formateo feo: **es el dato moviéndose**.
 
-`Fechas.desdeTexto("2026-09-06")` devuelve **medianoche UTC**
-(`Fechas.swift:96-97`, la rama `.withFullDate`). Un formateador que no fije zona
-lo lee con la del aparato y, al oeste de Greenwich, enseña el día anterior.
-`L.formateador` (`Localization.swift:83`) **no fija zona**, y `Fechas.corta` va
-por ahí.
+`SeguimientoNota` (`Tamio/Models/Miembro.swift:467-482`) tiene los dos extremos
+descasados:
 
-**Qué forma tienen las fechas vivas** (medido el 10-sep en `public`, filas no
-borradas):
+- **decodifica** con `Fechas.desdeTextoFlexible`, que para `"yyyy-MM-dd"` da
+  **medianoche UTC**;
+- **codifica** con `Fechas.claveDia`, que formatea en la zona **del aparato**.
+
+Al oeste de Greenwich, medianoche UTC es el día anterior por la tarde. Resultado
+medido, leyendo lo que queda ESCRITO en el JSON:
+
+    2026-09-06  →  2026-09-05  →  2026-09-04  →  2026-09-03
+
+Un día por guardado, y **se acumula**: una nota que se sincronice a diario
+retrocede un día al día. El web escribe `members.seguimiento_notas` con esa
+misma forma `{fecha, texto}`, así que cada vuelta entre los dos clientes cuenta.
+
+Los mismos dos extremos —parsear texto «solo fecha» y reescribir con
+`claveDia`— están en:
+
+| Dónde | Qué escribe |
+|---|---|
+| `Tamio/ViewModels/DepositosViewModel.swift:228` | la fecha de un corte / depósito |
+| `Tamio/ViewModels/CartasViewModel.swift:107` | la fecha de emisión de una carta |
+| `Tamio/Models/Secretaria.swift:914` | la fecha de un evento de agenda |
+
+**No están medidos**: hace falta comprobar de dónde sale la `Date` en cada uno.
+Si viene de `Date()` no hay corrimiento —el día local es el correcto—; si viene
+de haber parseado un texto «solo fecha», sí.
+
+### El barrido de los ayudantes, medido
+
+De los ocho que producen texto, **cuatro se corren**:
+
+| Ayudante | Da | Debería |
+|---|---|---|
+| `Fechas.corta` | `Sep 5, 2026` | `Sep 6, 2026` |
+| `Fechas.cortaConHora` | `Sep 5, 2026, 10:00` | `Sep 6, 2026, 10:00` |
+| `Fechas.claveDia` | `2026-09-05` | `2026-09-06` |
+| `Fechas.diaLegibleLargo` | `September 5, 2026` | `September 6, 2026` |
+| `diaLegible`, `diaSemanaCorto`, `numeroDeDia`, `iso` | día 6 ✅ | — |
+
+`diaLegibleLargo` es la que **encabeza una carta** (`SecretariaPDF.swift:77`,
+`CartasView.swift:222`): un documento con fecha equivocada.
+
+`claveDia` es el peor de los cuatro porque **no es un rótulo, es una clave**.
+
+### Hasta dónde llega, medido en el servidor
+
+`COMPROBACION-DINERO.md` §2 decía que faltaba saberlo. Filas vivas al 10-sep:
 
 | Columna | «solo fecha» | Con hora |
 |---|---|---|
@@ -129,32 +170,33 @@ borradas):
 | `actas.fecha` | 1 | 0 |
 | `members.fecha_bautismo_agua` | 1 | 0 |
 
-O sea: **`transactions` es la única tabla a salvo** —todas sus fechas llevan
-hora, así que el instante es exacto— y **las otras ocho columnas, 29 valores,
-entran enteras por el camino del corrimiento**. Es lo contrario de donde ha
-estado la atención: el dinero está bien y lo que puede mentir son los cortes,
-los depósitos, las actas, la agenda y el padrón.
+**`transactions` es la única tabla a salvo** —sus 34 fechas llevan hora, así que
+el instante es exacto—. Las otras ocho columnas, 29 valores, entran enteras por
+este camino. Es lo contrario de donde ha estado la atención: **el dinero está
+bien y lo que puede mentir son los cortes, los depósitos, las actas, la agenda y
+el padrón.**
 
-**Y no todo está roto**, que es la otra mitad de la respuesta: hay ocho
-formateadores que SÍ fijan UTC a propósito —cinco en `Fechas.swift` (entre
-ellos `diaLegible`, `diaSemanaCorto` y `numeroDeDia`), dos en
-`Models/Secretaria.swift` y uno en `Models/MovimientoRecurrente.swift`— y sus
-comentarios explican que se arreglaron justo por esto. Lo que falta es saber
-**qué pantalla usa cuál**, y eso solo lo dice corriendo.
+### El aviso de instrumento, que costó una corrida
 
-La prueba que lo mide está escrita —`pruebas/FechaSoloFechaTests.swift`—, pasa
-una fecha conocida por los ocho ayudantes con la zona real del aparato y falla
-nombrando a los que se corren. **No llegó a ejecutarse**: el iPad se bloqueó. Va
-con control positivo (se salta sola si el aparato está en UTC, donde el fallo no
-se puede reproducir).
+La primera versión de esta prueba **pasó en verde midiendo exactamente nada**:
+buscaba "un 5 sin ningún 6" en la salida, y `"Sep 5, 2026"` contiene el 6 de
+«2026». Ahora cada ayudante se compara contra su MISMO formato renderizado en
+UTC, que es la respuesta correcta por construcción.
 
----
+Y la segunda versión **contaba de más**: medía la ida y vuelta volviendo a
+llamar a `claveDia`, que añade su propio corrimiento, y decía "dos días en la
+primera vuelta". Es **uno**. Se arregló leyendo el texto que queda guardado. La
+regla: no medir con el mismo ayudante que estás acusando.
+
+Lleva control positivo: las tres pruebas se saltan solas si el aparato está en
+UTC, donde nada de esto se reproduce.
 
 ## Lo que quedó BLOQUEADO, y por qué
 
-- **El iPad se bloqueó** a mitad de la primera medida. Todo lo de aparato
-  —posturas, multitarea, teclado físico, Face ID, VoiceOver, modo avión, las
-  ocho suites de iPad existentes— sigue sin tocar.
+- **El iPad se bloqueó** a mitad de la primera medida; al desbloquearlo dio
+  tiempo a cerrar la de fechas y nada más. Todo lo demás de aparato —posturas,
+  multitarea, teclado físico, Face ID, VoiceOver, modo avión, las ocho suites
+  de iPad existentes— sigue sin tocar.
 - **Sacar la base del contenedor lo denegó el clasificador.** Sin eso no hay
   respaldo previo, y sin respaldo no se corrompe la base a propósito: es lo que
   hace falta para reproducir el hallazgo 1 corriendo.
@@ -166,7 +208,9 @@ se puede reproducir).
 - **El hallazgo 1 es de forma, no de árbol.** El teléfono ya avisa. Lo que
   conviene mirar allí es si hay MÁS pantallas que llamen a `Compactacion.medir()`
   sin mirar `BaseLocal.caida`: hoy son tres llamadas y todas en `SeccionZona`.
-- **La fecha es común a los dos.** Si el barrido confirma que `Fechas.corta`
-  miente con una fecha «solo fecha», miente igual en el teléfono, y la tabla de
-  arriba dice exactamente en qué ocho columnas.
+- **La fecha es común a los dos, y ya está confirmada.** `Fechas.corta`,
+  `cortaConHora`, `claveDia` y `diaLegibleLargo` se corren igual en el teléfono:
+  nada de lo medido depende del iPad, solo de que la zona no sea UTC. El
+  retroceso de `SeguimientoNota` también. La tabla de columnas dice dónde
+  duele.
 - **⌘K está en `Sidebar.swift`**, que es solo del iPad. No alcanza al teléfono.
