@@ -163,11 +163,25 @@ mano.
 ### Tercera tanda: las `Hojas*`, en verde
 
 Al descubrir lo de la clase base se corrieron aparte `HojasTesoreria`,
-`HojasSecretaria` y `HojasAjustes`. **Diez pruebas, diez en verde**, sin un solo
-fallo — incluidas `HojasAjustes testZonaDeRiesgo` (que es el control con la base
-SANA del hallazgo 1), `HojasSecretaria testCartas`, `testActas`, `testInformes`
-y `testMembresiaNuevoEditarYSeguimiento`. Son las más lentas de todas: entre 100
-y 300 segundos cada una.
+`HojasSecretaria` y `HojasAjustes`. **Diecisiete pruebas, diecisiete en verde**,
+cero fallos y cero bloqueos. Son las más lentas de todas —entre 85 y 317
+segundos cada una, más de 40 minutos la tanda— y son también las que más
+superficie tocan:
+
+- `HojasAjustes testZonaDeRiesgo` — **el control con la base SANA del hallazgo
+  1**: esa pantalla funciona; lo que no funciona es llegar a ella con la base
+  caída.
+- `HojasTesoreria testCorteAgregarRegistrarYFirma` — el corte, el depósito y la
+  firma, que es la zona que el encargo daba por nunca abierta. Aguanta.
+- `HojasTesoreria testReportesPDF` — los PDF, ya con los tres arreglos de
+  `4d19aa0` dentro.
+- `HojasSecretaria` — actas, cartas, agenda, informes, servicios y la ficha de
+  miembro con su seguimiento.
+
+Que `testMembresiaNuevoEditarYSeguimiento` pase **no contradice el hallazgo 0**:
+esa prueba recorre la interfaz, y el retroceso de la fecha está en el
+`Codable` de `SeguimientoNota`, que solo se ve midiendo la ida y vuelta del
+JSON. Es un recordatorio de para qué NO sirve una prueba de interfaz.
 
 ### Un aviso de instrumento que se tragó una suite entera
 
