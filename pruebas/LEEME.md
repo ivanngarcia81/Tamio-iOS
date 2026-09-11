@@ -120,6 +120,51 @@ aviso del modo revisión, que siguió apareciendo en el volcado—. Así que con
 árbol de XCUITest no se puede saber qué lee VoiceOver: eso pide VoiceOver de
 verdad.
 
+## Las de la SEGUNDA pasada de interfaz del iPad · 11 de septiembre
+
+El recorrido de las quince secciones en siete posturas. Los hallazgos están en
+`docs/ROTURAS-IPAD.md` y las lecciones en `docs/CONTEXTO.md` §0.-10.
+
+- **`RecorridoIPadUITests.swift`** — visita las quince secciones de la sidebar,
+  vuelca los marcos y **avisa de los tocables por debajo de 44×44** y de lo que
+  se sale. La postura, la orientación y el idioma llegan por entorno
+  (`TEST_RUNNER_POSTURA`, `_ORIENT`, `_IDIOMA`), así que una sola prueba sirve
+  para las siete.
+- **`postura.sh` y `capturar.sh`** — el guion de una postura y el disparador de
+  capturas. `capturar.sh` mira el log esperando cada `MARCA:` y dispara
+  `simctl io screenshot` (más `sips -r -90` en apaisado, que el adjunto de
+  XCUITest sale rotado y recortado). Uso:
+  `postura.sh <udid> <nombre> <apaisado|vertical> <es|en> <light|dark> <large|accessibility-medium>`
+- **`AjustesIPadUITests.swift`** — recorre las ocho secciones de Ajustes, y
+  afirma que la cabecera de la iglesia es un botón que lleva a Configuración.
+- **`EstrechoVentanaIPadUITests.swift`** — estrecha la ventana a 375 pt,
+  comprueba **quién dibuja entonces** (pestañas y no sidebar, o sea
+  `IPhoneRootView`) y **restaura la ventana al terminar**.
+- **`TextosCorregidosUITests.swift`**, **`UltimosDosUITests`** — van a BUSCAR en
+  pantalla los textos corregidos, porque un diff a 0.000 % en una pantalla donde
+  sí se cambió texto no prueba que el arreglo falle: prueba que el texto no se
+  ve ahí (un marcador con el campo lleno, un `Picker` bajo el pliegue).
+- **`TelefonoParadasInterfazUITests.swift`** — las siete paradas del iPhone 17e
+  para el diff de píxeles al tocar una vista compartida.
+
+**Cuatro avisos de instrumento que costaron una corrida cada uno:**
+
+1. **Comparar contra el ancho de la VENTANA no ve lo que se trunca dentro de una
+   COLUMNA.** En el mini la ventana son 744 pt y el detalle 467: «0 desbordes»
+   quiere decir "nada fuera de la ventana", no "todo cabe".
+2. **Los marcos de XCUITest van en coordenadas de PANTALLA y `app.frame` las da
+   locales.** Con la ventana estrechada y centrada salieron **60 desbordes
+   falsos**. La captura los desmontó.
+3. **El tamaño de ventana sobrevive a la corrida siguiente.** Se restaura con
+   `Window Controls → Zoom` de SpringBoard: el asa estrecha pero no ensancha.
+4. **El menú de la barra tiene un suelo de ruido de 0.896 %** entre dos corridas
+   del mismo código. Sin corrida de control se lee como regresión.
+
+Y uno de barrido, no de prueba: **el texto se busca por el TÉRMINO y sobre
+`Tamio/` completo**. `L.t("Concepto", "Concept")` no encuentra
+`L.t("Concepto · opcional", "Concept · optional")`, y hay texto visible en
+`Tamio/Data/`.
+
 ## Las de la pasada de QA adversario del iPhone · 9 de septiembre
 
 Los hallazgos y cómo se reprodujeron están en `docs/ROTURAS-IPHONE.md`. **Las
