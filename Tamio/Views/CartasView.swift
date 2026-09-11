@@ -88,7 +88,7 @@ struct CartasView: View {
         listaColumnaCore
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Paleta.sueloLista(tarjeta: sizeClass != .regular))
+            .background(Paleta.sueloLista(columna: sizeClass == .regular))
     }
 
     @ViewBuilder
@@ -156,7 +156,7 @@ struct CartasView: View {
         // encima prometía algo que el menú "Acciones" niega a propósito: sus
         // tres acciones se apagan porque no hay culto delante—. Misma línea que
         // ya llevan Ingresos y Aportantes.
-        .filaDeLista(seleccionada: sel && sizeClass == .regular, tarjeta: sizeClass != .regular)
+        .filaDeLista(seleccionada: sel && sizeClass == .regular, columna: sizeClass == .regular)
     }
 
     private func filaEmitida(_ carta: CartaEmitida) -> some View {
@@ -167,7 +167,7 @@ struct CartasView: View {
             Spacer()
         }
         .padding(.vertical, 9)
-        .filaDeLista(seleccionada: false, tarjeta: sizeClass != .regular)
+        .filaDeLista(seleccionada: false, columna: sizeClass == .regular)
     }
 
     // MARK: - Detalle

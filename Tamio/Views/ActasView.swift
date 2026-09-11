@@ -154,7 +154,7 @@ struct ActasView: View {
         listaActasCuerpo
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Paleta.sueloLista(tarjeta: sizeClass != .regular))
+            .background(Paleta.sueloLista(columna: sizeClass == .regular))
     }
 
     @ViewBuilder
@@ -193,7 +193,7 @@ struct ActasView: View {
         // encima prometía algo que el menú "Acciones" niega a propósito: sus
         // tres acciones se apagan porque no hay culto delante—. Misma línea que
         // ya llevan Ingresos y Aportantes.
-        .filaDeLista(seleccionada: sel && !compacto, tarjeta: compacto)
+        .filaDeLista(seleccionada: sel && !compacto, columna: !compacto)
     }
 
     // MARK: - Detalle

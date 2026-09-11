@@ -481,7 +481,7 @@ struct MiembrosView: View {
             // El suelo va en la LISTA, no en la columna: el material se fue a
             // la cabecera y al pie, que es lo único que difumina algo.
             .scrollContentBackground(.hidden)
-            .background(Paleta.sueloLista(tarjeta: compacto))
+            .background(Paleta.sueloLista(columna: !compacto))
             // El desvanecido de borde: la fila deja de aparecer y desaparecer
             // de golpe al cruzar por detrás del aviso o del pie.
             .scrollEdgeEffectStyle(.soft, for: .all)
@@ -533,7 +533,7 @@ struct MiembrosView: View {
         // La selección persistente es idioma de iPad, donde lista y detalle
         // conviven. En iPhone la fila navega y volver la dejaba marcada como si
         // siguiera abierta. Mismo arreglo que en Ingresos/Gastos.
-        .filaDeLista(seleccionada: esSel && !compacto, tarjeta: compacto)
+        .filaDeLista(seleccionada: esSel && !compacto, columna: !compacto)
     }
 
     private func abrir(_ a: Aportante) {

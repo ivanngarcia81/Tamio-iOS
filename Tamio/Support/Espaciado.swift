@@ -31,6 +31,13 @@ enum Esp {
 
     /// Padding interior de una píldora o chip.
     static let chip: CGFloat = 12
+
+    /// **El aire de más que gana una fila en la columna maestra del iPad.**
+    /// La fila del teléfono se lee sobre una pantalla entera; la de la columna
+    /// se lee en 320 pt contra otras ocho, y con el alto del teléfono las
+    /// tarjetas salían flacas. No es un valor suelto: es el único sitio donde
+    /// la columna y el teléfono difieren de alto, y por eso tiene nombre.
+    static let aireColumna: CGFloat = 4
     /// Separación entre elementos hermanos.
     static let hueco: CGFloat = 8
 
@@ -109,24 +116,36 @@ extension View {
     /// tres eran el mismo conflicto entre `insetGrouped` y una tarjeta dibujada
     /// a mano.
     ///
+    /// **La fila es tarjeta en los dos aparatos.** Hasta el 11-sep lo era solo
+    /// en compacto: en la columna del iPad iba transparente con separador, y
+    /// sobre el suelo claro de la columna eso se veía como una pantalla en
+    /// blanco sin filas. Medido en captura, suelo y fila eran el mismo
+    /// `#FEFEFE`.
+    ///
     /// - Parameters:
     ///   - seleccionada: pinta el fondo de selección y la barra lateral.
-    ///   - tarjeta: en compacto la fila **es** una tarjeta sobre el fondo
-    ///     agrupado; en la columna de iPad va transparente sobre el material de
-    ///     la columna, con separador, como hasta ahora.
-    func filaDeLista(seleccionada: Bool, tarjeta: Bool) -> some View {
-        modifier(FilaDeLista(seleccionada: seleccionada, tarjeta: tarjeta))
+    ///   - columna: la fila vive en la columna maestra del iPad, no a ancho
+    ///     completo. Ahí la tarjeta cuesta ancho de texto —320 pt menos 16 de
+    ///     margen y 16 de interior a cada lado dejan 256 para el nombre—, así
+    ///     que los dos márgenes bajan un escalón de la escala y la fila gana
+    ///     el aire vertical que el teléfono ya tenía de sobra.
+    func filaDeLista(seleccionada: Bool, columna: Bool) -> some View {
+        modifier(FilaDeLista(seleccionada: seleccionada, columna: columna))
     }
 }
 
 private struct FilaDeLista: ViewModifier {
     let seleccionada: Bool
-    let tarjeta: Bool
+    let columna: Bool
+
+    private var margen: CGFloat { columna ? Esp.hueco : Esp.pantalla }
+    private var interior: CGFloat { columna ? Esp.chip : Esp.fila }
 
     func body(content: Content) -> some View {
         let forma = RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous)
         return content
-            .padding(.horizontal, tarjeta ? Esp.fila : Esp.pantalla)
+            .padding(.horizontal, interior)
+            .padding(.vertical, columna ? Esp.aireColumna : 0)
             .background(fondo, in: forma)
             .overlay(alignment: .leading) {
                 if seleccionada { Rectangle().fill(Paleta.brand).frame(width: 3) }
@@ -139,7 +158,7 @@ private struct FilaDeLista: ViewModifier {
             // Recorta fondo y barra al mismo radio: sueltos, la barra se salía
             // por la esquina de la tarjeta.
             .clipShape(forma)
-            .padding(.horizontal, tarjeta ? Esp.pantalla : 0)
+            .padding(.horizontal, margen)
             // **La separación entre tarjetas vive aquí, no en cada `List`.**
             // Sin esto el espacio entre filas salía del comportamiento por
             // omisión del `List`: entre grupos de día había aire —lo pone la
@@ -151,13 +170,12 @@ private struct FilaDeLista: ViewModifier {
             // de la app: puesto en cada `List`, se separan solas en cuanto
             // alguien añade la décima.
             .listRowInsets(EdgeInsets(top: 0, leading: 0,
-                                      bottom: tarjeta ? Esp.hueco : 0, trailing: 0))
+                                      bottom: Esp.hueco, trailing: 0))
             .listRowBackground(Color.clear)
-            .listRowSeparator(tarjeta ? .hidden : .automatic)
+            .listRowSeparator(.hidden)
     }
 
     private var fondo: Color {
-        if seleccionada { return Paleta.brandFill }
-        return tarjeta ? Paleta.superficieFila : .clear
+        seleccionada ? Paleta.brandFill : Paleta.superficieFila
     }
 }

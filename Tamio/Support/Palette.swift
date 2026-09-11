@@ -96,10 +96,18 @@ enum Paleta {
     /// en el teléfono quedó **blanco sobre blanco**: las tarjetas de Membresía
     /// dejaron de verse enteras, no había gris entre ellas. La regla es la
     /// misma que la de la fila, así que vive en el mismo sitio y se le pasa el
-    /// mismo `tarjeta` que a `filaDeLista`.
-    static func sueloLista(tarjeta: Bool) -> Color {
-        tarjeta ? Color(.systemGroupedBackground) : Color(.secondarySystemGroupedBackground)
+    /// mismo `columna` que a `filaDeLista`.
+    static func sueloLista(columna: Bool) -> Color {
+        columna ? sueloColumna : Color(.systemGroupedBackground)
     }
+
+    /// **El suelo de la columna maestra del iPad.** Es un rol aparte del de
+    /// arriba porque ahí el gris agrupado ya está ocupado: lo usa el panel de
+    /// detalle, a la derecha, y con el mismo tono las dos columnas se leen
+    /// como una sola superficie partida por una raya. Este baja un escalón
+    /// más, lo justo para que la columna se separe del detalle y para que la
+    /// tarjeta blanca de la fila destaque un poco más que sobre el agrupado.
+    static let sueloColumna = Color("TamioSueloColumna")
 
     /// Enlaces de acción ("Ver todos", "Abrir bandeja →", "Ver ficha").
     static let enlace = Color("TamioEnlace")

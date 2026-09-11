@@ -144,7 +144,7 @@ struct ServiciosView: View {
             // nada que difuminar se resolvía como un gris plano, que es lo
             // mismo que el gris agrupado pero por accidente.
             .scrollContentBackground(.hidden)
-            .background(Paleta.sueloLista(tarjeta: sizeClass != .regular))
+            .background(Paleta.sueloLista(columna: sizeClass == .regular))
     }
 
     @ViewBuilder
@@ -200,7 +200,7 @@ struct ServiciosView: View {
         // encima prometía algo que el menú "Acciones" niega a propósito: sus
         // tres acciones se apagan porque no hay culto delante—. Misma línea que
         // ya llevan Ingresos y Aportantes.
-        .filaDeLista(seleccionada: sel && !compacto, tarjeta: compacto)
+        .filaDeLista(seleccionada: sel && !compacto, columna: !compacto)
     }
 
     // MARK: - Detalle
@@ -1250,7 +1250,7 @@ struct ListaAsistenciaSheet: View {
         .scrollContentBackground(.hidden)
         // Sus filas son tarjetas en los dos aparatos: la hoja de asistencia se
         // marca igual en el teléfono que en el iPad.
-        .background(Paleta.sueloLista(tarjeta: true))
+        .background(Paleta.sueloLista(columna: false))
         .scrollEdgeEffectStyle(.soft, for: .all)
     }
 
@@ -1296,7 +1296,7 @@ struct ListaAsistenciaSheet: View {
             }
         }
         .padding(.vertical, 8)
-        .filaDeLista(seleccionada: false, tarjeta: true)
+        .filaDeLista(seleccionada: false, columna: false)
     }
 
     private func filaPersona(_ m: Miembro) -> some View {
@@ -1351,6 +1351,6 @@ struct ListaAsistenciaSheet: View {
             }
         }
         .padding(.vertical, 6)
-        .filaDeLista(seleccionada: false, tarjeta: true)
+        .filaDeLista(seleccionada: false, columna: false)
     }
 }

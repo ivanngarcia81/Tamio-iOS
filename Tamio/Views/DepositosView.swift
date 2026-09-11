@@ -264,7 +264,7 @@ struct DepositosView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Paleta.sueloLista(tarjeta: !wide))
+        .background(Paleta.sueloLista(columna: wide))
         // Desvanecido de borde: la fila deja de aparecer y desaparecer de golpe
         // al cruzar por detrás de la cabecera.
         .scrollEdgeEffectStyle(.soft, for: .all)
@@ -322,7 +322,7 @@ struct DepositosView: View {
         // encima prometía algo que el menú "Acciones" niega a propósito: sus
         // tres acciones se apagan porque no hay culto delante—. Misma línea que
         // ya llevan Ingresos y Aportantes.
-        .filaDeLista(seleccionada: esSel && !compacto, tarjeta: !wide)
+        .filaDeLista(seleccionada: esSel && !compacto, columna: wide)
     }
 }
 

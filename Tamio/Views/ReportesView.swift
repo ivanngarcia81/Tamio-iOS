@@ -71,7 +71,7 @@ struct ReportesView: View {
         // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Paleta.sueloLista(tarjeta: compacto))
+        .background(Paleta.sueloLista(columna: !compacto))
     }
 
     private func filaReporte(_ t: ReporteTipo, empuja: Bool) -> some View {
@@ -99,7 +99,7 @@ struct ReportesView: View {
         // encima prometía algo que el menú "Acciones" niega a propósito: sus
         // tres acciones se apagan porque no hay culto delante—. Misma línea que
         // ya llevan Ingresos y Aportantes.
-        .filaDeLista(seleccionada: sel, tarjeta: compacto)
+        .filaDeLista(seleccionada: sel, columna: !compacto)
     }
 
     // MARK: - Detalle en el teléfono

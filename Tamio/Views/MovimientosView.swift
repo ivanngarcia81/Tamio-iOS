@@ -362,7 +362,7 @@ struct MovimientosView: View {
             // material se fue a la cabecera y al pie, así que aquí queda el
             // fondo liso sobre el que corre el contenido.
             .scrollContentBackground(.hidden)
-            .background(Paleta.sueloLista(tarjeta: compacto))
+            .background(Paleta.sueloLista(columna: !compacto))
             // El desvanecido de borde: la fila deja de aparecer y desaparecer
             // de golpe al cruzar por detrás de la cabecera o del pie. Sustituye
             // al margen de scroll que se puso antes como parche, cuando la
@@ -448,7 +448,7 @@ struct MovimientosView: View {
                             }
                             .tint(Paleta.brand)
                         }
-                        .filaDeLista(seleccionada: false, tarjeta: compacto)
+                        .filaDeLista(seleccionada: false, columna: !compacto)
                 }
             } header: {
                 // En mayúsculas como los encabezados de día ("HOY · VIERNES
@@ -850,7 +850,7 @@ struct MovimientosView: View {
         // La selección persistente es idioma de iPad, donde la lista y el
         // detalle conviven. En iPhone la fila navega y volver dejaba la última
         // tocada con barra verde y fondo tintado, como si siguiera abierta.
-        .filaDeLista(seleccionada: esSel && !compacto, tarjeta: compacto)
+        .filaDeLista(seleccionada: esSel && !compacto, columna: !compacto)
     }
 
     /// La señal de estado de una fila, si la hay. **Cada tipo tiene la suya**:

@@ -118,7 +118,7 @@ struct InformesMembresiaView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .filaDeLista(seleccionada: vm.informeSeleccionado == idx, tarjeta: false)
+                .filaDeLista(seleccionada: vm.informeSeleccionado == idx, columna: true)
             }
         }
         .listStyle(.plain)
@@ -127,7 +127,7 @@ struct InformesMembresiaView: View {
         // y nada más—, así que la fila nunca es tarjeta y el suelo es siempre
         // el claro. Va por la regla igual, para que no haya que volver a
         // deducirlo.
-        .background(Paleta.sueloLista(tarjeta: false))
+        .background(Paleta.sueloLista(columna: true))
         .frame(width: Esp.columnaMaestra)
     }
 

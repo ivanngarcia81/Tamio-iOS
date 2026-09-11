@@ -488,7 +488,7 @@ struct MembresiaView: View {
                 // columna entera el material no tenía nada que difuminar y se
                 // resolvía como un gris plano.
                 .scrollContentBackground(.hidden)
-                .background(Paleta.sueloLista(tarjeta: compacto))
+                .background(Paleta.sueloLista(columna: !compacto))
                 // El desvanecido de borde: la fila deja de aparecer y
                 // desaparecer de golpe al cruzar por detrás de la cabecera.
                 // Sustituye al margen de scroll que había como parche, de
@@ -581,7 +581,7 @@ struct MembresiaView: View {
         // encima prometía algo que el menú "Acciones" niega a propósito: sus
         // tres acciones se apagan porque no hay culto delante—. Misma línea que
         // ya llevan Ingresos y Aportantes.
-        .filaDeLista(seleccionada: esSel && !compacto, tarjeta: compacto)
+        .filaDeLista(seleccionada: esSel && !compacto, columna: !compacto)
     }
 
     private func filaSeguimiento(_ m: Miembro) -> some View {
@@ -612,7 +612,7 @@ struct MembresiaView: View {
         // encima prometía algo que el menú "Acciones" niega a propósito: sus
         // tres acciones se apagan porque no hay culto delante—. Misma línea que
         // ya llevan Ingresos y Aportantes.
-        .filaDeLista(seleccionada: esSel && !compacto, tarjeta: compacto)
+        .filaDeLista(seleccionada: esSel && !compacto, columna: !compacto)
     }
 
     // MARK: - Helpers
