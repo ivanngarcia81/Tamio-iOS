@@ -74,6 +74,13 @@ enum Esp {
     /// Ajustes— miden las dos 50, y los 52 eran filas escritas a mano que se
     /// las saltaban.
     static let altoFila: CGFloat = 50
+    /// Alto mínimo de un botón de ancho completo dentro de una tarjeta.
+    ///
+    /// Las cuatro acciones de Ajustes estaban repartidas 2-2 sin criterio:
+    /// Invitar y Sincronizar a 52, Cerrar sesión y Respaldar ahora a 54. Gana
+    /// **54**, el mayor: una acción no puede ser más baja que una fila de
+    /// contenido que solo informa.
+    static let altoBoton: CGFloat = 54
 }
 
 extension View {

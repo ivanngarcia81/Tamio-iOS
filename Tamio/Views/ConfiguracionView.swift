@@ -463,7 +463,7 @@ private struct SeccionCuenta: View {
                             .font(.escalada(16.5, relativeTo: .body))
                             .foregroundStyle(Paleta.negativo)
                             .frame(maxWidth: .infinity)
-                            .frame(minHeight: 54)
+                            .frame(minHeight: Esp.altoBoton)
                             .background(
                                 Color(.secondarySystemGroupedBackground),
                                 in: RoundedRectangle(cornerRadius: Esp.radioTarjeta, style: .continuous)
@@ -917,7 +917,7 @@ private struct SeccionAcceso: View {
                                  : AnyShapeStyle(.primary.opacity(0.7)))
             if invitando { ProgressView() }
         }
-        .frame(maxWidth: .infinity).frame(minHeight: 52)
+        .frame(maxWidth: .infinity).frame(minHeight: Esp.altoBoton)
     }
 
     private func invitar() async {
@@ -1365,7 +1365,7 @@ private struct SeccionZona: View {
             .foregroundStyle(motor.puedeSincronizar
                              ? AnyShapeStyle(Paleta.brand)
                              : AnyShapeStyle(.primary.opacity(0.7)))
-            .frame(maxWidth: .infinity).frame(minHeight: 52)
+            .frame(maxWidth: .infinity).frame(minHeight: Esp.altoBoton)
     }
 
     var body: some View {
@@ -1426,7 +1426,7 @@ private struct SeccionZona: View {
                                 .foregroundStyle(trabajando ? .secondary : Paleta.brand)
                             if trabajando { ProgressView() }
                         }
-                        .frame(maxWidth: .infinity).frame(minHeight: 54)
+                        .frame(maxWidth: .infinity).frame(minHeight: Esp.altoBoton)
                     }
                     .buttonStyle(.plain)
                     .disabled(trabajando)
