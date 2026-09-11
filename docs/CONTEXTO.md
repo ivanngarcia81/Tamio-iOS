@@ -5,9 +5,93 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **10 de septiembre de 2026** por la tarde, al empezar los
-permisos del servidor y descubrir que la propuesta estaba escrita a medias
-(§0.-9).
+Última actualización: **11 de septiembre de 2026**, tras la segunda pasada de
+interfaz del iPad (§0.-10).
+
+---
+
+## 0.-10 Segunda pasada de interfaz del iPad · 11 de septiembre
+
+**Solo interfaz, solo iPad, y esta vez con el recorrido completo de posturas.**
+Dieciséis arreglos, un commit cada uno. Las quince secciones de la sidebar
+recorridas en **siete posturas** con 106 capturas.
+
+### Lo que se arregló y se VIO en pantalla
+
+Ajustes del iPad, que es donde estaba casi toda la deriva:
+
+- **Dos radios de tarjeta** (18 y 20) para el mismo rol, una encima de la otra.
+- **Tres filas con la forma idéntica** —rótulo más `Picker`— a 50 y 52 pt.
+- **Las cuatro acciones repartidas 2-2** entre 52 y 54.
+- **La fila de una persona 10 pt más baja** que la de un documento.
+- **La tarjeta del estado de sincronización salía a un tercio de ancho**, y eso
+  **no se ve leyendo**: `GrupoConf` no impone ancho, lo toma de su contenido, y
+  esa era su única fila sin `Spacer`. Apareció en la captura.
+
+Y en la sidebar:
+
+- **La cabecera de la iglesia dibujaba un galón y no llevaba a ninguna parte.**
+  Ahora es `Button` y va a Configuración. Entra por la sección que Ajustes abre
+  por omisión —«Cuenta», no «Iglesia»—: aterrizar en la iglesia pide una
+  pseudo-sección en `RootView.pantallaDeSeccion` o un estático de una sola vez,
+  y las dos cosas tienen más efectos de lado que el punto que ganan.
+- **Las trece filas con las que se navega medían 36 pt**, ocho por debajo del
+  mínimo tocable de 44. Medido: 225 apariciones antes, cero después. **En AX1
+  ya pasaban de 44 solas**, así que el fallo solo existía en el tamaño de letra
+  de fábrica — que es donde nadie mira dos veces.
+- **«Vista previa del PDF» prometía una pantalla que no existe**, y no se le
+  puede dar destino: la previa del membrete ya se pinta en vivo tres tarjetas
+  más arriba, en la misma pantalla.
+
+Vocabulario, siete commits (los detalles en `docs/ROTURAS-IPAD.md`).
+
+### Lo que no se deduce leyendo el código
+
+- **`Font.escalada` solo existe en DOS archivos** —`ConfiguracionView` (83) y
+  `AccesoView` (12)—. Las otras **604** tipografías de las pantallas de iPad son
+  fuentes semánticas, **que ya escalan solas**. Así que «convertir a `escalada`
+  lo que deba escalar» aplicado en bloque es un error: lo único que no escala
+  con nada son los 15 `.system(size:)` de texto. Y la escala de `escalada` es
+  coherente: **cada tamaño tiene un solo `relativeTo`, cero contradicciones**.
+- **El radio de una baldosa de icono es una PROPORCIÓN, no un token.** Los cinco
+  valores —8 sobre 28 y 30, 9 sobre 36, 11 sobre 40, 15 sobre 60— caen entre
+  lado × 0.25 y × 0.29. Escribirlo como `lado * 0.27` movería cuatro de los
+  cinco (60 pasaría a 16.2): sería introducir deriva para quitarla. Se retiró
+  el token después de aprobado, por eso.
+- **`Esp` tokenizó el margen HORIZONTAL y no el vertical.** Ahí está la deriva
+  que queda: `padding(.vertical, 6/8/9/10/11/12/14/18/20)` sueltos.
+- **`ConfiguracionView.listaCompacta` es código MUERTO.** Verificado a 375 pt:
+  en compacto manda `IPhoneRootView` (pestañas, sin sidebar), y
+  `ConfiguracionView()` solo se instancia en `RootView:170`, dentro de la rama
+  regular. Sus ocho filas con galón y sin `Button` no las ve nadie.
+- **Los segmentados se quedan en 32 pt en fábrica y en AX1**, sin altura fija en
+  el código: lo pinta el sistema. Por §4 no se pelea con eso.
+
+### Cómo se verificó, y tres avisos de instrumento nuevos
+
+El recorrido está en `pruebas/RecorridoIPadUITests.swift`: visita las quince
+secciones, vuelca los marcos y avisa de desbordes y de tocables por debajo de
+44. Las posturas las pone el shell (`pruebas/postura.sh`).
+
+- **Un volcado que compara contra el ancho de la VENTANA no ve lo que se trunca
+  dentro de una COLUMNA.** En el mini la ventana son 744 pt y la columna de
+  detalle 467: «0 desbordes» significa "nada dibujado fuera de la ventana", no
+  "todo cabe". Lo de dentro de la columna se mira en la captura.
+- **Los marcos de XCUITest van en coordenadas de PANTALLA y `app.frame` las da
+  locales.** Con la ventana estrechada y centrada, comparar `maxX` contra
+  `app.frame.width` dio **60 desbordes falsos**. La captura lo desmontó.
+- **El estrechado a 375 pt SÍ se automatiza en el simulador** (pulsación larga
+  de 1.0 s en el asa y arrastre), al revés de lo que se daba por hecho; lo que
+  no se automatiza es en el aparato. Y **el tamaño de ventana sobrevive a la
+  corrida siguiente**: se restaura con `Window Controls → Zoom` de SpringBoard,
+  porque el asa no ensancha.
+
+Y uno que costó dos vueltas, del §3: **un barrido de texto hay que hacerlo por
+el TÉRMINO y sobre `Tamio/` completo**, no por la llamada entera y solo sobre
+`Views/`. Buscar `L.t("Concepto", "Concept")` no encuentra
+`L.t("Concepto · opcional", "Concept · optional")`, y el alta de un movimiento
+siguió diciendo "Concept" después de darlo por arreglado. Lo cazó la captura.
+Hay texto visible en `Tamio/Data/` — ocho sitios se habían quedado fuera.
 
 ---
 
