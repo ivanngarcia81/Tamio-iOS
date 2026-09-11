@@ -36,6 +36,13 @@ private struct SidebarRow: View {
             }
             .padding(.horizontal, Esp.pantalla)
             .padding(.vertical, 9)
+            // **44 pt es el mínimo tocable de iOS, no un token de Tamio**, y
+            // por eso va escrito aquí y no en `Esp`. Con `.subheadline` y 9 pt
+            // arriba y abajo estas filas medían **36-37 pt**: ocho por debajo
+            // del mínimo, y son las trece con las que se navega la app entera.
+            // Medido con el tamaño de letra de fábrica; en AX1 ya lo pasaban
+            // solas, así que el problema solo existía abajo de la escala.
+            .frame(minHeight: 44)
             .background(
                 RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous)
                     .fill(seleccionado ? Paleta.brandFill : .clear)
