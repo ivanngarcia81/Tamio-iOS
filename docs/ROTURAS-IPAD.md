@@ -406,6 +406,31 @@ pantalla** — el filtro del padrón no se abrió en dos intentos de navegación
 | baja | `ConfiguracionView.listaCompacta` | Código muerto (verificado): ocho filas con galón y sin `Button` |
 | — | los 15 `.system(size:)` de texto | Propuesta de `relativeTo` por rol lista; sin aplicar |
 
+### Los TRES roles, recorridos · sin hallazgos
+
+| Rol | Ve (9-15) | No ve |
+|---|---|---|
+| **Administrador** | las quince | — |
+| **Secretaria** | reportes, membresía, actas, servicios, cartas, informes, agenda, registro, config | inicio, ingresos, gastos, aportantes, depósitos, por revisar |
+| **Tesorero** | inicio, ingresos, gastos, aportantes, reportes, depósitos, por revisar, registro, config | membresía, actas, servicios, cartas, informes, agenda |
+
+**Cuadra exactamente con `Permisos.ve(_:)`**: a la secretaria le queda de
+Tesorería solo Reportes y no tiene Inicio —que no es una pantalla neutra, enseña
+el saldo—; al tesorero se le cierra Secretaría entera, y Membresía no aparece
+porque `tesoreroVePadron` está apagado. **Cero desbordes en los dos.**
+Verificado además en la captura: el pie de la sidebar dice el rol.
+
+**Y el aviso que casi me cuesta dos hallazgos falsos:** forzar el rol
+sustituyendo los catorce `?? .administrador` de las vistas **no hace nada**. En
+modo revisión hay una sesión INYECTADA (`SesionSupabase.swift:97`, `rol:
+.administrador`), así que `sesion` no es `nil` y ese `??` no se evalúa nunca. La
+primera pasada dio «la secretaria ve las quince» —que parecía un agujero de
+permisos— y «el tesorero se comporta bien» —que parecía la confirmación—, y las
+dos eran administrador disfrazado; lo del tesorero, además, porque en el mini
+APAISADO (744 pt de alto) las seis secciones de Secretaría quedan bajo el
+pliegue y el recorrido no desplaza. **El rol se fuerza en la inyección, no en
+los `??`, y el recorrido por rol se hace con altura de sobra.**
+
 ### RETIRADO · un hallazgo mío que no se sostiene
 
 **«Tocables por debajo de 44×44» medido con el volcado NO es una medida del área
@@ -452,7 +477,6 @@ si no lo hay, tocarlo en el hueco.
 | Pendiente | Qué hace falta |
 |---|---|
 | Todo lo de aparato | El iPad en la mano y desbloqueado |
-| Los roles secretaria y tesorero | Forzar el rol en la COPIA; se recorrió como administrador |
 | Cinco secciones en AX1 | El recorrido no hace scroll en la sidebar: quedaron bajo el pliegue. **No se demostró que sean inalcanzables** |
 | El conteo de controles empujados de la hoja de miembro | §4 dice diez y su propia lista suma trece; sigue sin contarse |
 | Truncados dentro de la columna estrecha | El volcado mide contra la ventana, no contra la columna |

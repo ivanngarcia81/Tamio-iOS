@@ -86,6 +86,15 @@ secciones, vuelca los marcos y avisa de desbordes y de tocables por debajo de
   corrida siguiente**: se restaura con `Window Controls → Zoom` de SpringBoard,
   porque el asa no ensancha.
 
+- **En modo revisión el rol NO se fuerza en los `??` de las vistas.** Hay una
+  sesión inyectada en `SesionSupabase.swift:97` con `rol: .administrador`, así
+  que `sesion?.perfil.rol ?? .loQueSea` no se evalúa nunca. Sustituir esos
+  catorce sitios dio dos lecturas falsas seguidas —«la secretaria ve las
+  quince», que parecía un agujero de permisos, y «el tesorero se comporta
+  bien», que parecía la confirmación— y las dos eran administrador disfrazado.
+  Se fuerza en la inyección. Con el rol puesto de verdad, los tres cuadran con
+  `Permisos.ve(_:)` y no hay hallazgos.
+
 - **El marco de XCUITest NO es el área tocable.** Para un `Button` cuya etiqueta
   lleva relleno transparente, el marco de accesibilidad es el del contenido
   dibujado. Las celdas de día de Agenda salían a **16×18 pt** en el volcado, y
