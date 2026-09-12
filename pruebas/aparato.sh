@@ -26,6 +26,20 @@
 # prueba. Con `--limpio` cuando se toque el `project.yml`, un paquete, o cuando
 # algo huela a caché.
 set -e
+
+# **Un cerrojo, porque dos corridas se pisan de verdad.** Comparten la copia, el
+# log y el aparato: lanzar una segunda mientras la primera corre deja a las dos
+# con «Executed 0 tests» y un log que es de la otra. Pasó el 12-sep y costó
+# media hora de diagnóstico sobre resultados que no eran del código que creía
+# estar midiendo.
+CERROJO="${TMPDIR:-/tmp}/tamio-aparato.lock"
+if ! /bin/mkdir "$CERROJO" 2>/dev/null; then
+  echo "!! ya hay una corrida en marcha (cerrojo: $CERROJO)." >&2
+  echo "   Espera a que termine, o bórralo si quedó huérfano." >&2
+  exit 75
+fi
+trap '/bin/rmdir "$CERROJO" 2>/dev/null' EXIT
+
 LIMPIO=0
 if [[ "$1" == "--limpio" ]]; then LIMPIO=1; shift; fi
 UDID="${1:?falta el UDID de hardware (devicectl list devices, fila physical)}"
