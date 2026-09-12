@@ -112,6 +112,35 @@ medida que sí discrimina es la **racha** de líneas que arrancan en el mismo
 píxel: un párrafo en bandera deja una racha tan larga como líneas tenga, y eso
 no lo imita ningún otro elemento de la hoja.
 
+
+### Y una tercera: matar la app tampoco hacía falta
+
+**«Morir entre el envío y la respuesta» se reproduce sin matar nada.** La caída
+no tiene más consecuencia que UNA: el servidor ya escribió y la fila de `outbox`
+no llegó a borrarse, porque el borrado va **después** del `try await subir(op)`
+(`MotorSincronizacion:274`). Volver a encolar la operación deja ese estado
+exacto. Medido: una sola fila y **el mismo folio** tras el reintento, o sea que
+el `upsert onConflict: "uid"` lo reconoce y el número reservado no se pide dos
+veces.
+
+Y dos avisos que salieron de ahí:
+
+- **`transactions.concepto` es el `nota` del modelo.** `transactions.notas`
+  existe y es otra cosa. El 42703 de PostgREST trae la pista puesta —«Perhaps
+  you meant transactions.notas»— y apunta a la columna equivocada de las dos.
+- **Una sola llamada a `sincronizar()` no sube nada si la app ya está
+  sincronizando**: se da la vuelta en la primera línea. Hay que sincronizar
+  **hasta VER** la fila arriba, no una vez y mirar. Y un `defer` con un
+  `Task {}` suelto no limpia: no se espera y el proceso acaba antes.
+
+### Lo de casa que conviene arreglar de una vez
+
+**Ocho movimientos de prueba del 11-sep siguen vivos en el servidor** —folios 11
+a 18, $89.96 de gastos— y están contando en el estado financiero. La marca
+`registrado_por = 'prueba-aparato'` existe justamente para poder darlos de baja
+y no se hizo; ya pasó el 10-sep con cuatro. **El paso de limpieza tiene que ser
+parte de la receta, no una costumbre.**
+
 ### Lo que queda abierto, y en qué orden
 
 El barrido del teléfono ya está completo: **20 secciones, 20 medidas, cero
@@ -131,10 +160,8 @@ desbordes**, incluidas las **ocho subpantallas de Ajustes** que la pasada del
    dos, y un estado financiero de 22 hojas del que se suelta la segunda no dice
    de quién es. `PDFExport` corta una imagen alta, así que repetir la cabecera
    NO es añadir un modificador: es cambiar cómo se compone el PDF.
-4. **Z1·1 y Z1·3-4**, que piden modo avión y los dos aparatos a la vez. De Z1
-   queda además lo que ninguna prueba ha provocado: **matar la app entre el
-   envío y la respuesta**, y ver **una operación apartada tras cinco intentos**,
-   que se cuenta dentro de «Sin subir» sin lista de qué quedó fuera.
+4. **Z1·1 y Z1·3-4**, que piden modo avión y los dos aparatos a la vez. El
+   resto de Z1 está medido, incluido lo que parecía imposible: ver abajo.
 
 ### Dos zonas cerradas sin el instrumento que se les suponía
 

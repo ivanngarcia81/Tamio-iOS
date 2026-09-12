@@ -296,6 +296,38 @@ la serie sin borrar lo ya registrado.
 
 ---
 
+### 6 · Una operación que no pudo subir solo se ve en 2 de las 17 entidades
+
+**Severidad: media.** El cambio no se pierde —se aparta, no se tira— pero quien
+lo escribió no tiene forma de encontrarlo.
+
+`subida(_:_:)` sabe decir, por entidad y por id, si algo está `.alDia`,
+`.enCola` o `.noSubio`, y ese último es el rojo que su propio comentario
+describe como «alguien tiene que mirarlo». El reparto de `subir(_:)` atiende
+**diecisiete** entidades. La interfaz pregunta por **dos**:
+`MovimientosView:872` y `EditarRecurrenteView:169`.
+
+Así que un acta, una carta, un corte, un depósito, un miembro o un aportante que
+no haya podido subir **no se ve en su propia fila**. Y la fila «Sin subir» no
+ayuda: enseña `pendientesLegible`, que es «N cambios» a secas (`:147`), así que
+mete lo apartado dentro del total. Medido:
+
+```
+QA-APARTADA: atascadas=1 · pendientes=1 · «1 change»
+QA-APARTADA-ERROR: «duplicate key value violates unique constraint»
+```
+
+**Lo que sí funciona** y conviene no tocar: la línea de estado pasa a decir
+«N cambios no pudieron subir: \<lo que dijo el servidor\>» (`:224-230`) y el
+error se conserva entero, que es de donde salen la tabla y el id.
+
+**Cómo quedó: MEDIDO Y NO ARREGLADO.** El dato para hacer la lista ya está en
+`seRindieron`; lo que falta es decidir dónde va —una sección en Ajustes ·
+Sincronización, o el punto rojo en las otras quince filas— y eso es diseño, no
+un arreglo de una línea.
+
+---
+
 ## Lo que se atacó y aguantó
 
 Una pasada también sirve para dejar de sospechar.
@@ -539,6 +571,41 @@ redactada como universal: `exigir` hace falta donde haya un `UPDATE` que pueda
 casar cero filas, no en todo lo que escribe. La tabla de prueba se borró al
 acabar.
 
+### Morir entre el envío y la respuesta · aguanta
+
+Es lo que el `upsert` existe para cubrir y lo que ninguna prueba había
+provocado. **No hace falta matar la app:** la caída no tiene más consecuencia
+que una —el servidor ya escribió y la fila de `outbox` no llegó a borrarse,
+porque el borrado va después del `try await subir(op)` (`:274`)— y ese estado se
+reproduce exacto volviendo a encolar la operación.
+
+```
+QA-CAIDA-TRAS-PRIMERA:   filas=1  folio=19
+QA-CAIDA-TRAS-REINTENTO: por uid=1 · por concepto=1 · folios=["19"]
+```
+
+Una sola fila y **el mismo folio**: el `upsert onConflict: "uid"` reconoce el
+reintento y el número reservado no se pide dos veces, que es lo que
+`MotorSincronizacion:903` prometía y nadie había comprobado. El duplicado se
+busca por CONCEPTO y no por uid a propósito: por uid no puede haber dos, y lo
+que se teme es una segunda fila con uid nuevo.
+
+### Y una cosa de casa: ocho movimientos de prueba del 11-sep siguen vivos
+
+`registrado_por = 'prueba-aparato'` existe justamente para poder darlos de baja
+después, y la tanda del 11-sep no lo hizo. En el servidor, a 12-sep:
+
+| | |
+|---|---|
+| filas vivas | **8** (folios 11 a 18) |
+| gastos que suman | **$89.96** |
+| fechas | 11-sep, 07:09 a 13:16 |
+
+Están contando en el estado financiero de la iglesia. Ya pasó el 10-sep con
+cuatro y se dio de baja; volvió a pasar con ocho. **Conviene que el paso de
+limpieza deje de ser una costumbre y sea parte de la receta**: darlas de baja es
+un `update ... set deleted = true` filtrado por esa marca, y es reversible.
+
 ---
 
 ## Lo que queda abierto de esta pasada
@@ -553,11 +620,12 @@ acabar.
 - **Z6, los recurrentes del 1 de octubre**, moviendo el reloj **después** del
   respaldo.
 - **Z1·1 y Z1·3-4**, que piden modo avión y dos aparatos a la vez.
-- **Z1·2 queda cerrado** (ver arriba). Lo que sigue abierto de Z1 es otra cosa:
-  **matar la app entre el envío y la respuesta**, que es lo que el `upsert`
-  existe para cubrir y ninguna prueba ha provocado, y **una operación apartada
-  tras cinco intentos**, que se cuenta dentro de «Sin subir» sin lista de qué
-  quedó fuera.
+- **De Z1 queda solo lo que pide dos aparatos o el modo avión** (Z1·1, Z1·3-4).
+  Lo demás está medido: Z1·2 cerrado, el reintento tras la caída aguanta, y lo
+  de la operación apartada es el hallazgo nº 6.
+- **Dar de baja los ocho movimientos de prueba del 11-sep**, que están en los
+  libros (ver arriba). Es un `update` filtrado por `registrado_por`, reversible,
+  y es de Iván decidir cuándo.
 - **Z1·5, los roles contra RLS**, que ya no está bloqueado por la cuenta: la
   secretaria existe. Faltan sus credenciales.
 
