@@ -371,7 +371,21 @@ struct DashboardView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L.t("Por revisar", "To review"))
                         .font(.subheadline.weight(.semibold))
-                    Text(L.t("\(d.pendientes) movimientos pendientes",
+                    // **Decía «movimientos pendientes» y no son movimientos.**
+                    // El número es `RevisarCalculado().asuntos()` sin los
+                    // archivados (`DashboardRepository:117` y `:229`), y esa
+                    // bandeja suma tres cosas: movimientos que `CalculadoraRevisiones`
+                    // marca, miembros dados de baja y cortes con doble firma
+                    // pedida y sin segunda firma. Medido el 12-sep en el iPhone:
+                    // la tarjeta decía «16 movimientos pendientes» con CERO
+                    // movimientos en estado `pendiente` en el servidor.
+                    //
+                    // El inglés del mismo `L.t` ya decía «items pending», que es
+                    // lo correcto: los dos lados de la misma cadena no contaban
+                    // lo mismo y el que estaba bien era el que menos se lee
+                    // aquí. En el resto de la app —`RevisarView`, y el comentario
+                    // de `DashboardRepository:227`— se llaman «asuntos».
+                    Text(L.t("\(d.pendientes) asuntos pendientes",
                              "\(d.pendientes) items pending"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
