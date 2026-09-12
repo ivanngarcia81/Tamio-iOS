@@ -78,6 +78,18 @@ cayeron en esta pasada están en el encabezado de `docs/ROTURAS-IPHONE-2.md`.
   pantalla, así que un botón del volcado puede no ser tocable y la prueba lo
   apunta como inexistente. Arrastrar hasta acercarlo. Vuelta más del §0.-10:
   **existir no es estar visible.**
+- **`PDFExport` no compone páginas: corta una imagen alta.** De ahí que el
+  membrete salga una sola vez —medido, página 1 de 22— y que el corte caiga por
+  altura y no por línea. Cualquier cosa que se quiera «en cada página» pide
+  cambiar cómo se compone el PDF, no añadir un modificador.
+- **De un PDF se mide el TEXTO de cada página, no el número de páginas.** Di
+  por roto el reporte de un mes vacío porque salía en dos hojas; la segunda
+  lleva el saldo final, el resumen y las firmas. La pregunta buena era si alguna
+  va en blanco.
+- **El compilador se rinde con un literal que lleva una división, un `max` y un
+  subíndice de array dentro** —«unable to type-check this expression in
+  reasonable time»— y no señala la parte culpable. Pasó dos veces en el mismo
+  archivo. Cada pieza a su variable, con el tipo escrito.
 - **Antes de llamar «no hay camino» a una presentación, mirar los DATOS en el
   servidor.** «Segunda firma» no aparece en ningún corte del aparato, y no es un
   fallo: los dos cortes que piden doble firma ya la tienen. Lo apunté primero
@@ -111,9 +123,14 @@ desbordes**, incluidas las **ocho subpantallas de Ajustes** que la pasada del
    firma» de `CorteDetalle`— **no tiene camino por datos**: de los cinco cortes
    vivos, los dos que piden doble firma ya la tienen y los tres que no la tienen
    no la piden. Pide crear un corte con doble firma pedida.
-2. **Z3**, los PDF en el límite, y compartir de verdad por AirDrop y correo.
-3. **Las cuatro hojas de PDF sin fixture** —reporte, reporte anual, reporte de
-   aportes y constancia—, empezando por la constancia, que es fiscal.
+2. **Compartir de verdad**, que es la mitad de Z3 que no se automatiza: por
+   AirDrop y por correo, el botón dos veces, y salir a fondo a media
+   generación. Lo hace Iván.
+3. **Decidir si el membrete se repite** en las páginas 2 y siguientes de un
+   documento largo, o si basta un «página N de M». Hoy no hay ninguno de los
+   dos, y un estado financiero de 22 hojas del que se suelta la segunda no dice
+   de quién es. `PDFExport` corta una imagen alta, así que repetir la cabecera
+   NO es añadir un modificador: es cambiar cómo se compone el PDF.
 4. **Z6**, los recurrentes del 1 de octubre, moviendo el reloj después del
    respaldo.
 5. **Z1·1 y Z1·3-4**, que piden modo avión y los dos aparatos a la vez.

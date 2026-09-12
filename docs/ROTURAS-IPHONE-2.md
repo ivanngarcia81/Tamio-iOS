@@ -408,18 +408,65 @@ Sin la primera mitad, un botón que estuviera siempre encendido habría pasado l
 prueba. Se llega por **Ajustes → Tesorero y pastor**, y la fila de firma es un
 `HStack` con `.onTapGesture`, **no un `Button`**: no está entre `app.buttons`.
 
+### Z3 · Los PDF en el límite · aguantan
+
+Sin tocar desde que los PDF existen. Medido con datos **sintéticos** y no con
+los del aparato: así no depende de que hoy haya un mes vacío, no escribe nada, y
+500 filas no se consiguen sin sembrar movimientos reales
+(`pruebas/PDFEnElLimiteTests.swift`).
+
+| caso | páginas | tiempo |
+|---|---|---|
+| 500 aportes | **22** | 159 ms |
+| anual, 12 meses × 20 categorías | 4 | 49 ms |
+| mes sin movimientos | 2 | 21 ms |
+| reporte sin logo ni firmas | 2 | 12 ms |
+| constancia sin configurar | 1 | 5 ms |
+
+**Lo que hay que saber de `PDFExport` para leer esa tabla:** no compone páginas.
+Renderiza la vista entera como **una imagen alta** y la corta en trozos de alto
+de carta (`:55` y `:59`). Dos consecuencias, las dos medidas y no supuestas:
+
+- **El membrete sale UNA vez.** Confirmado: página 1 de 22 y en ninguna más.
+  Las páginas 2 y siguientes no llevan encabezado ni número de página. Es una
+  decisión, no un fallo, pero conviene que esté escrita: un estado financiero de
+  22 hojas del que se suelta la segunda no dice de quién es.
+- **El corte cae por altura, no por línea.** En el mes vacío parte justo entre
+  el balance neto y el saldo final, así que la ecuación contable queda repartida
+  entre dos hojas.
+
+**El mes vacío sale en dos páginas, y no es hallazgo.** Lo afirmé primero como
+una sola y la prueba falló; lo resolvió medir el TEXTO de cada página en vez del
+número de páginas: la segunda lleva 156 caracteres de contenido real —saldo
+final, cabecera del resumen mensual y firmas—, o sea que **no hay ninguna hoja
+en blanco**. La pregunta buena no era cuántas páginas hay sino si alguna va
+vacía.
+
+Dos observaciones menores que no son fallos: la cabecera del resumen mensual se
+imprime con **cero filas debajo** («MONTH INCOME EXPENSES BALANCE» y nada), y el
+bloque de firmas queda casi solo en la segunda hoja.
+
+**Y ninguno de los cinco imprime un `{{hueco}}` de plantilla**, ni una iglesia
+sin configurar imprime el nombre de otra: se comprueba explícitamente contra
+«Iglesia Nueva Vida», «Mi Iglesia» y «ejemplo», que son las tres formas en que
+esto ya se colló una vez. `ConfiguracionIglesia().membrete` es vacío, como su
+comentario promete.
+
+**Las cuatro hojas que no tenían fixture ya lo tienen** —reporte, reporte anual,
+reporte de aportes y constancia—, así que el hueco que el apartado del texto
+bruto dejaba abierto queda cerrado.
+
 ---
 
 ## Lo que queda abierto de esta pasada
 
 - **La novena presentación de Z2**, que pide un corte con doble firma pedida y
   sin firmar. Lo crea Iván, o una prueba que siembre y limpie.
-- **Z3, los PDF en el límite** —mes sin movimientos, 500 movimientos, sin logo
-  ni firmas, compartir a media generación— y **compartir de verdad**, por
-  AirDrop y por correo. El camino para sacarlos del aparato y mirarlos ya está
-  probado.
-- **Las cuatro hojas de PDF sin fixture** del apartado anterior, empezando por
-  la constancia.
+- **Compartir de verdad**, que es la mitad de Z3 que queda: por AirDrop y por
+  correo, y el botón dos veces o salir a fondo a media generación. Eso no se
+  automatiza —es una hoja del sistema—, así que lo hace Iván.
+- **Decidir si el membrete debe repetirse** en las páginas 2 y siguientes, o si
+  basta un pie con «página N de M». Hoy no hay ninguno de los dos.
 - **Z6, los recurrentes del 1 de octubre**, moviendo el reloj **después** del
   respaldo.
 - **Z1·1 y Z1·3-4**, que piden modo avión y dos aparatos a la vez.
