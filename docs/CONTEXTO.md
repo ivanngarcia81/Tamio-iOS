@@ -71,6 +71,18 @@ cayeron en esta pasada están en el encabezado de `docs/ROTURAS-IPHONE-2.md`.
 - **Un error fatal de Swift en una prueba se cuenta como «Executed 0 tests»**,
   con la prueba en «Failing tests». Indistinguible del `-only-testing` que no
   casa. Aquí fue un `abs(f - Int.min)` que desborda.
+- **Y también sale «Executed 0 tests» si se lanzan DOS corridas a la vez**:
+  comparten la copia, el log y el aparato. `pruebas/aparato.sh` lleva cerrojo
+  desde hoy.
+- **`exists` no implica `isHittable`.** XCUITest lista lo que está fuera de
+  pantalla, así que un botón del volcado puede no ser tocable y la prueba lo
+  apunta como inexistente. Arrastrar hasta acercarlo. Vuelta más del §0.-10:
+  **existir no es estar visible.**
+- **Antes de llamar «no hay camino» a una presentación, mirar los DATOS en el
+  servidor.** «Segunda firma» no aparece en ningún corte del aparato, y no es un
+  fallo: los dos cortes que piden doble firma ya la tienen. Lo apunté primero
+  como camino disponible mirando `segunda_firma_en is null`, que es la columna
+  equivocada.
 
 ### Y uno de método, que costó tres vueltas
 
@@ -94,8 +106,11 @@ El barrido del teléfono ya está completo: **20 secciones, 20 medidas, cero
 desbordes**, incluidas las **ocho subpantallas de Ajustes** que la pasada del
 11-sep no tocó. Queda, sin dependencias entre ellos:
 
-1. **Z2**, las diez presentaciones de `CorteDetalle` y `ActasView`, con la
-   segunda firma y el `PKCanvasView` que no es observable. Es lo más gordo.
+1. **La novena presentación de Z2.** Las otras ocho ya están ejercitadas, y el
+   lienzo de la firma aguanta con el dedo de verdad. La que falta —«Segunda
+   firma» de `CorteDetalle`— **no tiene camino por datos**: de los cinco cortes
+   vivos, los dos que piden doble firma ya la tienen y los tres que no la tienen
+   no la piden. Pide crear un corte con doble firma pedida.
 2. **Z3**, los PDF en el límite, y compartir de verdad por AirDrop y correo.
 3. **Las cuatro hojas de PDF sin fixture** —reporte, reporte anual, reporte de
    aportes y constancia—, empezando por la constancia, que es fiscal.

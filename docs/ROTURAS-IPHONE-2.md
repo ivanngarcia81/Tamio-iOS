@@ -355,13 +355,65 @@ vivas**— y la marca cuenta `app.cells` filtrado por `isHittable`, o sea celdas
 **visibles en pantalla**. Igual que el caso de `ActasTrasSincronizarTests`. La
 marca se queda, pero su nombre promete más de lo que mide.
 
+### Z2 · Las nueve presentaciones, abiertas · aguantan
+
+**Son nueve, no diez.** `CorteDetalle` tiene cinco (`:63`, `:68`, `:79`, `:84`,
+`:85`) y `ActasView` **cuatro**: un `.sheet(isPresented:)` (`:85`), dos
+`.sheet(item:)` (`:91`, `:106`) y una `.alert` (`:111`). El encargo contaba dos
+`isPresented` en ActasView y hay uno.
+
+Ejercitadas **ocho de nueve** con `pruebas/PresentacionesAparatoUITests.swift`,
+cada una abierta, cancelada y reabierta:
+
+- **`ActasView` 4/4** — «Nuevo», «PDF», «Recopilar firmas», «Cerrar acta».
+- **`CorteDetalle` 4/5** — «Agregar dinero sin depositar», «Marcar depositado»,
+  la fecha y «Otra cuenta…».
+
+**La novena no tiene camino por DATOS, no por defecto.** `botonFirmar`
+(`CorteDetalle:433` y `:439`) se pinta solo si el corte pidió doble firma y
+todavía no la tiene. En el servidor, sobre los cinco cortes vivos:
+
+| estado | pide doble | ya firmado | cortes |
+|---|---|---|---|
+| abierto | sí | **sí** | 1 |
+| abierto | no | no | 1 |
+| depositado | sí | **sí** | 1 |
+| depositado | no | no | 2 |
+
+Los dos que la piden ya la tienen y los tres que no la tienen no la piden: **no
+existe ningún corte que pueda enseñar ese botón**. En el estado intermedio de
+esta pasada yo mismo lo apunté como «3 sin segunda firma, así que hay camino»
+mirando solo `segunda_firma_en is null`, que era la columna equivocada — sin la
+consulta esto se escribía como hallazgo. Ejercitarla pide un corte nuevo con
+doble firma pedida, y eso es escribir en la base de la iglesia.
+
+### El lienzo de la firma con el dedo de verdad · aguanta
+
+Es lo que el encargo señalaba como más importante, y lo que el simulador no
+puede dar. `HojaFirma` es un `PKCanvasView`, un objeto de UIKit que SwiftUI no
+observa, y eso ya dejó «Guardar» apagado con la firma hecha una vez. El arreglo
+—un contador `trazos` alimentado por `canvasViewDrawingDidChange`, y un `vacio`
+que mira el contador **y** los trazos (`HojaFirma:43`)— nunca se había
+ejercitado con un dedo.
+
+Medido **tres corridas seguidas** en el iPhone, con las dos mitades del control:
+
+```
+QA-FIRMA: Guardar apagado con el lienzo en blanco
+QA-FIRMA: Guardar ENCENDIDO tras dibujar
+QA-FIRMA: Borrar lo vuelve a apagar
+```
+
+Sin la primera mitad, un botón que estuviera siempre encendido habría pasado la
+prueba. Se llega por **Ajustes → Tesorero y pastor**, y la fila de firma es un
+`HStack` con `.onTapGesture`, **no un `Button`**: no está entre `app.buttons`.
+
 ---
 
 ## Lo que queda abierto de esta pasada
 
-- **Z2, las diez presentaciones de `CorteDetalle` y `ActasView`**, con la
-  segunda firma y el `PKCanvasView` que no es observable. Es lo más gordo que
-  queda.
+- **La novena presentación de Z2**, que pide un corte con doble firma pedida y
+  sin firmar. Lo crea Iván, o una prueba que siembre y limpie.
 - **Z3, los PDF en el límite** —mes sin movimientos, 500 movimientos, sin logo
   ni firmas, compartir a media generación— y **compartir de verdad**, por
   AirDrop y por correo. El camino para sacarlos del aparato y mirarlos ya está
@@ -402,3 +454,15 @@ marca se queda, pero su nombre promete más de lo que mide.
   está commiteado**: no hay nada que guardar, el stash no hace nada, y la
   prueba pasa por la razón equivocada. Para retirar algo commiteado hay que
   tocar el árbol de trabajo.
+- **XCUITest lista elementos que están FUERA de pantalla**, así que `exists` no
+  implica `isHittable`. Dos presentaciones de `CorteDetalle` se apuntaron como
+  «sin camino» estando en el volcado, solo por debajo del borde. Hay que
+  arrastrar hasta que el elemento sea tocable. Es el §0.-10 —el marco no es el
+  área tocable— con una vuelta más: **existir no es estar visible**.
+- **Dos corridas del script se pisan**: comparten la copia, el log y el
+  aparato, y las dos acaban con «Executed 0 tests» y un log que es de la otra.
+  Ahora lleva cerrojo; media hora se fue diagnosticando resultados que no eran
+  del código que creía estar midiendo.
+- **Los rótulos se leen del código, no se adivinan.** Es «Nuevo» y no «Nueva
+  acta», «Recopilar firmas» y no «Firmar», y la fila «Fecha» tiene la palabra
+  en un `Text` y la fecha en el `Button`: no existe ningún botón «Fecha».
