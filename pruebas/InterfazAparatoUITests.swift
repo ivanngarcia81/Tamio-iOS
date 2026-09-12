@@ -53,7 +53,11 @@ final class InterfazAparatoUITests: XCTestCase {
     /// rótulos del hub para que la corrida siguiente no adivine.
     private static let pestanaDe: [String: String] = [
         "Inicio": "Inicio",
-        "Ingresos": "Tesorería", "Gastos": "Tesorería", "Aportantes": "Tesorería",
+        // **El teléfono no separa Ingresos de Gastos**: su hub de Tesorería
+        // tiene UNA sección, «Movimientos». La separación es de la sidebar del
+        // iPad. Volcado del hub, 12-sep: Movimientos, Aportantes, Depósitos,
+        // Reportes.
+        "Movimientos": "Tesorería", "Aportantes": "Tesorería",
         "Reportes": "Tesorería", "Depósitos": "Tesorería",
         "Por revisar": "Por revisar",
         "Membresía": "Secretaría", "Actas": "Secretaría",
@@ -63,7 +67,20 @@ final class InterfazAparatoUITests: XCTestCase {
         // `IPhoneSecretariaView:136`. Es el hub más cargado del teléfono —siete
         // secciones— y por eso el arrastre de `abrirFila` hace falta aquí.
         "Registro": "Secretaría",
-        "Configuración": "Ajustes",
+        // **Y no hay ninguna sección «Configuración»**: en el teléfono Ajustes
+        // es una pestaña con OCHO subpantallas, y «Configuración» es el nombre
+        // que le da la sidebar del iPad a la pantalla entera. O sea que aquí
+        // hay MÁS que barrer que en el iPad, no menos — y son justo las que la
+        // pasada del 11-sep no tocó, porque cayó toda en `ConfiguracionView`
+        // (el Ajustes del iPad) y no en `IPhoneAjustesView`.
+        //
+        // «Cuenta» se queda fuera a propósito: su fila es
+        // «IG, Ivan Garcia, Cuenta · correo», así que no casa por prefijo y
+        // lleva el correo de Iván en la etiqueta.
+        "Iglesia": "Ajustes", "Institución": "Ajustes",
+        "Tesorero y pastor": "Ajustes", "Acceso y áreas": "Ajustes",
+        "Categorías": "Ajustes", "Preferencias": "Ajustes",
+        "Zona de riesgo": "Ajustes",
     ]
 
     private var esTelefono: Bool { app.tabBars.buttons.count > 0 }
@@ -185,9 +202,22 @@ final class InterfazAparatoUITests: XCTestCase {
     // MARK: - 3 · Barrido visual en iOS 27
 
     func testBarridoVisualEniOS27() throws {
-        let secciones = ["Inicio","Ingresos","Gastos","Aportantes","Reportes","Depósitos",
-                         "Por revisar","Membresía","Actas","Registro de servicios",
-                         "Cartas y traslados","Informes de membresía","Agenda","Registro","Configuración"]
+        // **Las secciones son distintas en cada forma, no solo el camino.** La
+        // lista del iPad tiene «Ingresos» y «Gastos» por separado y una
+        // «Configuración» que en el teléfono no existe; el teléfono tiene
+        // «Movimientos» y las ocho subpantallas de Ajustes. Usar la del iPad
+        // aquí daba tres saltadas que parecían fallos del producto.
+        let deIPad = ["Inicio","Ingresos","Gastos","Aportantes","Reportes","Depósitos",
+                      "Por revisar","Membresía","Actas","Registro de servicios",
+                      "Cartas y traslados","Informes de membresía","Agenda","Registro",
+                      "Configuración"]
+        let deTelefono = ["Inicio","Movimientos","Aportantes","Reportes","Depósitos",
+                          "Por revisar","Membresía","Actas","Registro de servicios",
+                          "Cartas y traslados","Informes de membresía","Agenda","Registro",
+                          "Iglesia","Institución","Tesorero y pastor","Acceso y áreas",
+                          "Categorías","Preferencias","Zona de riesgo"]
+        let secciones = esTelefono ? deTelefono : deIPad
+        print("QA-FORMA:\(esTelefono ? "telefono" : "ipad") · \(secciones.count) secciones")
         print("VENTANA: \(app.frame.size)")
         var medidas = 0, saltadas: [String] = []
         for s in secciones {

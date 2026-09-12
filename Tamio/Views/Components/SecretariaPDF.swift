@@ -93,6 +93,22 @@ struct CartaHojaPDF: View {
         VStack(alignment: .leading, spacing: 0) {
             // Membrete centrado, como en la pantalla: una carta encabeza
             // centrada, al contrario que los reportes.
+            // **`.multilineTextAlignment(.center)` va en el CONTENEDOR, y falta
+            // en dos de los tres membretes centrados.** Un `VStack(alignment:
+            // .center)` centra las VISTAS, no las LÍNEAS de dentro: un `Text`
+            // que envuelve ocupa todo el ancho y pinta su texto alineado a la
+            // izquierda. Con un nombre de iglesia corto no se nota —cabe en una
+            // línea y parece centrado—, y con uno que envuelve el nombre sale
+            // en bandera a la izquierda mientras la ciudad, debajo y de una
+            // línea, sigue centrada: dos alineaciones en el mismo membrete.
+            //
+            // Medido el 12-sep en el PDF impreso con un nombre de 500
+            // caracteres (`pruebas/TextoBrutoEnElMembreteTests.swift`). En
+            // pantalla no se ve: el nombre de prueba cabe.
+            //
+            // Va en el contenedor y no `Text` a `Text` —como estaba en el
+            // acta— para que el siguiente renglón que se añada aquí no vuelva
+            // a quedarse fuera.
             VStack(alignment: .center, spacing: 4) {
                 LogoMembrete(alto: 60)
                 if !iglesia.nombre.isEmpty {
@@ -104,6 +120,7 @@ struct CartaHojaPDF: View {
                 Text(fecha).font(.caption).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
             .padding(.bottom, 20)
 
             Divider().padding(.bottom, 20)
@@ -177,6 +194,7 @@ struct ActaHojaPDF: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
 
             Divider()
 
@@ -364,6 +382,7 @@ struct MembreteHojaPDF: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
             .padding(.bottom, 20)
 
             Divider().padding(.bottom, 24)

@@ -57,6 +57,12 @@ xcodegen generate      # en la COPIA, nunca en el repo
 # pruebas corren con el paquete VIEJO. Se redirige a un archivo y se confirma el
 # `TEST BUILD SUCCEEDED` aparte.
 LOG="$COPIA/prueba.log"
+# `xcodebuild` se niega a pisar un `.xcresult` que ya existe —"Existing file at
+# -resultBundlePath"—, y al reutilizar la copia el de la vuelta anterior sigue
+# ahí. Se borra aquí y no con el `--delete` del rsync, porque el rsync lo
+# protege a propósito: si la corrida falla, el bundle de la anterior es lo único
+# que queda para mirar.
+rm -rf "$COPIA/resultado.xcresult"
 set +e
 xcodebuild test -scheme Tamio -destination "id=$UDID" \
   -allowProvisioningUpdates -resultBundlePath "$COPIA/resultado.xcresult" \
