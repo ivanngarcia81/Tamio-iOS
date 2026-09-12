@@ -12,20 +12,40 @@
 # datos, y las pruebas que necesitan sesion no prueban nada. El precio es que la
 # copia PISA la app instalada: hacer el respaldo antes.
 #
-# Uso:  pruebas/aparato.sh <UDID-hardware> [-only-testing:PruebasUIAparato/Clase]
+# Uso:  pruebas/aparato.sh [--limpio] <UDID-hardware> [-only-testing:PruebasUIAparato/Clase]
 #
 # El UDID de hardware es el de la columna Identifier de `devicectl list devices`
 # para la fila `physical`. NO es el mismo que el `--device` de `devicectl`, que
 # es otro identificador del mismo aparato. Y cuidado: hay un SIMULADOR llamado
 # igual que el telefono, asi que por nombre se coge el equivocado.
+#
+# `--limpio` rehace la copia desde cero. Sin ella se REUTILIZA: se sincroniza
+# encima y se conservan el `.build` de SPM y el DerivedData de la copia, que es
+# lo que se lleva casi todos los minutos. Rehacerla de cero en cada vuelta
+# cuesta ~8 min por corrida y no hace falta cuando lo único que cambió es una
+# prueba. Con `--limpio` cuando se toque el `project.yml`, un paquete, o cuando
+# algo huela a caché.
 set -e
+LIMPIO=0
+if [[ "$1" == "--limpio" ]]; then LIMPIO=1; shift; fi
 UDID="${1:?falta el UDID de hardware (devicectl list devices, fila physical)}"
 shift
 REPO="${0:A:h:h}"
 COPIA="${TMPDIR:-/tmp}/tamio-aparato"
 
-rm -rf "$COPIA"; mkdir -p "$COPIA"
-rsync -a --exclude .git --exclude Tamio.xcodeproj --exclude 'DerivedData*' "$REPO/" "$COPIA/"
+if (( LIMPIO )) || [[ ! -d "$COPIA" ]]; then
+  echo "--- copia NUEVA en $COPIA"
+  rm -rf "$COPIA"; mkdir -p "$COPIA"
+else
+  echo "--- REUTILIZANDO la copia de $COPIA (usa --limpio para rehacerla)"
+fi
+# `--delete` para que un archivo borrado en el repo no siga vivo en la copia y
+# se compile a la espalda de uno. Se protegen lo generado y lo descargado.
+rsync -a --delete \
+      --exclude .git --exclude Tamio.xcodeproj --exclude 'DerivedData*' \
+      --exclude 'Tamio.xcodeproj/' --exclude '.build/' --exclude '*.xcresult' \
+      --exclude 'prueba.log' \
+      "$REPO/" "$COPIA/"
 
 python3 "$REPO/pruebas/aparato_yaml.py" "$COPIA/project.yml"
 

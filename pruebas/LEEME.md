@@ -346,3 +346,72 @@ escrita como hallazgo falso:
 **Y limpiar lo que siembran.** Marcan `registrado_por = "prueba-aparato"`
 justamente para poder darlas de baja después; los folios que consumen no se
 recuperan.
+
+---
+
+## El instrumental DE APARATO, sustituido · 12 de septiembre
+
+Hasta hoy esta receta estaba en prosa en el traspaso y la copia que la
+hospedaba vivía en el `TMPDIR`, así que se fue con él y hubo que volver a
+deducirla. Ahora es **`pruebas/aparato.sh`** y **`pruebas/aparato_yaml.py`**:
+
+    pruebas/aparato.sh [--limpio] <UDID-hardware> [-only-testing:Target/Clase]
+
+Monta la copia, le compone el `project.yml` con los dos paquetes y los dos
+targets de prueba, la genera con `xcodegen` —**en la copia, nunca en el repo**—
+y lanza `xcodebuild test` contra el aparato. Sin `--limpio` reutiliza la copia:
+rehacerla de cero cuesta unos 8 minutos por vuelta y no hace falta cuando lo
+único que cambió es una prueba.
+
+### Lo que en el simulador se hacía de otra forma
+
+| En el simulador | En el aparato |
+|---|---|
+| `simctl io screenshot` (`capturar.sh`) | `XCUIScreen.main.screenshot()` escrita a `Documents/` desde la prueba y sacada con `devicectl device copy from`. **Del contenedor del RUNNER**, no del de la app: `--domain-identifier church.tamio.native.PruebasUIAparato.xctrunner`. En el teléfono salen **derechas**, no rotadas como en el iPad apaisado. |
+| `xcresulttool` para sacar adjuntos | En **Xcode 26.6** el subcomando es `xcresulttool export attachments` (y `get attachments`); el `export object` de antes está deprecado. Confirmado, pero escribir a `Documents/` sigue siendo más barato. |
+| `simctl ui content_size accessibility-medium` | A mano: Ajustes · Accesibilidad · Pantalla y tamaño de texto. **El tamaño de fábrica del aparato es `large`**, no el `medium` del simulador. |
+| `simctl ui appearance dark` | No sirve: la app fija `preferredColorScheme` desde `prefs.tema`. Va por argumento de lanzamiento, `-prefs.tema oscuro`. |
+| `-prefs.idioma espanol` | Igual que en el simulador: los argumentos de lanzamiento llegan también al aparato. |
+| `simctl spawn log stream` | `log stream` desde el Mac contra el aparato, o Console.app. Control positivo obligatorio antes de creerse un silencio. |
+| `simctl uninstall` | `xcrun devicectl device uninstall app --device <id> church.tamio.native` — se lleva la base local. |
+| Face ID con `notifyutil` | Face ID de verdad. |
+| Girar el simulador | **No aplica en el teléfono: es solo vertical a propósito** (`project.yml:69`). Medido: `XCUIDevice.shared.orientation = .landscapeLeft` en el iPhone **no rota nada y no falla**, así que una prueba escrita para el iPad se cree que mide otra postura. |
+| — | **Modo avión, la zona horaria y el reloj**: los tres solo existen aquí. |
+
+`pruebas/contraste.py` sigue valiendo, **comprobando la escala**: en el
+iPhone 17 Pro Max la ventana son 440×956 pt y la captura 1320×2868 px, o sea
+**×3**. Se divide, no se da por hecho.
+
+### Los dos identificadores del mismo teléfono
+
+`devicectl list devices --json-output` los da los dos y no son intercambiables:
+
+- `identifier` → el `--device` de `devicectl`: `D66FF4DA-EC57-55D8-B4D4-8EF1B74DADE7`
+- `udid` → el `-destination 'id=…'` de `xcodebuild`: `00008150-0005793E3EC0401C`
+
+**Y hay un SIMULADOR llamado igual que el teléfono** (`iPhone 17 Pro Max`), así
+que por nombre se coge el que no es. Por eso el script pide el UDID.
+
+### Cuatro cosas que costaron una vuelta cada una
+
+- **El `DEVELOPMENT_TEAM` va en `settings.base`**, no solo en los targets de
+  prueba: sin él falla la firma del target de la **APP**, que es donde nadie lo
+  busca. El `.pbxproj` de verdad lo lleva y `xcodegen` no lo inventa.
+- **Los targets de prueba tienen que entrar DENTRO del `targets:` que ya
+  existe.** Apendar `packages:` primero y los targets después los mete como
+  hijos del paquete, y `xcodegen` contesta `Unknown package requirement` sin
+  decir dónde.
+- **Hay DOS `DerivedData/Tamio-*`.** El glob `Tamio-*/Build/Products/…` de la
+  receta escrita se expande a dos rutas y puede instalar el `.app` de anteayer.
+  Se mira la fecha y se pasa la ruta entera.
+- **Ni el script ni `xcodebuild` se pasan por un `tail` o un `grep`**, y esta
+  vez lo pagué yo: el código de salida pasa a ser el del último comando de la
+  tubería, y `xcodegen` fallando me dio **exit 0**. Es el mismo aviso que ya
+  estaba escrito para `grep`, y aplica igual a `tail`.
+
+### Y el silencio que más caro sale
+
+**`-only-testing` con el nombre del ARCHIVO no selecciona nada y no avisa.**
+`pruebas/TextoBrutoUITests.swift` declara la clase **`TextoBruto`**, así que
+`-only-testing:PruebasUIAparato/TextoBrutoUITests` se salta en silencio. Hay
+que contar las pruebas ejecutadas, siempre.
