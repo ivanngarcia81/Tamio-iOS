@@ -131,9 +131,34 @@ desbordes**, incluidas las **ocho subpantallas de Ajustes** que la pasada del
    dos, y un estado financiero de 22 hojas del que se suelta la segunda no dice
    de quién es. `PDFExport` corta una imagen alta, así que repetir la cabecera
    NO es añadir un modificador: es cambiar cómo se compone el PDF.
-4. **Z6**, los recurrentes del 1 de octubre, moviendo el reloj después del
-   respaldo.
-5. **Z1·1 y Z1·3-4**, que piden modo avión y los dos aparatos a la vez.
+4. **Z1·1 y Z1·3-4**, que piden modo avión y los dos aparatos a la vez. De Z1
+   queda además lo que ninguna prueba ha provocado: **matar la app entre el
+   envío y la respuesta**, y ver **una operación apartada tras cinco intentos**,
+   que se cuenta dentro de «Sin subir» sin lista de qué quedó fuera.
+
+### Dos zonas cerradas sin el instrumento que se les suponía
+
+**Z6, los recurrentes, NO pedía mover el reloj.**
+`MesesRecurrentes.pendientes` recibe `hoy` **por parámetro** y es una función
+pura, así que el 1 de octubre es una cadena. Y dio hallazgo: dos aparatos
+pueden generar la misma renta dos veces, porque el movimiento nace con `id: ""`
+y cada aparato le pone un `UUID()` distinto —`transactions` solo tiene clave
+primaria sobre `uid`, sin nada único sobre recurrente+mes—. Lo único que lo
+evita es que `ultimoMesGenerado` sincronice antes, que es una carrera. Queda
+como decisión con el web, porque el id determinista tiene que ser el mismo en
+las dos apps. **Y llega el 1 de octubre**: mientras se decida, la salida barata
+es apagar el interruptor de las cuatro definiciones de prueba.
+
+**Z1·2, las cinco subidas sin `exigir`, no están expuestas al fallo que costó un
+día.** Medido en el servidor con una tabla de usar y tirar: un **`upsert`**
+filtrado por RLS da **ERROR 42501**, mientras un **`update`** filtrado devuelve
+**0 filas sin error** (el control). El fallo silencioso es propio del `UPDATE`
+a secas, que puede casar cero filas; un `upsert` siempre inserta o actualiza y
+si la política lo impide revienta.
+
+**Y el matiz importa**, porque la regla del §0.-4 está redactada como universal:
+`exigir` hace falta donde haya un `UPDATE` que pueda casar cero filas, no en
+todo lo que escribe.
 
 **Z1·5 ya no está bloqueado por Iván:** la cuenta de secretaria existe
 —`Ivang`, en `perfiles`—, al contrario de lo que decía el §0.-9. Lo que falta

@@ -243,6 +243,59 @@ resto de la app (`RevisarView`, y el comentario de `DashboardRepository:227`).
 
 ---
 
+### 5 · Dos aparatos pueden generar la misma renta dos veces · duplica dinero
+
+**Severidad: alta.** Duplica un apunte en los libros y consume un folio que no
+se recupera. Medido **sin mover el reloj**
+(`pruebas/RecurrentesDuplicadosTests.swift`).
+
+El encargo daba por hecho que el Z6 solo se mide adelantando la hora del
+aparato. No hace falta: `MesesRecurrentes.pendientes` recibe `hoy` **por
+parámetro** y es una función pura, así que el 1 de octubre es una cadena. Y lo
+que de verdad importaba —«no es que generen: es que no dupliquen»— se decide en
+el **id** del movimiento generado.
+
+**La cadena completa:**
+
+1. `MaterializadorRecurrentes.alDia` **no consulta si ya existe** un movimiento
+   de esa definición para ese mes. Solo mira `def.ultimoMesGenerado`.
+2. El movimiento nace con `id: ""` (`RecurrentesRepository:249`).
+3. `OfflineMovimientosRepository.crear` lo rellena con `UUID().uuidString`
+   (`:48`).
+4. `transactions` solo tiene **clave primaria sobre `uid`** y una clave ajena
+   —comprobado en el servidor: **ninguna restricción única sobre
+   recurrente+mes**—, así que acepta las dos filas.
+
+Medido:
+
+```
+QA-RECURRENTE: mes=["2026-09"] · id1=«» id2=«» · recurrenteId=r1 · monto=20000
+```
+
+Los dos aparatos calculan el mismo mes, crean el mismo apunte —misma definición,
+mismo importe, misma fecha— y los dos ids salen vacíos, o sea que cada uno se
+lleva un UUID nuevo y el `upsert onConflict: "uid"` no los puede reconocer como
+el mismo.
+
+**Lo único que lo evita hoy es que la marca sincronice antes.** Eso es una
+carrera, no una garantía. El aviso del traspaso —«dejar los dos aparatos en el
+mismo día antes de concluir nada sobre duplicados»— describía el síntoma sin
+nombrar la causa.
+
+**Cómo quedó: MEDIDO Y NO ARREGLADO**, por la misma razón que el hallazgo nº 1.
+El arreglo natural es derivar el id de `recurrenteId + mes`, con lo que el
+`upsert` que ya usa todo el motor los deduplicaría solo. Pero **la app web
+genera recurrentes también** —su `skipMes` está citado en el código—, y un id
+determinista tiene que ser el MISMO en las dos apps o el duplicado se mueve en
+vez de cerrarse. Es decisión con el otro repo.
+
+**Y esto llega el 1 de octubre**, con las cuatro definiciones de prueba
+—Utilities $200, Utilities $500, Limpieza $300— vivas en el aparato. Mientras se
+decida, la salida barata es **apagar el interruptor** de esas cuatro, que para
+la serie sin borrar lo ya registrado.
+
+---
+
 ## Lo que se atacó y aguantó
 
 Una pasada también sirve para dejar de sospechar.
@@ -456,6 +509,36 @@ comentario promete.
 reporte de aportes y constancia—, así que el hueco que el apartado del texto
 bruto dejaba abierto queda cerrado.
 
+### Z1·2 · Las cinco subidas sin `exigir` · no están expuestas al fallo que costó un día
+
+El encargo las señalaba: once subidas pasan por `exigir(_:tabla:_:)`
+(`MotorSincronizacion:463`) y **cinco no** —`cortes` (`:2253`),
+`corte_movimientos` (`:2285`), depósitos (`:2480`), categorías (`:2604`) y
+recurrentes (`:2716`)—, que hacen `.upsert(...).execute()` sin `.select("id")`.
+Confirmado en el código.
+
+Pero la pregunta que importa no es si llevan el guardián: es **si un `upsert`
+filtrado por RLS puede escribir nada en silencio**, que es el fallo que costó un
+día entero («un `update` que RLS filtra NO da error: afecta a cero filas y
+PostgREST devuelve 204»). Medido en el servidor, con una tabla de usar y tirar y
+su control:
+
+| caso | veredicto |
+|---|---|
+| **`upsert`** sobre una fila que la política de UPDATE no deja tocar | **ERROR 42501** · «new row violates row-level security policy (USING expression)» |
+| **`update`** filtrado *(el control, el caso ya conocido)* | **SIN ERROR** · 0 filas |
+
+O sea: **un `upsert` filtrado da error y no se puede callar.** El fallo
+silencioso es propio del `UPDATE` a secas, porque puede casar cero filas; un
+`upsert` siempre inserta o actualiza, y si la política lo impide revienta. Así
+que `exigir` en esas cinco sería cinturón de más, no un guardián que falta — y
+eso explica que se dejaran así a propósito.
+
+**Matiz que conviene que quede escrito**, porque la regla del §0.-4 está
+redactada como universal: `exigir` hace falta donde haya un `UPDATE` que pueda
+casar cero filas, no en todo lo que escribe. La tabla de prueba se borró al
+acabar.
+
 ---
 
 ## Lo que queda abierto de esta pasada
@@ -470,12 +553,11 @@ bruto dejaba abierto queda cerrado.
 - **Z6, los recurrentes del 1 de octubre**, moviendo el reloj **después** del
   respaldo.
 - **Z1·1 y Z1·3-4**, que piden modo avión y dos aparatos a la vez.
-- **Z1·2, la idempotencia del reintento.** Confirmado en el código lo que el
-  encargo decía: once subidas pasan por `exigir(_:tabla:_:)`
-  (`MotorSincronizacion:463`) y **cinco no** —`cortes` (`:2253`),
-  `corte_movimientos` (`:2285`), depósitos (`:2480`), categorías (`:2604`) y
-  recurrentes (`:2716`)—, así que suben sin comprobar que tocaron algo. Sin
-  ejercitar con red.
+- **Z1·2 queda cerrado** (ver arriba). Lo que sigue abierto de Z1 es otra cosa:
+  **matar la app entre el envío y la respuesta**, que es lo que el `upsert`
+  existe para cubrir y ninguna prueba ha provocado, y **una operación apartada
+  tras cinco intentos**, que se cuenta dentro de «Sin subir» sin lista de qué
+  quedó fuera.
 - **Z1·5, los roles contra RLS**, que ya no está bloqueado por la cuenta: la
   secretaria existe. Faltan sus credenciales.
 
