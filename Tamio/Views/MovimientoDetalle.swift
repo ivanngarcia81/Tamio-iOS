@@ -279,7 +279,27 @@ struct MovimientoDetalle: View {
             VStack(alignment: .leading, spacing: 14) {
                 TituloSeccion(texto: L.t("RASTRO DE AUDITORÍA", "AUDIT TRAIL"))
                 if m.auditoria.isEmpty {
-                    Text(L.t("Sin eventos registrados.", "No events recorded."))
+                    // **Decía «Sin eventos registrados.», y eso no era verdad.**
+                    // El rastro no está vacío: no se guarda. `NuevoMovimientoView:480`
+                    // construye una entrada al crear el movimiento —«Creado ·
+                    // autor», «Ahora · aparato»— y `MovimientoFila:102` devuelve
+                    // `auditoria: []` al leerlo de la base, porque no hay columna
+                    // ni en SQLite ni en Supabase. Así que la entrada se ve una
+                    // vez y desaparece en cuanto se reabre la app, para siempre.
+                    //
+                    // «Sin eventos» le dice a quien audita que no pasó nada,
+                    // cuando lo que pasa es que no se apuntó: es la diferencia
+                    // entre una caja vacía y una caja que no existe. Mismo
+                    // criterio con el que «Compactar base de datos» dejó de
+                    // decir «ya está compacta».
+                    //
+                    // No se apunta a Registro aunque tenga los apuntes de estos
+                    // mismos movimientos: los tres roles llegan a esa pantalla,
+                    // pero `Permisos.areasDelRegistro` filtra QUÉ apuntes ve
+                    // cada uno, así que «están en Registro» sería otra promesa
+                    // que no siempre se cumple.
+                    Text(L.t("El rastro de este movimiento todavía no se guarda.",
+                             "The trail for this transaction isn't stored yet."))
                         .font(.subheadline).foregroundStyle(.secondary)
                 } else {
                     ForEach(m.auditoria) { e in
