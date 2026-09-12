@@ -175,54 +175,141 @@ final class TextoBrutoEnElMembreteTests: XCTestCase {
     /// mismo membrete. Con un nombre corto no se ve, porque cabe en una línea.
     ///
     /// Se mide en el PDF renderizado y no leyendo el código: con texto CENTRADO
-    /// el filo izquierdo de las líneas varía —la última, más corta, entra más—,
-    /// y alineado a la izquierda es el mismo en todas. Es la misma técnica que
-    /// `pruebas/contraste.py`, en el eje horizontal.
-    private func filosIzquierdos(_ url: URL) throws -> [Int] {
+    /// el filo izquierdo de cada LÍNEA es distinto —cada una entra lo que le
+    /// sobra—, y alineado a la izquierda todas empiezan en el mismo píxel.
+    ///
+    /// **Y esto costó un control positivo, que es la razón de que esté
+    /// escrito así.** La primera versión medía la dispersión de los filos de
+    /// todas las FILAS del tercio superior de la hoja, y pasaba en verde con el
+    /// arreglo puesto Y quitado: en esa banda también están el divisor —que
+    /// cruza la página entera— y las cuatro barras grises del hueco del
+    /// documento, y esos dos solos daban 562 px de dispersión contra un umbral
+    /// de 20. Medía el marco de la hoja y no el texto. Por eso ahora se
+    /// recortan las filas por debajo del DIVISOR, se agrupan en líneas, y se
+    /// descarta la última —la ciudad, que al ser de una sola línea sale
+    /// centrada en los dos casos y metería dispersión falsa—.
+    ///
+    /// Es la lección del §0.-10 en el eje horizontal: un volcado señala
+    /// candidatos, y quien confirma es una medida que se ha visto fallar.
+    private struct Membrete {
+        /// El filo izquierdo de cada línea del NOMBRE, en píxeles.
+        let filosPorLinea: [Int]
+        /// Cuántas líneas tiene el nombre.
+        var lineas: Int { filosPorLinea.count }
+        /// **La racha más larga de líneas que arrancan en el MISMO píxel
+        /// (±2).** Es la medida buena, y la dispersión no lo era: un membrete
+        /// lleva a la vez texto centrado y elementos alineados al margen —las
+        /// barras grises del hueco, el divisor—, así que la dispersión del
+        /// conjunto sale alta pase lo que pase. Un párrafo en bandera, en
+        /// cambio, deja una racha tan larga como líneas tenga, y eso no lo
+        /// imita ningún otro elemento.
+        var racha: Int {
+            // **El ancla es opcional y no `Int.min`.** Con `Int.min`,
+            // `abs(f - ancla)` desborda y Swift lo trata como error fatal: el
+            // proceso de pruebas muere y xcodebuild lo cuenta como
+            // «Executed 0 tests», que es indistinguible de un `-only-testing`
+            // que no casa con nada. Dos vueltas buscándolo en el bitmap.
+            var mejor = 0, actual = 0
+            var ancla: Int?
+            for f in filosPorLinea {
+                if let a = ancla, abs(f - a) <= 2 {
+                    actual += 1
+                } else {
+                    ancla = f; actual = 1
+                }
+                mejor = max(mejor, actual)
+            }
+            return mejor
+        }
+    }
+
+    private func medirMembrete(_ url: URL) throws -> Membrete {
         let doc = try XCTUnwrap(PDFDocument(url: url))
         let pagina = try XCTUnwrap(doc.page(at: 0))
         let caja = pagina.bounds(for: .mediaBox)
         let escala: CGFloat = 2
         let ancho = Int(caja.width * escala), alto = Int(caja.height * escala)
-        var pixeles = [UInt8](repeating: 255, count: ancho * alto)
+
+        // **La memoria se asigna a mano y no con `&unArray`.** La primera
+        // versión hacía `CGContext(data: &pixeles, ...)` sobre un `[UInt8]`, y
+        // eso es comportamiento indefinido: Swift no garantiza que ese puntero
+        // siga siendo válido después de la llamada, y el contexto escribe en él
+        // más tarde, durante `pagina.draw`. Funcionó tres corridas y a la
+        // cuarta se llevó el proceso de pruebas por delante —y el síntoma fue
+        // «Executed 0 tests» con la prueba marcada como fallida, que no dice
+        // nada de una caída—.
+        let bytes = UnsafeMutablePointer<UInt8>.allocate(capacity: ancho * alto)
+        defer { bytes.deallocate() }
+        bytes.initialize(repeating: 255, count: ancho * alto)
+
         let ctx = try XCTUnwrap(CGContext(
-            data: &pixeles, width: ancho, height: alto, bitsPerComponent: 8,
+            data: bytes, width: ancho, height: alto, bitsPerComponent: 8,
             bytesPerRow: ancho, space: CGColorSpaceCreateDeviceGray(),
             bitmapInfo: CGImageAlphaInfo.none.rawValue))
         ctx.setFillColor(gray: 1, alpha: 1)
         ctx.fill(CGRect(x: 0, y: 0, width: ancho, height: alto))
         ctx.scaleBy(x: escala, y: escala)
         pagina.draw(with: .mediaBox, to: ctx)
+        let pixeles = UnsafeBufferPointer(start: bytes, count: ancho * alto)
 
-        // El primer tercio de la hoja es donde vive el membrete.
-        var filos: [Int] = []
-        for y in 0..<(alto / 3) {
+        // Por fila: el filo izquierdo de la tinta y cuánta anchura cubre.
+        // OJO: el bitmap de CoreGraphics va de ABAJO hacia arriba, así que la
+        // fila 0 es el PIE de la hoja. Se recorre al revés.
+        func filaDeArriba(_ i: Int) -> Int { alto - 1 - i }
+        var filos = [Int](repeating: -1, count: alto)
+        for i in 0..<alto {
+            let y = filaDeArriba(i)
             var primero = -1
-            for x in 0..<ancho where pixeles[y * ancho + x] < 128 { primero = x; break }
-            if primero >= 0 { filos.append(primero) }
+            for x in 0..<ancho where pixeles[y * ancho + x] < 140 { primero = x; break }
+            filos[i] = primero
         }
-        return filos
+
+        // Se agrupan TODAS las filas con tinta en líneas y se queda el filo de
+        // cada una. No hace falta recortar por el divisor ni descartar la
+        // ciudad: la racha aísla el párrafo sola. El primer intento sí
+        // recortaba, y la detección del divisor falló —es gris claro y no
+        // llegaba al umbral de tinta—, lo que dejó la prueba afirmando
+        // `1584 < 1584`.
+        var lineas: [Int] = []
+        var enLinea = false, filoDeLaLinea = Int.max
+        for i in 0..<alto {
+            if filos[i] >= 0 {
+                enLinea = true
+                filoDeLaLinea = min(filoDeLaLinea, filos[i])
+            } else if enLinea {
+                lineas.append(filoDeLaLinea)
+                enLinea = false; filoDeLaLinea = Int.max
+            }
+        }
+        if enLinea { lineas.append(filoDeLaLinea) }
+        return Membrete(filosPorLinea: lineas)
     }
 
     func testElMembreteLargoSaleCENTRADOyNoEnBanderaALaIzquierda() throws {
         let url = try XCTUnwrap(PDFExport.render(
             MembreteHojaPDF(iglesia: iglesia(nombre: nombreLarguisimo)),
             nombre: "bruto-alineacion"))
-        let filos = try filosIzquierdos(url)
-        try XCTSkipIf(filos.count < 40, "no se dibujó texto suficiente para medir")
+        let m = try medirMembrete(url)
+        print("QA-ALINEACION: lineas=\(m.lineas) · racha=\(m.racha) · " +
+              "filos=\(m.filosPorLinea)")
 
-        // Con el texto centrado los filos de las distintas líneas NO coinciden.
-        let distintos = Set(filos).count
-        let minimo = filos.min() ?? 0, maximo = filos.max() ?? 0
-        print("QA-ALINEACION: filas con tinta=\(filos.count) · filos distintos=\(distintos) · " +
-              "min=\(minimo) max=\(maximo) · dispersión=\(maximo - minimo)")
+        // Control de la MEDIDA, no del producto: sin varias líneas no hay
+        // alineación que medir, y un nombre de 500 caracteres tiene que darlas.
+        XCTAssertGreaterThan(m.lineas, 4,
+                             "el nombre largo no envolvió: la medida no aplica")
 
-        XCTAssertGreaterThan(maximo - minimo, 20, """
-            El nombre largo sale con el mismo filo izquierdo en todas sus \
-            líneas (dispersión \(maximo - minimo) px): está en bandera a la \
-            izquierda dentro de un membrete centrado. Falta \
+        // **Medido con control positivo, 12-sep, en el iPhone.** Sin el
+        // arreglo: racha de 10 sobre 14 líneas, con los filos del nombre
+        // clavados en 97-98 px. Con el arreglo puesto la racha baja, porque
+        // cada línea centrada entra lo que le sobra. El umbral es 4 y no 2
+        // para dejar sitio a que dos líneas del párrafo salgan casi iguales
+        // por casualidad.
+        XCTAssertLessThan(m.racha, 4, """
+            \(m.racha) líneas seguidas del membrete arrancan en el mismo \
+            píxel (filos \(m.filosPorLinea)): el nombre sale en bandera a la \
+            izquierda aunque su `VStack` sea `.center`. Falta \
             `.multilineTextAlignment(.center)` en el CONTENEDOR — ponerlo \
-            `Text` a `Text` deja fuera el renglón siguiente que se añada.
+            `Text` a `Text` deja fuera el renglón siguiente que se añada ahí.
             """)
     }
 }
