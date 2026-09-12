@@ -61,18 +61,47 @@ Corolario para el §3: cuando una regla se apoye en un conteo, **escribir el
 conteo al lado** y volver a contarlo antes de usarla. Las cuatro premisas que se
 cayeron en esta pasada están en el encabezado de `docs/ROTURAS-IPHONE-2.md`.
 
-### Lo que quedó bloqueado, y en qué orden retomarlo
+### Tres avisos más de instrumento, todos del aparato
 
-El teléfono se bloqueó a mitad, así que el barrido de las quince secciones **con
-la navegación ya arreglada** no se llegó a correr: es lo primero.
+- **Un aparato BLOQUEADO no da error: cuelga la corrida.** Pasó dos veces, y la
+  segunda porque el teléfono se bloqueó **solo** entre dos corridas. Poner el
+  bloqueo automático en «Nunca» antes de empezar.
+- **Matar un `xcodebuild` a mitad de instalación deja el aparato tocado**:
+  `IXRemoteErrorDomain` código 6. Transitorio, pasa al segundo intento.
+- **Un error fatal de Swift en una prueba se cuenta como «Executed 0 tests»**,
+  con la prueba en «Failing tests». Indistinguible del `-only-testing` que no
+  casa. Aquí fue un `abs(f - Int.min)` que desborda.
 
-Después, y sin dependencias entre ellos: Z2 (las diez presentaciones de
-`CorteDetalle` y `ActasView`, con la segunda firma y el `PKCanvasView` que no es
-observable), Z3 (los PDF en el límite, que ahora se sacan con `devicectl device
-copy from`), Z6 (los recurrentes del 1 de octubre, moviendo el reloj **después**
-del respaldo) y Z7 (el texto bruto, cuya prueba declara la clase `TextoBruto` y
-no `TextoBrutoUITests`, así que un `-only-testing` por el nombre del archivo se
-salta en silencio).
+### Y uno de método, que costó tres vueltas
+
+**Un control positivo hecho con `git stash` no controla nada si el cambio ya
+está commiteado.** Quise medir el membrete sin el arreglo, hice
+`git stash push -- <archivo>`, y como el arreglo ya estaba en HEAD no había nada
+que guardar: la prueba pasó y yo lo leí como «el arreglo funciona». Lo delató que
+los números salieran **idénticos** a los del caso contrario. Para retirar algo
+commiteado hay que tocar el árbol de trabajo.
+
+Y debajo había una segunda capa: la métrica **medía el marco de la hoja y no el
+texto** —la dispersión de los filos incluía el divisor y las barras grises, 562
+px contra un umbral de 20—, así que pasaba con el arreglo puesto y quitado. La
+medida que sí discrimina es la **racha** de líneas que arrancan en el mismo
+píxel: un párrafo en bandera deja una racha tan larga como líneas tenga, y eso
+no lo imita ningún otro elemento de la hoja.
+
+### Lo que queda abierto, y en qué orden
+
+El barrido del teléfono ya está completo: **20 secciones, 20 medidas, cero
+desbordes**, incluidas las **ocho subpantallas de Ajustes** que la pasada del
+11-sep no tocó. Queda, sin dependencias entre ellos:
+
+1. **Z2**, las diez presentaciones de `CorteDetalle` y `ActasView`, con la
+   segunda firma y el `PKCanvasView` que no es observable. Es lo más gordo.
+2. **Z3**, los PDF en el límite, y compartir de verdad por AirDrop y correo.
+3. **Las cuatro hojas de PDF sin fixture** —reporte, reporte anual, reporte de
+   aportes y constancia—, empezando por la constancia, que es fiscal.
+4. **Z6**, los recurrentes del 1 de octubre, moviendo el reloj después del
+   respaldo.
+5. **Z1·1 y Z1·3-4**, que piden modo avión y los dos aparatos a la vez.
 
 **Z1·5 ya no está bloqueado por Iván:** la cuenta de secretaria existe
 —`Ivang`, en `perfiles`—, al contrario de lo que decía el §0.-9. Lo que falta

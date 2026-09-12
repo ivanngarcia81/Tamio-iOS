@@ -152,11 +152,25 @@ Y el silencio, que es lo que la hacía inútil: el barrido hacía `continue` en
 cada sección que no encontraba y **no afirmaba nada**. Trece saltadas y verde.
 Es la misma familia que el `-only-testing` que no casa con ninguna clase.
 
-**Cómo quedó: ARREGLADO.** La navegación distingue teléfono de iPad y lleva el
-mapa de qué pestaña abre cada sección; cuando una sección no aparece, vuelca los
-rótulos del hub para que la vuelta siguiente no adivine. Y el barrido **cuenta
-lo medido y falla si falta alguna**: una prueba que se salta su objeto tiene que
-fallar, igual que una que lo mira y no le gusta.
+**Cómo quedó: ARREGLADO y el barrido completo, `20/20 · desbordes=0`.** La
+navegación distingue teléfono de iPad y lleva el mapa de qué pestaña abre cada
+sección; cuando una sección no aparece, vuelca los rótulos del hub para que la
+vuelta siguiente no adivine. Y el barrido **cuenta lo medido y falla si falta
+alguna**: una prueba que se salta su objeto tiene que fallar, igual que una que
+lo mira y no le gusta.
+
+**Y la lista de secciones también era del iPad, no solo el camino.** Los
+volcados del hub lo dijeron: el teléfono **no separa Ingresos de Gastos** —su
+Tesorería tiene UNA sección, «Movimientos»— y **no existe ninguna
+«Configuración»**: Ajustes es una pestaña con **ocho** subpantallas, y
+«Configuración» es como llama la sidebar del iPad a la pantalla entera. O sea
+que en el teléfono hay **más** que barrer, no menos, y son justo las ocho que la
+pasada del 11-sep no tocó porque cayó toda en `ConfiguracionView`. Con la lista
+buena: **20 secciones, 20 medidas, cero desbordes**.
+
+Aquí el volcado contra el ancho de la ventana **sí** vale, al contrario que en
+el iPad: el teléfono no tiene columnas, así que «fuera de la ventana» y «fuera
+de la vista» son lo mismo (§0.-10).
 
 Dos avisos que salieron de aquí:
 
@@ -166,6 +180,66 @@ Dos avisos que salieron de aquí:
 - **Dos capturas de dos pruebas distintas salieron byte a byte idénticas**
   (`qa-informes-filtros.png` y `qa-miembro-ficha.png`, mismo md5). Es la forma
   más rápida de saber que la navegación no se movió. Merece ser un control.
+
+---
+
+### 3 · El nombre de la iglesia salía en bandera dentro de un membrete centrado
+
+**Severidad: media.** Es un documento que se entrega, y solo se ve impreso.
+
+Un `VStack(alignment: .center)` centra las **vistas**, no las **líneas**. Un
+`Text` que envuelve ocupa todo el ancho del contenedor y pinta su texto alineado
+a la izquierda, así que con un nombre largo el nombre salía en bandera mientras
+la ciudad —debajo y de una sola línea— seguía centrada: **dos alineaciones en el
+mismo membrete**. Con el nombre de prueba, que cabe en una línea, no hay nada
+que ver; el comentario del propio código dice «Membrete centrado, como en la
+pantalla», o sea que la intención estaba escrita y fallaba justo en el caso que
+envuelve.
+
+Son **tres** los membretes centrados —la carta (`SecretariaPDF:96`), el acta
+(`:164`) y la previa de Ajustes (`:357`)— y **solo el acta lo hacía**, puesto
+`Text` a `Text`. Los reportes y la constancia no entran: encabezan alineados a
+la izquierda a propósito, con el logo al lado.
+
+**La medida**, en el PDF renderizado y no leyendo el código —la racha de líneas
+que arrancan en el mismo píxel—:
+
+| | racha | filos izquierdos del nombre |
+|---|---|---|
+| sin el arreglo | **11** de 15 líneas | `97, 98, 98, 97, 98, 97, 97, 97, 98, 98, 97` |
+| con el arreglo | **1** | `419, 139, 99, 119, 141, 166, 182, 193, …` |
+
+**Cómo quedó: ARREGLADO** en los tres, con el modificador en el **contenedor**
+y no `Text` a `Text`, que es donde no se le puede olvidar al renglón siguiente
+que se añada ahí.
+
+**Una observación que no es fallo pero conviene que esté escrita:** en el acta el
+folio va en el mismo renglón que el nombre —«nombre · Acta folio»—, así que un
+nombre largo lo sepulta al final de un párrafo de ocho líneas. El folio es lo que
+identifica el documento.
+
+---
+
+### 4 · La tarjeta de Inicio decía «16 movimientos pendientes» con cero pendientes
+
+**Severidad: baja, pero manda a buscar donde no hay.**
+
+Se vio en una captura del teléfono y el servidor lo confirmó: `transactions` no
+tiene **ni una** fila en estado `pendiente` —38 `aprobado` y 4 `rechazado`
+vivas—, y la tarjeta anunciaba dieciséis movimientos esperando visto bueno.
+
+El número es correcto; el sustantivo, no. Sale de
+`RevisarCalculado().asuntos()` sin los archivados (`DashboardRepository:117` y
+`:229`), y esa bandeja suma **tres clases de cosa**: movimientos que
+`CalculadoraRevisiones` marca, miembros dados de baja, y cortes con doble firma
+pedida y sin segunda firma.
+
+Lo que lo hace fácil de creer: **el inglés del mismo `L.t` ya decía la verdad**,
+«items pending». Los dos lados de la misma cadena no contaban lo mismo, y el que
+estaba bien era el que aquí menos se lee.
+
+**Cómo quedó: ARREGLADO** — «asuntos pendientes», que es la palabra que usa el
+resto de la app (`RevisarView`, y el comentario de `DashboardRepository:227`).
 
 ---
 
@@ -223,6 +297,19 @@ Medido con la vara del iPad, aguanta:
 - **El Dynamic Type no es el problema**, como avisaba el encargo: un solo
   `.system(size:)` y cero `Font.escalada`, y ese único es el glifo de un icono
   dentro de una baldosa de 32 pt fija, donde fijo es lo correcto.
+- **Y medido en pantalla, con las ocho subpantallas capturadas en el aparato:
+  cero desbordes.** Las alturas de fila de Preferencias salieron **51, 52 y
+  53 pt** en las tres filas de Apariencia, que es literalmente la forma del
+  hallazgo del iPad («tres filas idénticas a 50 y 52»). **No lo es**: las tres
+  salen de un solo `ForEach(PreferenciasApp.Tema.allCases)`, o sea una única
+  ruta de código, así que no pueden diferir por construcción. El spread es del
+  instrumento — el filo de una línea de 1/3 pt cae en subpíxeles distintos, y
+  el tercer «divisor» es en realidad el borde inferior de la tarjeta.
+
+  **Aviso de instrumento que sale de aquí:** medir alturas de fila por los
+  divisores de un PNG tiene ±1 pt de ruido, y el borde de la tarjeta no es un
+  divisor. Un spread de 1 pt no es evidencia de nada; en el iPad la evidencia
+  no fue la captura sino **dos valores distintos escritos en el código**.
 
 ### Cortes y depósitos, abiertos en el teléfono
 
@@ -236,27 +323,82 @@ borradas y **6 vivas**: el 3 no las contradice. Es el caso de
 `ActasTrasSincronizarTests` otra vez —el repositorio filtra `borrado == false`
 y parece que pierde datos—, y por eso no es hallazgo.
 
+### El texto bruto en los documentos · aguanta
+
+Con un nombre de iglesia de **500 caracteres**, el acta, la carta y la previa
+del membrete siguen en **UNA página**, y el texto se pinta entero: `PDFExport`
+no recorta, **pagina**
+(`paginas = ceil((size.height - blancoDePie) / altoCarta)`, `PDFExport:55`), y
+los tres tenían hueco de sobra. Un nombre con emoji compuesto, comillas y coma
+tampoco rompe el documento. Lo único que sí salió mal es la alineación, que es
+el hallazgo 3.
+
+Se mide con `pruebas/TextoBrutoEnElMembreteTests.swift`, que sustituye al
+intento por interfaz —cuya propia cabecera avisaba de que no medía nada—. **Y
+no toca la configuración de la iglesia**: las seis hojas reciben `iglesia:` por
+parámetro, así que se les pasa una copia adulterada. Escribir el nombre de
+verdad habría subido 500 caracteres al servidor, que comparte la app web.
+
+**Lo que NO queda cubierto, para que no se dé por cerrado:**
+`ReporteHojaPDF`, `ReporteAnualHojaPDF`, `ReporteAportesHojaPDF` y
+`ConstanciaHojaPDF` piden `EstadoFinanciero`, `ReporteAnual`, `Aportante` y
+`[Aporte]`, que no tienen fixture en `pruebas/`. Los cuatro leen el nombre por
+la misma vía —`iglesia.membrete`, que es `nombre · ubicacionLegible`
+(`ConfiguracionIglesia:161`)—, así que el riesgo es el mismo; falta la medida.
+**La constancia es la que más importa**: es un documento fiscal que se entrega.
+
+### Y el número que no contradecía nada
+
+`CortesYDepositosUITests` imprime `QA-CELDAS-DEPOSITOS:3` y el servidor tiene 9
+filas en `depositos_bancarios`. No es hallazgo: 3 de esas están borradas —**6
+vivas**— y la marca cuenta `app.cells` filtrado por `isHittable`, o sea celdas
+**visibles en pantalla**. Igual que el caso de `ActasTrasSincronizarTests`. La
+marca se queda, pero su nombre promete más de lo que mide.
+
 ---
 
 ## Lo que queda abierto de esta pasada
 
-- El barrido de las 15 secciones **con la navegación arreglada**, que es lo que
-  iba a dar los desbordes de verdad. Bloqueado: el teléfono se bloqueó a mitad
-  y `xcodebuild` **espera en silencio**, no falla — *«Run Destination
-  Preflight: The destination is not ready … Unlock iPhone to Continue»*, y se
-  queda ahí indefinidamente. **Aviso de instrumento nuevo:** un aparato
-  bloqueado no da error, cuelga la corrida.
+- **Z2, las diez presentaciones de `CorteDetalle` y `ActasView`**, con la
+  segunda firma y el `PKCanvasView` que no es observable. Es lo más gordo que
+  queda.
+- **Z3, los PDF en el límite** —mes sin movimientos, 500 movimientos, sin logo
+  ni firmas, compartir a media generación— y **compartir de verdad**, por
+  AirDrop y por correo. El camino para sacarlos del aparato y mirarlos ya está
+  probado.
+- **Las cuatro hojas de PDF sin fixture** del apartado anterior, empezando por
+  la constancia.
+- **Z6, los recurrentes del 1 de octubre**, moviendo el reloj **después** del
+  respaldo.
+- **Z1·1 y Z1·3-4**, que piden modo avión y dos aparatos a la vez.
 - **Z1·2, la idempotencia del reintento.** Confirmado en el código lo que el
   encargo decía: once subidas pasan por `exigir(_:tabla:_:)`
   (`MotorSincronizacion:463`) y **cinco no** —`cortes` (`:2253`),
   `corte_movimientos` (`:2285`), depósitos (`:2480`), categorías (`:2604`) y
   recurrentes (`:2716`)—, así que suben sin comprobar que tocaron algo. Sin
   ejercitar con red.
-- **Z1·5, los roles contra RLS**, que ya no está bloqueado: la cuenta de
-  secretaria existe. Faltan las credenciales para entrar con ella.
-- Z2 (las diez presentaciones de `CorteDetalle` y `ActasView`), Z3 (los PDF en
-  el límite), Z6 (los recurrentes del 1 de octubre) y Z7 (el texto bruto en el
-  membrete).
-- **Z7 arranca con un silencio ya localizado:** `pruebas/TextoBrutoUITests.swift`
-  declara la clase **`TextoBruto`**, así que un `-only-testing` con el nombre
-  del archivo no selecciona nada y se salta sin avisar.
+- **Z1·5, los roles contra RLS**, que ya no está bloqueado por la cuenta: la
+  secretaria existe. Faltan sus credenciales.
+
+## Los avisos de instrumento que esta pasada añade
+
+- **Un aparato BLOQUEADO no da error: cuelga la corrida y miente al final.**
+  `xcodebuild` avisa una vez —*«Run Destination Preflight … Unlock iPhone to
+  Continue»*—, espera unos minutos y muere con **`Testing failed: Testing
+  started`**, que no menciona el candado. Pasó **dos veces**: la segunda porque
+  el teléfono se bloqueó **solo** entre dos corridas. Poner el bloqueo
+  automático en «Nunca» antes de empezar.
+- **Matar un `xcodebuild` a mitad de instalación deja el aparato tocado.** La
+  corrida siguiente falla con `IXRemoteErrorDomain` código 6, «connection with
+  the remote side was unexpectedly closed». Es transitorio: el segundo intento
+  pasa, igual que el `CoreDeviceError 12040` del §6.b·A.0.
+- **Un error fatal de Swift en una prueba se cuenta como «Executed 0 tests»**,
+  con la prueba listada en «Failing tests». Es indistinguible de un
+  `-only-testing` que no casa con ninguna clase. Aquí fue un `abs(f - Int.min)`
+  que desborda; se buscó dos vueltas en el sitio equivocado.
+- **Un `-only-testing` con el nombre del ARCHIVO no selecciona nada y no
+  avisa.** `pruebas/TextoBrutoUITests.swift` declara la clase **`TextoBruto`**.
+- **Un control positivo hecho con `git stash` no controla nada si el cambio ya
+  está commiteado**: no hay nada que guardar, el stash no hace nada, y la
+  prueba pasa por la razón equivocada. Para retirar algo commiteado hay que
+  tocar el árbol de trabajo.
