@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 /// **Lo que solo se puede medir en el iPad de verdad.**
 ///
@@ -15,7 +16,13 @@ final class InterfazAparatoUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = true
-        XCUIDevice.shared.orientation = .landscapeLeft
+        // **El apaisado solo en iPad.** El teléfono es solo vertical a propósito
+        // (`project.yml:69`): en apaisado pasaría a clase regular y se dibujaría
+        // como un iPad, que no es la app del teléfono. Forzarlo aquí no rotaba
+        // nada y dejaba la prueba creyendo que medía otra postura.
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            XCUIDevice.shared.orientation = .landscapeLeft
+        }
         app = XCUIApplication()
         app.launchArguments = ["-prefs.bienvenidaVista", "1", "-AppleLanguages", "(es)"]
         app.launch(); sleep(3)
@@ -30,10 +37,78 @@ final class InterfazAparatoUITests: XCTestCase {
         fflush(stdout)
     }
 
+    /// **iPhone y iPad no navegan igual, y esta prueba solo sabía del iPad.**
+    ///
+    /// Escrita el 11-sep para el iPad, donde las quince secciones son botones de
+    /// la sidebar y `vaA("Membresía")` los encuentra en el primer nivel. En el
+    /// teléfono hay cinco pestañas —Inicio, Tesorería, Por revisar, Secretaría,
+    /// Ajustes— y las secciones cuelgan de un hub dentro de cada una. Corrida
+    /// tal cual en el iPhone el 12-sep: **13 de las 15 secciones SALTADAS y la
+    /// prueba en verde**, porque el barrido hacía `continue` y no afirmaba nada.
+    /// Es el mismo silencio que un `-only-testing` que no casa con ninguna
+    /// clase.
+    ///
+    /// Qué pestaña abre cada sección en el teléfono. Es una conjetura hasta que
+    /// una corrida la confirme: cuando una sección no aparece, `vaA` vuelca los
+    /// rótulos del hub para que la corrida siguiente no adivine.
+    private static let pestanaDe: [String: String] = [
+        "Inicio": "Inicio",
+        "Ingresos": "Tesorería", "Gastos": "Tesorería", "Aportantes": "Tesorería",
+        "Reportes": "Tesorería", "Depósitos": "Tesorería",
+        "Por revisar": "Por revisar",
+        "Membresía": "Secretaría", "Actas": "Secretaría",
+        "Registro de servicios": "Secretaría", "Cartas y traslados": "Secretaría",
+        "Informes de membresía": "Secretaría", "Agenda": "Secretaría",
+        // «Registro» cuelga de Secretaría, no de Ajustes: su fila está en
+        // `IPhoneSecretariaView:136`. Es el hub más cargado del teléfono —siete
+        // secciones— y por eso el arrastre de `abrirFila` hace falta aquí.
+        "Registro": "Secretaría",
+        "Configuración": "Ajustes",
+    ]
+
+    private var esTelefono: Bool { app.tabBars.buttons.count > 0 }
+
+    /// Abre una fila del hub, con arrastre: en el teléfono la lista no cabe.
+    /// El rótulo se compara **exacto primero**: `BEGINSWITH "Registro"` casa
+    /// antes con «Registro de servicios» y abriría la sección equivocada sin
+    /// decir nada.
+    @discardableResult
+    private func abrirFila(_ n: String) -> Bool {
+        let exacto = NSPredicate(format: "label == %@", n)
+        let porPrefijo = NSPredicate(format: "label BEGINSWITH %@", n)
+        for intento in 0..<5 {
+            for p in [exacto, porPrefijo] {
+                let e = app.buttons.matching(p).firstMatch
+                if e.waitForExistence(timeout: intento == 0 ? 4 : 1), e.isHittable {
+                    e.tap(); sleep(2); return true
+                }
+            }
+            app.swipeUp(velocity: .slow); sleep(1)
+        }
+        return false
+    }
+
     private func vaA(_ n: String) -> Bool {
-        let b = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", n)).firstMatch
-        guard b.waitForExistence(timeout: 15), b.isHittable else { return false }
-        b.tap(); sleep(2); return true
+        // iPad: la sidebar tiene las quince en el primer nivel.
+        if !esTelefono { return abrirFila(n) }
+
+        // Teléfono: primero la pestaña, luego la fila del hub.
+        guard let pestana = Self.pestanaDe[n] else {
+            print("QA-SINMAPA: «\(n)» no está en el mapa de pestañas"); return false
+        }
+        let b = app.tabBars.buttons[pestana]
+        guard b.waitForExistence(timeout: 10), b.isHittable else {
+            print("QA-SINPESTAÑA: no hay pestaña «\(pestana)»"); return false
+        }
+        b.tap(); sleep(2)
+        if pestana == n { return true }           // la pestaña ES la sección
+        if abrirFila(n) { return true }
+
+        // No adivinar a la vuelta siguiente: dejar escrito qué había de verdad.
+        let rotulos = app.buttons.allElementsBoundByIndex.prefix(40)
+            .compactMap { $0.exists ? $0.label : nil }.filter { !$0.isEmpty }
+        print("QA-HUB «\(pestana)» no tenía «\(n)». Rótulos: \(rotulos)")
+        return false
     }
 
     // MARK: - 1 · El repintado, que en el simulador NO se reproduce
@@ -114,8 +189,10 @@ final class InterfazAparatoUITests: XCTestCase {
                          "Por revisar","Membresía","Actas","Registro de servicios",
                          "Cartas y traslados","Informes de membresía","Agenda","Registro","Configuración"]
         print("VENTANA: \(app.frame.size)")
+        var medidas = 0, saltadas: [String] = []
         for s in secciones {
-            guard vaA(s) else { print("SALTADA \(s)"); continue }
+            guard vaA(s) else { print("SALTADA \(s)"); saltadas.append(s); continue }
+            medidas += 1
             sleep(2)
             let ancho = app.frame.width
             var fuera = 0
@@ -131,5 +208,16 @@ final class InterfazAparatoUITests: XCTestCase {
             print("SECCIÓN \(s) · desbordes=\(fuera)")
             guarda("sec-\(s.replacingOccurrences(of: " ", with: "-"))")
         }
+
+        // **Contar lo medido, no fiarse del verde.** Sin esto la prueba hacía
+        // `continue` en cada sección que no encontraba y terminaba en verde
+        // habiendo mirado 2 de 15 (iPhone, 12-sep). Una prueba que se salta su
+        // objeto tiene que fallar, igual que una que lo mira y no le gusta.
+        print("QA-BARRIDO: medidas \(medidas)/\(secciones.count) · saltadas \(saltadas)")
+        XCTAssertEqual(medidas, secciones.count, """
+            El barrido no llegó a \(saltadas.count) de las \(secciones.count) \
+            secciones: \(saltadas.joined(separator: ", ")). Mientras falte \
+            alguna, "0 desbordes" no significa que no haya desbordes.
+            """)
     }
 }

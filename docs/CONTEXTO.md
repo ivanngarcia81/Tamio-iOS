@@ -5,8 +5,78 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **11 de septiembre de 2026**, tras la segunda pasada de
-interfaz del iPad (§0.-10).
+Última actualización: **12 de septiembre de 2026**, tras la segunda pasada de
+QA del iPhone (§0.-11).
+
+---
+
+## 0.-11 Segunda pasada de QA del iPhone · 12 de septiembre
+
+**En el iPhone 17 Pro Max de Iván, iOS 27.0, con su cuenta y sus datos.** El
+informe está en `docs/ROTURAS-IPHONE-2.md`. Aquí va lo que no se deduce de él.
+
+### El instrumental de aparato ya no se pierde
+
+Estaba en prosa en este archivo y la copia que lo hospedaba vivía en el
+`TMPDIR`, así que se fue con él y hubo que volver a deducirlo — que es
+exactamente lo que el LEEME avisaba que costaría otra tarde. Ahora es
+`pruebas/aparato.sh` y la tabla del §2 está escrita en `pruebas/LEEME.md`.
+
+### Lo que no se deduce leyendo
+
+- **Un aparato BLOQUEADO no da error: cuelga la corrida.** `xcodebuild` dice
+  *«Run Destination Preflight: The destination is not ready … Unlock iPhone to
+  Continue»* una sola vez, espera seis minutos y muere con **`Testing failed:
+  Testing started`**, que no menciona el candado. Trece minutos de la sesión se
+  fueron ahí. El aviso viejo —*«Not authorized for performing UI testing
+  actions* a mitad = se bloqueó»— es el caso de después; este es el de antes.
+- **`XCUIDevice.shared.orientation = .landscapeLeft` en el iPhone no rota nada
+  y no falla.** El teléfono es solo vertical a propósito (`project.yml:69`), así
+  que una prueba escrita para el iPad se cree que mide otra postura y nadie se
+  lo discute.
+- **Y hay un SIMULADOR llamado igual que el teléfono** (`iPhone 17 Pro Max`),
+  con lo que llamarlo por nombre coge el que no es. Son además **dos
+  identificadores distintos** para el aparato, los dos en
+  `devicectl list devices --json-output`: `identifier` para `--device` y `udid`
+  para `-destination`.
+- **Hay DOS `DerivedData/Tamio-*`**, así que el glob de la receta escrita se
+  expande a dos rutas y puede instalar el `.app` de anteayer.
+- **Dos capturas byte a byte idénticas** (mismo `md5`) de dos pruebas distintas
+  es la forma más rápida de saber que la navegación no se movió. Merece ser un
+  control y no una casualidad que se note.
+
+### Y el aviso de método que esta pasada añade
+
+**Una medida sobre los DATOS no es una regla sobre el ESQUEMA, y caduca.** El
+10-sep se midió que «`transactions` es la única tabla cuyas fechas llevan hora,
+34 de 34», y de ahí salió la regla de que a los movimientos la fecha que
+retrocede no les alcanza. La medida era cierta; la regla, no, porque
+`transactions.fecha` es **`text`** y la base no impone forma. Al crecer la tabla
+a 84 filas aparecieron tres formas y la regla se cayó, pero **la conclusión que
+colgaba de ella sobrevivió escrita** y llegó a la v2 de este encargo como una
+corrección de la v1. Dos versiones del mismo encargo se equivocaron en
+direcciones opuestas sobre lo mismo.
+
+Corolario para el §3: cuando una regla se apoye en un conteo, **escribir el
+conteo al lado** y volver a contarlo antes de usarla. Las cuatro premisas que se
+cayeron en esta pasada están en el encabezado de `docs/ROTURAS-IPHONE-2.md`.
+
+### Lo que quedó bloqueado, y en qué orden retomarlo
+
+El teléfono se bloqueó a mitad, así que el barrido de las quince secciones **con
+la navegación ya arreglada** no se llegó a correr: es lo primero.
+
+Después, y sin dependencias entre ellos: Z2 (las diez presentaciones de
+`CorteDetalle` y `ActasView`, con la segunda firma y el `PKCanvasView` que no es
+observable), Z3 (los PDF en el límite, que ahora se sacan con `devicectl device
+copy from`), Z6 (los recurrentes del 1 de octubre, moviendo el reloj **después**
+del respaldo) y Z7 (el texto bruto, cuya prueba declara la clase `TextoBruto` y
+no `TextoBrutoUITests`, así que un `-only-testing` por el nombre del archivo se
+salta en silencio).
+
+**Z1·5 ya no está bloqueado por Iván:** la cuenta de secretaria existe
+—`Ivang`, en `perfiles`—, al contrario de lo que decía el §0.-9. Lo que falta
+son sus credenciales.
 
 ---
 
