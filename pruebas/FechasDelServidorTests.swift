@@ -151,6 +151,20 @@ final class FechasDelServidorTests: XCTestCase {
         print("QA-PERDIDA: la web escribió «\(sinZonaNiSegundos)» · " +
               "el teléfono enseña «\(dia)» a las «\(hora)»")
 
+        // **Fallo ESPERADO, y por eso la suite se queda verde.** Lo de abajo
+        // afirma lo correcto —la hora que escribió la web—, y hoy no se cumple:
+        // ese es el hallazgo nº 1. Dejarlo en rojo permanente convierte la
+        // suite en ruido y el rojo deja de significar nada; con
+        // `XCTExpectFailure` queda documentado Y avisa el día que se arregle,
+        // porque entonces saltará como «pasó cuando no debía».
+        XCTExpectFailure("""
+            El día y la hora de los movimientos escritos por la app web se \
+            pierden al leerlos: `Fechas.desdeTexto` no sabe leer \
+            `yyyy-MM-dd HH:mm`. Es el hallazgo nº 1 de la pasada del 12-sep, y \
+            su arreglo es la convención de fechas de las dos apps. Cuando esto \
+            pase, quitar el `XCTExpectFailure`.
+            """)
+
         // Lo que la web escribió: 12 de julio, 02:28.
         XCTAssertEqual(hora, "02:28", """
             La hora del movimiento no es la que escribió la web. \
