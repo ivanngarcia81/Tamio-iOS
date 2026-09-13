@@ -423,7 +423,22 @@ Dos poblaciones sin un solo solape. **Lo que el web guardó como $500 el iPhone
 lo enseña como $50.000**; lo que el iPhone guardó como $300 el web lo enseña
 como $3.
 
-**Cómo quedó: MEDIDO Y NO ARREGLADO.** Va en `docs/ACUERDO-CON-EL-WEB.md`: hay
+**Cómo quedó: ARREGLADO EN iOS y verificado en el aparato el 13-sep.** Se
+quitaron las siete conversiones —tres de subida y cuatro de bajada— y la columna
+remota queda en céntimos en los dos lados. **El web no toca nada**, que es lo
+que permitió hacerlo sin ese repo.
+
+La prueba punta a punta es la misma prueba con el mismo importe en dos días:
+
+| cuándo | concepto | `monto` en el servidor | |
+|---|---|---|---|
+| 13-sep | QAUPD342495 | **999** | $9.99 en céntimos ✓ |
+| 12-sep | QAUPD110540 | **9.99** | $9.99 en unidades ✗ |
+
+Y la tanda entera en el iPhone: **224 pruebas, 1 saltada, 0 fallos**, contra el
+servidor de la iglesia.
+
+**Lo ya guardado sigue sin tocar**, y la recomendación cambió al mirarlo: ver
 que decidir cuál es la unidad buena y convertir las filas del lado que ceda. Y
 el aviso que impide equivocarse al hacerlo: hoy las dos poblaciones se
 distinguen por la forma del número, pero eso es casualidad de estos datos — un
