@@ -12,6 +12,16 @@ iglesia; ninguna se ha cambiado.
 
 ## 1 · El dinero está en dos unidades distintas · factor de CIEN
 
+> **RESUELTO en iOS el 13-sep, y el web no tiene que tocar nada.** Se quitaron
+> las siete conversiones del lado iOS: ahora sube y lee **céntimos**, que es lo
+> que el web ya hacía. Queda abierto solo qué hacer con lo ya guardado — ver
+> «Lo ya guardado» al final de esta sección.
+>
+> **Por qué cedió iOS y no el web:** las dos bases locales están en céntimos,
+> `iglesias.saldo_inicial` ya es `bigint`, y el céntimo entero es la regla que
+> la propia app se escribió. El que se salía era iOS al subir. Que el web no
+> tuviera que cambiar es lo que permitió hacerlo sin él.
+
 **Es lo más grave de la pasada.** No es un rótulo: es el importe.
 
 | | qué sube a `transactions.monto` | $500.00 se guarda como |
@@ -45,9 +55,33 @@ indistinguible de uno del web de $100,00. La conversión hay que hacerla por un
 criterio que no dependa de la forma del número: la fecha de corte, el
 `registrado_por`, o una columna nueva que diga en qué unidad está.
 
-**Mientras no se decida:** el estado financiero del iPhone está inflado ×100 en
-los movimientos que escribió el web, y el del web está dividido entre 100 en los
-que escribió el iPhone.
+### Lo ya guardado
+
+**Y aquí la recomendación cambió al mirar los datos de cerca.** No hay dos
+poblaciones limpias sino **al menos tres**, y los indicios se contradicen:
+
+| forma de la fecha | autor | filas | mín | máx | con decimales |
+|---|---|---|---|---|---|
+| ISO con Z | **con** autor | 31 | 1 | 2.500 | 16 |
+| ISO con Z | sin autor | 20 | 10.000 | 1.000.000 | 0 |
+| sin Z | sin autor | 38 | 20 | 100.000 | 1 |
+
+El grupo de en medio tiene fecha con forma de iOS e importes con forma de
+céntimos: son las filas sembradas del **14 y 15 de agosto** —«Carne», «comida»,
+«Diezmo», «Luz»—. Y el tercero, del web, tiene un importe con decimales, que en
+una columna de céntimos enteros no debería existir.
+
+**Así que no hay una regla segura que separe las unidades fila por fila**, y una
+migración a ciegas sobre noventa filas es el tipo de cosa que estropea unos
+libros para salvar unas cifras que además son inventadas.
+
+**La recomendación es no migrar: vaciar y volver a sembrar.** Todos los datos
+son de prueba —está dicho dos veces en el traspaso—, el código ya escribe bien,
+y sembrar de nuevo cuesta menos que revisar noventa filas de procedencia
+ambigua. Si por alguna razón hubiera que conservarlas, la migración tendría que
+hacerse con **lista explícita de uids revisada a ojo**, nunca con un criterio
+basado en la forma del número: un movimiento de iOS de $10.000,00 subía como
+`10000`, indistinguible de uno del web de $100,00.
 
 ---
 

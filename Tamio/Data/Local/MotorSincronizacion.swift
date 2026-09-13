@@ -2471,7 +2471,9 @@ final class MotorSincronizacion {
         let remoto = DepositoRemoto(
             uid: fila.id, churchId: churchIdActivo,
             fecha: fila.fecha, periodo: fila.periodo,
-            monto: Double(fila.monto) / 100.0,
+            // En CÉNTIMOS, como la fila local y como el web. Ver
+            // `docs/ACUERDO-CON-EL-WEB.md` §1.
+            monto: Double(fila.monto),
             moneda: Money.codigo,
             cuentaBanco: fila.cuenta, referencia: fila.referencia,
             comprobantePath: fila.comprobantePath,
@@ -2559,7 +2561,8 @@ final class MotorSincronizacion {
                                                                    cuenta: ""))
                 fila.fecha = r.fecha ?? ""
                 fila.periodo = r.periodo ?? ""
-                fila.monto = Int(((r.monto ?? 0) * 100).rounded())
+                // En céntimos, sin convertir. Ver `docs/ACUERDO-CON-EL-WEB.md` §1.
+                fila.monto = Int((r.monto ?? 0).rounded())
                 fila.cuenta = r.cuentaBanco ?? ""
                 fila.referencia = r.referencia ?? ""
                 fila.comprobantePath = r.comprobantePath
@@ -2706,8 +2709,9 @@ final class MotorSincronizacion {
             uid: fila.id, churchId: churchIdActivo, tipo: fila.tipo,
             categoria: fila.categoria, subcategoria: fila.subcategoria,
             concepto: fila.nota,
-            // En pesos, como `transactions.monto`: la app guarda centavos.
-            monto: Double(fila.monto) / 100.0,
+            // En CÉNTIMOS, como `transactions.monto` y como la fila local.
+            // Decía «en pesos» y dividía: ver `docs/ACUERDO-CON-EL-WEB.md` §1.
+            monto: Double(fila.monto),
             metodoPago: fila.metodo, beneficiario: fila.pagadoA,
             beneficiarioRfc: fila.rfc, dia: fila.dia,
             mesInicio: fila.mesInicio, ultimoMesGenerado: fila.ultimoMesGenerado,
@@ -2773,7 +2777,8 @@ final class MotorSincronizacion {
                     categoria: r.categoria ?? "",
                     subcategoria: r.subcategoria,
                     nota: r.concepto,
-                    monto: Int(((r.monto ?? 0) * 100).rounded()),
+                    // En céntimos, sin convertir. Ver `docs/ACUERDO-CON-EL-WEB.md` §1.
+                    monto: Int((r.monto ?? 0).rounded()),
                     metodo: r.metodoPago ?? "Efectivo",
                     pagadoA: r.beneficiario,
                     rfc: r.beneficiarioRfc,
@@ -2855,7 +2860,8 @@ private extension MotorSincronizacion {
                 folio: folio ?? String(folioSeq ?? 0),
                 folioSeq: folioSeq,
                 metodo: metodoPago ?? "Efectivo",
-                monto: Int(((monto ?? 0) * 100).rounded()),
+                // En céntimos, sin convertir. Ver `docs/ACUERDO-CON-EL-WEB.md` §1.
+                monto: Int((monto ?? 0).rounded()),
                 hora: hf.string(from: fechaDate),
                 fecha: fechaDate.timeIntervalSince1970,
                 registradoPor: registradoPor ?? "",

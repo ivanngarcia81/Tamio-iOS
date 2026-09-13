@@ -223,7 +223,9 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
     private func mapear(_ dto: TransaccionDTO, nombres: [String: String]) -> Movimiento? {
         guard let tipoStr = dto.tipo else { return nil }
         let tipo: TipoMovimiento = tipoStr == "ingreso" ? .ingreso : .gasto
-        let monto = Int(((dto.monto ?? 0) * 100).rounded())
+        // En céntimos, sin convertir: la columna remota ya lo está.
+        // Ver `docs/ACUERDO-CON-EL-WEB.md` §1.
+        let monto = Int((dto.monto ?? 0).rounded())
         let fecha = parseDate(dto.fecha)
         let hora = parseHora(dto.fecha ?? dto.createdAt)
         // Un ingreso puede venir de una ficha del padrón o de alguien sin ficha.
@@ -292,7 +294,12 @@ struct SupabaseMovimientosRepository: MovimientosRepository {
             aportanteNombre: m.aportanteNombre,
             concepto: m.nota,
             fecha: df.string(from: m.fecha),
-            monto: Double(m.monto) / 100.0,
+            // **En CÉNTIMOS, como la fila local y como el web.** Aquí se dividía
+            // entre 100 para subir «en pesos», y el web sube su columna de
+            // céntimos tal cual (`sync.ts:520`): el mismo importe valía cien
+            // veces más o cien veces menos según qué app lo escribiera.
+            // Ver `docs/ACUERDO-CON-EL-WEB.md` §1.
+            monto: Double(m.monto),
             metodoPago: m.metodo,
             beneficiario: m.pagadoA,
             beneficiarioRfc: m.rfc,
