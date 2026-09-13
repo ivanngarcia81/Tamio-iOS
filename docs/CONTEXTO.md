@@ -141,6 +141,20 @@ a 18, $89.96 de gastos— y están contando en el estado financiero. La marca
 y no se hizo; ya pasó el 10-sep con cuatro. **El paso de limpieza tiene que ser
 parte de la receta, no una costumbre.**
 
+
+### Restaurar reencola la base ENTERA, y la cola se sube en serie
+
+De la prueba de respaldo/borrado/restauración del 13-sep, que salió bien y
+cuadró tabla por tabla. Lo que no se deduce leyendo: `Respaldo.reencolar` rehace
+la cola desde cero —es una de las dos excepciones que no relevan la operación
+anterior— y aquí dejó **126 operaciones**. Como `subirPendientes` las sube en
+SERIE, una sola operación lenta retrasa a todas las de detrás por su tiempo de
+espera entero: una `asistencia` agotó el tiempo y las seis siguientes se
+quedaron sin intentar hasta la vuelta siguiente. Se resolvió sola al refrescar.
+
+**Y ahí se ve el hallazgo nº 6 en grande:** con 126 en la cola, «Sin subir» dice
+«126 cambios» sin distinguir lo que está subiendo de lo que no va a subir.
+
 ### Lo que queda abierto, y en qué orden
 
 El barrido del teléfono ya está completo: **20 secciones, 20 medidas, cero

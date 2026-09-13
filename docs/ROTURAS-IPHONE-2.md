@@ -779,6 +779,43 @@ Con esto, de la lista de aparato solo quedan las que piden **otro aparato o
 otra cuenta**: los dos aparatos a la vez (Z1·3-4), el token expirado, los roles
 con la cuenta de secretaria, y borrar cuenta.
 
+### El respaldo, el borrado y la restauración · aguantan, punta a punta
+
+Llevaban desde el **8 de septiembre** en la lista de lo que solo puede hacer
+Iván (§6.b·C), probados solo con pruebas unitarias y nunca a mano. Hecho el
+13-sep en el iPhone: respaldo con contraseña → borrar todo → restaurar.
+
+**Volvió todo, y cuadra tabla por tabla contra el servidor:**
+
+| | teléfono | servidor |
+|---|---|---|
+| movimientos | 38 | 38 |
+| aportantes | 11 | 11 |
+| cortes | 5 | 5 |
+| depósitos | 6 | 6 |
+| actas | 1 | 1 |
+
+**Y sin duplicar.** El único nombre repetido en `members` es «Pedro», cuatro
+veces, pero tres están borradas y una viva: restos de pruebas anteriores, no del
+restaurado.
+
+**Lo que no se deduce leyendo, y conviene saber antes de restaurar:** la
+restauración **reencola la base entera** —`Respaldo.reencolar` rehace la cola
+desde cero, y es una de las dos excepciones que no relevan la operación
+anterior—. Aquí fueron **126 operaciones**, todas `actualizar`. Eso es correcto
+—lo restaurado tiene que volver a subir— pero tiene dos consecuencias que se ven:
+
+- **La cola se sube en SERIE**, así que una operación lenta retrasa a todas las
+  de detrás por su tiempo de espera entero. En esta tanda una `asistencia` agotó
+  el tiempo —«The request timed out», un `update` que además no cambiaba nada,
+  porque la fila del servidor era idéntica— y las seis que iban detrás se
+  quedaron sin intentar hasta la vuelta siguiente. Se resolvió sola al
+  refrescar; es transitorio y no un defecto, pero explica por qué una
+  restauración puede tardar en vaciarse.
+- **Mientras tanto «Sin subir» dice «126 cambios»** sin distinguir qué está
+  subiendo de qué no va a subir: es el hallazgo nº 6 visto en vivo, y con 126 en
+  la cola se nota más que con tres.
+
 ---
 
 ## Lo que queda abierto de esta pasada
