@@ -703,6 +703,23 @@ numeración aparte, de ahí el 11 y el 22—, e **iOS deja reactivar el Wi-Fi de
 del modo avión**, con lo que la prueba dejaría de medir sin avisar: hay que
 comprobar que el icono queda apagado.
 
+### Comprobado a mano por Iván, 12 y 13 de septiembre
+
+Cuatro puntos de la lista del §5, los cuatro **bien**:
+
+- **El candado biométrico**, con Face ID de verdad y **cinco o seis salidas a
+  fondo y vueltas**. Es el que más falta hacía: el fallo que tuvo —un `NSError`
+  crudo debajo del candado— salía **5 de 6 veces**, así que una sola vuelta no
+  habría probado nada. Ahora aguanta la tanda entera.
+- **Compartir de verdad**, por **AirDrop y por correo**, que es donde una hoja
+  de compartir vacía se nota y donde ya falló una vez con el CSV del informe.
+- **El tamaño de letra en AX1**, recorriendo Inicio, Tesorería y Ajustes.
+- **La zona horaria**, moviéndola para ver el desvío de las fechas.
+
+Con esto, de la lista de aparato solo quedan las que piden **otro aparato o
+otra cuenta**: los dos aparatos a la vez (Z1·3-4), el token expirado, los roles
+con la cuenta de secretaria, y borrar cuenta.
+
 ---
 
 ## Lo que queda abierto de esta pasada
