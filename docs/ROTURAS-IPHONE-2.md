@@ -328,6 +328,76 @@ un arreglo de una línea.
 
 ---
 
+### 7 · La categoría se guarda de tres formas, y dos claves del web significan otra cosa aquí
+
+**Severidad: alta.** Parte el reparto por categoría del estado financiero —el
+documento que se imprime y se firma— y en un caso lo etiqueta mal con dinero
+dentro.
+
+Salió de la prueba de modo avión: los dos movimientos capturados guardaron
+`categoria = "Other"`, en inglés. Tirando del hilo, el mismo concepto está en
+hasta tres cubos:
+
+| concepto | formas en la base | filas |
+|---|---|---|
+| Diezmo | `diezmo` · `Diezmo` · `Tithe` | 9 + 2 + 3 |
+| Donación | `donacion` · `Donation` · `Donativo` | 3 + 2 + 1 |
+| Otro | `Otro` · `Other` | 1 + 2 |
+
+**Son dos problemas y conviene no mezclarlos.**
+
+**Uno: iOS guarda la ETIQUETA TRADUCIDA, el web guarda la CLAVE.**
+`Catalogos.categorias(_:)` devuelve `catalogo(tipo).map(\.etiqueta)` y el
+`Picker` persiste lo seleccionado tal cual (`NuevoMovimientoView:331`), así que
+lo escrito depende del idioma que tuviera la app. El web escribe el `id` de
+`CATEGORIAS_INGRESO`/`CATEGORIAS_GASTO` (`src/db.ts`).
+
+**Dos, y es lo que rompe de verdad: el catálogo del web tiene `id` heredados que
+ya no se corresponden con su `nombre`.**
+
+```
+{ id: "eventos",        nombre: "Alimentos"    }
+{ id: "musicos",        nombre: "Suministros"  }
+{ id: "pastores",       nombre: "Compensación" }
+{ id: "administracion", nombre: "Varios"       }
+```
+
+Leer no es el problema: `Catalogos.clave(deEtiqueta:)` acierta en **diez de las
+quince** claves del web. Falla en cinco, por dos motivos distintos:
+
+```
+otros          → nil          SIN RECONOCER   (web lo llama «Otros»)
+administracion → nil          SIN RECONOCER   (web lo llama «Varios»)
+pastores       → pastores     debería compensacion
+musicos        → musicos      debería suministros
+eventos        → eventos      debería alimentos
+```
+
+**De las cinco, solo `eventos` tiene dinero dentro hoy**, y los conceptos lo
+confirman sin lugar a duda: tres gastos de **«Carne», «comida» y «Carne»,
+$1.480**, que el web registró como Alimentos y el iPhone enseña bajo «Eventos».
+Las otras cuatro son riesgo latente — pero `otros` es la categoría por omisión
+del web, así que llegará.
+
+**Cómo quedó: MEDIDO Y NO ARREGLADO.** El arreglo tiene dos mitades y la segunda
+toca los libros:
+
+1. **Escribir la clave y no la etiqueta** de aquí en adelante. Es poco código
+   —`Catalogos.categorias(_:)` y el `.tag($0)` del `Picker`— pero hay que
+   decidirlo con el web, porque comparten la columna.
+2. **Reunir lo ya partido.** `Tithe`/`Diezmo` → `diezmo`, `Other` → `otro`, y
+   **`eventos` → `alimentos`**, que es el único que además cambia de
+   significado. Es una migración de datos sobre el estado financiero.
+
+**Y el aviso de método, que costó once fallos seguidos.** La primera versión de
+la prueba comparaba `Catalogos.etiqueta(de:)` contra el `nombre` del web: como
+la app del aparato está **en inglés**, devolvía «Tithe» donde el web dice
+«Diezmo» y marcaba once de quince como rotas. Con esos once se habría escrito un
+hallazgo cuatro veces más grande que el real. **Se compara clave contra clave**,
+que es lo único que no depende del idioma.
+
+---
+
 ## Lo que se atacó y aguantó
 
 Una pasada también sirve para dejar de sospechar.
@@ -606,6 +676,33 @@ cuatro y se dio de baja; volvió a pasar con ocho. **Conviene que el paso de
 limpieza deje de ser una costumbre y sea parte de la receta**: darlas de baja es
 un `update ... set deleted = true` filtrado por esa marca, y es reversible.
 
+### Z1·1 · Capturar sin red y subir al volver · aguanta, punta a punta
+
+Medido con Iván, con el teléfono **por cable** para poder mirar desde el Mac con
+el modo avión puesto — que es lo que permitió tomar la foto del estado
+intermedio, la que nadie había tomado nunca.
+
+| | en avión | con red |
+|---|---|---|
+| cola de salida | **2** `crear` · `intentos=1` | **0** |
+| error guardado | «The Internet connection appears to be offline.» | — |
+| folio | provisional (`prov=1`) | **definitivo** (`prov=0`) |
+| en el servidor | no | **sí, los dos** |
+
+```
+EDABB303  folio 11  ingreso  $200  aprobado
+17CED0A1  folio 22  gasto    $300  aprobado
+```
+
+Queda probado: se captura sin red, sobrevive al cierre a fondo, se reintenta
+solo al volver la red, «Sin subir» vuelve a 0 sin tocar nada, y el folio
+provisional se convierte en el definitivo sin saltarse ni repetir número.
+
+**Dos avisos:** la serie de folios va **por tipo** —ingresos y gastos llevan
+numeración aparte, de ahí el 11 y el 22—, e **iOS deja reactivar el Wi-Fi dentro
+del modo avión**, con lo que la prueba dejaría de medir sin avisar: hay que
+comprobar que el icono queda apagado.
+
 ---
 
 ## Lo que queda abierto de esta pasada
@@ -620,7 +717,7 @@ un `update ... set deleted = true` filtrado por esa marca, y es reversible.
 - **Z6, los recurrentes del 1 de octubre**, moviendo el reloj **después** del
   respaldo.
 - **Z1·1 y Z1·3-4**, que piden modo avión y dos aparatos a la vez.
-- **De Z1 queda solo lo que pide dos aparatos o el modo avión** (Z1·1, Z1·3-4).
+- **De Z1 queda solo lo que pide dos aparatos** (Z1·3-4): Z1·1 está medido.
   Lo demás está medido: Z1·2 cerrado, el reintento tras la caída aguanta, y lo
   de la operación apartada es el hallazgo nº 6.
 - **Dar de baja los ocho movimientos de prueba del 11-sep**, que están en los
