@@ -398,11 +398,55 @@ que es lo único que no depende del idioma.
 
 ---
 
+### 8 · El dinero está en dos unidades distintas entre las dos apps · factor de CIEN
+
+**Severidad: la más alta de la pasada.** No es un rótulo: es el importe, y el
+error es de un factor de cien en las dos direcciones.
+
+Las dos apps guardan céntimos en su base local. La diferencia está en la
+**subida**: iOS divide entre 100 (`MotorSincronizacion:2474`, `:2710`) y el web
+copia la columna tal cual (`sync.ts:520`).
+
+| | $500.00 sube como |
+|---|---|
+| iOS | `500` |
+| web | `50000` |
+
+Medido sobre las 38 filas vivas:
+
+| origen | filas | mínimo | máximo | con decimales |
+|---|---|---|---|---|
+| web / semilla | 20 | 10.000 | 1.000.000 | **0** |
+| iOS | 18 | 1 | 2.500 | 3 |
+
+Dos poblaciones sin un solo solape. **Lo que el web guardó como $500 el iPhone
+lo enseña como $50.000**; lo que el iPhone guardó como $300 el web lo enseña
+como $3.
+
+**Cómo quedó: MEDIDO Y NO ARREGLADO.** Va en `docs/ACUERDO-CON-EL-WEB.md`: hay
+que decidir cuál es la unidad buena y convertir las filas del lado que ceda. Y
+el aviso que impide equivocarse al hacerlo: hoy las dos poblaciones se
+distinguen por la forma del número, pero eso es casualidad de estos datos — un
+movimiento de iOS de $10.000,00 subiría como `10000`, indistinguible de uno del
+web de $100.
+
+**Y corrige el «aguantó» de Z8 del día anterior.** Aquella medida —«97 importes,
+cero desviados»— era cierta y no servía: comprobaba que un `double` devuelve el
+mismo número, no que las dos apps entiendan lo mismo por ese número. **Que un
+dato vuelva igual no quiere decir que signifique lo mismo en los dos lados.**
+
+---
+
 ## Lo que se atacó y aguantó
 
 Una pasada también sirve para dejar de sospechar.
 
-### El importe en coma flotante · riesgo latente, no defecto activo
+### El importe en coma flotante · riesgo latente · PERO ver el hallazgo nº 8
+
+> **Corregido el 13-sep:** lo de abajo sigue siendo cierto sobre la precisión
+> del `double`, y **se quedó corto**. Medía que un número vuelve igual, no que
+> las dos apps signifiquen lo mismo por él. Las dos apps están en unidades
+> distintas: hallazgo nº 8.
 
 En Supabase el importe es `double precision`, contra la regla que la app se
 escribió. **Medido: 97 importes en las tres tablas, cero desviados.**
