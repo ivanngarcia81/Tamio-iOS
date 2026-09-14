@@ -485,7 +485,9 @@ verdad (migración en los dos lados y acuerdo con el web).
 que la propia app se escribió —*"nunca en coma flotante: en una tesorería eso no
 se perdona"*—. Hoy no cuesta dinero; cambiarlo con datos dentro se encarece.
 
-**5. Las contraseñas filtradas siguen apagadas** (§6.b · E). Panel, 30 segundos.
+**5. Las contraseñas filtradas NO se pueden encender** (§6.b · E): Supabase
+las movió detrás del plan **Pro**. Lo gratis de esa pantalla es el largo mínimo
+—hoy en 6— y los requisitos de caracteres, sin elegir.
 
 **6. Los recurrentes de prueba** —Utilities $200, Utilities $500, Limpieza
 $300— **empiezan a generar movimientos solos el 1 de octubre**.
@@ -4157,7 +4159,28 @@ Hoy solo está probado con pruebas unitarias, nunca a mano.
   2. Siendo el único miembro → **la iglesia se borra entera**.
 - **Nunca con tu cuenta real.** No hay deshacer.
 
-### E. Encender la comprobación de contraseñas filtradas — panel, 30 segundos
+### E. Las contraseñas filtradas piden plan Pro — y lo gratis de esa pantalla
+
+> **Corregido el 14-sep-2026.** Este apartado decía «panel, 30 segundos» y «es
+> gratis», y llevaba así desde el 8 de septiembre. **No lo es.** El interruptor
+> se mueve, y al guardar el panel contesta: *«Configuring leaked password
+> protection via HaveIBeenPwned.org is available on Pro Plans and up»*. Una
+> premisa escrita como hecho, cuatro veces recomendada, y nadie la había
+> intentado hasta hoy.
+>
+> **Y cambió de sitio**: ya no está en Authentication › Policies sino en
+> **Authentication › Sign In / Providers › Email**, con el resto de lo de
+> contraseñas.
+>
+> **Lo que sí se puede hacer ahí y es gratis**, que es lo que queda de este
+> punto:
+>
+> - **Largo mínimo de contraseña: está en 6.** La propia Supabase recomienda 8
+>   o más en esa misma pantalla.
+> - **Requisitos de caracteres: sin elegir.** Dígitos, mayúsculas y símbolos.
+>
+> Las dos suben la misma barra que la comprobación de filtradas iba a subir, y
+> no cuestan nada.
 
 Es lo único que queda del endurecimiento previo a publicar, y no es SQL.
 

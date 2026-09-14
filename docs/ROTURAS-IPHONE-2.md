@@ -840,7 +840,14 @@ plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
 - **Los roles contra RLS** (Z1·5). La cuenta de secretaria existe —`Ivang`—;
   faltan sus credenciales.
 - **Borrar cuenta**, con una de usar y tirar y las dos ramas.
-- **Leaked password protection**: panel de Supabase, 30 segundos, sigue apagada.
+- **Las contraseñas filtradas NO se pueden encender**: Supabase las movió
+  detrás del **plan Pro**. El panel deja mover el interruptor y al guardar
+  contesta *«Configuring leaked password protection via HaveIBeenPwned.org is
+  available on Pro Plans and up»*. Lo que sí está disponible y es gratis, en esa
+  misma pantalla —**Authentication › Sign In / Providers › Email**—: subir el
+  **largo mínimo de contraseña**, que está en **6** cuando la propia Supabase
+  recomienda 8 o más, y fijar los **requisitos de caracteres**, que están sin
+  elegir.
 
 ### Decisiones de diseño · 3
 
