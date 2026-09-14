@@ -183,7 +183,8 @@ enum MaterializadorRecurrentes {
             for mes in meses {
                 guard let fecha = MesesRecurrentes.fecha(en: mes, dia: def.dia) else { continue }
                 do {
-                    try await movimientos.crear(movimiento(de: def, en: fecha, autor: autor))
+                    try await movimientos.crear(
+                        movimiento(de: def, en: fecha, mes: mes, autor: autor))
                     generadosDeEsta += 1
                 } catch {
                     // Si uno falla se para ESTA serie y no se marca: lo que
@@ -235,10 +236,37 @@ enum MaterializadorRecurrentes {
             activo: true)
     }
 
-    /// El movimiento que le toca a una definición en un mes. `crear` le pone id
-    /// y folio; aquí solo se rellena lo que sale de la regla.
+    /// **El id de un movimiento generado, derivado y no sorteado.**
+    ///
+    /// La renta de septiembre de una definición es UNA, la genere el iPhone o
+    /// el iPad. Antes nacía con `id: ""` y `crear` le ponía un `UUID()` nuevo,
+    /// así que dos aparatos que abrieran la app antes de que
+    /// `ultimoMesGenerado` sincronizara generaban la misma renta dos veces, con
+    /// uids distintos, y `transactions` aceptaba las dos: su única restricción
+    /// es la clave primaria sobre `uid` y no hay nada único sobre
+    /// recurrente + mes. Dos apuntes del mismo gasto y dos folios gastados.
+    ///
+    /// Con el id derivado, el `upsert onConflict: "uid"` que ya usa todo el
+    /// motor las reconoce como el mismo apunte y la segunda actualiza a la
+    /// primera en vez de duplicarla.
+    ///
+    /// **No es un UUID a propósito.** `transactions.uid` es `text` —no `uuid`—
+    /// y un id legible dice de dónde salió la fila cuando alguien mira la base.
+    /// El `recurrenteId` es el uid compartido de la definición, que es lo que
+    /// viaja: por eso los dos aparatos llegan a la misma cadena.
+    ///
+    /// El web no entra aquí: **no sincroniza `movimientos_recurrentes`**
+    /// —sincroniza 22 tablas y esa no está—, así que sus series son suyas y no
+    /// se cruzan con estas.
+    static func idDelGenerado(recurrenteId: String, mes: String) -> String {
+        "rec-\(recurrenteId)-\(mes)"
+    }
+
+    /// El movimiento que le toca a una definición en un mes. `crear` le pone el
+    /// folio; el id viene ya hecho y derivado (ver `idDelGenerado`).
     static func movimiento(de def: MovimientoRecurrente,
                            en fecha: Date,
+                           mes: String,
                            autor: String? = nil) -> Movimiento {
         let hf = DateFormatter()
         hf.locale = Locale(identifier: "en_US_POSIX")
@@ -246,7 +274,7 @@ enum MaterializadorRecurrentes {
         let firma = autor ?? L.t("Automático", "Automatic")
 
         return Movimiento(
-            id: "",
+            id: idDelGenerado(recurrenteId: def.id, mes: mes),
             tipo: def.tipo,
             categoria: def.categoria,
             persona: def.tipo == .gasto ? def.pagadoA : nil,

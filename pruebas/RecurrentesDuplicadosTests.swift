@@ -60,26 +60,26 @@ final class RecurrentesDuplicadosTests: XCTestCase {
 
     // MARK: - Los DOS aparatos, que es lo que el encargo quería saber
 
-    /// **Dos aparatos que abren la app el mismo día generan el mismo mes, y el
-    /// movimiento que crean NO tiene id determinista.**
+    /// **Dos aparatos que abren la app el mismo día generan el mismo mes, y
+    /// ahora el movimiento que crean tiene el MISMO id.**
     ///
-    /// `MaterializadorRecurrentes.alDia` no consulta si ya existe un
-    /// movimiento de esa definición para ese mes: solo mira
-    /// `def.ultimoMesGenerado`. Y el movimiento nace con `id: ""`
-    /// (`RecurrentesRepository:249`), que
-    /// `OfflineMovimientosRepository.crear` rellena con
-    /// `UUID().uuidString` (`:48`).
+    /// Hasta el 13-sep nacía con `id: ""` y `OfflineMovimientosRepository.crear`
+    /// le ponía un `UUID()` nuevo (`:48`), así que si el iPhone y el iPad
+    /// abrían la app antes de que `ultimoMesGenerado` sincronizara, los dos
+    /// generaban la renta del mismo mes con uids distintos y `transactions`
+    /// aceptaba las dos —su única restricción es la clave primaria sobre `uid`;
+    /// no hay nada único sobre recurrente + mes—. La renta quedaba dos veces en
+    /// los libros.
     ///
-    /// Así que si el iPhone y el iPad abren la app antes de que la marca del
-    /// primero haya sincronizado, los dos generan la renta de septiembre con
-    /// **uids distintos**, `transactions` acepta las dos —su única restricción
-    /// es la clave primaria sobre `uid`, comprobado en el servidor: no hay
-    /// nada único sobre recurrente+mes— y la renta queda **dos veces en los
-    /// libros**, con dos folios consumidos que no se recuperan.
+    /// Con el id derivado de `recurrenteId + mes`, el `upsert onConflict:
+    /// "uid"` que ya usa todo el motor las reconoce como el mismo apunte.
     ///
-    /// Lo único que lo evita hoy es que la marca llegue antes, y eso es una
-    /// carrera, no una garantía.
-    func testDosAparatosGeneranElMismoMesConIdsDistintos() throws {
+    /// **Lo que el id derivado NO devuelve: el folio.** Cada aparato pide el
+    /// suyo al generar, así que dos aparatos gastan dos números aunque la fila
+    /// acabe siendo una. Los folios consumidos no se recuperan, y eso no tiene
+    /// arreglo desde aquí: el folio se reserva antes de saber que la fila ya
+    /// existía.
+    func testDosAparatosGeneranElMismoMesConElMismoId() throws {
         let enElIPhone = definicion(mesInicio: "2026-09", ultimoMesGenerado: nil)
         let enElIPad = definicion(mesInicio: "2026-09", ultimoMesGenerado: nil)
 
@@ -92,30 +92,43 @@ final class RecurrentesDuplicadosTests: XCTestCase {
         XCTAssertEqual(a.meses, b.meses)
         XCTAssertEqual(a.meses, ["2026-09"])
 
-        let fecha = try XCTUnwrap(MesesRecurrentes.fecha(en: "2026-09", dia: 1))
-        let m1 = MaterializadorRecurrentes.movimiento(de: enElIPhone, en: fecha)
-        let m2 = MaterializadorRecurrentes.movimiento(de: enElIPad, en: fecha)
+        let mes = try XCTUnwrap(a.meses.first)
+        let fecha = try XCTUnwrap(MesesRecurrentes.fecha(en: mes, dia: 1))
+        let m1 = MaterializadorRecurrentes.movimiento(de: enElIPhone, en: fecha, mes: mes)
+        let m2 = MaterializadorRecurrentes.movimiento(de: enElIPad, en: fecha, mes: mes)
 
-        print("QA-RECURRENTE: mes=\(a.meses) · id1=«\(m1.id)» id2=«\(m2.id)» · " +
-              "recurrenteId=\(m1.recurrenteId ?? "nil") · monto=\(m1.monto)")
+        print("QA-RECURRENTE: mes=\(mes) · id1=«\(m1.id)» id2=«\(m2.id)»")
 
-        // Los dos movimientos son EL MISMO apunte: misma definición, mismo mes,
-        // mismo importe, misma fecha.
+        // Son el mismo apunte: misma definición, mismo mes, mismo importe.
         XCTAssertEqual(m1.recurrenteId, m2.recurrenteId)
         XCTAssertEqual(m1.monto, m2.monto)
         XCTAssertEqual(m1.fecha, m2.fecha)
 
-        // **Y aquí está el agujero: el id viene vacío, así que lo pone un UUID
-        // nuevo en cada aparato y el `upsert onConflict: "uid"` no los puede
-        // reconocer como el mismo.** Esta afirmación describe el estado de HOY
-        // a propósito: el día que el id se derive de `recurrenteId + mes`, esta
-        // prueba fallará y eso será la señal de que el agujero se cerró.
-        XCTAssertEqual(m1.id, "", """
-            El movimiento generado ya trae id. Si ahora es determinista \
-            —derivado de recurrenteId + mes—, el duplicado entre aparatos está \
-            resuelto y esta prueba hay que reescribirla al revés.
+        // Y ahora, el mismo id.
+        XCTAssertFalse(m1.id.isEmpty, "el id volvió a nacer vacío: lo pondría un UUID")
+        XCTAssertEqual(m1.id, m2.id, """
+            Los dos aparatos generan ids distintos para la misma renta, así que \
+            `transactions` va a quedarse con las dos filas.
             """)
-        XCTAssertEqual(m2.id, "")
+    }
+
+    /// El id dice de dónde salió la fila, que es medio arreglo por sí solo:
+    /// quien mire la base ve que es de una serie y de qué mes.
+    func testElIdDerivadoLlevaLaDefinicionYElMes() {
+        let id = MaterializadorRecurrentes.idDelGenerado(recurrenteId: "r1", mes: "2026-09")
+        XCTAssertEqual(id, "rec-r1-2026-09")
+    }
+
+    /// Meses distintos de la misma serie son apuntes distintos, y series
+    /// distintas del mismo mes también. Sin esto, el arreglo del duplicado
+    /// crearía uno peor: dos rentas machacándose entre sí.
+    func testMesesYSeriesDistintasNoColisionan() {
+        let sep = MaterializadorRecurrentes.idDelGenerado(recurrenteId: "r1", mes: "2026-09")
+        let oct = MaterializadorRecurrentes.idDelGenerado(recurrenteId: "r1", mes: "2026-10")
+        let otra = MaterializadorRecurrentes.idDelGenerado(recurrenteId: "r2", mes: "2026-09")
+        XCTAssertNotEqual(sep, oct, "dos meses de la misma serie comparten id")
+        XCTAssertNotEqual(sep, otra, "dos series del mismo mes comparten id")
+        XCTAssertEqual(Set([sep, oct, otra]).count, 3)
     }
 
     /// El interruptor sobre un movimiento recién capturado: ese mes ya está

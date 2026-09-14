@@ -153,7 +153,28 @@ conviene comprobarla sobre los datos el día que se ejecute.
 
 ---
 
-## 3 · Los recurrentes se van a duplicar entre aparatos · llega el 1 de octubre
+## 3 · Los recurrentes se duplicaban entre aparatos · RESUELTO, y el web no entraba
+
+> **RESUELTO en iOS el 13-sep, y resultó no ser cosa de dos repos.** El web
+> **no sincroniza `movimientos_recurrentes`** —sincroniza 22 tablas y esa no
+> está—, así que sus series son locales suyas y nunca se cruzaron con las de
+> iOS. El duplicado era entre **iPhone y iPad**, los dos iOS, sobre la misma
+> definición compartida.
+>
+> El movimiento generado lleva ahora un id derivado —`rec-<recurrenteUid>-<mes>`—
+> en vez de un `UUID()` nuevo por aparato, así que el `upsert onConflict: "uid"`
+> los reconoce como el mismo apunte. No es un UUID a propósito:
+> `transactions.uid` es `text` y un id legible dice de dónde salió la fila.
+>
+> **Lo que el arreglo no devuelve: el folio.** Cada aparato pide el suyo al
+> generar, así que dos aparatos gastan dos números aunque la fila acabe siendo
+> una. Eso no tiene arreglo desde ahí: el folio se reserva antes de saber que la
+> fila ya existía.
+>
+> Queda para el web, si algún día quiere sincronizarlos: **la fórmula del id
+> tiene que ser la misma**, `rec-<uid de la definición>-<YYYY-MM>`.
+
+### Lo que era, para cuando haga falta releerlo
 
 El movimiento que genera una definición recurrente nace **sin id**
 (`RecurrentesRepository:249`) y cada aparato le pone un `UUID()` propio
