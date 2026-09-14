@@ -1,4 +1,5 @@
 import XCTest
+import GRDB
 @testable import Tamio
 
 /// **La prueba que el §0.-8 dejó pendiente: que una corrección de «Por revisar»
@@ -72,5 +73,36 @@ final class CorreccionLlegaAlServidorTests: XCTestCase {
 
     private func estadoDe(_ motor: MotorSincronizacion) async -> String {
         await MainActor.run { String(describing: motor.estado) }
+    }
+
+    /// **Limpia lo que siembra.** Estas pruebas escriben en la base de la
+    /// iglesia y hasta el 14-sep no daban de baja nada: cada corrida dejaba un
+    /// movimiento vivo en los libros, y ocho se habían acumulado ahí de tanto
+    /// correr la suite. La marca `registrado_por = "prueba-aparato"` existía
+    /// justamente para poder encontrarlos, y el traspaso ya avisaba de que el
+    /// paso de limpieza tiene que ser parte de la receta y no una costumbre.
+    ///
+    /// Da de baja TODO lo marcado, no solo lo de esta corrida, así que también
+    /// recoge lo que dejaran las anteriores. **Los folios que consumen no se
+    /// recuperan** — eso es el precio de probar contra el servidor de verdad.
+    override func tearDown() async throws {
+        // **Se pregunta a la BASE, no al repositorio.** El primer intento usó
+        // `lista(tipo:)` y se dejó viva justo la fila de esta prueba:
+        // `lista` excluye los rechazados —«un devuelto se conserva pero no
+        // cuenta en el mes»— y esta prueba termina devolviendo el movimiento a
+        // propósito. Una limpieza que hereda los filtros de la pantalla no
+        // limpia lo que la pantalla no enseña.
+        let movimientos = OfflineMovimientosRepository()
+        let ids = (try? await BaseLocal.compartida.cola.read { db in
+            try String.fetchAll(db, sql: """
+                select id from movimiento
+                where registradoPor = 'prueba-aparato' and borrado = 0
+                """)
+        }) ?? []
+        for id in ids { try? await movimientos.eliminar(id: id) }
+        if !ids.isEmpty {
+            print("QA-LIMPIEZA: dadas de baja \(ids.count) filas de prueba")
+            await MotorSincronizacion.compartido.sincronizar()
+        }
     }
 }
