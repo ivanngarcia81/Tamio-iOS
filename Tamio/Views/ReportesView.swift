@@ -107,18 +107,21 @@ struct ReportesView: View {
 
     private func tarjetaReporte(_ t: ReporteTipo) -> some View {
         let tono = color(de: t)
-        return VStack(alignment: .leading, spacing: 14) {
+        // **Sin botón dentro.** "Ver reporte" hacía exactamente lo mismo que
+        // tocar la tarjeta, y no nombraba nada que el título no dijera ya: la
+        // tarjeta se llama "Reporte anual" y tocarla lleva al reporte anual.
+        // Un botón dentro de una tarjeta que ya es tocable se gana el sitio
+        // cuando hace algo DISTINTO —"Redactar" en Cartas sí, porque dice el
+        // verbo que la tarjeta no dice—, y además esa misma orden ya está en
+        // el menú de mantener pulsado: estaba tres veces en la misma tarjeta.
+        return VStack(spacing: 14) {
             Image(systemName: icono(de: t))
                 .font(.system(size: 30))
                 .foregroundStyle(tono)
                 .frame(width: 72, height: 72)
                 .background(tono.opacity(0.15),
                             in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                // La placa centrada y el texto a la izquierda, como en las
-                // tarjetas de Cartas: el `VStack` alinea a la izquierda, así
-                // que la placa se centra pidiendo todo el ancho para ella.
-                .frame(maxWidth: .infinity)
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(spacing: 6) {
                 Text(t.titulo)
                     .font(.title3.weight(.bold))
                     .lineLimit(2).minimumScaleFactor(0.8)
@@ -126,17 +129,10 @@ struct ReportesView: View {
                     .font(.subheadline).foregroundStyle(.secondary)
                     .lineLimit(2)
             }
-            Spacer(minLength: 0)
-            Button { abrir(t) } label: {
-                Text(L.t("Ver reporte", "View report"))
-                    .font(.body.weight(.semibold))
-                    .frame(maxWidth: .infinity, minHeight: 44)
-            }
-            .buttonStyle(.glassProminent)
-            .tint(Paleta.brand)
+            .multilineTextAlignment(.center)
         }
         .padding(22)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
         // Se reparten el alto, con un suelo para que con el texto grande de
         // Accesibilidad no se aplasten contra el botón.
         .frame(minHeight: 180, maxHeight: .infinity)

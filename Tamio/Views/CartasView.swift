@@ -308,7 +308,7 @@ struct CartasView: View {
                 .background(tono.opacity(0.15),
                             in: RoundedRectangle(cornerRadius: 27, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(spacing: 8) {
                 Text(plantilla.nombre.isEmpty ? tipo.titulo : plantilla.nombre)
                     .font(.title3.weight(.bold))
                     .lineLimit(2).minimumScaleFactor(0.8)
@@ -329,14 +329,28 @@ struct CartasView: View {
                 }
                 Button { abrir(plantilla) } label: {
                     Text(L.t("Redactar", "Compose"))
-                        .font(.body.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .font(.subheadline.weight(.semibold))
+                        // Ancho al texto y no a la tarjeta, que con todo
+                        // centrado la banda de lado a lado pesaba más que el
+                        // nombre de la plantilla.
+                        //
+                        // **El alto se queda en 44.** Es el mínimo de Apple
+                        // para algo que se toca con el dedo, y esta es la
+                        // acción de la pantalla: estrecharlo de ancho no
+                        // cuesta nada, bajarlo de 44 sí.
+                        .padding(.horizontal, 26)
+                        .frame(minHeight: 44)
                 }
                 .buttonStyle(.glassProminent)
                 .tint(Paleta.brand)
                 .padding(.top, 2)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // Todo centrado: la placa, el nombre, la descripción y las
+            // etiquetas. El diseño del handoff alineaba el texto a la
+            // izquierda bajo una placa centrada, y esa mezcla dejaba la
+            // tarjeta descuadrada.
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
         }
         .padding(22)
         // Cuadrada al tamaño de letra normal, **pero puede crecer**: con el
