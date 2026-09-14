@@ -358,8 +358,7 @@ struct CartasView: View {
         // Redactar, que es lo único que la tarjeta hace.
         .frame(width: lado)
         .frame(minHeight: lado)
-        .background(Color(.secondarySystemGroupedBackground),
-                    in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .fondoDeTarjeta(tono)
         .shadow(color: .black.opacity(0.10), radius: 15, y: 6)
         // Se hunde un poco mientras la tienes apretada. Sin esto la tarjeta
         // no contestaba al dedo hasta que aparecía la pantalla siguiente, y

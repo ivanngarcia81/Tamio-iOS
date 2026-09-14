@@ -136,8 +136,7 @@ struct ReportesView: View {
         // Se reparten el alto, con un suelo para que con el texto grande de
         // Accesibilidad no se aplasten contra el botón.
         .frame(minHeight: 180, maxHeight: .infinity)
-        .background(Color(.secondarySystemGroupedBackground),
-                    in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .fondoDeTarjeta(tono)
         .shadow(color: .black.opacity(0.10), radius: 15, y: 6)
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .onTapGesture { abrir(t) }

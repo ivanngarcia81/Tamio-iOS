@@ -331,3 +331,32 @@ extension BarraInferior {
         self.conResumen = conResumen
     }
 }
+
+extension View {
+    /// El fondo de una tarjeta de plantilla (Cartas) o de reporte: el color
+    /// propio de la tarjeta entrando por la esquina de arriba y disolviéndose
+    /// hacia la de abajo.
+    ///
+    /// **El 8 % no es un número suelto: va por debajo del 15 % de la placa del
+    /// icono**, y esa diferencia es la que mantiene al icono como lo más
+    /// marcado de la tarjeta. Subirlo iguala los dos y el icono deja de
+    /// destacar sobre su propio fondo; bajarlo de ahí desaparece en oscuro,
+    /// donde cualquier tinte por debajo del 10 % se traga. Elegido por Iván
+    /// sobre una escala de cinco, en claro y en oscuro.
+    ///
+    /// El degradado es el tono que la tarjeta YA tiene, no una decoración
+    /// aparte: refuerza lo que el icono dice en vez de añadir un color nuevo
+    /// que no signifique nada.
+    func fondoDeTarjeta(_ tono: Color, radio: CGFloat = 28) -> some View {
+        background {
+            let forma = RoundedRectangle(cornerRadius: radio, style: .continuous)
+            forma
+                .fill(Color(.secondarySystemGroupedBackground))
+                .overlay {
+                    LinearGradient(colors: [tono.opacity(0.08), .clear],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                }
+                .clipShape(forma)
+        }
+    }
+}
