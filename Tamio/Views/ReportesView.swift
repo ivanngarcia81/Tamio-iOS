@@ -15,13 +15,45 @@ struct ReportesView: View {
     @State private var mostrarPDF = false
     /// El reporte abierto en el teléfono (empujado en la pila).
     @State private var abierto: ReporteTipo?
+    /// El golpecito al mantener pulsada una tarjeta. Ver la nota gemela en
+    /// `CartasView`: `sensoryFeedback` reacciona a que el valor cambie.
+    @State private var golpeAlPulsar = 0
+    /// La tarjeta que tiene el dedo encima, para hundirla mientras dure.
+    @State private var pulsada: String?
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     /// Ver `MovimientosView`: la barra es de la pantalla entera, así que subir
     /// los controles solo tiene sentido cuando la pantalla ES el reporte.
     private var compacto: Bool { sizeClass == .compact }
 
+    /// **Teléfono de verdad, no solo ancho compacto.** Las tarjetas son un
+    /// rediseño de iPhone; el iPad se queda con su lista y su columna, también
+    /// en Slide Over, donde el `sizeClass` es compacto pero la pantalla sigue
+    /// siendo la del iPad. Mismo criterio que en `CartasView`.
+    private var esTelefono: Bool {
+        sizeClass == .compact && UIDevice.current.userInterfaceIdiom == .phone
+    }
+
     var body: some View {
+        pantalla
+            .encabezadoNav(L.t("Reportes", "Reports"), L.t("Listos para imprimir o compartir", "Ready to print or share"))
+            .navigationBarTitleDisplayMode(.large)
+            .task { await vm.cargar() }
+    }
+
+    @ViewBuilder
+    private var pantalla: some View {
+        if esTelefono {
+            tarjetasReportes
+                .navigationDestination(item: $abierto) { t in
+                    detalleCompacto(t)
+                }
+        } else {
+            columnas
+        }
+    }
+
+    private var columnas: some View {
         GeometryReader { geo in
             if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
@@ -42,9 +74,102 @@ struct ReportesView: View {
                     }
             }
         }
-        .encabezadoNav(L.t("Reportes", "Reports"), L.t("Listos para imprimir o compartir", "Ready to print or share"))
-        .navigationBarTitleDisplayMode(.large)
-        .task { await vm.cargar() }
+    }
+
+    // MARK: - Tarjetas (teléfono)
+
+    /// **Dos tarjetas, no un carrusel.** Cartas tiene dieciséis plantillas y
+    /// por eso allí se arrastra; aquí los reportes son DOS. Un carrusel con dos
+    /// tarjetas promete una colección que no existe: esconde la mitad de la
+    /// pantalla para que la busques, y sus flechas y sus puntos ocupan sitio
+    /// para decir "hay dos". Se ven las dos a la vez, que es lo que el carrusel
+    /// haría si cupiera.
+    ///
+    /// Si algún día son cinco o más, el carrusel de `CartasView` se copia tal
+    /// cual: la tarjeta es la misma pieza.
+    private var tarjetasReportes: some View {
+        VStack(spacing: 16) {
+            ForEach(vm.tipos) { t in
+                tarjetaReporte(t)
+            }
+        }
+        .padding(.horizontal, Esp.pantalla)
+        .padding(.vertical, Esp.pantalla)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGroupedBackground))
+        // Una vez para las dos tarjetas.
+        .sensoryFeedback(.impact, trigger: golpeAlPulsar)
+    }
+
+    private func tarjetaReporte(_ t: ReporteTipo) -> some View {
+        let tono = color(de: t)
+        return VStack(alignment: .leading, spacing: 14) {
+            Image(systemName: icono(de: t))
+                .font(.system(size: 30))
+                .foregroundStyle(tono)
+                .frame(width: 72, height: 72)
+                .background(tono.opacity(0.15),
+                            in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            VStack(alignment: .leading, spacing: 6) {
+                Text(t.titulo)
+                    .font(.title3.weight(.bold))
+                    .lineLimit(2).minimumScaleFactor(0.8)
+                Text(t.subtitulo)
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            Button { abrir(t) } label: {
+                Text(L.t("Ver reporte", "View report"))
+                    .font(.body.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Paleta.brand)
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // Se reparten el alto, con un suelo para que con el texto grande de
+        // Accesibilidad no se aplasten contra el botón.
+        .frame(minHeight: 180, maxHeight: .infinity)
+        .background(Color(.secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .shadow(color: .black.opacity(0.10), radius: 15, y: 6)
+        .scaleEffect(pulsada == t.id ? 0.97 : 1)
+        .animation(.easeOut(duration: 0.12), value: pulsada)
+        .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .onTapGesture { abrir(t) }
+        // **El toque se queda.** Mantener pulsado se suma, nunca sustituye:
+        // misma razón que en Cartas.
+        .onLongPressGesture {
+            golpeAlPulsar += 1
+            abrir(t)
+        } onPressingChanged: { dedoEncima in
+            pulsada = dedoEncima ? t.id : nil
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { abrir(t) }
+    }
+
+    private func abrir(_ t: ReporteTipo) {
+        vm.seleccionId = t.id
+        abierto = t
+    }
+
+    /// Color e icono por reporte. **Los dos símbolos ya se usan en el
+    /// proyecto**, que es como se comprueba que existen: aquí ya hubo un
+    /// `doc.badge.checkmark` inventado que salía en blanco.
+    ///
+    /// Los acentos son los de la paleta de categorías, como en las tarjetas de
+    /// Cartas. Lo que no se reconozca cae en el verde de marca y el icono de
+    /// estado, que es el reporte por omisión del view model.
+    private func color(de t: ReporteTipo) -> Color {
+        t.id == "anual" ? Paleta.morado : Paleta.brand
+    }
+
+    private func icono(de t: ReporteTipo) -> String {
+        t.id == "anual" ? "calendar" : "chart.bar.doc.horizontal"
     }
 
     // MARK: - Lista de reportes
