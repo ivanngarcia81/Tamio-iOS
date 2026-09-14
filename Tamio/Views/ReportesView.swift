@@ -15,11 +15,6 @@ struct ReportesView: View {
     @State private var mostrarPDF = false
     /// El reporte abierto en el teléfono (empujado en la pila).
     @State private var abierto: ReporteTipo?
-    /// El golpecito al mantener pulsada una tarjeta. Ver la nota gemela en
-    /// `CartasView`: `sensoryFeedback` reacciona a que el valor cambie.
-    @State private var golpeAlPulsar = 0
-    /// La tarjeta que tiene el dedo encima, para hundirla mientras dure.
-    @State private var pulsada: String?
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     /// Ver `MovimientosView`: la barra es de la pantalla entera, así que subir
@@ -97,8 +92,17 @@ struct ReportesView: View {
         .padding(.vertical, Esp.pantalla)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
-        // Una vez para las dos tarjetas.
-        .sensoryFeedback(.impact, trigger: golpeAlPulsar)
+        // **La hoja de PDF necesita su propio `sheet` aquí.** Los que ya
+        // existen cuelgan de `estadoFinanciero` y `reporteAnual`, o sea del
+        // reporte ya abierto: desde las tarjetas no hay ninguno montado, y
+        // encender `mostrarPDF` desde el menú no habría hecho nada.
+        .sheet(isPresented: $mostrarPDF) {
+            if vm.seleccionId == "anual", let a = vm.anual {
+                ReporteAnualPDFSheet(a: a)
+            } else if let e = vm.estado {
+                ReportePDFSheet(e: e)
+            }
+        }
     }
 
     private func tarjetaReporte(_ t: ReporteTipo) -> some View {
@@ -135,21 +139,70 @@ struct ReportesView: View {
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: .black.opacity(0.10), radius: 15, y: 6)
-        .scaleEffect(pulsada == t.id ? 0.97 : 1)
-        .animation(.easeOut(duration: 0.12), value: pulsada)
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .onTapGesture { abrir(t) }
-        // **El toque se queda.** Mantener pulsado se suma, nunca sustituye:
-        // misma razón que en Cartas.
-        .onLongPressGesture {
-            golpeAlPulsar += 1
-            abrir(t)
-        } onPressingChanged: { dedoEncima in
-            pulsada = dedoEncima ? t.id : nil
+        // **Mantener pulsado enseña la hoja del PDF.** Aquí sí gana a abrir
+        // directamente —que es lo que hace la tarjeta de Cartas—: el reporte
+        // se imprime y se comparte, así que ojear la hoja antes de entrar es
+        // la pregunta que uno trae. Una plantilla de carta, en cambio, se
+        // rellena; verla en pequeño no adelanta nada.
+        //
+        // El `contextMenu` se queda con la pulsación larga, así que NO puede
+        // convivir con un `onLongPressGesture` propio. También trae su propia
+        // vibración y su propia animación de levantar la tarjeta, que es por
+        // lo que aquí no hay `sensoryFeedback` ni `scaleEffect` a mano.
+        .contextMenu {
+            Button { abrir(t) } label: {
+                Label(L.t("Ver reporte", "View report"),
+                      systemImage: "chart.bar.doc.horizontal")
+            }
+            Button { vm.seleccionId = t.id; mostrarPDF = true } label: {
+                Label(L.t("Vista previa PDF", "PDF preview"),
+                      systemImage: "doc.richtext")
+            }
+            .disabled(!hayHoja(t))
+        } preview: {
+            hojaPrevia(t)
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { abrir(t) }
+    }
+
+    /// Si hay cifras con las que dibujar la hoja. **La ventana se abre igual
+    /// cuando no las hay** —el sistema no deja negarse a enseñarla—, así que en
+    /// vez de una ventana en blanco dice por qué está vacía, que es lo mismo
+    /// que hace el reporte al abrirse.
+    private func hayHoja(_ t: ReporteTipo) -> Bool {
+        t.id == "anual" ? vm.anual != nil : vm.estado != nil
+    }
+
+    /// La hoja del PDF encogida al ancho del teléfono, que es exactamente lo
+    /// que enseña "Vista previa PDF". No se dibuja un reporte aparte para la
+    /// ventana: es la misma pieza (`ReporteHojaPDF` dentro de
+    /// `HojaCartaEscalada`) que usa la hoja de verdad.
+    @ViewBuilder
+    private func hojaPrevia(_ t: ReporteTipo) -> some View {
+        if t.id == "anual", let a = vm.anual {
+            HojaCartaEscalada { ReporteAnualHojaPDF(a: a) }
+                .frame(width: 320)
+        } else if t.id != "anual", let e = vm.estado {
+            HojaCartaEscalada { ReporteHojaPDF(e: e) }
+                .frame(width: 320)
+        } else {
+            VStack(spacing: 10) {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .font(.system(size: 34)).foregroundStyle(.tertiary)
+                Text(vm.cargando
+                     ? L.t("Preparando el reporte…", "Preparing the report…")
+                     : L.t("Todavía no hay cifras para esta hoja",
+                           "No figures for this sheet yet"))
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(28)
+            .frame(width: 320)
+        }
     }
 
     private func abrir(_ t: ReporteTipo) {
