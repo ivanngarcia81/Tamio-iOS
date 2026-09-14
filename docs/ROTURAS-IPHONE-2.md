@@ -90,7 +90,22 @@ Así que un movimiento que la web guardó el **12 de julio a las 02:28** el
 teléfono lo enseña el **11 de julio a las 20:00**. No es un día desplazado: son
 el día y la hora perdidos, y la hora **no se recupera** porque nunca llegó.
 
-**Cómo quedó: MEDIDO Y NO ARREGLADO, a propósito.** Arreglarlo es fijar la
+**Cómo quedó: ARREGLADA LA MITAD, el 14-sep, y verificada en el aparato.**
+
+La forma de la app web —`2026-07-12 02:28`, sin zona y sin segundos— ya se lee
+entera: la hora deja de perderse. Y el arreglo **no era el que parecía**: añadir
+el formato con `HH:mm` a la lista no cambió nada, porque el culpable estaba
+antes, en el `ISO8601DateFormatter` con `.withFullDate`, que también acepta que
+la cadena siga y casaba primero. La regla que queda escrita es el ORDEN: **todo
+lo que lleva hora se prueba antes que el día suelto**, y el día suelto va el
+último porque casa con el principio de cualquier cosa.
+
+    antes   2026-07-12 02:28 -> 2026-07-12T00:00:00Z
+    después 2026-07-12 02:28 -> 2026-07-12T02:28:00Z
+
+234 pruebas en el iPhone, 2 saltadas, 0 fallos.
+
+**La otra mitad sigue abierta**, y es la que pide acuerdo: arreglarlo es fijar la
 convención de fechas de las **dos** apps, y son 38 filas ya escritas. La media
 solución está escrita desde el 10-sep —`Fechas.diaDeCalendario` (`:130`),
 medianoche **local** para la forma canónica— y hoy solo la usa
@@ -861,12 +876,12 @@ plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
 
 ### Código, sin urgencia · 2
 
-- **La convención de fechas** (hallazgo nº 1). El daño en datos se fue con el
-  vaciado —las 38 filas con la forma de la web ya no están— pero **el defecto de
-  código sigue**: `Fechas.desdeTexto` no sabe leer `yyyy-MM-dd HH:mm`, así que
-  volverá en cuanto el web escriba otra vez. Trece sitios parsean días de
-  calendario por el camino viejo; `Fechas.diaDeCalendario` es la media solución
-  ya escrita.
+- **La convención de fechas · la mitad que queda** (hallazgo nº 1). Lo de
+  `yyyy-MM-dd HH:mm` está arreglado el 14-sep: la hora ya no se pierde. Lo que
+  sigue es que **un día de calendario suelto se lee como medianoche UTC** y
+  retrocede al oeste de Greenwich. Son **trece sitios** y es la convención de
+  toda la app; `Fechas.diaDeCalendario` es la media solución ya escrita y hoy
+  solo la usa `Miembro.swift:475`.
 - **La novena presentación de Z2**: pide un corte con doble firma pedida y sin
   firmar, y hoy no existe ninguno. Lo crea Iván o una prueba que siembre y
   limpie.
