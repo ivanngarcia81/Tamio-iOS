@@ -6,6 +6,25 @@ struct CartasView: View {
     @State private var mostrarPrevia = false
     @State private var mostrarFirmaAlert = false
     @State private var panelAbierto = false
+    /// Cuál de las dos páginas del teléfono se ve. El segmentado de la barra
+    /// la cambia, igual que Ingresos/Gastos.
+    @State private var pestaña: PestañaCartas = .plantillas
+    /// **El contador que dispara el golpecito al mantener pulsada una
+    /// tarjeta.** `sensoryFeedback` no se lanza a mano: reacciona a que este
+    /// valor cambie, así que la pulsación larga lo sube en uno.
+    ///
+    /// Es la primera vibración del proyecto. Un toque normal NO la lleva: ahí
+    /// la respuesta es la pantalla que aparece, y vibrar además sería ruido.
+    /// La pulsación larga sí, porque durante medio segundo no pasa nada más y
+    /// el golpe es lo único que dice "ya está, suelta".
+    @State private var golpeAlPulsar = 0
+    /// La tarjeta que tiene el dedo encima ahora mismo, para hundirla mientras
+    /// dure. Es el `id` y no un `Bool` porque en el carrusel hay dieciséis y
+    /// solo se hunde la tocada.
+    @State private var pulsada: String?
+    /// La plantilla centrada en el carrusel. La escribe el propio scroll y la
+    /// escriben las flechas y los puntos; de ahí sale cuál se resalta.
+    @State private var plantillaVisible: String?
     @Environment(\.horizontalSizeClass) private var sizeClass
     /// El membrete sale de Ajustes, no de esta vista. El nombre iba escrito a
     /// mano aquí y en otros nueve sitios, con DOS valores distintos —"Iglesia
@@ -15,36 +34,13 @@ struct CartasView: View {
     private var iglesia: ConfiguracionIglesia { cfg.config }
 
     var body: some View {
-        GeometryReader { geo in
-            if geo.size.width >= Esp.anchoMaestroDetalle {
-                HStack(spacing: 0) {
-                    listaColumna
-                        .frame(width: Esp.columnaMaestra)
-                    Divider()
-                    detalleColumna
-                }
-            } else {
-                listaColumna
-                    .navigationDestination(isPresented: $panelAbierto) {
-                        detalleColumna
-                            .navigationBarTitleDisplayMode(.inline)
-                    }
-            }
-        }
-        .encabezadoNav(L.t("Cartas y traslados", "Letters & transfers"),
-                       L.t("Plantillas, cartas emitidas y traslados", "Templates, issued letters & transfers"))
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { mostrarNueva = true } label: {
-                    Label(L.t("Nuevo", "New"), systemImage: "plus")
-                }
-                .buttonStyle(.glass)
-                .tint(Paleta.brand)
-            }
-        }
+        pantalla
+        .toolbar { barra }
         .task { await vm.cargar(); await cfg.cargar() }
-        .sincronizable { await vm.cargar() }
+        // **El tirón NO va aquí.** Puesto sobre la pantalla lo recogía el
+        // carrusel, que es horizontal, y la tarjeta se arrastraba arriba y
+        // abajo. Va sobre las dos listas verticales, que es donde se tira.
+        .recargaAlSincronizar { await vm.cargar() }
         .sheet(isPresented: $mostrarNueva) {
             NuevaCartaSheet { datos in
                 vm.nuevaCarta(datos)
@@ -67,6 +63,411 @@ struct CartasView: View {
         }
     }
 
+    // MARK: - Pantalla
+
+    /// **Teléfono de verdad, no solo ancho compacto.** El carrusel es un
+    /// rediseño de iPhone; el iPad se queda exactamente como estaba, también
+    /// en Slide Over, donde el `sizeClass` sí es compacto pero la pantalla
+    /// sigue siendo la del iPad.
+    private var compacto: Bool {
+        sizeClass == .compact && UIDevice.current.userInterfaceIdiom == .phone
+    }
+
+    @ViewBuilder
+    private var pantalla: some View {
+        if compacto {
+            // El título va `.inline`: el segmentado ocupa su hueco, igual que
+            // en Ingresos/Gastos, y el grande no cabe con él.
+            contenidoTelefono
+                .navigationTitle(L.t("Cartas y traslados", "Letters & transfers"))
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationDestination(isPresented: $panelAbierto) {
+                    detalleColumna
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+        } else {
+            // iPad: sin tocar.
+            GeometryReader { geo in
+                if geo.size.width >= Esp.anchoMaestroDetalle {
+                    HStack(spacing: 0) {
+                        listaColumna
+                            .frame(width: Esp.columnaMaestra)
+                        Divider()
+                        detalleColumna
+                    }
+                } else {
+                    listaColumna
+                        .navigationDestination(isPresented: $panelAbierto) {
+                            detalleColumna
+                                .navigationBarTitleDisplayMode(.inline)
+                        }
+                }
+            }
+            .encabezadoNav(L.t("Cartas y traslados", "Letters & transfers"),
+                           L.t("Plantillas, cartas emitidas y traslados", "Templates, issued letters & transfers"))
+            .navigationBarTitleDisplayMode(.large)
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var barra: some ToolbarContent {
+        // **El segmentado se queda `Picker` y NO se envuelve en cristal**: en
+        // el `toolbar` el sistema ya le pone su cápsula, y cristal dentro de
+        // cristal es lo que Apple desaconseja. (En una `safeAreaBar` sería al
+        // revés, ver Agenda.)
+        //
+        // Cápsulas en el teléfono: segmentado, `Nuevo` y el botón de volver.
+        // Tres de las cuatro que caben — el sistema tira la quinta sin avisar.
+        if compacto {
+            ToolbarItem(placement: .title) {
+                pickerPestaña.frame(maxWidth: 210)
+            }
+        }
+        ToolbarItem(placement: .topBarTrailing) { botonNuevo }
+    }
+
+    private var botonNuevo: some View {
+        Button { mostrarNueva = true } label: {
+            Label(L.t("Nuevo", "New"), systemImage: "plus")
+        }
+        .buttonStyle(.glass)
+        .tint(Paleta.brand)
+    }
+
+    private var pickerPestaña: some View {
+        Picker(L.t("Página", "Page"), selection: $pestaña) {
+            Text(L.t("Plantillas", "Templates")).tag(PestañaCartas.plantillas)
+            Text(L.t("Emitidas", "Issued")).tag(PestañaCartas.emitidas)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+    }
+
+    // MARK: - Teléfono
+
+    @ViewBuilder
+    private var contenidoTelefono: some View {
+        switch pestaña {
+        case .plantillas: paginaPlantillas
+        case .emitidas:   paginaEmitidas
+        }
+    }
+
+    private var paginaPlantillas: some View {
+        GeometryReader { geo in
+            // La tarjeta del diseño mide 340 pt sobre un teléfono de 402, con
+            // las flechas encima de sus esquinas. **Encima del título**: con
+            // 340 reales la de la izquierda se comía la primera letra del
+            // nombre de la plantilla. Se le deja sitio a las dos —48 pt a cada
+            // lado— y el tope de 340 solo actúa en pantallas muy anchas.
+            let lado = min(340, geo.size.width - 96)
+            // El hueco entre tarjetas es el doble del margen lateral: así la
+            // vecina cae JUSTO fuera de la pantalla y solo asoma mientras se
+            // arrastra, que es lo que pide el diseño.
+            let margen = max(0, (geo.size.width - lado) / 2)
+            VStack(spacing: 0) {
+                resumenPlantillas
+                    .padding(.horizontal, Esp.pantalla)
+                Spacer(minLength: 12)
+                // Los puntos van pegados a la tarjeta, no al borde de la
+                // pantalla: numeran el carrusel, así que se leen con él.
+                VStack(spacing: 10) {
+                    carrusel(lado: lado, margen: margen)
+                    puntosCarrusel
+                }
+                Spacer(minLength: 12)
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .background(Color(.systemGroupedBackground))
+        // La plantilla centrada tiene que existir: las de la iglesia llegan
+        // del web y pueden cambiar de una sincronización a otra, así que si la
+        // que estaba centrada desaparece, el carrusel vuelve a la primera.
+        .onChange(of: vm.plantillas, initial: true) { _, nuevas in
+            if plantillaVisible == nil
+                || !nuevas.contains(where: { $0.id == plantillaVisible }) {
+                plantillaVisible = nuevas.first?.id
+            }
+        }
+    }
+
+    /// "12 plantillas · 6 emitidas en septiembre". Las dos cifras son cuentas
+    /// sobre los datos cargados, no texto fijo: el número de plantillas lo pone
+    /// la iglesia desde el web, y el de emitidas se filtra por el mes corriente
+    /// —la lista de abajo las trae todas—.
+    private var resumenPlantillas: some View {
+        HStack(spacing: 6) {
+            Text(vm.plantillas.count == 1
+                 ? L.t("1 plantilla", "1 template")
+                 : L.t("\(vm.plantillas.count) plantillas", "\(vm.plantillas.count) templates"))
+            Text("·").foregroundStyle(.tertiary)
+            Text(L.t("\(emitidasEsteMes) emitidas en \(Fechas.mes(Date()))",
+                     "\(emitidasEsteMes) issued in \(Fechas.mes(Date()))"))
+            Spacer()
+        }
+        .font(.footnote)
+        .monospacedDigit()
+        .foregroundStyle(.secondary)
+    }
+
+    /// El carrusel **abraza su alto**: sin `fixedSize` el `ScrollView` se come
+    /// todo el hueco que le ofrece el `VStack` y los puntos se iban al borde
+    /// de la pantalla, lejos de la tarjeta que numeran.
+    private func carrusel(lado: CGFloat, margen: CGFloat) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: margen * 2) {
+                ForEach(vm.plantillas) { plantilla in
+                    tarjetaPlantilla(plantilla, lado: lado)
+                        .id(plantilla.id)
+                }
+            }
+            .scrollTargetLayout()
+            .padding(.horizontal, margen)
+            // Sitio para la sombra de la tarjeta, que si no queda recortada
+            // por el borde del `ScrollView`.
+            .padding(.vertical, 12)
+        }
+        .scrollTargetBehavior(.viewAligned)
+        .scrollPosition(id: $plantillaVisible)
+        .scrollIndicators(.hidden)
+        .fixedSize(horizontal: false, vertical: true)
+        // Una vez aquí y no dieciséis veces, una por tarjeta.
+        .sensoryFeedback(.impact, trigger: golpeAlPulsar)
+        .overlay(alignment: .leading)  { flecha(atras: true) }
+        .overlay(alignment: .trailing) { flecha(atras: false) }
+    }
+
+    private func flecha(atras: Bool) -> some View {
+        Button { mover(atras: atras) } label: {
+            Image(systemName: atras ? "chevron.left" : "chevron.right")
+                .font(.system(size: 15, weight: .semibold))
+                .frame(width: 38, height: 38)
+        }
+        .buttonStyle(.glass)
+        .tint(Paleta.brand)
+        .padding(.horizontal, 8)
+        .disabled(atras ? indiceVisible <= 0
+                        : indiceVisible >= vm.plantillas.count - 1)
+        .accessibilityLabel(atras ? L.t("Plantilla anterior", "Previous template")
+                                  : L.t("Plantilla siguiente", "Next template"))
+    }
+
+    @ViewBuilder
+    private var puntosCarrusel: some View {
+        if vm.plantillas.count > 12 {
+            // Con más de doce los puntos se apelotonan y dejan de decir en qué
+            // parte del carrusel estás, que es para lo único que sirven.
+            Text("\(indiceVisible + 1) / \(vm.plantillas.count)")
+                .font(.caption).monospacedDigit().foregroundStyle(.secondary)
+        } else {
+            HStack(spacing: 6) {
+                ForEach(Array(vm.plantillas.enumerated()), id: \.element.id) { i, plantilla in
+                    Button {
+                        withAnimation(.snappy) { plantillaVisible = plantilla.id }
+                    } label: {
+                        Circle()
+                            .fill(i == indiceVisible ? Paleta.brand : Color(.tertiaryLabel))
+                            .frame(width: 7, height: 7)
+                            // El punto se ve de 7 pt pero se toca en 28: por
+                            // debajo de 44 ya cuesta, y siete es imposible.
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(plantilla.nombre.isEmpty ? plantilla.tipo.titulo
+                                                                 : plantilla.nombre)
+                }
+            }
+        }
+    }
+
+    private var indiceVisible: Int {
+        guard let id = plantillaVisible,
+              let i = vm.plantillas.firstIndex(where: { $0.id == id }) else { return 0 }
+        return i
+    }
+
+    private func mover(atras: Bool) {
+        let destino = indiceVisible + (atras ? -1 : 1)
+        guard vm.plantillas.indices.contains(destino) else { return }
+        withAnimation(.snappy) { plantillaVisible = vm.plantillas[destino].id }
+    }
+
+    /// La tarjeta del carrusel. Enseña **el nombre que la iglesia le puso**,
+    /// como la fila del iPad; el icono, la descripción y la pista salen del
+    /// tipo, que es lo que los tiene.
+    private func tarjetaPlantilla(_ plantilla: Plantilla, lado: CGFloat) -> some View {
+        let tipo = plantilla.tipo
+        let veces = usos(de: tipo)
+        let tono = color(de: tipo)
+        return VStack(spacing: 16) {
+            Image(systemName: tipo.icono)
+                .font(.system(size: 34))
+                .foregroundStyle(tono)
+                .frame(width: 86, height: 86)
+                .background(tono.opacity(0.15),
+                            in: RoundedRectangle(cornerRadius: 27, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(plantilla.nombre.isEmpty ? tipo.titulo : plantilla.nombre)
+                    .font(.title3.weight(.bold))
+                    .lineLimit(2).minimumScaleFactor(0.8)
+                Text(tipo.subtitulo)
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .lineLimit(2)
+                HStack(spacing: 6) {
+                    if veces > 0 {
+                        Text(veces == 1 ? L.t("Usada 1 vez", "Used once")
+                                        : L.t("Usada \(veces) veces", "Used \(veces) times"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(tono)
+                            .padding(.horizontal, 9).padding(.vertical, 4)
+                            .background(tono.opacity(0.15), in: Capsule())
+                    }
+                    Text(pista(de: tipo))
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Button { abrir(plantilla) } label: {
+                    Text(L.t("Redactar", "Compose"))
+                        .font(.body.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+                .padding(.top, 2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(22)
+        // Cuadrada al tamaño de letra normal, **pero puede crecer**: con el
+        // texto grande de Accesibilidad el alto fijo recortaba el botón de
+        // Redactar, que es lo único que la tarjeta hace.
+        .frame(width: lado)
+        .frame(minHeight: lado)
+        .background(Color(.secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .shadow(color: .black.opacity(0.10), radius: 15, y: 6)
+        // Se hunde un poco mientras la tienes apretada. Sin esto la tarjeta
+        // no contestaba al dedo hasta que aparecía la pantalla siguiente, y
+        // medio segundo de nada se lee como que el toque no ha entrado.
+        .scaleEffect(pulsada == plantilla.id ? 0.97 : 1)
+        .animation(.easeOut(duration: 0.12), value: pulsada)
+        .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .onTapGesture { abrir(plantilla) }
+        // **El toque se queda.** Mantener pulsado es un atajo que se suma,
+        // nunca la única forma de abrir: quien usa VoiceOver, o a quien le
+        // cuesta sostener el dedo quieto medio segundo, se quedaría sin poder
+        // redactar una carta.
+        .onLongPressGesture {
+            golpeAlPulsar += 1
+            abrir(plantilla)
+        } onPressingChanged: { dedoEncima in
+            pulsada = dedoEncima ? plantilla.id : nil
+        }
+        // **La tarjeta entera es el botón para VoiceOver.** Sin esto el lector
+        // recitaba cuatro trozos sueltos —nombre, descripción, pista— y solo
+        // la píldora de "Redactar" se podía activar, que es la mitad de la
+        // tarjeta que menos se toca con el dedo. Ahora se lee de una y se
+        // activa de una; el toque y la pulsación larga siguen igual para quien
+        // no usa el lector.
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { abrir(plantilla) }
+    }
+
+    /// Cuántas cartas de este tipo se han emitido. **Es una cuenta sobre las
+    /// emitidas cargadas**, no un contador guardado: la tabla `plantilla` no
+    /// lleva ninguno, y `CartaEmitida` sí lleva el tipo.
+    private func usos(de tipo: TipoPlantilla) -> Int {
+        vm.emitidas.filter { $0.tipo == tipo }.count
+    }
+
+    /// `fechaEmision` es `"YYYY-MM-DD"` como en el web, así que el mes corriente
+    /// es un prefijo y no hace falta convertirla a `Date`.
+    private var emitidasEsteMes: Int {
+        let mes = Fechas.claveMes()
+        return vm.emitidas.filter { $0.fechaEmision.hasPrefix(mes) }.count
+    }
+
+    /// **El color de la tarjeta, por tipo de plantilla.** Sale de la paleta de
+    /// categorías que la app ya tiene —los siete acentos que pintan la dona de
+    /// ingresos, la agenda y las categorías propias—, no de colores nuevos:
+    /// esos siete llevan variante oscura en el catálogo (`TamioCat1`…`Cat6`), y
+    /// un tono inventado aquí no la tendría y se leería mal sobre negro.
+    ///
+    /// El reparto agrupa por para qué sirve la carta, no una por color: con
+    /// dieciséis tipos y siete acentos, repartirlos al azar haría que dos
+    /// cartas que no se parecen en nada salieran del mismo color por
+    /// casualidad, y que dos hermanas salieran distintas.
+    private func color(de tipo: TipoPlantilla) -> Color {
+        switch tipo {
+        // Lo que acredita pertenencia a la iglesia: el verde de la casa.
+        case .certificadoMiembro, .certificacion, .certificadoServicio:
+            return Paleta.brand
+        // Movimiento entre congregaciones.
+        case .traslado, .presentacion, .bienvenida:
+            return Paleta.cian
+        // Lo que se emite hacia fuera sobre la conducta de alguien.
+        case .recomendacion, .buenaConducta:
+            return Paleta.morado
+        // Cargos y reconocimientos.
+        case .nombramiento, .reconocimiento:
+            return Paleta.ambar
+        // Trato con personas e instituciones.
+        case .invitacion, .agradecimiento:
+            return Paleta.naranja
+        // Trámites y sacramentos con fecha.
+        case .bautismo, .autorizacion, .solicitud:
+            return Paleta.azulCielo
+        // Sin plantilla: sin color propio.
+        case .personalizada:
+            return Paleta.pizarra
+        }
+    }
+
+    /// La pista chica de la tarjeta. **Sale del mismo reparto que pone los
+    /// nombres de los campos del formulario** (`labelCampo2`), no de una tabla
+    /// aparte: así no puede prometer un dato que la carta luego no pida.
+    private func pista(de tipo: TipoPlantilla) -> String {
+        switch tipo {
+        case .traslado:   return L.t("Pide iglesia destino", "Needs destination church")
+        case .bautismo:   return L.t("Pide fecha y oficiante", "Needs date and officiant")
+        case .bienvenida: return L.t("Pide iglesia de procedencia", "Needs previous church")
+        default:          return L.t("Pide destinatario", "Needs a recipient")
+        }
+    }
+
+    private var paginaEmitidas: some View {
+        List {
+            ForEach(vm.emitidas) { carta in
+                filaEmitida(carta)
+            }
+        }
+        .tironDeRefresco { await vm.cargar() }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Paleta.sueloLista(columna: false))
+        .overlay {
+            // **La lista trae TODAS las emitidas, no las del mes.** La cabecera
+            // que tenía decía "Emitidas este mes" sobre una lista sin filtrar:
+            // al pasar a página propia se queda con el nombre que sí es cierto,
+            // y la cuenta del mes vive en el resumen de Plantillas.
+            if vm.emitidas.isEmpty && !vm.cargando {
+                ContentUnavailableView(
+                    L.t("Sin cartas emitidas", "No issued letters"),
+                    systemImage: "tray",
+                    description: Text(L.t("Las cartas que firmes y emitas aparecerán aquí.",
+                                          "Letters you sign and issue will appear here."))
+                )
+            }
+        }
+    }
+
+    private func abrir(_ plantilla: Plantilla) {
+        vm.seleccionar(plantilla)
+        panelAbierto = true
+    }
+
     private var firmaAlertTitulo: String {
         vm.carta.camposCompletos < vm.carta.camposTotales
             ? L.t("Campos incompletos", "Incomplete fields")
@@ -86,6 +487,7 @@ struct CartasView: View {
     private var listaColumna: some View {
         // Las dos ramas en `.plain`: el margen lo pone `filaDeLista`.
         listaColumnaCore
+            .tironDeRefresco { await vm.cargar() }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Paleta.sueloLista(columna: sizeClass == .regular))
@@ -123,8 +525,7 @@ struct CartasView: View {
         let tipo = plantilla.tipo
         let sel = tipo == vm.plantillaSeleccionada
         return Button {
-            vm.seleccionar(plantilla)
-            panelAbierto = true
+            abrir(plantilla)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: tipo.icono)
@@ -707,4 +1108,10 @@ private struct VistaPreviaSheet: View {
         }
         .task { await cfg.cargar() }
     }
+}
+
+/// Las dos páginas del teléfono. En iPad no existen: allá la columna enseña
+/// las dos listas a la vez.
+private enum PestañaCartas {
+    case plantillas, emitidas
 }

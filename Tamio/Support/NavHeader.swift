@@ -34,13 +34,32 @@ extension View {
     /// la cuenta de la iglesia abierta. Que se vea o no dependía de quién
     /// terminara antes, que es la peor clase de fallo.
     func sincronizable(_ recargar: @escaping () async -> Void) -> some View {
+        tironDeRefresco(recargar).recargaAlSincronizar(recargar)
+    }
+
+    /// Solo el tirón. **Va sobre la lista que se desplaza en vertical, no sobre
+    /// la pantalla**: `refreshable` lo recoge el primer contenedor desplazable
+    /// que lo encuentre, y si ese es uno HORIZONTAL —el carrusel de plantillas
+    /// de Cartas— el contenedor empieza a admitir arrastre vertical y la
+    /// tarjeta se va arriba y abajo con el dedo. Lo vio Iván en su iPhone: la
+    /// tarjeta se salía por arriba y asomaba la ruedita de refresco en medio
+    /// del carrusel.
+    ///
+    /// Por eso una pantalla que mezcla las dos cosas usa este y
+    /// `recargaAlSincronizar` por separado, en vez de `sincronizable`.
+    func tironDeRefresco(_ recargar: @escaping () async -> Void) -> some View {
         refreshable {
             // Un tirón de refresco es una petición explícita: despierta también
             // lo que se había rendido tras cinco intentos.
             await MotorSincronizacion.compartido.sincronizar(reintentarLoAtascado: true)
             await recargar()
         }
-        .onChange(of: MotorSincronizacion.compartido.ultimaSincronizacion) {
+    }
+
+    /// Solo la recarga automática al terminar el motor. No necesita contenedor
+    /// desplazable, así que va sobre la pantalla entera.
+    func recargaAlSincronizar(_ recargar: @escaping () async -> Void) -> some View {
+        onChange(of: MotorSincronizacion.compartido.ultimaSincronizacion) {
             Task { await recargar() }
         }
     }
