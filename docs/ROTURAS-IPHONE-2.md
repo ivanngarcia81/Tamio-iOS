@@ -845,9 +845,11 @@ plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
   contesta *«Configuring leaked password protection via HaveIBeenPwned.org is
   available on Pro Plans and up»*. Lo que sí está disponible y es gratis, en esa
   misma pantalla —**Authentication › Sign In / Providers › Email**—: subir el
-  **largo mínimo de contraseña**, que está en **6** cuando la propia Supabase
-  recomienda 8 o más, y fijar los **requisitos de caracteres**, que están sin
-  elegir.
+  **largo mínimo de contraseña**, que estaba en **6** cuando la propia Supabase
+  recomienda 8 o más, y fijar los **requisitos de caracteres**, que estaban sin
+  elegir. **Hechas el 14-sep.** No se pueden leer desde el MCP —solo expone el
+  analizador, y ese solo mira las filtradas—, así que quedan verificadas por
+  Iván en el panel y no por una medida desde aquí.
 
 ### Decisiones de diseño · 3
 

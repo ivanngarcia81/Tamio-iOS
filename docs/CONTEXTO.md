@@ -4181,6 +4181,13 @@ Hoy solo está probado con pruebas unitarias, nunca a mano.
 >
 > Las dos suben la misma barra que la comprobación de filtradas iba a subir, y
 > no cuestan nada.
+>
+> **Hechas el 14-sep-2026 por Iván.** Y con un aviso para quien vuelva a
+> revisarlo: **desde el MCP de Supabase no se pueden LEER.** Lo único que expone
+> de Auth es el analizador, y el analizador solo informa de las contraseñas
+> filtradas —que seguirá avisando mientras el proyecto no tenga plan Pro, y ese
+> aviso ya no significa que quede algo por hacer—. El largo mínimo y los
+> requisitos de caracteres hay que mirarlos en el panel.
 
 Es lo único que queda del endurecimiento previo a publicar, y no es SQL.
 
