@@ -106,6 +106,27 @@ enum Catalogos {
             + personalizadas.filter { $0.tipo == tipo }.map(\.nombre)
     }
 
+    /// **Lo que se GUARDA: la clave, no la etiqueta.** Las de la iglesia van
+    /// por su nombre, porque no tienen clave.
+    ///
+    /// Misma pauta que los catálogos del padrón —ministerios, cargos, estado
+    /// civil—, que guardan claves y traducen al pintar porque así las escribió
+    /// el web. Las categorías eran la excepción y por eso el mismo diezmo
+    /// acababa en `diezmo`, `Diezmo` y `Tithe` según el idioma que tuviera la
+    /// app al capturarlo.
+    static func clavesDeCategoria(_ tipo: TipoMovimiento) -> [String] {
+        catalogo(tipo).map(\.clave.rawValue)
+            + personalizadas.filter { $0.tipo == tipo }.map(\.nombre)
+    }
+
+    /// Lo que hay que guardar para una categoría venga como venga: su clave si
+    /// la reconoce, y el texto tal cual si es de la iglesia. Es lo que convierte
+    /// un `Tithe` heredado en `diezmo` la primera vez que alguien abre esa
+    /// ficha, sin migración ni aviso.
+    static func categoriaGuardable(_ guardado: String) -> String {
+        clave(deEtiqueta: guardado)?.rawValue ?? guardado
+    }
+
     /// Las de fábrica a secas, sin las de la iglesia. Ajustes las separa
     /// porque las integradas no se pueden borrar y las otras sí.
     static func categoriasDeFabrica(_ tipo: TipoMovimiento) -> [String] {
@@ -144,15 +165,42 @@ enum Catalogos {
         (.varios,        ["varios", "misc"]),
     ]
 
-    /// Todas las etiquetas del catálogo, en los dos idiomas, con su clave.
+    /// Todas las etiquetas del catálogo, en los dos idiomas, con su clave —y
+    /// **la clave misma**, que es lo que se guarda desde el 13-sep-2026.
+    ///
+    /// Las claves se resolvían antes por CASUALIDAD: casi todas se escriben
+    /// igual que su etiqueta española, así que `"diezmo"` encontraba
+    /// `.diezmo` por la puerta de las etiquetas. `ayudaSocial` no, porque va en
+    /// camello —normalizada es `"ayudasocial"` y la etiqueta es
+    /// `"ayuda social"`, con espacio— y ninguna raíz la alcanza. Ponerlas
+    /// todas a mano convierte la casualidad en contrato.
     private static let porEtiqueta: [String: CategoriaClave] = {
         var tabla: [String: CategoriaClave] = [:]
         for c in catalogoIngreso + catalogoGasto {
             tabla[normalizar(c.es)] = c.clave
             tabla[normalizar(c.en)] = c.clave
         }
+        for clave in CategoriaClave.allCases {
+            tabla[normalizar(clave.rawValue)] = clave
+        }
         return tabla
     }()
+
+    /// **La etiqueta que se enseña, venga guardada como venga.**
+    ///
+    /// Desde el 13-sep lo que se guarda es la CLAVE (`diezmo`), no la etiqueta
+    /// traducida (`Diezmo`/`Tithe`): lo escrito no puede depender del idioma que
+    /// tuviera la app, o el mismo concepto acaba en tres cubos distintos y el
+    /// reparto por categoría del estado financiero lo enseña partido. Ver
+    /// `docs/ACUERDO-CON-EL-WEB.md` §2.
+    ///
+    /// Esto traduce lo guardado a la lengua de ahora. **Lo que no reconoce lo
+    /// devuelve tal cual**, que es lo correcto para una categoría que la
+    /// iglesia se inventó: esas se llaman como su dueño las llamó.
+    static func etiquetaDeCategoria(_ guardado: String) -> String {
+        guard let clave = clave(deEtiqueta: guardado) else { return guardado }
+        return etiqueta(de: clave)
+    }
 
     /// Sin acentos, sin mayúsculas y sin espacios de sobra: "Tecnología" y
     /// "tecnologia" son la misma categoría. Público porque contar movimientos

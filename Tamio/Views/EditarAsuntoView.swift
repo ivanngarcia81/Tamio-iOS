@@ -47,8 +47,12 @@ struct EditarAsuntoView: View {
         // El asunto puede llegar sin categoría ("Sin categoría", en rojo); si
         // trae una que no está en el catálogo, `conValorVigente` la conserva
         // como opción en lugar de perderla.
-        let cats = Catalogos.categorias(r.esGasto ? .gasto : .ingreso)
-        _categoria = State(initialValue: r.editCategoria ?? (cats.first ?? ""))
+        // **Claves, no etiquetas**, igual que la hoja de alta: lo guardado no
+        // puede depender del idioma de la app. Y lo heredado se normaliza a su
+        // clave al abrir, así que un `Tithe` viejo sale guardado como `diezmo`.
+        let cats = Catalogos.clavesDeCategoria(r.esGasto ? .gasto : .ingreso)
+        _categoria = State(initialValue: r.editCategoria.map(Catalogos.categoriaGuardable)
+                           ?? (cats.first ?? ""))
         _metodo = State(initialValue: r.editMetodo ?? (Catalogos.metodos.first ?? ""))
         _aportante = State(initialValue: r.editAportante)
         // La fecha viene ya hecha del movimiento. Antes se recomponía leyendo
@@ -60,7 +64,7 @@ struct EditarAsuntoView: View {
 
     /// Mismo catálogo y misma regla que la hoja de alta.
     private var categorias: [String] {
-        Catalogos.conValorVigente(Catalogos.categorias(r.esGasto ? .gasto : .ingreso), categoria)
+        Catalogos.conValorVigente(Catalogos.clavesDeCategoria(r.esGasto ? .gasto : .ingreso), categoria)
     }
     private var metodos: [String] { Catalogos.conValorVigente(Catalogos.metodos, metodo) }
     private var folio: String {
@@ -161,7 +165,10 @@ struct EditarAsuntoView: View {
         Picker(r.esGasto ? L.t("Categoría", "Category")
                          : L.t("Tipo de ingreso", "Income type"),
                selection: $categoria) {
-            ForEach(categorias, id: \.self) { Text($0).tag($0) }
+            // La clave es el valor; la etiqueta, lo que se lee.
+            ForEach(categorias, id: \.self) {
+                Text(Catalogos.etiquetaDeCategoria($0)).tag($0)
+            }
         }
     }
 

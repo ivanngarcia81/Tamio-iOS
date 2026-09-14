@@ -75,8 +75,13 @@ struct NuevoMovimientoView: View {
         // reporte anual. En un ingreso sí se preselecciona: es el diezmo del
         // domingo, cientos de capturas seguidas, y ahí obligar a un toque de
         // más por registro cuesta más de lo que evita.
-        _categoria = State(initialValue: existente?.categoria
-                           ?? (t == .ingreso ? (Catalogos.categorias(t).first ?? "") : ""))
+        // Lo heredado se normaliza a su clave al abrir la ficha: un `Tithe`
+        // viejo entra como `diezmo` y sale guardado así, sin migración ni
+        // aviso. **Los paréntesis importan**: sin ellos el `.map` se aplica al
+        // `String` —recorriendo sus CARACTERES— y no al opcional.
+        let heredada = (existente?.categoria).map(Catalogos.categoriaGuardable)
+        _categoria = State(initialValue: heredada
+                           ?? (t == .ingreso ? (Catalogos.clavesDeCategoria(t).first ?? "") : ""))
         _subcategoria = State(initialValue: existente?.subcategoria ?? "")
         _fecha = State(initialValue: existente?.fecha ?? Date())
         _metodo = State(initialValue: existente?.metodo ?? (Catalogos.metodos.first ?? ""))
@@ -138,8 +143,11 @@ struct NuevoMovimientoView: View {
     /// Catálogo compartido con la hoja de edición, más el valor vigente si no
     /// está en él: un `Picker` no puede marcar una selección que no exista
     /// entre sus opciones.
+    /// **Claves, no etiquetas.** Lo que el `Picker` marca es lo que se guarda,
+    /// así que aquí van las claves y la etiqueta se pinta en el `Text`. Ver
+    /// `Catalogos.clavesDeCategoria`.
     private var categorias: [String] {
-        Catalogos.conValorVigente(Catalogos.categorias(tipo), categoria)
+        Catalogos.conValorVigente(Catalogos.clavesDeCategoria(tipo), categoria)
     }
     private var metodos: [String] { Catalogos.conValorVigente(Catalogos.metodos, metodo) }
 
@@ -182,7 +190,7 @@ struct NuevoMovimientoView: View {
             .navigationTitle(editando ? tituloPantalla : "")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: tipo) { _, nuevo in
-                categoria = nuevo == .ingreso ? (Catalogos.categorias(nuevo).first ?? "") : ""
+                categoria = nuevo == .ingreso ? (Catalogos.clavesDeCategoria(nuevo).first ?? "") : ""
             }
             .onChange(of: aportante) { _, _ in
                 if sinAportante { darConstanciaAnual = false }
@@ -328,7 +336,10 @@ struct NuevoMovimientoView: View {
                     .foregroundStyle(.secondary)
                     .tag("")
             }
-            ForEach(categorias, id: \.self) { Text($0).tag($0) }
+            // La clave es el valor; la etiqueta, lo que se lee.
+            ForEach(categorias, id: \.self) {
+                Text(Catalogos.etiquetaDeCategoria($0)).tag($0)
+            }
         }
     }
 
@@ -539,7 +550,7 @@ struct NuevoMovimientoView: View {
         onGuardar(armarMovimiento())
         // Reinicia el formulario sin cerrar la hoja
         importe = ""
-        categoria = tipo == .ingreso ? (Catalogos.categorias(tipo).first ?? "") : ""
+        categoria = tipo == .ingreso ? (Catalogos.clavesDeCategoria(tipo).first ?? "") : ""
         subcategoria = ""
         fecha = Date()
         metodo = "Efectivo"

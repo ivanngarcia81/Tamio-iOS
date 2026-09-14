@@ -179,7 +179,8 @@ extension CalculadoraRevisiones {
             .init(label: L.t("Concepto", "Description"), valor: m.titular),
             importe(m),
             .init(label: L.t("Categoría", "Category"),
-                  valor: m.categoria.isEmpty ? L.t("Sin categoría", "No category") : m.categoria,
+                  valor: m.categoria.isEmpty ? L.t("Sin categoría", "No category")
+                                             : Catalogos.etiquetaDeCategoria(m.categoria),
                   resalte: m.categoria.isEmpty ? .rojo : .ninguno),
             .init(label: L.t("Fecha", "Date"), valor: fecha(m)),
             .init(label: L.t("Método de pago", "Payment method"), valor: m.metodo),

@@ -144,8 +144,9 @@ struct FilaRecurrente: View {
                             in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(recurrente.titular).font(.subheadline.weight(.medium)).lineLimit(1)
-                Text(L.t("Día \(recurrente.dia) de cada mes · \(recurrente.categoria)",
-                         "Day \(recurrente.dia) of each month · \(recurrente.categoria)"))
+                // La etiqueta del idioma de ahora, no la clave guardada.
+                Text(L.t("Día \(recurrente.dia) de cada mes · \(Catalogos.etiquetaDeCategoria(recurrente.categoria))",
+                         "Day \(recurrente.dia) of each month · \(Catalogos.etiquetaDeCategoria(recurrente.categoria))"))
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 6)

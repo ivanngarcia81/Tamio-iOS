@@ -69,7 +69,9 @@ struct MovimientoDetalle: View {
 
     private var etiquetas: some View {
         HStack(spacing: 8) {
-            Pill(texto: m.categoria, color: color)
+            // Lo guardado es la clave; aquí se lee la etiqueta del idioma de
+            // ahora. Una categoría de la iglesia sale con su propio nombre.
+            Pill(texto: Catalogos.etiquetaDeCategoria(m.categoria), color: color)
             Pill(texto: "Folio \(m.folio)", color: .gray)
             if m.sinDepositar {
                 Pill(texto: L.t("Sin depositar", "Not deposited"), color: Paleta.aviso)
