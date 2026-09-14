@@ -88,21 +88,42 @@ enum Fechas {
     /// formatos según la columna: ISO completo, ISO sin zona, o solo el día.
     static func desdeTexto(_ texto: String?) -> Date? {
         guard let texto, !texto.isEmpty else { return nil }
+        // **Todo lo que lleva HORA se prueba antes que el día suelto**, y esto
+        // incluye al `ISO8601DateFormatter`: con `.withFullDate` también acepta
+        // que la cadena siga, así que `"2026-07-12 02:28"` le casaba y devolvía
+        // medianoche UTC ANTES de llegar a los formatos de abajo. Añadir el
+        // formato con `HH:mm` sin mover este bloque no arregló nada — lo cazó
+        // `FechasDelServidorTests` en el simulador, que siguió imprimiendo
+        // `-> 2026-07-12T00:00:00Z`.
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
         if let d = iso.date(from: texto) { return d }
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let d = iso.date(from: texto) { return d }
-        iso.formatOptions = [.withFullDate]
-        if let d = iso.date(from: texto) { return d }
         let df = DateFormatter()
         df.locale = Locale(identifier: "en_US_POSIX")
         df.timeZone = TimeZone(identifier: "UTC")
-        for formato in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd"] {
+        // **El orden manda, y por eso las que llevan hora van primero.**
+        // `DateFormatter.date(from:)` acepta que la cadena SIGA después de lo
+        // que el formato describe: `"yyyy-MM-dd"` casa con
+        // `"2026-07-12 02:28"` y devuelve medianoche, tirando la hora sin
+        // avisar. Así es como se perdían el día y la hora de los movimientos
+        // que escribe la app web —33 de las 84 filas que había el 12-sep—, y
+        // por qué el fallo parecía «solo» un desvío de zona.
+        //
+        // `HH:mm` sin segundos es justo la forma del web
+        // (`2026-07-12 02:28`); las de segundos estaban y se quedan.
+        for formato in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd HH:mm:ss",
+                        "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd HH:mm"] {
             df.dateFormat = formato
             if let d = df.date(from: texto) { return d }
         }
-        return nil
+        // Y solo ahora, el día suelto: medianoche UTC. Es lo último que se
+        // prueba precisamente porque casa con el principio de cualquier cosa.
+        iso.formatOptions = [.withFullDate]
+        if let d = iso.date(from: texto) { return d }
+        df.dateFormat = "yyyy-MM-dd"
+        return df.date(from: texto)
     }
 
     /// **Un día de CALENDARIO, leído en el calendario del aparato.**

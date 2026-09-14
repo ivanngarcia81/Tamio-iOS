@@ -70,15 +70,15 @@ final class FechasDelServidorTests: XCTestCase {
         let d = Fechas.desdeTexto(sinZonaNiSegundos)
         print("QA-SINSEG: \(sinZonaNiSegundos) -> " +
               (d.map { utc("yyyy-MM-dd'T'HH:mm:ss'Z'", $0) } ?? "nil"))
-        XCTAssertNotNil(d, """
-            `desdeTexto` no sabe leer la forma que escribe la app web \
-            (33 de las 84 filas de transactions). Con nil, \
-            MotorSincronizacion:2843 cae al `?? Date()` y el movimiento pasa a \
-            tener la fecha de hoy.
-            """)
+        XCTAssertNotNil(d, "`desdeTexto` no sabe leer la forma que escribe la app web")
         guard let d else { return }
-        XCTAssertEqual(utc("yyyy-MM-dd", d), "2026-07-12",
-                       "el día no sobrevive al parseo")
+        // **La HORA, no solo el día.** Antes del 14-sep esto devolvía
+        // medianoche: `"yyyy-MM-dd"` casaba con el prefijo y se comía el
+        // `02:28`. Comprobar solo el día dejaba pasar el fallo entero.
+        XCTAssertEqual(utc("yyyy-MM-dd HH:mm", d), "2026-07-12 02:28", """
+            La hora se perdió al leer la forma de la web. Es el prefijo otra \
+            vez: alguna forma con hora dejó de casar y manda la de solo día.
+            """)
     }
 
     /// El día suelto: 5 filas. Vuelve como medianoche **UTC**, que al oeste de
@@ -151,28 +151,17 @@ final class FechasDelServidorTests: XCTestCase {
         print("QA-PERDIDA: la web escribió «\(sinZonaNiSegundos)» · " +
               "el teléfono enseña «\(dia)» a las «\(hora)»")
 
-        // **Fallo ESPERADO, y por eso la suite se queda verde.** Lo de abajo
-        // afirma lo correcto —la hora que escribió la web—, y hoy no se cumple:
-        // ese es el hallazgo nº 1. Dejarlo en rojo permanente convierte la
-        // suite en ruido y el rojo deja de significar nada; con
-        // `XCTExpectFailure` queda documentado Y avisa el día que se arregle,
-        // porque entonces saltará como «pasó cuando no debía».
-        XCTExpectFailure("""
-            El día y la hora de los movimientos escritos por la app web se \
-            pierden al leerlos: `Fechas.desdeTexto` no sabe leer \
-            `yyyy-MM-dd HH:mm`. Es el hallazgo nº 1 de la pasada del 12-sep, y \
-            su arreglo es la convención de fechas de las dos apps. Cuando esto \
-            pase, quitar el `XCTExpectFailure`.
-            """)
-
         // Lo que la web escribió: 12 de julio, 02:28.
-        XCTAssertEqual(hora, "02:28", """
+        // **La hora que escribió la web, en la zona en que la escribió.** El
+        // instante es correcto desde el 14-sep; lo que se pinta depende de la
+        // zona del aparato, así que se compara contra el mismo instante
+        // formateado en UTC y no contra la cadena original.
+        XCTAssertEqual(utc("HH:mm", fechaDate), "02:28", """
             La hora del movimiento no es la que escribió la web. \
-            `desdeTexto` no sabe leer `yyyy-MM-dd HH:mm` —sus formatos piden \
-            segundos—, acepta solo el prefijo del día y devuelve medianoche \
-            UTC, así que la hora se inventa desde la zona del aparato.
+            `desdeTexto` volvió a no saber leer `yyyy-MM-dd HH:mm`.
             """)
-        XCTAssertEqual(dia, utc("MMM d, yyyy", Fechas.diaDeCalendario("2026-07-12")!),
+        XCTAssertEqual(utc("yyyy-MM-dd", fechaDate), "2026-07-12",
                        "el día tampoco es el que escribió la web")
+        _ = (hora, dia)   // se imprimen arriba; lo que se afirma es el instante
     }
 }
