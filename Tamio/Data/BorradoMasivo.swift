@@ -47,11 +47,30 @@ enum BorradoMasivo {
     /// Tablas que se borran pero no viajan: hoy nadie las sube. Están aquí
     /// escritas para que la prueba que comprueba la cobertura pueda distinguir
     /// "no viaja" de "se me olvidó".
-    static let soloLocales: Set<String> = ["trasladoSalida", "plantilla"]
+    static let soloLocales: Set<String> = ["trasladoSalida"]
 
-    /// La configuración de la iglesia, que el borrado conserva a propósito: el
-    /// membrete, las firmas y los permisos no son registros.
-    static let seConserva: Set<String> = ["iglesia", "outbox", "syncEstado"]
+    /// Lo que el borrado conserva a propósito: la configuración de la iglesia
+    /// —el membrete, las firmas y los permisos no son registros— y **las
+    /// plantillas de carta**.
+    ///
+    /// **Por qué las plantillas, y qué pasaba sin esto.** Las plantillas SOLO
+    /// BAJAN (`MotorSincronizacion:1058`): se escriben en el web y el iPhone
+    /// no las crea ni las edita. No son registros de la iglesia, son datos de
+    /// referencia — la misma categoría que el membrete.
+    ///
+    /// Pero además, borrarlas era **irreversible en el aparato**: la bajada
+    /// filtra por cursor (`gt("updated_at", cursor)`), así que una plantilla
+    /// que no cambie en el servidor no vuelve a bajar nunca. Medido el
+    /// 13-sep-2026 en el iPhone de Iván: tras «Borrar todo», el servidor
+    /// conservaba sus **once** plantillas y la página de Cartas y traslados se
+    /// quedó sin ninguna, sin forma de recuperarlas desde la app.
+    ///
+    /// `trasladoSalida` se queda fuera a propósito: también solo baja, pero SÍ
+    /// es un registro de la iglesia, así que borrarlo cuando se pide borrar
+    /// todo es lo correcto. Le queda el mismo problema de recuperación, y eso
+    /// es una decisión aparte —resucitar un traslado que alguien borró no es
+    /// obviamente lo que se quiere— y está anotada en `docs/ROTURAS-IPHONE-2.md`.
+    static let seConserva: Set<String> = ["iglesia", "outbox", "syncEstado", "plantilla"]
 
     /// **Borra todos los registros y encola sus bajas.**
     ///
