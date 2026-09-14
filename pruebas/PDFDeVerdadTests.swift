@@ -66,7 +66,16 @@ final class PDFDeVerdadTests: XCTestCase {
     func testElActaConDatosDeVerdad() async throws {
         let actas = try await repositorioActas().lista()
         print("QA-ACTAS:\(actas.count)")
-        let acta = try XCTUnwrap(actas.first, "no hay ningún acta en el aparato")
+        // **Se SALTA si el aparato no tiene actas, no falla.** Esta prueba
+        // existe para mirar un PDF con datos de verdad; sin datos no hay nada
+        // que mirar, y eso no es una regresión. Falló el 13-sep en rojo después
+        // de vaciar los libros a propósito, y un rojo que no señala un defecto
+        // gasta el rojo de los que sí.
+        try XCTSkipIf(actas.isEmpty, """
+            El aparato no tiene ninguna acta. Para que esta prueba mida algo, \
+            crear una desde Secretaría y volver a correrla.
+            """)
+        let acta = try XCTUnwrap(actas.first)
         print("QA-ACTA-FOLIO:\(acta.folio)")
 
         let ok = guardar(PDFExport.render(ActaHojaPDF(acta: acta), nombre: "qa-acta"),
