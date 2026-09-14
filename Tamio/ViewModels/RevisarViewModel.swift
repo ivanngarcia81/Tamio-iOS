@@ -30,12 +30,22 @@ final class RevisarViewModel {
         self.repo = repo
     }
 
+    /// **Si la bandeja está vacía porque no hay nada o porque todavía no ha
+    /// llegado.** Sin esto el estado vacío decía "Todo al día" durante la
+    /// primera carga, que es dar por buena una bandeja que aún no se ha
+    /// mirado.
+    private(set) var cargando = false
+
     @MainActor
     func cargar() async {
+        // Sin `defer`: su cierre no hereda el aislamiento del actor y el
+        // compilador no deja tocar `cargando` desde ahí.
+        cargando = true
         todos = await repo.asuntos()
         if seleccionId == nil || !todos.contains(where: { $0.id == seleccionId }) {
             seleccionId = visibles.first?.id
         }
+        cargando = false
     }
 
     var seleccion: Revision? { todos.first { $0.id == seleccionId } }

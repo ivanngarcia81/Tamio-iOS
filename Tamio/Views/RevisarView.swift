@@ -115,7 +115,14 @@ struct RevisarView: View {
     /// porque `.primary` ya cambia de lado con la apariencia.
     @ViewBuilder
     private var aprobarTodo: some View {
-        if vm.aprobablesCount == 0 {
+        if vm.porRevisarCount == 0 {
+            // **Con cero pendientes no va nada.** El texto de abajo cuenta
+            // cuántos de los pendientes están listos, y con ninguno pendiente
+            // decía "0 de 0 listos" — que no informa de nada y además se
+            // truncaba a "0 of 0 re…" en el teléfono. Lo que pasa cuando la
+            // bandeja está vacía ya lo dice la propia bandeja.
+            EmptyView()
+        } else if vm.aprobablesCount == 0 {
             Text(L.t("0 de \(vm.porRevisarCount) listos",
                      "0 of \(vm.porRevisarCount) ready"))
                 .font(.subheadline)
@@ -162,6 +169,39 @@ struct RevisarView: View {
 
     // MARK: - Lista
 
+    /// **La bandeja vacía dice por qué está vacía.** Con cero asuntos las dos
+    /// listas dibujaban un `ForEach` sin elementos y la pantalla se quedaba en
+    /// blanco: ni un icono ni una línea, indistinguible de una pantalla rota o
+    /// de una que no terminó de cargar. Lo vio Iván en su iPhone.
+    ///
+    /// Son tres casos distintos y se dicen distintos: todavía cargando, no hay
+    /// nada —que es una buena noticia y se escribe como tal—, y hay asuntos
+    /// pero el filtro los esconde, que se arregla quitando el filtro y por eso
+    /// lleva el botón para quitarlo.
+    @ViewBuilder
+    private var bandejaVacia: some View {
+        if vm.cargando && vm.todos.isEmpty {
+            ProgressView().controlSize(.large)
+        } else if vm.todos.isEmpty {
+            ContentUnavailableView(
+                L.t("Todo al día", "All caught up"),
+                systemImage: "checkmark.circle",
+                description: Text(L.t("No hay nada que revisar. Lo que necesite visto bueno, comprobante o una corrección aparecerá aquí.",
+                                      "Nothing to review. Anything needing approval, a receipt or a fix will show up here.")))
+        } else if vm.visibles.isEmpty {
+            ContentUnavailableView {
+                Label(L.t("Nada con este filtro", "Nothing with this filter"),
+                      systemImage: "line.3.horizontal.decrease")
+            } description: {
+                Text(L.t("Hay \(vm.totalCount) asuntos, pero ninguno del tipo elegido.",
+                         "There are \(vm.totalCount) items, but none of the chosen type."))
+            } actions: {
+                Button(L.t("Ver todos", "Show all")) { vm.filtro = nil }
+                    .buttonStyle(.glass).tint(Paleta.brand)
+            }
+        }
+    }
+
     // MARK: - Lista iPhone (tarjetas)
 
     private var listaPhone: some View {
@@ -175,6 +215,7 @@ struct RevisarView: View {
         }
         .scrollEdgeEffectStyle(.soft, for: .all)
         .colchonInferior()
+        .overlay { bandejaVacia }
     }
 
     private func filaTargeta(_ a: Revision) -> some View {
@@ -297,6 +338,7 @@ struct RevisarView: View {
         // golpe al cruzar por detrás de la barra.
         .scrollEdgeEffectStyle(.soft, for: .all)
         .colchonInferior()
+        .overlay { bandejaVacia }
     }
 
     private func filaCompacta(_ a: Revision) -> some View {
