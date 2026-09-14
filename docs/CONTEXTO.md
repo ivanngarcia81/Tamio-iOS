@@ -4182,12 +4182,19 @@ Hoy solo está probado con pruebas unitarias, nunca a mano.
 > Las dos suben la misma barra que la comprobación de filtradas iba a subir, y
 > no cuestan nada.
 >
-> **Hechas el 14-sep-2026 por Iván.** Y con un aviso para quien vuelva a
+> **Hechas el 14-sep-2026 por Iván**: largo mínimo a **8 caracteres** y
+> requisitos con **mayúscula y símbolo**. Y con un aviso para quien vuelva a
 > revisarlo: **desde el MCP de Supabase no se pueden LEER.** Lo único que expone
 > de Auth es el analizador, y el analizador solo informa de las contraseñas
 > filtradas —que seguirá avisando mientras el proyecto no tenga plan Pro, y ese
 > aviso ya no significa que quede algo por hacer—. El largo mínimo y los
 > requisitos de caracteres hay que mirarlos en el panel.
+>
+> **Y lo que esto NO hace, que es lo que se olvida:** la regla se aplica al
+> CREAR una contraseña o al cambiarla, no a las que ya existen. Las cuentas que
+> se dieron de alta antes del 14-sep conservan la suya aunque no cumpla —las
+> siete de `perfiles`, la de Iván incluida—. Para que la regla las alcance hay
+> que cambiarlas una por una.
 
 Es lo único que queda del endurecimiento previo a publicar, y no es SQL.
 
