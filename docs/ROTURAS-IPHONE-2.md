@@ -818,26 +818,61 @@ anterior—. Aquí fueron **126 operaciones**, todas `actualizar`. Eso es correc
 
 ---
 
-## Lo que queda abierto de esta pasada
+## Lo que queda abierto · al 14 de septiembre
 
-- **La novena presentación de Z2**, que pide un corte con doble firma pedida y
-  sin firmar. Lo crea Iván, o una prueba que siembre y limpie.
-- **Compartir de verdad**, que es la mitad de Z3 que queda: por AirDrop y por
-  correo, y el botón dos veces o salir a fondo a media generación. Eso no se
-  automatiza —es una hoja del sistema—, así que lo hace Iván.
-- **Decidir si el membrete debe repetirse** en las páginas 2 y siguientes, o si
-  basta un pie con «página N de M». Hoy no hay ninguno de los dos.
-- **Z6, los recurrentes del 1 de octubre**, moviendo el reloj **después** del
-  respaldo.
-- **Z1·1 y Z1·3-4**, que piden modo avión y dos aparatos a la vez.
-- **De Z1 queda solo lo que pide dos aparatos** (Z1·3-4): Z1·1 está medido.
-  Lo demás está medido: Z1·2 cerrado, el reintento tras la caída aguanta, y lo
-  de la operación apartada es el hallazgo nº 6.
-- **Dar de baja los ocho movimientos de prueba del 11-sep**, que están en los
-  libros (ver arriba). Es un `update` filtrado por `registrado_por`, reversible,
-  y es de Iván decidir cuándo.
-- **Z1·5, los roles contra RLS**, que ya no está bloqueado por la cuenta: la
-  secretaria existe. Faltan sus credenciales.
+Puesto al día tras cerrar el dinero, las categorías, los recurrentes y las
+plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
+
+### Necesita el otro repo · 1
+
+- **El vocabulario de las categorías.** iOS ya guarda claves (nº 7), pero los
+  dos catálogos no coinciden donde significan lo mismo —iOS `donativo` y web
+  `donacion`; iOS `otro` y web `otros`— y el web usa `eventos` para
+  *Alimentos*. **No corre**: con los libros vacíos no hay nada partido. Cifras y
+  opciones en `docs/ACUERDO-CON-EL-WEB.md` §2.
+
+### Pide el aparato o una cuenta · lo hace Iván · 5
+
+- **Los dos aparatos a la vez** (Z1·3-4): el mismo movimiento editado en el
+  iPhone sin red y en el iPad con ella.
+- **El token expirado**: dejar caducar la sesión con cosas en la cola y ver si
+  la app lo dice o se lo traga.
+- **Los roles contra RLS** (Z1·5). La cuenta de secretaria existe —`Ivang`—;
+  faltan sus credenciales.
+- **Borrar cuenta**, con una de usar y tirar y las dos ramas.
+- **Leaked password protection**: panel de Supabase, 30 segundos, sigue apagada.
+
+### Decisiones de diseño · 3
+
+- **El membrete en las páginas 2 y siguientes** de un documento largo, o un pie
+  con «página N de M». Hoy no hay ninguno de los dos, y un estado financiero de
+  22 hojas del que se suelta la segunda no dice de quién es. **No es añadir un
+  modificador**: `PDFExport` corta una imagen alta, así que es cambiar cómo se
+  compone el PDF.
+- **Dónde se enseña lo que no pudo subir** (hallazgo nº 6). El dato ya está en
+  `seRindieron`; falta decidir si va una sección en Ajustes · Sincronización o
+  el punto rojo en las quince filas que no lo tienen.
+- **Si `trasladoSalida` debe recuperarse** tras un «Borrar todo». Solo baja,
+  como las plantillas, pero SÍ es un registro de la iglesia: resucitar uno que
+  alguien borró no es obviamente lo que se quiere.
+
+### Código, sin urgencia · 2
+
+- **La convención de fechas** (hallazgo nº 1). El daño en datos se fue con el
+  vaciado —las 38 filas con la forma de la web ya no están— pero **el defecto de
+  código sigue**: `Fechas.desdeTexto` no sabe leer `yyyy-MM-dd HH:mm`, así que
+  volverá en cuanto el web escriba otra vez. Trece sitios parsean días de
+  calendario por el camino viejo; `Fechas.diaDeCalendario` es la media solución
+  ya escrita.
+- **La novena presentación de Z2**: pide un corte con doble firma pedida y sin
+  firmar, y hoy no existe ninguno. Lo crea Iván o una prueba que siembre y
+  limpie.
+
+### Y una nota de estado
+
+**Los libros están vacíos a propósito** desde el 13-sep. Quien vuelva a mirar
+reportes o PDF con datos necesita sembrar unos cuantos movimientos desde el
+teléfono primero — que ya escribe todo en la forma buena.
 
 ## Los avisos de instrumento que esta pasada añade
 
