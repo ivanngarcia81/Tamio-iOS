@@ -66,7 +66,18 @@ enum Compactacion {
                 // Se cruza por `registroId` y no por entidad: los
                 // identificadores son únicos entre tablas, y así la cuenta no
                 // depende de que el mapa de entidades esté al día.
-                guard !nuncaSePurga.contains(tabla) else { continue }
+                // **Y las mismas dos exclusiones de TABLA**, que es donde este
+                // par se había desalineado sin que se notara. `purgar` salta
+                // `seConserva` y `nuncaSePurga`; aquí solo se saltaba la
+                // segunda, así que las filas borradas de una tabla conservada
+                // se anunciaban como purgables y luego no se iban.
+                //
+                // Estuvo latente desde siempre: `seConserva` solo tenía tablas
+                // sin columna `borrado`, así que la cuenta nunca las miraba. Se
+                // destapó el 13-sep al añadir `plantilla` —que sí la tiene— y
+                // el aviso decía «35» cuando se iban 2.
+                guard !BorradoMasivo.seConserva.contains(tabla),
+                      !nuncaSePurga.contains(tabla) else { continue }
                 purgables += try Int.fetchOne(db, sql: """
                     select count(*) from "\(tabla)" t
                     where t.borrado = 1
