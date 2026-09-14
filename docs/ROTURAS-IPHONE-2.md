@@ -840,18 +840,10 @@ plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
 - **Los roles contra RLS** (Z1·5). La cuenta de secretaria existe —`Ivang`—;
   faltan sus credenciales.
 - **Borrar cuenta**, con una de usar y tirar y las dos ramas.
-- **Las contraseñas filtradas NO se pueden encender**: Supabase las movió
-  detrás del **plan Pro**. El panel deja mover el interruptor y al guardar
-  contesta *«Configuring leaked password protection via HaveIBeenPwned.org is
-  available on Pro Plans and up»*. Lo que sí está disponible y es gratis, en esa
-  misma pantalla —**Authentication › Sign In / Providers › Email**—: subir el
-  **largo mínimo de contraseña**, que estaba en **6** cuando la propia Supabase
-  recomienda 8 o más, y fijar los **requisitos de caracteres**, que estaban sin
-  elegir. **Hechas el 14-sep**: mínimo **8 caracteres**, con **mayúscula y
-  símbolo**. No se pueden leer desde el MCP —solo expone el analizador, y ese
-  solo mira las filtradas—, así que quedan verificadas por Iván en el panel y no
-  por una medida desde aquí. **Y solo alcanzan a las contraseñas nuevas**: las
-  siete cuentas de `perfiles` conservan la suya hasta que la cambien.
+- **Cambiar las siete contraseñas que ya existen.** La regla nueva —ocho
+  caracteres, mayúscula y símbolo— **solo alcanza a las nuevas**: las cuentas de
+  `perfiles` dadas de alta antes del 14-sep conservan la suya aunque no cumpla.
+  Con las filtradas fuera de alcance, esa regla es toda la protección que hay.
 
 ### Decisiones de diseño · 3
 
@@ -878,6 +870,13 @@ plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
 - **La novena presentación de Z2**: pide un corte con doble firma pedida y sin
   firmar, y hoy no existe ninguno. Lo crea Iván o una prueba que siembre y
   limpie.
+
+### Cerrado por imposible · 1
+
+- **Las contraseñas filtradas** piden **plan Pro**. El aviso del analizador de
+  Supabase va a seguir saliendo siempre y **ya no significa que quede algo por
+  hacer**. Es la tercera vez que este punto se apunta como pendiente; que no haya
+  una cuarta.
 
 ### Y una nota de estado
 
