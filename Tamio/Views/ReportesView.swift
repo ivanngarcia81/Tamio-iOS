@@ -114,6 +114,10 @@ struct ReportesView: View {
                 .frame(width: 72, height: 72)
                 .background(tono.opacity(0.15),
                             in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                // La placa centrada y el texto a la izquierda, como en las
+                // tarjetas de Cartas: el `VStack` alinea a la izquierda, así
+                // que la placa se centra pidiendo todo el ancho para ella.
+                .frame(maxWidth: .infinity)
             VStack(alignment: .leading, spacing: 6) {
                 Text(t.titulo)
                     .font(.title3.weight(.bold))
