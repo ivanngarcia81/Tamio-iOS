@@ -382,7 +382,13 @@ struct OfflineAsistenciaRepository: AsistenciaRepository {
         }
         let meses = porMes.keys.sorted().map { clave -> MesAsistenciaCongregacion in
             let (p, t) = porMes[clave] ?? (0, 0)
-            let d = Fechas.desdeTextoFlexible("\(clave)-01")
+            // **`diaDeCalendario`**: `L.mesCorto` formatea en la zona del
+            // aparato y NO fija UTC, al contrario que `diaLegible`. Con el
+            // parseo viejo, `"2026-09-01"` era medianoche UTC —las 20:00 del
+            // 31 de agosto en Nueva York— y la barra de septiembre salía
+            // rotulada «Ago». La gráfica entera iba corrida un mes al oeste
+            // de Greenwich.
+            let d = Fechas.diaDeCalendario("\(clave)-01")
             return MesAsistenciaCongregacion(mes: d.map { L.mesCorto($0) } ?? clave,
                                              presentes: p, enRoster: t)
         }

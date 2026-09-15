@@ -114,7 +114,13 @@ enum ImportadorAportes {
                                             "No giver matches that name")))
                 continue
             }
-            guard let fecha = Fechas.desdeTextoFlexible(textoFecha) else {
+            // **`diaDeCalendario`**: lo que viene del archivo es un DÍA, y
+            // las dos cosas que se hacen con él formatean en local —la previa
+            // con `Fechas.corta` y la huella con `CSV.fecha`—. Parseado en UTC,
+            // un aporte del 27 se enseñaba como 26 y su huella se calculaba
+            // sobre el 26, así que no casaba con la del mismo aporte ya
+            // guardado y el duplicado se colaba.
+            guard let fecha = Fechas.diaDeCalendario(textoFecha) else {
                 analizadas.append(fallo(L.t("Fecha no válida", "Invalid date")))
                 continue
             }

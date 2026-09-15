@@ -1007,18 +1007,25 @@ private struct NuevoMiembroSheet: View {
 
         let base = miembroExistente ?? Miembro(id: proximoId, nombre: "")
         _m = State(initialValue: base)
-        _fechaIngreso = State(initialValue: Fechas.desdeTextoFlexible(base.fechaIngreso) ?? Date())
+        // **`diaDeCalendario` y no `desdeTextoFlexible`**: estas cuatro fechas
+        // hacen IDA Y VUELTA. Se leen aquí y el guardado (`:1183-1188`) las
+        // vuelve a escribir con `Fechas.claveDia`, que formatea en la zona del
+        // aparato. Leerlas como medianoche UTC y reescribirlas en local resta
+        // un día EN CADA GUARDADO al oeste de Greenwich —que es donde está la
+        // iglesia—: `2026-09-06 → 05 → 04 → 03`, medido el 10-sep en un iPad
+        // en Nueva York. Los dos extremos tienen que hablar de DÍAS.
+        _fechaIngreso = State(initialValue: Fechas.diaDeCalendario(base.fechaIngreso) ?? Date())
         _tieneFechaNac = State(initialValue: !base.nacimiento.isEmpty)
-        _fechaNacimiento = State(initialValue: Fechas.desdeTextoFlexible(base.nacimiento) ?? Date())
+        _fechaNacimiento = State(initialValue: Fechas.diaDeCalendario(base.nacimiento) ?? Date())
         _tieneCongrega = State(initialValue: !base.fechaCongregacion.isEmpty)
-        _fechaCongrega = State(initialValue: Fechas.desdeTextoFlexible(base.fechaCongregacion) ?? Date())
+        _fechaCongrega = State(initialValue: Fechas.diaDeCalendario(base.fechaCongregacion) ?? Date())
 
         // La baja se lee del estado, no de `datos`: antes se guardaba como un
         // par etiqueta-valor y no se volvía a leer, así que al editar a
         // alguien dado de baja la fecha volvía a hoy y el motivo en blanco.
         let baja = base.estado.baja
         _deBaja = State(initialValue: baja != nil)
-        _fechaBaja = State(initialValue: Fechas.desdeTextoFlexible(baja?.fecha ?? "") ?? Date())
+        _fechaBaja = State(initialValue: Fechas.diaDeCalendario(baja?.fecha ?? "") ?? Date())
         let delCatalogo = baja.map { Baja.motivos.contains($0.motivo) && $0.motivo != "otro" } ?? false
         _motivoBaja = State(initialValue: delCatalogo ? baja!.motivo : (baja == nil ? "traslado" : "otro"))
         _motivoOtro = State(initialValue: delCatalogo || baja == nil ? "" : baja!.motivo)
@@ -1258,7 +1265,10 @@ private struct FechaOpcional: View {
         self.titulo = titulo
         _texto = texto
         _conocida = State(initialValue: !texto.wrappedValue.isEmpty)
-        _fecha = State(initialValue: Fechas.desdeTextoFlexible(texto.wrappedValue) ?? Date())
+        // Misma ida y vuelta que las del miembro: el `onChange` de abajo
+        // reescribe con `claveDia`, en local. Ver el comentario del `init` de
+        // la ficha.
+        _fecha = State(initialValue: Fechas.diaDeCalendario(texto.wrappedValue) ?? Date())
     }
 
     var body: some View {
