@@ -415,3 +415,36 @@ que por nombre se coge el que no es. Por eso el script pide el UDID.
 `pruebas/TextoBrutoUITests.swift` declara la clase **`TextoBruto`**, así que
 `-only-testing:PruebasUIAparato/TextoBrutoUITests` se salta en silencio. Hay
 que contar las pruebas ejecutadas, siempre.
+
+## La otra mitad de las fechas · 15 de septiembre
+
+`DiaDeCalendarioEnSusSitiosTests` · 4 en verde en el simulador, en
+`America/New_York`. Cubre los siete sitios que parseaban un día de calendario
+en UTC y lo volvían a emitir en local (hallazgo nº 1 de `ROTURAS-IPHONE-2.md`).
+
+**Corren contra un SIMULADOR con `aparato.sh`**, que acepta cualquier UDID:
+
+    pruebas/aparato.sh <UDID-simulador> -only-testing:PruebasAparato/DiaDeCalendarioEnSusSitiosTests
+
+Lo unitario va mucho más rápido ahí, y el anfitrión está al oeste de Greenwich,
+así que los fallos de zona SÍ se reproducen. Dos avisos del instrumento:
+
+- **El primer lanzamiento tras recompilar falla a veces** con *«Application
+  failed preflight checks … Busy»*. Es transitorio y pasa al segundo intento,
+  pero da **`exit 65` sin haber ejecutado ninguna prueba**: indistinguible de
+  un rojo para quien mire solo el código de salida.
+- **Pasar `aparato.sh` por un `tail` se come su código de salida**, que es
+  contra lo que avisa su propio encabezado a propósito de `xcodebuild`.
+
+**Y el aviso que justifica el archivo.** Su primera versión llamaba a
+`Fechas.diaDeCalendario` para comprobar los arreglos: pasó 5 de 5 **y también
+con los arreglos revertidos**, porque medía la función —que ya era correcta
+desde el 10-sep— y no los sitios que la ignoraban. Ahora llama a
+`ImportadorAportes.analizar`, que es el sitio de verdad, y revertida se pone
+roja. **Revertir el arreglo y exigir el rojo** es la comprobación barata que
+distingue una prueba de un adorno.
+
+`MembresiaView` y `ServiciosRepository` **no** tienen prueba de sitio y está
+dicho en el encabezado del archivo: una es el `init` de una vista SwiftUI cuyos
+`@State` no se leen desde fuera, y el otro vive en un método `async` que baja
+los cultos de la base.

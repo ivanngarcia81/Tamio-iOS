@@ -90,7 +90,8 @@ Así que un movimiento que la web guardó el **12 de julio a las 02:28** el
 teléfono lo enseña el **11 de julio a las 20:00**. No es un día desplazado: son
 el día y la hora perdidos, y la hora **no se recupera** porque nunca llegó.
 
-**Cómo quedó: ARREGLADA LA MITAD, el 14-sep, y verificada en el aparato.**
+**Cómo quedó: la mitad el 14-sep en el aparato; la otra mitad el 15-sep,
+menos un sitio que sube al acuerdo con el web.**
 
 La forma de la app web —`2026-07-12 02:28`, sin zona y sin segundos— ya se lee
 entera: la hora deja de perderse. Y el arreglo **no era el que parecía**: añadir
@@ -105,11 +106,30 @@ lo que lleva hora se prueba antes que el día suelto**, y el día suelto va el
 
 234 pruebas en el iPhone, 2 saltadas, 0 fallos.
 
-**La otra mitad sigue abierta**, y es la que pide acuerdo: arreglarlo es fijar la
-convención de fechas de las **dos** apps, y son 38 filas ya escritas. La media
-solución está escrita desde el 10-sep —`Fechas.diaDeCalendario` (`:130`),
-medianoche **local** para la forma canónica— y hoy solo la usa
-`Miembro.swift:475`. Su comentario explica por qué la alternativa obvia no
+**La otra mitad, el 15-sep: siete sitios cerrados y uno que sube al acuerdo.**
+
+`Fechas.diaDeCalendario` (`:130`) estaba escrita desde el 10-sep y **solo la
+usaba `Miembro.swift:475`**: el contrato existía y los sitios lo ignoraban.
+Ahora pasan por él los siete que cruzaban las zonas (ver la lista de abiertos
+para cuáles eran y por qué los otros cuatro del inventario NO se tocaron).
+
+Lo que queda es `MotorSincronizacion:2843`, y ese sí pide acuerdo: son 38 filas
+ya escritas por la app web y `transactions.fecha` es `text`.
+
+**Y el aviso de método que dejó este arreglo, que vale más que el arreglo.** La
+primera versión de `DiaDeCalendarioEnSusSitiosTests` llamaba a
+`Fechas.diaDeCalendario` para comprobarlo. Salió **5 de 5 en verde… y también
+en verde con los arreglos revertidos**, porque medía la función que ya era
+correcta y no los sitios que la ignoraban. Se descubrió revirtiendo a propósito
+para ver el rojo. La regla: **una prueba de un arreglo tiene que llamar al
+OBJETO del arreglo**, y la forma de saberlo es revertir y exigir el rojo. Con
+las pruebas reescritas contra `ImportadorAportes.analizar`, el rojo dice:
+
+    previa → Jul 26, 2026        ← un aporte del 27
+    duplicados 0 · nuevos 1      ← el mismo aporte entra otra vez
+
+238 pruebas unitarias, 2 saltadas, 3 fallos —los tres conocidos del entorno del
+simulador, sin sesión—. Su comentario explica por qué la alternativa obvia no
 sirve: pasar la escritura a UTC rompe la nota nueva, que nace con `Date()`.
 
 **Los sitios que parsean un día de calendario por el camino viejo** —que es el
@@ -833,13 +853,18 @@ anterior—. Aquí fueron **126 operaciones**, todas `actualizar`. Eso es correc
 
 ---
 
-## Lo que queda abierto · al 14 de septiembre
+## Lo que queda abierto · al 15 de septiembre
 
 Puesto al día tras cerrar el dinero, las categorías, los recurrentes y las
 plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
 
-### Necesita el otro repo · 1
+### Necesita el otro repo · 2
 
+- **La fecha del movimiento** (`MotorSincronizacion:2843`, hallazgo nº 1). Es
+  lo único que queda de la convención de fechas. Las 38 filas torcidas las
+  escribió la app web y `transactions.fecha` es `text`, así que la base no
+  impone forma: el acuerdo va antes que el código. **No corre** mientras los
+  libros sigan vacíos.
 - **El vocabulario de las categorías.** iOS ya guarda claves (nº 7), pero los
   dos catálogos no coinciden donde significan lo mismo —iOS `donativo` y web
   `donacion`; iOS `otro` y web `otros`— y el web usa `eventos` para
@@ -874,14 +899,28 @@ plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
   como las plantillas, pero SÍ es un registro de la iglesia: resucitar uno que
   alguien borró no es obviamente lo que se quiere.
 
-### Código, sin urgencia · 2
+### Código, sin urgencia · 1
 
-- **La convención de fechas · la mitad que queda** (hallazgo nº 1). Lo de
-  `yyyy-MM-dd HH:mm` está arreglado el 14-sep: la hora ya no se pierde. Lo que
-  sigue es que **un día de calendario suelto se lee como medianoche UTC** y
-  retrocede al oeste de Greenwich. Son **trece sitios** y es la convención de
-  toda la app; `Fechas.diaDeCalendario` es la media solución ya escrita y hoy
-  solo la usa `Miembro.swift:475`.
+- **La convención de fechas · lo que queda tras el 15-sep** (hallazgo nº 1).
+  Lo de `yyyy-MM-dd HH:mm` se arregló el 14-sep y **siete sitios más el 15**.
+  Queda **uno solo**: `MotorSincronizacion:2843`, la fecha del movimiento, y no
+  está aquí por olvido sino porque **no lo arregla el iOS solo** — las 38 filas
+  torcidas las escribió la app web, así que sube a «Necesita el otro repo».
+
+  **Y el «trece sitios» de esta lista estaba mal: el inventario mezclaba tres
+  cosas.** La firma del defecto es UNA —parsear en UTC y volver a EMITIR en
+  local— y solo la tenían siete: las cinco de `MembresiaView` (:1010, 1012,
+  1014, 1021, 1261), que hacen ida y vuelta contra `Fechas.claveDia`;
+  `ServiciosRepository:385`, que rotula con `L.mesCorto` —sin fijar UTC— y
+  ponía la barra de septiembre como «Ago», con la gráfica entera corrida un
+  mes; y `ImportadorAportes:117`, que enseñaba un aporte del 27 como 26 **y
+  calculaba su huella de duplicados sobre el 26**, así que el mismo aporte
+  entraba dos veces. Los cuatro restantes —`Secretaria` :200, :212, :896 y
+  `AgendaRepository:106`— parsean en UTC **y formatean fijando UTC**: son
+  correctos a propósito y cambiarlos los habría roto.
+
+  Corolario del §0.-11, otra vuelta: un inventario tampoco es una regla.
+  Contarlos no basta; hay que mirar qué hace cada uno con lo que parsea.
 - **La novena presentación de Z2**: pide un corte con doble firma pedida y sin
   firmar, y hoy no existe ninguno. Lo crea Iván o una prueba que siembre y
   limpie.

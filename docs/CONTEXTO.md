@@ -5,8 +5,45 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **12 de septiembre de 2026**, tras la segunda pasada de
-QA del iPhone (§0.-11).
+Última actualización: **15 de septiembre de 2026** (§0.-12). La pasada grande
+sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-12 La otra mitad de las fechas · 15 de septiembre
+
+Se cerró lo que quedaba del hallazgo nº 1 salvo un sitio. El detalle está en
+`docs/ROTURAS-IPHONE-2.md`; aquí va solo lo que no se deduce de él.
+
+**Un inventario tampoco es una regla.** El §0.-11 dejó escrito que una medida
+sobre los datos caduca. Esta vuelta enseñó el hermano: el informe listaba
+«trece sitios» que parseaban un día de calendario, y de los trece **solo siete
+estaban rotos**. Los otros cuatro parsean en UTC y formatean fijando UTC —que
+es correcto a propósito— y cambiarlos los habría roto. Contar los sitios no
+dice nada si no se mira qué hace cada uno con lo que parsea. Es la tercera
+premisa heredada que se cae al comprobarla, y las tres venían de documentos de
+esta misma casa.
+
+**Y el aviso que más vale de esta sesión: una prueba verde puede estar midiendo
+la función correcta en vez del sitio roto.** La primera versión de
+`pruebas/DiaDeCalendarioEnSusSitiosTests.swift` llamaba a
+`Fechas.diaDeCalendario` directamente. Pasó 5 de 5… **y volvió a pasar 5 de 5
+con los arreglos revertidos**, porque `diaDeCalendario` ya era correcta desde
+el 10-sep: lo roto eran los sitios que NO la llamaban. La comprobación que lo
+destapó es barata y hay que hacerla siempre: **revertir el arreglo y exigir el
+rojo.** Si no se pone roja, la prueba no mide el arreglo. Vuelta más de «una
+prueba que se salta su objeto tiene que fallar» (§0.-11), pero esta vez el
+objeto saltado era el sitio de llamada y no el dato.
+
+**Instrumento.** `pruebas/aparato.sh` sirve igual contra un SIMULADOR: acepta
+cualquier UDID y lo pasa a `-destination id=`. Es mucho más rápido para lo
+unitario, y el anfitrión está en `America/New_York`, así que los fallos de zona
+horaria SÍ se reproducen. Dos avisos: el primer lanzamiento tras recompilar
+falla a veces con *«Application failed preflight checks … Busy»* —transitorio,
+va al segundo intento, y da `exit 65` sin haber ejecutado NINGUNA prueba, que
+es indistinguible de un rojo si uno se fía del código de salida—; y pasar el
+script por un `tail` se come su código de salida, que es exactamente contra lo
+que avisa su propio encabezado.
 
 ---
 
