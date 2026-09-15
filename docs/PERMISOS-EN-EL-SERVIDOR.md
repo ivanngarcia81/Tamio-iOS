@@ -242,6 +242,54 @@ hecha sin mirar `sync.ts`.
 
 ---
 
+## Estado al 15 de septiembre
+
+**Vuelto a medir contra el servidor, y el documento aguantó.** 89 políticas en
+`public` sobre 23 tablas, ninguna menciona `mi_rol`; `mi_rol()` y `mi_iglesia()`
+existen, las dos `stable security definer` con `execute` para `authenticated`; y
+`mi_iglesia()` es **literalmente la misma subconsulta** que las 89 repiten a
+mano, así que unificar no cambia semántica. En `perfiles`: 4 administradores en
+3 iglesias, 2 tesoreros y 1 secretaria, y la iglesia `84c92ad0…` tiene los tres
+roles — es la que sirve para comprobar.
+
+Lo único que cambió es el tamaño de los datos: `transactions` pasó de 84 filas
+el 12-sep a **114** el 15. Otra vez la misma lección — una medida caduca; la
+forma del esquema, no.
+
+**El §2 está ESCRITO Y SIN APLICAR**, en dos archivos:
+
+| archivo | qué es |
+|---|---|
+| `supabase/migrations/20260915_la_escritura_repartida_por_area.sql` | las 51 políticas de escritura de 17 tablas, con los nombres reales |
+| `supabase/pruebas/permisos_por_area.sql` | la comprobación por rol, que hasta hoy no existía |
+
+**Por qué no se aplicó**: el cliente que escribe estas migraciones tiene el
+`ALTER POLICY` bloqueado sobre esta base, incluso dentro de una transacción que
+se deshace. Hace falta que Iván lo aplique, o que autorice a hacerlo.
+
+**Y el orden al aplicar importa: primero el guion de pruebas, después la
+migración, y el guion OTRA VEZ.** La primera pasada es el control negativo —si
+ya dice que la secretaria no puede crear un movimiento, algo mide mal—. Corrido
+como `postgres` el guion no vale y él mismo lo avisa en su primera fila: el
+dueño de las tablas salta RLS.
+
+### Lo que se midió del web, que era el riesgo nº 2
+
+`sync.ts` **no filtra por rol al subir**. Pero sube una fila solo si su copia
+local es más nueva que la remota (`epoch(l.updated_at) > epoch(r.updated_at)`),
+así que quien no toca un área no le escribe nada y el §2 no le rompe nada en
+operación normal. Y si lo intentara, el `upsert` devuelve error y el web lo
+enseña como fallo de sincronización: **visible, no silencioso**. Queda un caso
+sin medir: la PRIMERA subida de un cliente con filas locales sin pareja remota
+(la rama `!r`), que sí intentaría subirlas.
+
+### Y una tabla que no es de nadie
+
+**`mensajes` tiene 7 filas, política de las cuatro operaciones, y NINGUNA de las
+dos apps la consulta.** No entra en el reparto por área porque meterla sería
+inventarle un dueño. Merece una decisión aparte: o tiene uso y hay que
+clasificarla, o no lo tiene y sobra.
+
 ## Los riesgos, que son reales
 
 - **Una política mal escrita no da error: devuelve cero filas o descarta la
