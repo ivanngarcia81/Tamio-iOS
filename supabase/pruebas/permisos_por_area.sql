@@ -20,6 +20,21 @@
 -- `postgres`, que las SALTA por ser el dueño de las tablas. La primera fila del
 -- resultado lo dice.
 
+-- LO QUE DIO EL ENSAYO DEL 15-sep, antes de aplicar nada (transacción deshecha):
+--
+--   |                    | admin | tesorero      | secretaria |
+--   |--------------------|-------|---------------|------------|
+--   | leer un movimiento | SI    | SI            | SI         |
+--   | crear un movimiento| SI    | SI            | NO (42501) |
+--   | crear un acta      | SI    | NO (42501)    | SI         |
+--   | borrar un acta     | SI    | NO (0 filas)  | SI         |
+--
+-- **El último caso es el que hay que mirar con cuidado.** Al tesorero el
+-- borrado no le da error: le da CERO FILAS. Un `delete` cuyo `using` lo
+-- descarta afecta a cero filas y PostgREST contesta 204. Es el mismo modo de
+-- fallo que costó semanas con `iglesias`, y por eso aquí se distingue
+-- «NO (42501)» de «NO (0 filas)»: los dos son un no, pero solo uno avisa.
+
 begin;
 
 -- La iglesia que tiene los tres roles (medido el 15-sep). Si estos ids cambian,
@@ -32,6 +47,14 @@ insert into _quien values
   ('secretaria',   '46c15ffc-b8ed-4eec-8212-fba0c81cbed3');
 
 create temp table _res(rol text, caso text, resultado text, esperado text) on commit drop;
+
+-- **Sin este `grant` el guion no corre**, y el error engaña: dice
+-- `42501: permission denied for table _res`, que se lee como si fallara la
+-- POLÍTICA que se está probando cuando lo que falla es apuntar el resultado.
+-- Mientras suplanta a `authenticated` ya no es `postgres`, así que tampoco
+-- puede escribir en su propia tabla temporal. Lo encontró el ensayo del
+-- 15-sep al primer intento.
+grant insert, select on _res to authenticated;
 
 do $$
 declare

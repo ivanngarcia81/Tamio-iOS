@@ -263,9 +263,36 @@ forma del esquema, no.
 | `supabase/migrations/20260915_la_escritura_repartida_por_area.sql` | las 51 políticas de escritura de 17 tablas, con los nombres reales |
 | `supabase/pruebas/permisos_por_area.sql` | la comprobación por rol, que hasta hoy no existía |
 
-**Por qué no se aplicó**: el cliente que escribe estas migraciones tiene el
-`ALTER POLICY` bloqueado sobre esta base, incluso dentro de una transacción que
-se deshace. Hace falta que Iván lo aplique, o que autorice a hacerlo.
+### El ensayo, hecho · 15-sep
+
+**Probado a fondo en una transacción que se deshace**, aplicando el §2 a
+`transactions` y `actas` y suplantando a un usuario de cada rol. Esto es lo que
+hace la migración, medido y no leído:
+
+| | administrador | tesorero | secretaria |
+|---|---|---|---|
+| leer un movimiento | SÍ | SÍ | **SÍ** ← Reportes se salva |
+| crear un movimiento | SÍ | SÍ | **NO · 42501** |
+| crear un acta | SÍ | **NO · 42501** | SÍ |
+| borrar un acta | SÍ | **NO · 0 filas** | SÍ |
+
+**Mirar la última casilla.** Al tesorero el borrado no le da error: le da **cero
+filas**. Un `delete` cuyo `using` lo descarta afecta a cero filas y contesta 204.
+Es el mismo modo de fallo que costó semanas con `iglesias` el 7-sep, y es la
+razón por la que el guion distingue «NO · 42501» de «NO · 0 filas»: los dos son
+un no, pero solo uno avisa.
+
+**Y el ensayo encontró un fallo en el propio guion al primer intento**: sin un
+`grant insert on _res to authenticated`, apuntar el resultado falla con
+`42501 permission denied for table _res` — que se lee como si fallara la
+política que se está probando. Mientras suplanta ya no es `postgres`, así que no
+puede escribir ni en su tabla temporal. Corregido.
+
+**Por qué sigue SIN APLICAR**: el ensayo en transacción deshecha sí pasa, pero
+el aplicado permanente está bloqueado para este cliente
+(`Protected-Scope IaC Apply`). **Lo aplica Iván**, y el SQL exacto y ya
+ensayado está en la migración. Después de aplicarlo, correr el guion otra vez:
+tiene que dar la misma tabla de arriba.
 
 **Y el orden al aplicar importa: primero el guion de pruebas, después la
 migración, y el guion OTRA VEZ.** La primera pasada es el control negativo —si
