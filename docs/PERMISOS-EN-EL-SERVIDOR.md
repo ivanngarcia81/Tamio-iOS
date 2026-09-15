@@ -249,7 +249,7 @@ hecha sin mirar `sync.ts`.
 existen, las dos `stable security definer` con `execute` para `authenticated`; y
 `mi_iglesia()` es **literalmente la misma subconsulta** que las 89 repiten a
 mano, así que unificar no cambia semántica. En `perfiles`: 4 administradores en
-3 iglesias, 2 tesoreros y 1 secretaria, y la iglesia `84c92ad0…` tiene los tres
+3 iglesias, 2 tesoreros y 1 secretaria, y hay UNA iglesia que tiene los tres
 roles — es la que sirve para comprobar.
 
 Lo único que cambió es el tamaño de los datos: `transactions` pasó de 84 filas

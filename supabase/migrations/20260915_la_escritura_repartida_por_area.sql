@@ -26,7 +26,7 @@
 --     repiten a mano, así que sustituirla no cambia semántica y de paso deja
 --     de evaluarse una vez por fila (envuelta en `(select ...)`).
 --   * En `perfiles`: 4 administradores en 3 iglesias, 2 tesoreros y 1
---     secretaria. La iglesia `84c92ad0…` tiene los tres roles, que es la que
+--     secretaria. Hay UNA iglesia con los tres roles, que es la que
 --     sirve para comprobar.
 --
 -- **Por qué esto no rompe al app web**, que bebe de la misma base y NO filtra

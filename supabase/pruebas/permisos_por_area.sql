@@ -37,14 +37,31 @@
 
 begin;
 
--- La iglesia que tiene los tres roles (medido el 15-sep). Si estos ids cambian,
--- se sacan con:
---   select church_id, rol, min(id::text) from public.perfiles group by 1,2;
+-- **Los usuarios se BUSCAN, no se escriben aquí.** Dos razones, y la primera
+-- pesa más: son cuentas reales de la congregación y este archivo va a un repo.
+-- La segunda es que escritos a mano caducan —basta que alguien cambie de rol— y
+-- el guion se pondría a medir a quien no es sin decir nada.
+--
+-- Se coge la iglesia que tenga los TRES roles; si no hay ninguna, el guion se
+-- planta en vez de medir a medias.
 create temp table _quien(rol text, uid uuid) on commit drop;
-insert into _quien values
-  ('administrador','a9c20a60-328d-42f1-aa98-970b85a2fc35'),
-  ('tesorero',     '24a0a885-e8c7-4c5e-acab-1763930908ab'),
-  ('secretaria',   '46c15ffc-b8ed-4eec-8212-fba0c81cbed3');
+
+insert into _quien
+select p.rol, min(p.id::text)::uuid
+from public.perfiles p
+where p.church_id = (
+  select church_id from public.perfiles
+  group by church_id
+  having count(distinct rol) = 3
+  limit 1)
+group by p.rol;
+
+do $$
+begin
+  if (select count(*) from _quien) <> 3 then
+    raise exception 'No hay ninguna iglesia con los tres roles: el guion no puede medir. Faltan cuentas.';
+  end if;
+end $$;
 
 create temp table _res(rol text, caso text, resultado text, esperado text) on commit drop;
 
@@ -59,7 +76,7 @@ grant insert, select on _res to authenticated;
 do $$
 declare
   u record;
-  ch uuid := '84c92ad0-5362-49f8-8962-0c7b8c34b858';
+  ch uuid := (select p.church_id from public.perfiles p join _quien q on q.uid = p.id limit 1);
   n int;
 begin
   for u in select * from _quien loop
