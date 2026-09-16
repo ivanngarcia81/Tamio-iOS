@@ -322,6 +322,40 @@ ya dice que la secretaria no puede crear un movimiento, algo mide mal—. Corrid
 como `postgres` el guion no vale y él mismo lo avisa en su primera fila: el
 dueño de las tablas salta RLS.
 
+### El §3, el padrón · escrito y ensayado el 16-sep · SIN APLICAR
+
+`supabase/migrations/20260916_el_padron_con_sus_excepciones.sql`.
+
+**El §3 tal como estaba escrito arriba habría roto una función que existe.**
+Proponía bloquear `members_update` entero al tesorero; pero `MembresiaView:41`
+pasa `puedeDarDeBaja: administraPadron` a la hoja de EDICIÓN, o sea que un
+tesorero con `tesorero_ve_padron` abre la ficha y la edita — lo que no puede es
+dar de alta ni de baja. Y `onAgregarPariente`/`onQuitarPariente` (`:121-125`) no
+están detrás de `administraPadron` en absoluto.
+
+El reparto real es a TRES niveles:
+
+| operación | quién |
+|---|---|
+| `members` INSERT / DELETE | administrador y secretaria; tesorero solo en plan `tesoreria` |
+| `members` UPDATE | los anteriores **más** el tesorero si `tesorero_ve_padron` |
+| `parentescos` (todo) | igual que `members` UPDATE |
+| SELECT de las dos | **sin tocar** — Aportantes necesita los miembros |
+
+Ensayo: tres escenarios × tres roles, **21 comprobaciones en verde**.
+
+**Y el aviso que salió de ahí, que vale para cualquier prueba con escenarios:**
+el primer ensayo dio **dos falsos rojos**. El escenario «vePadron ON» no era tal:
+`iglesias_congelar_administradas` **revierte en silencio** `tesorero_ve_padron` y
+`tesorero_puede_eliminar` salvo que la sesión lleve `tamio.permisos_por_rpc =
+'on'` —la marca que pone `fijar_permisos_tesoreria`—. El `update` no daba error;
+simplemente no ocurría. Desde entonces el ensayo **relee el estado y lo compara
+con el que pidió** antes de medir nada. Un escenario que no se comprueba no es
+un escenario, es una suposición con nombre.
+
+(El mismo disparador congela `plan`, `sub_estado` y `sub_vence` para todo el que
+no sea `service_role` o `postgres`. Por eso el escenario del plan sí funcionó.)
+
 ### Lo que se midió del web, que era el riesgo nº 2
 
 `sync.ts` **no filtra por rol al subir**. Pero sube una fila solo si su copia
