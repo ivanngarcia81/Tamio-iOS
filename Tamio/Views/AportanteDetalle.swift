@@ -61,13 +61,112 @@ struct AportanteDetalle: View {
         }
     }
 
-    private var segmentado: some View {
-        Picker("", selection: $subtab) {
-            ForEach(Array(Self.secciones.enumerated()), id: \.offset) { i, nombre in
-                Text(nombre).tag(i)
+    /// **Cápsulas de cristal, no un `Picker(.segmented)`.** Esto se dibuja solo
+    /// en el cuerpo del iPad (`if !compacto`), donde no hay cápsula del sistema
+    /// que aprovechar: el fondo opaco de UIKit quedaba como un control de otra
+    /// versión pegado sobre el cristal. En el teléfono la sección va como MENÚ
+    /// de la barra —por lo que ya explica `barra`: cuatro palabras largas se
+    /// truncaban a "Det… Givi… Fam… Con…"— y eso no cambia.
+    ///
+    /// Va con el precedente de Categorías, que es la misma receta.
+    /// **El de años es distinto a los demás selectores de cristal, y por eso no
+    /// usa la misma forma.** Los otros tienen una cuenta FIJA —dos tipos, tres
+    /// periodos, cuatro secciones— y reparten el ancho a partes iguales con
+    /// `.frame(maxWidth: .infinity)`. Aquí la cuenta la pone el aportante:
+    /// `aniosConAportes` puede ser uno o pueden ser doce, y doce cápsulas
+    /// repartiéndose la columna salen a un dígito cada una.
+    ///
+    /// Así que las cápsulas miden su contenido y la tira se desplaza si no
+    /// cabe. `ScrollView` horizontal y no `ViewThatFits`: con años de más no
+    /// hay disposición alternativa que quepa, lo que hay es que poder llegar a
+    /// ellos.
+    private var selectorAnio: some View {
+        ScrollView(.horizontal) {
+            GlassEffectContainer(spacing: Esp.hueco) {
+                HStack(spacing: Esp.hueco) {
+                    ForEach(a.aniosConAportes, id: \.self) { chipAnio($0) }
+                }
             }
         }
-        .pickerStyle(.segmented)
+        // Sin barra y sin recortar el cristal: el borde de una cápsula se sale
+        // un pelo de su caja, y con el recorte por defecto se le come el filo.
+        .scrollIndicators(.hidden)
+        .scrollClipDisabled()
+    }
+
+    @ViewBuilder
+    private func chipAnio(_ valor: Int) -> some View {
+        let activa = anio == valor
+        if activa {
+            Button { anio = valor } label: { etiquetaAnio(String(valor), activa: true) }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+                .accessibilityAddTraits(.isSelected)
+        } else {
+            Button { anio = valor } label: { etiquetaAnio(String(valor), activa: false) }
+                .buttonStyle(.glass)
+                .tint(Color.primary)
+        }
+    }
+
+    private func etiquetaAnio(_ nombre: String, activa: Bool) -> some View {
+        Text(nombre)
+            .font(.subheadline.weight(activa ? .semibold : .regular))
+            .monospacedDigit()
+            .lineLimit(1)
+            .padding(.horizontal, Esp.chip)
+            .padding(.vertical, 5)
+    }
+
+    private var segmentado: some View {
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                ForEach(Array(Self.secciones.enumerated()), id: \.offset) { i, nombre in
+                    chipSeccion(i, nombre)
+                }
+            }
+        }
+    }
+
+    /// **Lo del tinte heredado ya no se reproduce en iOS 27.** La regla de la
+    /// casa —`.glass` hereda el tinte del `TabView`, así que las no elegidas
+    /// hay que bajarlas a `.tint(Color.primary)` o salen todas verdes— se midió
+    /// sobre iOS 26. Vuelto a medir el 16-sep-2026 con `pixdiff` y
+    /// `contraste.py`, quitando y poniendo el destinte y comprobando que el
+    /// binario se recompilaba: **píxeles idénticos** en el iPad (58,58,60) y en
+    /// el iPhone bajo `TabView` (31,31,31), en claro y en oscuro. Hoy quien
+    /// distingue a la elegida es `.glassProminent`, no el destinte de las
+    /// otras.
+    ///
+    /// Se conserva igualmente: cuesta cero, mantiene la receta uniforme y
+    /// vuelve a hacer falta sola si Apple lo revierte o si estas cápsulas
+    /// acaban bajo otro contenedor con tinte propio.
+    /// La elegida va `.glassProminent` y teñida; las demás `.glass` destintadas
+    /// a `.primary`, que si no heredan el verde del TabView y las cuatro se leen
+    /// activas. Dos ramas y no un `buttonStyle` calculado.
+    @ViewBuilder
+    private func chipSeccion(_ i: Int, _ nombre: String) -> some View {
+        let activa = subtab == i
+        if activa {
+            Button { subtab = i } label: { etiquetaSeccion(nombre, activa: true) }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+                .accessibilityAddTraits(.isSelected)
+        } else {
+            Button { subtab = i } label: { etiquetaSeccion(nombre, activa: false) }
+                .buttonStyle(.glass)
+                .tint(Color.primary)
+        }
+    }
+
+    private func etiquetaSeccion(_ nombre: String, activa: Bool) -> some View {
+        Text(nombre)
+            // Cuatro cápsulas en la columna: "Consistency" es la larga y sin
+            // esto se parte. Misma regla que las demás.
+            .font(.subheadline.weight(activa ? .semibold : .regular))
+            .lineLimit(1).minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
     }
 
     /// **La barra del teléfono: la sección en el lugar del título y las dos
@@ -386,12 +485,8 @@ struct AportanteDetalle: View {
                 Text(a.promedio(anio: anio)).font(.caption).foregroundStyle(.secondary)
 
                 // Los años que la persona tiene, no 2026/2025/2024 escritos a
-                // mano: con esos, en 2027 el segmentado no ofrecería el año en
-                // curso.
-                Picker(L.t("Año", "Year"), selection: $anio) {
-                    ForEach(a.aniosConAportes, id: \.self) { Text(String($0)).tag($0) }
-                }
-                .pickerStyle(.segmented)
+                // mano: con esos, en 2027 no se ofrecería el año en curso.
+                selectorAnio
 
                 ForEach(Array(a.aportesRecientes.enumerated()), id: \.element.id) { i, ap in
                     HStack {

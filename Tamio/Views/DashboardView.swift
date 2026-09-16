@@ -176,11 +176,11 @@ struct DashboardView: View {
                 HStack(alignment: .top) {
                     saludoView
                     Spacer(minLength: 16)
-                    segmentado.frame(width: 240).padding(.top, 6)
+                    selectorPeriodoColumna.frame(width: 240).padding(.top, 6)
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     saludoView
-                    segmentado.frame(maxWidth: 320)
+                    selectorPeriodoColumna.frame(maxWidth: 320)
                 }
             }
         } else {
@@ -188,6 +188,68 @@ struct DashboardView: View {
             // el segmentado subió a la barra.
             saludoView
         }
+    }
+
+    /// **Cápsulas de cristal, y SOLO para el cuerpo del iPad.**
+    ///
+    /// `segmentado` sigue siendo un `Picker` y no se toca: en el teléfono vive
+    /// en `ToolbarItem(placement: .title)`, donde el sistema ya le pone su
+    /// cápsula —glass dentro de glass es lo que Apple desaconseja—. Aquí abajo
+    /// no hay cápsula ninguna, y el fondo opaco de UIKit se lee como un control
+    /// de otra app puesto encima del cristal.
+    ///
+    /// Va con el precedente de Categorías: de los segmentados que quedaban en
+    /// el CUERPO de una pantalla de iPad, este y el de la ficha del aportante
+    /// eran los dos últimos.
+    private var selectorPeriodoColumna: some View {
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                ForEach(Periodo.allCases) { chipPeriodo($0) }
+            }
+        }
+    }
+
+    /// **Lo del tinte heredado ya no se reproduce en iOS 27.** La regla de la
+    /// casa —`.glass` hereda el tinte del `TabView`, así que las no elegidas
+    /// hay que bajarlas a `.tint(Color.primary)` o salen todas verdes— se midió
+    /// sobre iOS 26. Vuelto a medir el 16-sep-2026 con `pixdiff` y
+    /// `contraste.py`, quitando y poniendo el destinte y comprobando que el
+    /// binario se recompilaba: **píxeles idénticos** en el iPad (58,58,60) y en
+    /// el iPhone bajo `TabView` (31,31,31), en claro y en oscuro. Hoy quien
+    /// distingue a la elegida es `.glassProminent`, no el destinte de las
+    /// otras.
+    ///
+    /// Se conserva igualmente: cuesta cero, mantiene la receta uniforme y
+    /// vuelve a hacer falta sola si Apple lo revierte o si estas cápsulas
+    /// acaban bajo otro contenedor con tinte propio.
+    /// El elegido va `.glassProminent` y teñido; los demás `.glass` destintados
+    /// a `.primary`, que si no `.glass` hereda el verde del TabView y los tres
+    /// se leen activos. Dos ramas y no un `buttonStyle` calculado: los estilos
+    /// de botón no se pueden borrar de tipo. `isSelected` lo dice para quien no
+    /// ve el relleno.
+    @ViewBuilder
+    private func chipPeriodo(_ valor: Periodo) -> some View {
+        let activa = vm.periodo == valor
+        if activa {
+            Button { vm.periodo = valor } label: { etiquetaPeriodo(valor.etiqueta, activa: true) }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+                .accessibilityAddTraits(.isSelected)
+        } else {
+            Button { vm.periodo = valor } label: { etiquetaPeriodo(valor.etiqueta, activa: false) }
+                .buttonStyle(.glass)
+                .tint(Color.primary)
+        }
+    }
+
+    private func etiquetaPeriodo(_ nombre: String, activa: Bool) -> some View {
+        Text(nombre)
+            // No se parte: "Trimestre" en 240 pt repartidos entre tres cápsulas
+            // va justa, y con texto grande se iba a dos renglones.
+            .font(.subheadline.weight(activa ? .semibold : .regular))
+            .lineLimit(1).minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
     }
 
     private var segmentado: some View {
