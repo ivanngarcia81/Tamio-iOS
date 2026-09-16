@@ -73,6 +73,20 @@ create temp table _res(rol text, caso text, resultado text, esperado text) on co
 -- 15-sep al primer intento.
 grant insert, select on _res to authenticated;
 
+-- **Un acta de prueba POR ROL, sembrada antes de empezar.** Sin esto la prueba
+-- de borrado depende del ORDEN: el administrador corre primero, borra todas las
+-- actas dentro de esta transacción, y los dos roles siguientes reciben «0 filas»
+-- —que se lee como «no tiene permiso» y es mentira—. Lo dio el ensayo del
+-- 15-sep: la secretaria salía sin poder borrar actas cuando sí puede.
+--
+-- Se siembran como `postgres`, que salta RLS a propósito: lo que se mide es el
+-- BORRADO, no la siembra. Y son filas propias, así que la prueba no toca
+-- ninguna acta de verdad aunque alguien quite el `rollback` del final.
+insert into public.actas (uid, church_id)
+select 'probe-acta-'||q.rol, p.church_id
+from _quien q
+join public.perfiles p on p.id = q.uid;
+
 do $$
 declare
   u record;
@@ -83,6 +97,13 @@ begin
     perform set_config('request.jwt.claims',
                        json_build_object('sub', u.uid, 'role','authenticated')::text, true);
     set local role authenticated;
+
+    -- **El control, y va DENTRO a propósito.** Medido fuera del bloque que
+    -- suplanta siempre diría `postgres` —porque `reset role` ya corrió— y
+    -- avisaría en falso en cada corrida. Lo que hay que comprobar es con qué
+    -- usuario se midieron las filas de abajo, no con cuál se lanzó el guion.
+    insert into _res values (u.rol,'0 control · usuario',
+      current_user, 'authenticated');
 
     -- LEER un movimiento. La secretaria SÍ: Reportes es una función que usa.
     begin
@@ -104,7 +125,7 @@ begin
 
     -- BORRAR un acta. Solo administrador y secretaria.
     begin
-      delete from public.actas where church_id = ch;
+      delete from public.actas where church_id = ch and uid = 'probe-acta-'||u.rol;
       get diagnostics n = row_count;
       insert into _res values (u.rol,'borrar un acta',
         case when n > 0 then 'SI' else 'NO (0 filas)' end,
@@ -136,10 +157,9 @@ begin
   end loop;
 end $$;
 
-select 'CONTROL: corriendo como '||current_user||
-       case when current_user = 'postgres'
-            then ' — OJO, salta RLS: el resultado NO vale'
-            else '' end as control;
+-- Si alguna fila «0 control · usuario» dice `postgres`, la suplantación no
+-- ocurrió: `postgres` es el dueño de las tablas y SALTA RLS, así que todo
+-- saldría permitido y el resultado no valdría nada.
 
 select rol, caso, resultado, esperado,
        case when resultado like esperado||'%' then 'ok' else '### REVISAR' end as veredicto
