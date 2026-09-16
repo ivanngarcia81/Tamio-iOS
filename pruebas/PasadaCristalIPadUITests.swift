@@ -12,6 +12,17 @@ import XCTest
 final class PasadaCristalIPadUITests: XCTestCase {
 
     var app: XCUIApplication!
+    /// **El tema llega con el prefijo `TEST_RUNNER_`.** `xcodebuild` NO reenvía
+    /// las variables del shell al runner: `ProcessInfo.environment` dentro de
+    /// una prueba es el del proceso que corre en el simulador. Solo pasan las
+    /// que empiezan por `TEST_RUNNER_`, y llegan sin el prefijo — es lo que ya
+    /// hace `postura.sh` con `TEST_RUNNER_POSTURA`, y lo que
+    /// `CategoriasDeCristalUITests` dejó escrito el 6-sep. Aun así se repitió el
+    /// 16-sep: una corrida de 99 s que se creía en claro y era en oscuro, y solo
+    /// se notó porque las capturas salieron con el nombre equivocado.
+    ///
+    /// Por eso el tema va también en el NOMBRE de cada `MARCA:`: si la variable
+    /// no llega, la captura lo delata en vez de mentir.
     var tema: String { ProcessInfo.processInfo.environment["TEMA"] ?? "oscuro" }
 
     override func setUpWithError() throws {
