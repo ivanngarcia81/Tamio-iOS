@@ -1132,36 +1132,85 @@ private struct SeccionCategorias: View {
             : L.t("Nueva categoría de egreso", "New expense category")
     }
 
+    /// **Dos cápsulas de cristal, no un segmentado dibujado a mano.**
+    ///
+    /// Era un `HStack` de botones `.plain` con el estilo de iOS 18: relleno de
+    /// `tertiarySystemFill`, píldora de `secondarySystemGroupedBackground` para
+    /// la elegida y una sombra haciendo de pulgar. No es un `Picker` —así que
+    /// no lo delataba ningún `pickerStyle`—, pero se lee igual de ajeno dentro
+    /// del cristal: es un control de otra versión del sistema, pintado a mano.
+    ///
+    /// **Tampoco se sustituye por un `Picker` nativo**: su fondo es opaco y
+    /// taparía el cristal, la misma razón por la que las bandas de
+    /// `.regularMaterial` hay que quitarlas y no esconderlas. Y aquí no hay
+    /// cápsula del sistema que aprovechar: esto vive en el CUERPO de la lista,
+    /// no en el `toolbar`.
+    ///
+    /// Es la receta de `AjustesCategoriasView.selectorTipo` (`e0a962d`), que es
+    /// esta misma pantalla en el teléfono: las dos tenían el mismo control con
+    /// dos aspectos distintos.
+    private var selectorTipo: some View {
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                chipTipo(.ingreso, L.t("Ingresos", "Income"))
+                chipTipo(.gasto,   L.t("Gastos", "Expenses"))
+            }
+        }
+    }
+
+    /// **Lo del tinte heredado ya no se reproduce en iOS 27.** La regla de la
+    /// casa —`.glass` hereda el tinte del `TabView`, así que las no elegidas
+    /// hay que bajarlas a `.tint(Color.primary)` o salen todas verdes— se midió
+    /// sobre iOS 26. Vuelto a medir el 16-sep-2026 con `pixdiff` y
+    /// `contraste.py`, quitando y poniendo el destinte y comprobando que el
+    /// binario se recompilaba: **píxeles idénticos** en el iPad (58,58,60) y en
+    /// el iPhone bajo `TabView` (31,31,31), en claro y en oscuro. Hoy quien
+    /// distingue a la elegida es `.glassProminent`, no el destinte de las
+    /// otras.
+    ///
+    /// Se conserva igualmente: cuesta cero, mantiene la receta uniforme y
+    /// vuelve a hacer falta sola si Apple lo revierte o si estas cápsulas
+    /// acaban bajo otro contenedor con tinte propio.
+    /// La elegida va `.glassProminent` y teñida: en un "elige uno" el relleno es
+    /// lo único que dice cuál está activa, y sin él dos cápsulas iguales se leen
+    /// como dos acciones. `isSelected` lo dice para quien no ve el relleno.
+    ///
+    /// Dos ramas y no un `buttonStyle` calculado: los estilos de botón no se
+    /// pueden borrar de tipo en SwiftUI. Y el destinte de la no elegida va con
+    /// `.tint(Color.primary)` y NO con `.foregroundStyle` —probado en Agenda:
+    /// el estilo de botón pinta por encima—, que si no `.glass` hereda el verde
+    /// del TabView y las dos parecen activas.
+    @ViewBuilder
+    private func chipTipo(_ valor: TipoMovimiento, _ nombre: String) -> some View {
+        let activa = tipo == valor
+        if activa {
+            Button { tipo = valor } label: { etiquetaTipo(nombre, activa: true) }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+                .accessibilityAddTraits(.isSelected)
+        } else {
+            Button { tipo = valor } label: { etiquetaTipo(nombre, activa: false) }
+                .buttonStyle(.glass)
+                .tint(Color.primary)
+        }
+    }
+
+    private func etiquetaTipo(_ nombre: String, activa: Bool) -> some View {
+        Text(nombre)
+            // No se parte: en AX1 "Expenses" salía a dos renglones dentro de la
+            // cápsula y el control crecía. Misma regla que el teléfono.
+            .font(.escalada(15, weight: activa ? .semibold : .regular, relativeTo: .subheadline))
+            .lineLimit(1).minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 HeroCard(seccion: .categorias)
 
-                // Segmented
-                HStack(spacing: 3) {
-                    ForEach([TipoMovimiento.ingreso, .gasto], id: \.self) { t in
-                        let sel = tipo == t
-                        Button { tipo = t } label: {
-                            Text(t == .ingreso ? L.t("Ingresos", "Income") : L.t("Gastos", "Expenses"))
-                                .font(.escalada(15, weight: sel ? .semibold : .medium, relativeTo: .subheadline))
-                                .foregroundStyle(sel ? .primary : .secondary)
-                                .frame(maxWidth: .infinity)
-                                .frame(minHeight: 38)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                        .fill(sel ? Color(.secondarySystemGroupedBackground) : .clear)
-                                        .shadow(color: sel ? .black.opacity(0.12) : .clear, radius: 2, y: 1)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                // 3 pt y no un valor de la escala: es el filete que separa las
-                // píldoras del borde del contenedor que las agrupa, como el de
-                // un segmentado del sistema. No es un rol de espaciado.
-                .padding(3)
-                .background(Color(.tertiarySystemFill),
-                            in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                selectorTipo
 
                 // Lista
                 GrupoConf(titulo: tituloTab,
