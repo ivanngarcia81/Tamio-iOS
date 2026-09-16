@@ -1144,16 +1144,25 @@ private struct TomarAsistenciaSheet: View {
         .hojaFormulario()
     }
 
+    /// **Cristal, no un círculo verde con halo.** Era un botón `.plain` con el
+    /// círculo pintado a mano: relleno `Paleta.brand`, símbolo en blanco y una
+    /// sombra del propio verde haciendo de resplandor. El halo de color es
+    /// idioma de botón flotante de web, y el relleno de marca con contenido
+    /// blanco es justo lo que se quitó del resto de la app por contraste.
+    ///
+    /// `.glassProminent` con `.buttonBorderShape(.circle)` da el círculo y el
+    /// relleno teñido sin dibujar nada, y encima refracta la hoja que hay
+    /// debajo. Se conservan los 64 pt: es un botón que se aporrea para contar
+    /// gente, y el tamaño del blanco de toque es la razón de que sea grande.
     private func botonConteo(icono: String, accion: @escaping () -> Void) -> some View {
         Button(action: accion) {
             Image(systemName: icono)
                 .font(.title.weight(.semibold))
-                .foregroundStyle(.white)
                 .frame(width: 64, height: 64)
-                .background(Paleta.brand, in: Circle())
-                .shadow(color: Paleta.brand.opacity(0.35), radius: 8, y: 4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glassProminent)
+        .buttonBorderShape(.circle)
+        .tint(Paleta.brand)
     }
 }
 
