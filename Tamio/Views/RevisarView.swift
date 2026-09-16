@@ -292,9 +292,14 @@ struct RevisarView: View {
         if !acciones.isEmpty {
             // **Sin relleno verde.** El botón se pintaba a mano: fondo
             // `Paleta.brand` con el texto en blanco, que es lo que da ~2.4:1 en
-            // oscuro y por lo que se quitó del resto de la app. Era además el
-            // último sitio donde quedaba. Ahora es glass con el verde de marca,
-            // y sigue siendo la acción principal por el peso de la tipografía.
+            // oscuro y por lo que se quitó del resto de la app. Ahora es glass
+            // con el verde de marca, y sigue siendo la acción principal por el
+            // peso de la tipografía.
+            //
+            // **Decía "era además el último sitio donde quedaba", y no lo era:**
+            // `filaCompacta` —esta misma fila en la lista del iPad— tenía el
+            // mismo relleno pintado a mano y no se vio, porque en el teléfono
+            // esa rama no se dibuja. Se arregló con esta misma receta.
             let prim = acciones[0]
             Button { activar(prim, a) } label: {
                 Text(prim.label)
@@ -385,17 +390,26 @@ struct RevisarView: View {
             }
             .buttonStyle(.plain)
 
+            // **Cápsulas del sistema, no dibujadas a mano.** Eran botones
+            // `.plain` con la cápsula puesta a pulso: relleno `Paleta.brand`
+            // con texto blanco la principal —los ~2.4:1 en oscuro que ya se
+            // quitaron del resto de la app— y un filete de 1.5 pt la otra. Un
+            // borde dibujado y un relleno plano no refractan nada: dentro del
+            // cristal se leen como pegatinas de otra app.
+            //
+            // Misma receta que `botonesTargeta`, que es esta misma fila en el
+            // teléfono: `.glass` con el verde de marca para la principal —y el
+            // peso de la tipografía, no el relleno, es lo que dice que lo es— y
+            // `.glass` destintado a `.secondary` para la otra.
             HStack(spacing: 10) {
                 ForEach(accionesDe(a).prefix(2)) { ac in
                     Button { activar(ac, a) } label: {
                         Text(ac.label)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(ac.prominente ? .white : Paleta.brand)
-                            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-                            .background(ac.prominente ? Paleta.brand : Color.clear, in: Capsule())
-                            .overlay(Capsule().stroke(ac.prominente ? Color.clear : Paleta.brand, lineWidth: 1.5))
+                            .font(.caption.weight(ac.prominente ? .semibold : .regular))
+                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.glass)
+                    .tint(ac.prominente ? Paleta.brand : Color.secondary)
                 }
             }
             .padding(.horizontal, Esp.chip).padding(.bottom, 14)
