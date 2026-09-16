@@ -1170,6 +1170,11 @@ private struct TomarAsistenciaSheet: View {
         Button(action: accion) {
             Image(systemName: icono)
                 .font(.title.weight(.semibold))
+                // **`Paleta.sobreMarca`, no el blanco que elige el sistema.**
+                // Medido: el blanco sobre el verde claro del modo oscuro daba
+                // 2.30:1 y el mínimo de un símbolo así es 3:1. Ver la nota de
+                // `Paleta.sobreMarca`.
+                .foregroundStyle(Paleta.sobreMarca)
                 .frame(width: 64, height: 64)
         }
         .buttonStyle(.glassProminent)
