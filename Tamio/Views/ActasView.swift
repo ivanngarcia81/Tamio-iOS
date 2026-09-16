@@ -20,6 +20,25 @@ struct ActasView: View {
     /// mano aquí y en otros nueve sitios, con DOS valores distintos —"Iglesia
     /// Getsemaní" y "Iglesia Nueva Vida"—, así que los documentos y la sidebar
     /// nombraban iglesias diferentes.
+    /// Año elegido en el chip, o `nil` para «Todos». Es filtro de PANTALLA y
+    /// no del repositorio: el libro entero ya está cargado, así que filtrar
+    /// aquí evita un viaje y deja que el chip liste los años que de verdad
+    /// existen.
+    @State private var anioFiltro: String? = nil
+
+    /// Los años que aparecen en el libro, del más nuevo al más viejo.
+    /// `Acta.fecha` es `"YYYY-MM-DD"` —ver `Secretaria.swift`, donde se dejó
+    /// de guardar "21 de agosto" justo para poder ordenar y filtrar—, así que
+    /// el año son sus cuatro primeros caracteres.
+    private var aniosDisponibles: [String] {
+        Set(vm.lista.map { String($0.fecha.prefix(4)) }).sorted(by: >)
+    }
+
+    private var actasFiltradas: [Acta] {
+        guard let anioFiltro else { return vm.lista }
+        return vm.lista.filter { $0.fecha.hasPrefix(anioFiltro) }
+    }
+
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
     private var iglesia: ConfiguracionIglesia { cfg.config }
 
@@ -148,7 +167,22 @@ struct ActasView: View {
     private var cabeceraActas: some View {
         if !vm.lista.isEmpty {
             HStack(spacing: 8) {
-                chipFiltro("2026", desplegable: true)
+                // **El chip filtra de verdad.** Era `chipFiltro("2026")`: un
+                // año escrito a mano, con flecha de desplegable y sin menú
+                // detrás —prometía algo que no existía, y en 2027 además
+                // habría mentido—. Los años salen del propio libro; «Todos»
+                // va primero porque es a donde se vuelve.
+                Menu {
+                    Picker(L.t("Año", "Year"), selection: $anioFiltro) {
+                        Text(L.t("Todos", "All")).tag(String?.none)
+                        ForEach(aniosDisponibles, id: \.self) { a in
+                            Text(a).tag(String?.some(a))
+                        }
+                    }
+                } label: {
+                    chipFiltro(anioFiltro ?? L.t("Todos", "All"), desplegable: true)
+                }
+                .buttonStyle(.plain)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Esp.pantalla)
@@ -169,13 +203,24 @@ struct ActasView: View {
             // de "no cargó" o "la app se rompió". Mismo idioma que Depósitos,
             // Cartas y Reportes, que ya lo hacían.
             .overlay {
-                if vm.lista.isEmpty {
-                    ContentUnavailableView(
-                        L.t("Todavía no hay actas", "No minutes yet"),
-                        systemImage: "doc.text",
-                        description: Text(L.t("Toca «Nuevo» para levantar el acta de una reunión.",
-                                              "Tap “New” to start minutes for a meeting."))
-                    )
+                if actasFiltradas.isEmpty {
+                    if let anio = anioFiltro {
+                        // El libro tiene actas, las de ESE año no. Se dice cuál
+                        // y se ofrece la salida, que es quitar el filtro.
+                        ContentUnavailableView(
+                            L.t("Sin actas de \(anio)", "No minutes from \(anio)"),
+                            systemImage: "doc.text.magnifyingglass",
+                            description: Text(L.t("Elige «Todos» en el chip del año para ver el libro entero.",
+                                                  "Pick “All” in the year chip to see the whole book."))
+                        )
+                    } else {
+                        ContentUnavailableView(
+                            L.t("Todavía no hay actas", "No minutes yet"),
+                            systemImage: "doc.text",
+                            description: Text(L.t("Toca «Nuevo» para levantar el acta de una reunión.",
+                                                  "Tap “New” to start minutes for a meeting."))
+                        )
+                    }
                 }
             }
     }
@@ -183,7 +228,7 @@ struct ActasView: View {
     @ViewBuilder
     private var listaActasCuerpo: some View {
         List {
-            ForEach(vm.lista) { acta in
+            ForEach(actasFiltradas) { acta in
                 filaActa(acta)
                     .contentShape(Rectangle())
                     .onTapGesture { abrir(acta) }

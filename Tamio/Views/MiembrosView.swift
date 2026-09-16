@@ -496,6 +496,26 @@ struct MiembrosView: View {
                     .onTapGesture { abrir(a) }
             }
         }
+        // **Una lista sin filas tiene que decir por qué.** Sin esto la columna
+        // quedaba en negro entero, y no se distingue "no hay aportantes" de
+        // "tu búsqueda no encontró a nadie" —ni de que la app se rompió—. Son
+        // dos mensajes y no uno: mandar a dar de alta a alguien cuando lo que
+        // pasa es que el buscador tiene texto lleva al usuario al sitio
+        // equivocado. Mismo idioma que Depósitos, Actas y Registro.
+        .overlay {
+            if vm.itemsFiltrados.isEmpty {
+                if !vm.busqueda.isEmpty {
+                    ContentUnavailableView.search(text: vm.busqueda)
+                } else {
+                    ContentUnavailableView(
+                        L.t("Todavía no hay aportantes", "No contributors yet"),
+                        systemImage: "person.crop.circle",
+                        description: Text(L.t("Toca «Nuevo» para dar de alta al primero.",
+                                              "Tap “New” to add the first one."))
+                    )
+                }
+            }
+        }
     }
 
     private func fila(_ a: Aportante) -> some View {

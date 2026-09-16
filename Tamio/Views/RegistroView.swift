@@ -125,6 +125,30 @@ struct RegistroView: View {
                 }
             }
         }
+        // **Un registro sin apuntes tiene que decirlo.** Era la única lista de
+        // Secretaría sin un solo `ContentUnavailableView`: se quedaba en negro
+        // entero y no se distinguía de un fallo al cargar. Se separa el caso
+        // del filtro, porque "no hay nada" y "el filtro no deja ver nada" se
+        // arreglan de formas distintas: uno se espera, el otro se quita.
+        .overlay {
+            if vm.grupos.isEmpty {
+                if vm.filtro != .todo {
+                    ContentUnavailableView(
+                        L.t("Nada con este filtro", "Nothing with this filter"),
+                        systemImage: "line.3.horizontal.decrease.circle",
+                        description: Text(L.t("Cambia el filtro de la barra para ver el resto del registro.",
+                                              "Change the filter in the bar to see the rest of the log."))
+                    )
+                } else {
+                    ContentUnavailableView(
+                        L.t("Todavía no hay apuntes", "No entries yet"),
+                        systemImage: "text.book.closed",
+                        description: Text(L.t("Aquí se va anotando solo lo que se hace en la app.",
+                                              "What gets done in the app is logged here on its own."))
+                    )
+                }
+            }
+        }
     }
 
     /// **Los cuatro filtros, en un menú de la barra.**
