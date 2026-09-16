@@ -448,3 +448,33 @@ distingue una prueba de un adorno.
 dicho en el encabezado del archivo: una es el `init` de una vista SwiftUI cuyos
 `@State` no se leen desde fuera, y el otro vive en un método `async` que baja
 los cultos de la base.
+
+## La novena presentación de Z2 · 16 de septiembre
+
+`SegundaFirmaUITests` · **escrita y compilando, y TODAVÍA SIN EJERCITAR sobre
+datos de verdad.** En el simulador se salta, y lo dice: no hay sesión.
+
+**No siembra en la base**, que era la pega que tenía este pendiente desde el
+14-sep. El estado que falta —un corte que pidió doble firma y no la tiene— lo
+crea la propia app: el interruptor «Que otra persona cuente este dinero» de
+`CorteDetalle:407`. Se enciende, se abre la hoja, se cancela, se reabre, y el
+`tearDown` lo apaga **pase lo que pase** — va ahí y no al final del test justo
+para que un fallo a mitad no deje un corte de la iglesia pidiendo una firma que
+nadie pidió.
+
+    pruebas/aparato.sh <UDID> -only-testing:PruebasUIAparato/SegundaFirmaUITests
+
+**Para cerrar el pendiente hay que correrla en el iPhone de Iván con su sesión.**
+Hasta entonces la novena presentación sigue sin abrirse nunca.
+
+**Dos lecturas falsas que dio al escribirla, y las dos del mismo tipo:**
+
+- Imprimió **`QA-FORMA:ipad` corriendo en un simulador de iPHONE**. La causa era
+  «no hay sesión, luego no hay barra de pestañas», y la prueba lo había escrito
+  como «no hay barra de pestañas, luego es un iPad». Dos causas con la misma
+  huella. Ahora se comprueba la pantalla de acceso ANTES de deducir la forma.
+- El motivo del salto decía «no se pudo llegar a Depósitos» cuando la verdad era
+  «no hay sesión»: `XCTSkipUnless` **envuelve el salto de dentro y se queda con
+  su propio mensaje**. Con `guard ... else { throw XCTSkip(...) }` el motivo de
+  dentro llega entero. Un motivo de salto que miente cuesta lo mismo que un
+  verde que no mide.
