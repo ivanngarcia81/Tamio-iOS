@@ -5,8 +5,126 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **15 de septiembre de 2026** (§0.-12). La pasada grande
+Última actualización: **16 de septiembre de 2026** (§0.-13). La pasada grande
 sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-13 Lo que aún delataba a UIKit dentro del cristal · 16 de septiembre
+
+Una pasada por los detalles que seguían pareciendo de otra app: segmentados
+opacos, cápsulas dibujadas a mano, bandas de material y sombras de web. Doce
+commits, de `da7ccfe` a `9ccc8eb`, **sin fusionar a `main`**.
+
+El detalle de cada arreglo está en su commit. Aquí va lo que no se deduce de
+ellos, que es casi todo lo que costó tiempo.
+
+### Lo que cerró, y lo que resultó ser distinto de lo que parecía
+
+**Se acabaron los segmentados fuera de sitio.** `c0804af` dio por cerrado el
+caso del `Picker(.segmented)` dentro de una `safeAreaBar` con Membresía y
+Aportantes, y **quedaban dos**: Ingresos y Depósitos, invisibles en cualquier
+captura del teléfono porque su `cabeceraLista` va dentro de un `if !compacto`.
+De paso se alinearon los tres que quedaban en el CUERPO de una pantalla de iPad
+—Categorías, Inicio y la ficha del aportante—. Los que SIGUEN siendo `Picker` a
+propósito: los del `toolbar` del teléfono, donde el sistema ya pone la cápsula,
+y los de formularios y hojas.
+
+**Lo que solo se dibuja en iPad no sale en ninguna captura del teléfono.** Salió
+tres veces el mismo día: los dos segmentados de arriba, las cápsulas a mano de
+`filaCompacta`, y una frase en `botonesTargeta` que afirmaba ser "el último
+sitio donde quedaba" el relleno de marca con texto blanco —y no lo era, porque
+esa otra rama no se dibuja en el teléfono—. Al tocar algo que ramifica por
+`compacto`, buscar el gemelo en la otra rama.
+
+**El Registro llevaba desde `2f3d53f` sin desvanecido, y nadie lo sabía.** El
+encargo decía "las cabeceras de día llevan `.regularMaterial`". Eso era el
+síntoma. La causa: al recoger los cuatro filtros en un botón de la barra, se fue
+la `safeAreaBar` entera, y con ella el borde bajo el que desvanecer. El
+`.scrollEdgeEffectStyle(.soft)` seguía escrito y **no hacía nada**: el contenido
+pasaba nítido bajo la barra de navegación. Es la regla del §0.-4 mordiendo por
+la espalda meses después. **Cuando se quite una barra, comprobar quién dependía
+de ella.**
+
+**Y matiza esa misma regla:** `.soft` vale cuando la barra va LLENA —cápsulas,
+buscador, chips—, porque su propio contenido cubre la franja. Con una barra
+medio vacía el degradado no llega y hace falta `.hard`. Medido en píxeles
+legibles bajo la barra: 9.88% antes → 4.70% con `.soft` → **2.65% con `.hard`**.
+
+### La regla del destinte está caducada en iOS 27
+
+`.glass` ya **no** hereda el tinte del `TabView`. Medido con `contraste.py`
+quitando y poniendo `.tint(Color.primary)`, y confirmando en el log que el
+binario se recompilaba —sin esa confirmación la medida no vale nada—:
+
+| | elegida | no elegidas |
+|---|---|---|
+| iPad, columna | (49,192,115) | (58,58,60) |
+| iPhone bajo `TabView` | (46,190,112) | (31,31,31) |
+
+**Con destinte y sin él, idénticos**, en claro y en oscuro. Se midió el iPhone a
+propósito para descartar que fuera cosa de no haber `TabView` en la barra
+lateral: no lo es. Hoy quien distingue a la elegida es `.glassProminent`.
+
+El destinte **se conserva** en los siete sitios —cuesta cero y vuelve a hacer
+falta solo si Apple lo revierte—, pero lo escrito ya no afirma un fallo que no
+ocurre. Decisión de Iván.
+
+### Tres formas de que una corrida mienta
+
+Las tres pasaron el mismo día, y las tres dan verde:
+
+1. **Una prueba que no cubre lo que dice cubrir.** `CategoriasDeCristalUITests`
+   afirmaba que `isSelected` delata el tinte heredado. Se revirtió el destinte y
+   **siguió en verde**: el rasgo lo pone `.accessibilityAddTraits` en la rama de
+   la elegida, y el destinte vive en la otra. Protege el rasgo, no el color. Por
+   eso se le exige el rojo a una prueba nueva: la que no ha fallado nunca no
+   protege nada.
+2. **Tocar un elemento deshabilitado no da error.** La prueba de H6 abría el
+   menú de Servicios, tocaba "Contar" —apagado, porque no había culto elegido—,
+   no pasaba nada, y la prueba terminaba en verde sin haber llegado a la hoja.
+   Se arregla afirmando `isEnabled` y que el destino está delante.
+3. **Un `-only-testing` que no casa con ninguna clase se salta en silencio.**
+   Lo avisa `aparato.sh` en sus comentarios y aun así picó: al añadir un archivo
+   de prueba nuevo hay que **regenerar el proyecto de la copia** con `xcodegen`,
+   o `xcodebuild` ejecuta 0 pruebas y sale con éxito. Contar las EJECUTADAS.
+
+### Cómo se prueba interfaz sin perder la tarde
+
+**En el simulador no hay sesión, y eso no está escrito en ningún sitio.**
+`aparato.sh` explica por qué usa el bundle id real —en un aparato físico el
+llavero no se comparte—, pero en el SIMULADOR eso no basta: la app abre en
+"Sign in" y cualquier prueba de interfaz muere en la barra lateral. La única
+forma de recorrer pantallas sin credenciales es **`ModoRevision.activada = true`**,
+y se enciende **en la COPIA**, nunca en el repo.
+
+**Una prueba de interfaz nueva se escribe con el volcado puesto desde la primera
+línea.** De doce corridas, ocho se fueron en que la app estaba en otro sitio del
+que la prueba suponía: la bienvenida (falta `-prefs.bienvenidaVista 1`), el
+login, el hub con otro rótulo —en el teléfono la fila de Tesorería se llama
+"Transactions", no "Income"—, un menú con las acciones apagadas. Imprimir qué
+botones HAY cuando no aparece el que se busca convierte una corrida perdida en
+una que da la respuesta. Las pruebas escritas con volcado acertaron a la
+segunda; la escrita sin él costó cuatro.
+
+**Y se pueden capturar las pantallas del aparato de verdad:**
+`xcrun devicectl device capture screenshot --device <UDID> --destination x.png`.
+Sale enorme; `sips -Z 1100` para leerla. Lo que NO se puede es tocar la pantalla
+desde fuera: para eso están las pruebas. `devicectl device settings appearance`
+mueve claro/oscuro, tamaño de texto, contraste, reducir transparencia y hasta la
+opacidad de Liquid Glass, y `orientation` gira el aparato.
+
+### Lo que queda
+
+- **La pasada en el iPad físico.** Todo lo de esta entrada está verificado en
+  simulador; el cristal de verdad refracta distinto. Falta sobre todo el §7 (los
+  pies, con la lista desplazada y en apaisado) y confirmar el `.hard` del
+  Registro.
+- **La medida de H6**, el símbolo del botón de contar: el encargo pide que no
+  quede peor que hoy y todavía no hay número. Su prueba ya falla honestamente.
+- **El instante del arrastre en el tab bar**, único caso sin medir de la
+  decisión A.
+- **`main` sigue atrás**: esto no se ha fusionado.
 
 ---
 
