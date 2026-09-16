@@ -114,7 +114,19 @@ struct ReportesView: View {
         // cuando hace algo DISTINTO —"Redactar" en Cartas sí, porque dice el
         // verbo que la tarjeta no dice—, y además esa misma orden ya está en
         // el menú de mantener pulsado: estaba tres veces en la misma tarjeta.
-        return VStack(spacing: 14) {
+        // **Un `Button` de verdad.** Traía el botón rehecho a mano, como la
+        // tarjeta de Cartas: `contentShape` + `onTapGesture` para el toque, y
+        // `accessibilityAddTraits(.isButton)` + `accessibilityAction` para que
+        // VoiceOver la diera por activable.
+        //
+        // **Pero no comparte el hundido, y eso importa.** Aquí la pulsación
+        // larga la tiene el `contextMenu` —que enseña la previa del PDF—, y el
+        // menú trae su propia vibración y su propia animación de levantar la
+        // tarjeta. Por eso este botón va con `.tarjeta(hunde: false)`: necesita
+        // la semántica, no el efecto. Un `.plain` tampoco valdría, porque pinta
+        // su propio apagado al apretar.
+        return Button { abrir(t) } label: {
+        VStack(spacing: 14) {
             Image(systemName: icono(de: t))
                 .font(.system(size: 30))
                 .foregroundStyle(tono)
@@ -139,7 +151,6 @@ struct ReportesView: View {
         .fondoDeTarjeta(tono)
         .shadow(color: .black.opacity(0.10), radius: 15, y: 6)
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .onTapGesture { abrir(t) }
         // **Mantener pulsado enseña la hoja del PDF.** Aquí sí gana a abrir
         // directamente —que es lo que hace la tarjeta de Cartas—: el reporte
         // se imprime y se comparte, así que ojear la hoja antes de entrar es
@@ -163,9 +174,12 @@ struct ReportesView: View {
         } preview: {
             hojaPrevia(t)
         }
+        // **La tarjeta entera se lee de una pieza.** Lo que ya no hace falta es
+        // decir que es un botón ni darle una acción a mano: lo es de verdad
+        // desde que el envoltorio es un `Button`.
+        }
+        .buttonStyle(.tarjeta(hunde: false))
         .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { abrir(t) }
     }
 
     /// Si hay cifras con las que dibujar la hoja. **La ventana se abre igual

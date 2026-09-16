@@ -373,14 +373,22 @@ extension View {
 /// para algo que un `ButtonStyle` ya sabe: `configuration.isPressed`. Al
 /// pasarlo aquí, la vista deja de llevar estado que no es suyo y el hundido
 /// sale igual en todas las tarjetas.
+/// **`hunde: false` para quien ya tiene su propia animación.** Las tarjetas de
+/// Reportes llevan `contextMenu`, que trae su vibración y su forma de levantar
+/// la tarjeta; añadirles el hundido sería una segunda animación peleando con la
+/// del sistema. Necesitan el `Button` —por el toque y por VoiceOver— pero no el
+/// efecto, y un `.plain` no vale porque pinta su propio apagado al apretar.
 struct TarjetaPulsable: ButtonStyle {
+    var hunde = true
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .scaleEffect(hunde && configuration.isPressed ? 0.97 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
 extension ButtonStyle where Self == TarjetaPulsable {
     static var tarjeta: TarjetaPulsable { TarjetaPulsable() }
+    static func tarjeta(hunde: Bool) -> TarjetaPulsable { TarjetaPulsable(hunde: hunde) }
 }
