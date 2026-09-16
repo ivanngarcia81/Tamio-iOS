@@ -121,6 +121,16 @@ struct RegistroView: View {
             // navegación. Se veía en la captura del 16-sep en claro: "Ana Lucía
             // Torres went from visitor…" legible a través de la barra.
             .safeAreaBar(edge: .top, spacing: 0) { cabeceraRegistro }
+            // **Las dos cosas, porque son dos problemas.** Medido el 16-sep en
+            // el iPhone, píxeles legibles en la franja bajo la barra de
+            // navegación: 9.88% con el material y sin barra · 4.70% con barra
+            // y borde suave · 2.65% con borde duro · **5.48% con la cápsula de
+            // cristal pero borde suave**. La cápsula arregla el choque de
+            // texto sobre texto DENTRO de la barra; el borde duro arregla el
+            // fantasma en la franja ENTRE la barra de navegación y la barra.
+            // Ninguna sustituye a la otra.
+            .scrollEdgeEffectStyle(.hard, for: .top)
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
             // **Arriba el borde DURO, y no el suave como en las demás.**
             // Medido el 16-sep con la captura delante: con `.soft` el canto
             // superior sí se disuelve —ese era el fallo que dejó `2f3d53f`—
@@ -131,8 +141,6 @@ struct RegistroView: View {
             // allí va llena de cápsulas que tapan su franja, y aquí va una
             // etiqueta corta con el resto vacío. Con la barra medio vacía, el
             // degradado no llega: hace falta el corte.
-            .scrollEdgeEffectStyle(.hard, for: .top)
-            .scrollEdgeEffectStyle(.soft, for: .bottom)
             .colchonInferior()
     }
 
@@ -154,9 +162,15 @@ struct RegistroView: View {
                 .lineLimit(1)
             Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Esp.pantalla)
         .padding(.vertical, 8)
+        // Cristal propio, por lo mismo que los pies de Membresía y Aportantes:
+        // `safeAreaBar` no pinta, y el texto desnudo se peleaba con lo que
+        // pasaba por debajo. Con la cápsula, el borde suave vuelve a bastar.
+        .glassEffect(.regular, in: .capsule)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Esp.chip)
+        .padding(.vertical, 6)
     }
 
     private var scrollApuntes: some View {
