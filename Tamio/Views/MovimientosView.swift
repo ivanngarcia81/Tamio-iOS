@@ -268,6 +268,97 @@ struct MovimientosView: View {
         .labelsHidden()
     }
 
+    /// **Dos cápsulas de cristal, y SOLO para la columna del iPad.**
+    ///
+    /// `pickerTipo` sigue existiendo y sigue siendo un `Picker`: en el teléfono
+    /// vive en `ToolbarItem(placement: .title)`, donde el sistema ya le pone su
+    /// cápsula —glass dentro de glass es lo que Apple desaconseja—. Ese no se
+    /// toca. Aquí es al revés: esto se dibuja dentro de `cabeceraLista`, que va
+    /// en una `safeAreaBar`, y una `safeAreaBar` NO pone cápsula. El fondo
+    /// opaco de UIKit del segmentado se leía como un parche gris pegado sobre
+    /// el cristal, igual que el de Agenda en su día.
+    ///
+    /// No se envuelve el `Picker` en `.glassEffect`: su fondo es opaco y taparía
+    /// el cristal, que es la misma razón por la que las bandas de
+    /// `.regularMaterial` hay que QUITARLAS y no esconderlas.
+    ///
+    /// `c0804af` dio por cerrado este caso con Membresía y Aportantes; quedaban
+    /// estos dos, que se dibujan en la columna del iPad y por eso no salían en
+    /// ninguna captura del teléfono.
+    private var selectorTipoColumna: some View {
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                chipTipo(.ingreso, L.t("Ingresos", "Income"))
+                chipTipo(.gasto,   L.t("Gastos", "Expenses"))
+            }
+        }
+    }
+
+    /// **Lo del tinte heredado ya no se reproduce en iOS 27.** La regla de la
+    /// casa —`.glass` hereda el tinte del `TabView`, así que las no elegidas
+    /// hay que bajarlas a `.tint(Color.primary)` o salen todas verdes— se midió
+    /// sobre iOS 26. Vuelto a medir el 16-sep-2026 con `pixdiff` y
+    /// `contraste.py`, quitando y poniendo el destinte y comprobando que el
+    /// binario se recompilaba: **píxeles idénticos** en el iPad (58,58,60) y en
+    /// el iPhone bajo `TabView` (31,31,31), en claro y en oscuro. Hoy quien
+    /// distingue a la elegida es `.glassProminent`, no el destinte de las
+    /// otras.
+    ///
+    /// Se conserva igualmente: cuesta cero, mantiene la receta uniforme y
+    /// vuelve a hacer falta sola si Apple lo revierte o si estas cápsulas
+    /// acaban bajo otro contenedor con tinte propio.
+    /// La elegida va `.glassProminent` y teñida: en un "elige uno" el relleno es
+    /// lo único que dice cuál está activa, y sin él dos cápsulas iguales se leen
+    /// como dos acciones. `isSelected` lo dice para quien no ve el relleno, y es
+    /// lo que lee la prueba.
+    ///
+    /// Dos ramas y no un `buttonStyle` calculado: los estilos de botón no se
+    /// pueden borrar de tipo en SwiftUI. Misma forma que `chipTipo` de Ajustes y
+    /// `chipVista` de Agenda.
+    @ViewBuilder
+    private func chipTipo(_ valor: TipoMovimiento, _ nombre: String) -> some View {
+        let activa = vm.tipo == valor
+        if activa {
+            Button { tipoSeleccionado.wrappedValue = valor } label: {
+                etiquetaTipo(nombre, activa: true)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Paleta.brand)
+            .accessibilityAddTraits(.isSelected)
+            .accessibilityIdentifier(Self.idChip(valor))
+        } else {
+            Button { tipoSeleccionado.wrappedValue = valor } label: {
+                etiquetaTipo(nombre, activa: false)
+            }
+            // **El tinte a `.primary` en la NO elegida.** `.glass` hereda el del
+            // TabView, así que las dos salían en verde y las dos se leían
+            // activas. Con `.tint` y NO con `.foregroundStyle` en la etiqueta:
+            // probado en Agenda, el estilo de botón pinta por encima.
+            .buttonStyle(.glass)
+            .tint(Color.primary)
+            .accessibilityIdentifier(Self.idChip(valor))
+        }
+    }
+
+    /// **Identidad propia, porque el rótulo no distingue.** La fila de la barra
+    /// lateral del iPad se llama "Ingresos" igual que esta cápsula, así que una
+    /// prueba que busque por rótulo encuentra dos y no sabe cuál mirar —falló
+    /// así, con "Multiple matching elements found"—. El identificador no se
+    /// traduce ni se lee en voz alta: solo sirve para señalar este botón.
+    private static func idChip(_ v: TipoMovimiento) -> String {
+        v == .ingreso ? "capsulaTipoIngreso" : "capsulaTipoGasto"
+    }
+
+    private func etiquetaTipo(_ nombre: String, activa: Bool) -> some View {
+        Text(nombre)
+            // No se parte: en AX1 "Expenses" salía a dos renglones dentro de la
+            // cápsula y el control crecía. Misma regla que Agenda y Ajustes.
+            .font(.subheadline.weight(activa ? .semibold : .regular))
+            .lineLimit(1).minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
+    }
+
     /// El repositorio real puede fallar por red o porque RLS niegue el acceso.
     /// Sin este aviso la lista se vería simplemente vacía, indistinguible de
     /// "no hay movimientos".
@@ -488,7 +579,7 @@ struct MovimientosView: View {
     private var cabeceraLista: some View {
         if !compacto {
             VStack(spacing: 10) {
-                pickerTipo
+                selectorTipoColumna
                 buscadorColumna
                 // Se agrupan para que las dos cápsulas se fundan entre sí al
                 // acercarse, que es lo que hace un contenedor de glass.

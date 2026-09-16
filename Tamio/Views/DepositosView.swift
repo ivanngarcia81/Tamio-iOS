@@ -124,6 +124,69 @@ struct DepositosView: View {
         .pickerStyle(.segmented)
     }
 
+    /// **Dos cápsulas de cristal, y SOLO para la columna del iPad.**
+    ///
+    /// `pickerEstado` sigue existiendo y sigue siendo un `Picker`: en el
+    /// teléfono vive en `ToolbarItem(placement: .title)`, donde el sistema ya le
+    /// pone su cápsula —glass dentro de glass es lo que Apple desaconseja—. Ese
+    /// no se toca. Aquí es al revés: esto va dentro de `cabeceraLista`, que se
+    /// monta con `safeAreaBar`, y una `safeAreaBar` NO pone cápsula ninguna: el
+    /// fondo opaco de UIKit del segmentado quedaba como un parche gris sobre el
+    /// cristal.
+    ///
+    /// Es el mismo caso que cerró `c0804af` en Membresía y Aportantes. Quedaban
+    /// este y el de Ingresos, los dos solo visibles en la columna del iPad.
+    private var selectorEstadoColumna: some View {
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                chipEstado(.pendiente,  L.t("Pendientes", "Pending"))
+                chipEstado(.depositado, L.t("Depositados", "Deposited"))
+            }
+        }
+    }
+
+    /// **Lo del tinte heredado ya no se reproduce en iOS 27.** La regla de la
+    /// casa —`.glass` hereda el tinte del `TabView`, así que las no elegidas
+    /// hay que bajarlas a `.tint(Color.primary)` o salen todas verdes— se midió
+    /// sobre iOS 26. Vuelto a medir el 16-sep-2026 con `pixdiff` y
+    /// `contraste.py`, quitando y poniendo el destinte y comprobando que el
+    /// binario se recompilaba: **píxeles idénticos** en el iPad (58,58,60) y en
+    /// el iPhone bajo `TabView` (31,31,31), en claro y en oscuro. Hoy quien
+    /// distingue a la elegida es `.glassProminent`, no el destinte de las
+    /// otras.
+    ///
+    /// Se conserva igualmente: cuesta cero, mantiene la receta uniforme y
+    /// vuelve a hacer falta sola si Apple lo revierte o si estas cápsulas
+    /// acaban bajo otro contenedor con tinte propio.
+    /// La elegida va `.glassProminent` y teñida; la otra `.glass` destintada a
+    /// `.primary`, que si no `.glass` hereda el verde del TabView y las dos se
+    /// leen activas. Dos ramas y no un `buttonStyle` calculado: los estilos de
+    /// botón no se pueden borrar de tipo. `isSelected` es lo que lee la prueba.
+    @ViewBuilder
+    private func chipEstado(_ valor: EstadoDeposito, _ nombre: String) -> some View {
+        let activa = vm.estado == valor
+        if activa {
+            Button { vm.estado = valor } label: { etiquetaEstado(nombre, activa: true) }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+                .accessibilityAddTraits(.isSelected)
+        } else {
+            Button { vm.estado = valor } label: { etiquetaEstado(nombre, activa: false) }
+                .buttonStyle(.glass)
+                .tint(Color.primary)
+        }
+    }
+
+    private func etiquetaEstado(_ nombre: String, activa: Bool) -> some View {
+        Text(nombre)
+            // No se parte: "Depositados" es larga y en la columna de 320 pt con
+            // texto grande salía a dos renglones, creciendo el control entero.
+            .font(.subheadline.weight(activa ? .semibold : .regular))
+            .lineLimit(1).minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
+    }
+
     /// **La barra inferior del teléfono**, del mismo componente que Ingresos y
     /// Aportantes. A la izquierda el `+`; a la derecha lo que quedó huérfano al
     /// borrar el título: cuántos cortes esperan y CUÁNTO DINERO hay sin
@@ -218,7 +281,7 @@ struct DepositosView: View {
     @ViewBuilder
     private var cabeceraLista: some View {
         if !compacto {
-            pickerEstado
+            selectorEstadoColumna
                 .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
         } else if vm.pendientesCount > 0 {
             // **En el teléfono, lo que espera.** El segmentado se fue al lugar
