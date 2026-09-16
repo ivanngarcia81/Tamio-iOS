@@ -164,18 +164,36 @@ para eso están las pruebas. `devicectl device settings appearance` mueve
 claro/oscuro, tamaño de texto, contraste, reducir transparencia y la opacidad de
 Liquid Glass; `orientation` gira el aparato.
 
+### Cerrado en el iPad FÍSICO, al final del día
+
+Cuando el aparato estuvo disponible se repitió todo en él. **Si el runner se
+queda en "Timed out while enabling automation mode" con el interruptor de
+*Enable UI Automation* ya encendido, reintentar**: falló a la primera y pasó a
+la segunda sin cambiar nada, como el `git push`.
+
+- **H1, H3, H7, B y los alineados**: verificados en hardware. Las cápsulas se
+  forman y se distinguen; los pies con cristal quedan limpios.
+- **H6 medido**, que era el único hallazgo sin número: **2.35:1 antes**
+  (círculo verde sólido) y **2.30:1 ahora** (`.glassProminent`). El requisito
+  —"que no quede peor"— se cumple, y se descarta el riesgo de que el cristal
+  aclarase el verde. **Pero los dos están por debajo del 3:1** que pide un
+  símbolo de ese tamaño: el botón ya estaba mal antes. Misma familia que las
+  píldoras de estado a 2.96:1 — sale de la paleta, y está decidido que eso no
+  se toca en mitad de una pasada.
+- **El contador de Servicios y la franja de Depósitos** llevan ya su propio
+  cristal, por la regla de arriba.
+- **Aumentar contraste y Reducir transparencia**, probados en el iPad: con la
+  transparencia reducida el cristal se apaga y el sistema lo resuelve en una
+  superficie OPACA que tapa bien —que era la duda—, y con contraste alto las
+  cápsulas de "elige uno" se distinguen MÁS, no menos. Los ajustes del aparato
+  se devolvieron como estaban.
+
 ### Lo que queda
 
-- **La medida de H6**, el símbolo del botón de contar: el encargo pedía que no
-  quedara peor que hoy y **no hay número**. Su prueba ya falla honestamente.
-- **El contador de Servicios y la franja de Depósitos**, por lo dicho arriba
-  sobre el §0.-4.
-- **Aumentar contraste y Reducir transparencia**: no se probaron en ninguna
-  pantalla.
-- **El iPad físico.** Todo esto es simulador; el cristal de verdad refracta
-  distinto.
 - **El instante del arrastre en el tab bar**, único caso sin medir de la
   decisión de quitarle el fondo.
+- **El verde de marca con contenido blanco no llega a 3:1** en ningún sitio
+  donde se use así. Es decisión de paleta, no de pantalla, y está pendiente.
 - **`main` sigue atrás.**
 
 ---
