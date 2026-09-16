@@ -51,21 +51,34 @@ final class ContrasteDeCristalUITests: XCTestCase {
 
     // MARK: - H6 · el botón de conteo
 
+    /// **Va por el iPad, y no es un capricho.** `servicioActivo` es
+    /// `compacto ? abierto : vm.seleccion`: en el TELÉFONO hay que abrir el
+    /// culto, y abrirlo te lleva a la ficha, así que el menú de la lista —donde
+    /// vive "Contar"— deja de estar delante. En el iPad basta con seleccionar
+    /// la fila: la columna y su menú siguen a la vista.
+    ///
+    /// Por eso el primer intento fallaba y, peor, **salía en verde**: tocaba un
+    /// "Contar" apagado, no pasaba nada, y la prueba terminaba contenta. De ahí
+    /// el `isEnabled` y la comprobación de que la hoja está delante.
     func testH6BotonDeConteo() {
+        XCUIDevice.shared.orientation = .landscapeLeft
         arrancar(tema: "oscuro")
-        XCTAssertTrue(app.tabBars.buttons["Secretary"].waitForExistence(timeout: 20))
-        app.tabBars.buttons["Secretary"].tap(); sleep(2)
+
         guard tocarFila("Service log") else { return }
 
-        // **Primero se elige un culto.** Las tres acciones del menú —Tomar
-        // lista, Contar, Asignar— se apagan a propósito cuando no hay ninguno
-        // delante, así que sin esto el menú se abre en gris y la hoja no llega
-        // a salir. Lo enseñó la captura del primer intento.
+        // Seleccionar un culto de la columna. Sin esto las tres acciones del
+        // menú se apagan a propósito.
         let culto = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS 'Sun' OR label CONTAINS 'Prayer'")).firstMatch
-        if culto.waitForExistence(timeout: 8) { culto.tap(); sleep(2) }
+            NSPredicate(format: "label CONTAINS 'Sun' OR label CONTAINS 'Prayer' OR label CONTAINS 'service'"))
+            .firstMatch
+        if culto.waitForExistence(timeout: 8) {
+            culto.tap(); sleep(2)
+        } else {
+            print("COLUMNA:" + app.buttons.allElementsBoundByIndex.prefix(25)
+                    .map { String($0.label.prefix(24)) }.joined(separator: "|"))
+            fflush(stdout)
+        }
 
-        // Las acciones viven en una sola cápsula de la barra.
         let acciones = app.buttons.matching(
             NSPredicate(format: "label CONTAINS 'Actions' OR label CONTAINS 'Acciones'")).firstMatch
         guard acciones.waitForExistence(timeout: 8) else {
@@ -84,21 +97,17 @@ final class ContrasteDeCristalUITests: XCTestCase {
             fflush(stdout)
             XCTFail("no está «Count» en el menú"); return
         }
-        // **Que esté no basta: tiene que poder tocarse.** Tocar un elemento
-        // deshabilitado NO da error en XCUITest, así que la prueba salía en
-        // VERDE sin llegar a la hoja: el menú seguía en gris y la captura era
-        // del menú. Segundo caso el mismo día de una prueba que pasa sin
-        // verificar; por eso ahora se afirma la habilitación y, después, que la
-        // hoja está de verdad delante.
         XCTAssertTrue(contar.isEnabled,
-                      "«Count» está apagado: falta elegir un culto antes de abrir el menú")
+                      "«Count» está apagado: no quedó ningún culto seleccionado")
         contar.tap(); sleep(3)
 
-        let hoja = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS 'minus' OR label CONTAINS 'plus' OR label CONTAINS 'Save' OR label CONTAINS 'Guardar'")).firstMatch
-        if !hoja.waitForExistence(timeout: 8) {
+        // Que la hoja esté DELANTE de verdad, no solo que el menú se cerrara.
+        let masMenos = app.buttons.matching(
+            NSPredicate(format: "identifier == 'plus' OR identifier == 'minus' OR label CONTAINS 'plus' OR label CONTAINS 'minus'"))
+            .firstMatch
+        if !masMenos.waitForExistence(timeout: 8) {
             print("HOJA:" + app.buttons.allElementsBoundByIndex.prefix(25)
-                    .map { String($0.label.prefix(22)) }.joined(separator: "|"))
+                    .map { "\($0.label.prefix(18))/\($0.identifier.prefix(12))" }.joined(separator: "|"))
             fflush(stdout)
             XCTFail("la hoja de conteo no llegó a abrirse")
             return

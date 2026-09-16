@@ -1154,6 +1154,18 @@ private struct TomarAsistenciaSheet: View {
     /// relleno teñido sin dibujar nada, y encima refracta la hoja que hay
     /// debajo. Se conservan los 64 pt: es un botón que se aporrea para contar
     /// gente, y el tamaño del blanco de toque es la razón de que sea grande.
+    ///
+    /// **Medido en el iPad FÍSICO el 16-sep-2026**, que es lo que pedía el
+    /// encargo —"que el contraste del símbolo no quede peor que hoy"—:
+    /// **2.35:1 antes** (círculo verde sólido) y **2.30:1 ahora**. Los rellenos
+    /// salen (95,188,120) y (96,190,121): indistinguibles. El cristal no aclara
+    /// el verde, que era el riesgo.
+    ///
+    /// **Pero los dos están por debajo del 3:1** que pide un símbolo de este
+    /// tamaño, así que el botón ya estaba mal ANTES y este cambio ni lo causa
+    /// ni lo arregla. Es la misma familia que las píldoras de estado a 2.96:1:
+    /// sale del verde de marca con contenido blanco, o sea de la paleta.
+    /// Decisión pendiente de Iván; no se decide en mitad de una pasada.
     private func botonConteo(icono: String, accion: @escaping () -> Void) -> some View {
         Button(action: accion) {
             Image(systemName: icono)
