@@ -188,12 +188,30 @@ la segunda sin cambiar nada, como el `git push`.
   cápsulas de "elige uno" se distinguen MÁS, no menos. Los ajustes del aparato
   se devolvieron como estaban.
 
+### El instante del arrastre, y cómo se captura un gesto sostenido
+
+Era lo único que quedaba sin medir. Se cerró en el iPhone físico, y **el truco
+sirve para cualquier cosa que solo exista mientras el dedo está puesto**: la
+prueba imprime la `MARCA:` **antes** del gesto y arrastra con
+`thenHoldForDuration: 5`, así que el capturador de fuera —que mira el log cada
+segundo— dispara con la lista desplazada y el dedo encima. Capturar después no
+sirve: la lista ya volvió, y por eso las cuatro medidas en reposo daban 0.000%.
+
+En esa postura el contenido **sí** pasa por detrás del tab bar, y la cápsula lo
+corta en seco: no se lee nada a través de ella, ni la píldora naranja de "Not
+deposited", que sería lo primero en delatarse. **Igual con el fondo forzado y
+sin él.** Quitarlo no empeoró este caso.
+
+Dicho como lo que es: **una comparación visual de dos instantes parecidos, no
+una medida al píxel** — un arrastre sostenido no cae dos veces en la misma
+posición, así que un `pixdiff` global aquí no diría nada.
+
 ### Lo que queda
 
-- **El instante del arrastre en el tab bar**, único caso sin medir de la
-  decisión de quitarle el fondo.
 - **El verde de marca con contenido blanco no llega a 3:1** en ningún sitio
-  donde se use así. Es decisión de paleta, no de pantalla, y está pendiente.
+  donde se use así: 2.30:1 el símbolo del botón de contar, 2.96:1 las píldoras
+  de estado. Es decisión de paleta, no de pantalla, y cambiarlo mueve la marca
+  entera. Pendiente de Iván.
 - **`main` sigue atrás.**
 
 ---
