@@ -108,6 +108,27 @@ lo que lleva hora se prueba antes que el día suelto**, y el día suelto va el
 
 **La otra mitad, el 15-sep: siete sitios cerrados y uno que sube al acuerdo.**
 
+Lo de `yyyy-MM-dd HH:mm` se arregló el 14-sep y **siete sitios más el 15**.
+Queda **uno solo**: `MotorSincronizacion:2843`, la fecha del movimiento, y no
+está aquí por olvido sino porque **no lo arregla el iOS solo** — las 38 filas
+torcidas las escribió la app web, así que sube a «Necesita el otro repo».
+
+**Y el «trece sitios» de esta lista estaba mal: el inventario mezclaba tres
+cosas.** La firma del defecto es UNA —parsear en UTC y volver a EMITIR en
+local— y solo la tenían siete: las cinco de `MembresiaView` (:1010, 1012,
+1014, 1021, 1261), que hacen ida y vuelta contra `Fechas.claveDia`;
+`ServiciosRepository:385`, que rotula con `L.mesCorto` —sin fijar UTC— y
+ponía la barra de septiembre como «Ago», con la gráfica entera corrida un
+mes; y `ImportadorAportes:117`, que enseñaba un aporte del 27 como 26 **y
+calculaba su huella de duplicados sobre el 26**, así que el mismo aporte
+entraba dos veces. Los cuatro restantes —`Secretaria` :200, :212, :896 y
+`AgendaRepository:106`— parsean en UTC **y formatean fijando UTC**: son
+correctos a propósito y cambiarlos los habría roto.
+
+Corolario del §0.-11, otra vuelta: un inventario tampoco es una regla.
+Contarlos no basta; hay que mirar qué hace cada uno con lo que parsea.
+
+
 `Fechas.diaDeCalendario` (`:130`) estaba escrita desde el 10-sep y **solo la
 usaba `Miembro.swift:475`**: el contrato existía y los sitios lo ignoraban.
 Ahora pasan por él los siete que cruzaban las zonas (ver la lista de abiertos
@@ -853,7 +874,7 @@ anterior—. Aquí fueron **126 operaciones**, todas `actualizar`. Eso es correc
 
 ---
 
-## Lo que queda abierto · al 15 de septiembre
+## Lo que queda abierto · al 16 de septiembre
 
 Puesto al día tras cerrar el dinero, las categorías, los recurrentes y las
 plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
@@ -901,26 +922,6 @@ plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
 
 ### Código, sin urgencia · 1
 
-- **La convención de fechas · lo que queda tras el 15-sep** (hallazgo nº 1).
-  Lo de `yyyy-MM-dd HH:mm` se arregló el 14-sep y **siete sitios más el 15**.
-  Queda **uno solo**: `MotorSincronizacion:2843`, la fecha del movimiento, y no
-  está aquí por olvido sino porque **no lo arregla el iOS solo** — las 38 filas
-  torcidas las escribió la app web, así que sube a «Necesita el otro repo».
-
-  **Y el «trece sitios» de esta lista estaba mal: el inventario mezclaba tres
-  cosas.** La firma del defecto es UNA —parsear en UTC y volver a EMITIR en
-  local— y solo la tenían siete: las cinco de `MembresiaView` (:1010, 1012,
-  1014, 1021, 1261), que hacen ida y vuelta contra `Fechas.claveDia`;
-  `ServiciosRepository:385`, que rotula con `L.mesCorto` —sin fijar UTC— y
-  ponía la barra de septiembre como «Ago», con la gráfica entera corrida un
-  mes; y `ImportadorAportes:117`, que enseñaba un aporte del 27 como 26 **y
-  calculaba su huella de duplicados sobre el 26**, así que el mismo aporte
-  entraba dos veces. Los cuatro restantes —`Secretaria` :200, :212, :896 y
-  `AgendaRepository:106`— parsean en UTC **y formatean fijando UTC**: son
-  correctos a propósito y cambiarlos los habría roto.
-
-  Corolario del §0.-11, otra vuelta: un inventario tampoco es una regla.
-  Contarlos no basta; hay que mirar qué hace cada uno con lo que parsea.
 - **La novena presentación de Z2**: pide un corte con doble firma pedida y sin
   firmar, y hoy no existe ninguno. Lo crea Iván o una prueba que siembre y
   limpie.
@@ -931,6 +932,17 @@ plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
   Supabase va a seguir saliendo siempre y **ya no significa que quede algo por
   hacer**. Es la tercera vez que este punto se apunta como pendiente; que no haya
   una cuarta.
+
+### Los permisos del servidor, al día
+
+**El §2 está APLICADO** (15-sep): las 51 políticas de escritura de 17 tablas ya
+miran el rol, y ninguna de lectura se tocó. Detalle y comprobación por rol en
+`docs/PERMISOS-EN-EL-SERVIDOR.md`.
+
+Queda de ese documento el **§3** (el padrón, con la excepción del plan
+`tesoreria`), que se puede hacer ya; y el **§4 y §5** —el registro y el borrado
+de verdad—, **bloqueados** hasta que el chat del web decida qué hace
+`compactarBase` con la tabla `registro`.
 
 ### Y una nota de estado
 
