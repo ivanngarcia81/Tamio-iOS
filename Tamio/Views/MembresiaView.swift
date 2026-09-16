@@ -372,7 +372,7 @@ struct MembresiaView: View {
             // que decía vive ahora en la etiqueta del menú de vista. En iPad
             // no hay barra de pestañas contra la que apilarse, y este pie es
             // el único sitio de la columna que dice cuántos hay.
-            .safeAreaInset(edge: .bottom, spacing: 0) { pieLista }
+            .safeAreaBar(edge: .bottom, spacing: 0) { pieLista }
             .colchonInferior()
     }
 
@@ -495,10 +495,22 @@ struct MembresiaView: View {
                 Text(textoPie)
                 Spacer()
             }
+            // **Sin material, y colgado de una `safeAreaBar`.** La banda de
+            // `.regularMaterial` iba ENTRE el pie y el contenido que tendría
+            // que difuminar: un gris plano que corta la columna con una línea
+            // dura. Quitarlo a secas no basta —el contenido pasaría NÍTIDO por
+            // debajo, "3 aportantes · 2026" cruzando por detrás del texto del
+            // pie—, y `.scrollEdgeEffectStyle(.soft, …)` no hace nada mientras
+            // esto sea un `safeAreaInset`: un inset cualquiera NO es una barra
+            // y no hay borde bajo el que desvanecer. Con `safeAreaBar` sí lo
+            // es, y entonces aparece el degradado. Es la misma vuelta del 5 de
+            // septiembre, que se aplicó a las cabeceras y dejó fuera los pies.
+            //
+            // El pie SE QUEDA: en iPad no hay barra de pestañas contra la que
+            // apilarse, y es el único sitio de la columna que dice cuántos hay.
             .font(.caption).foregroundStyle(.secondary)
             .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
             .frame(maxWidth: .infinity)
-            .background(.regularMaterial)
         }
     }
 
