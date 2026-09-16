@@ -132,9 +132,12 @@ struct MovimientoDetalle: View {
     /// y estas acciones no pueden subir a ella.
     private var acciones: some View {
         HStack(spacing: 10) {
-            botonComprobante
-            botonCompartir
-            botonEditar
+            // El cristal se pone AQUÍ y no en cada botón: en la barra del
+            // teléfono la cápsula la pone el sistema, y esta tira es el único
+            // sitio donde el botón tiene que traerla.
+            botonComprobante.buttonStyle(.glass)
+            botonCompartir.buttonStyle(.glass)
+            botonEditar.buttonStyle(.glass)
             // El Spacer empuja las cápsulas a la izquierda en la columna del
             // iPad; en la barra del teléfono lo pone ya `BarraInferior`.
             if !compacto { Spacer() }
@@ -154,7 +157,10 @@ struct MovimientoDetalle: View {
                            icono: m.comprobante == nil ? "paperclip" : "eye")
                 .apagadoLegible(abriendoComprobante)
         }
-        .buttonStyle(.glass)
+        // Sin `.buttonStyle(.glass)` aquí: este botón va en la BARRA, donde la
+        // cápsula la pone el sistema. El cristal se lo pone desde fuera quien
+        // lo usa en el cuerpo de una pantalla, que es el único sitio donde
+        // hace falta. Ver la nota larga en `botonNuevo`.
         .tint(Color.secondary)
         .disabled(abriendoComprobante)
     }
@@ -163,7 +169,6 @@ struct MovimientoDetalle: View {
         ShareLink(item: textoCompartir) {
             etiquetaAccion(L.t("Compartir", "Share"), icono: "square.and.arrow.up")
         }
-        .buttonStyle(.glass)
         .tint(Color.secondary)
     }
 
@@ -179,7 +184,6 @@ struct MovimientoDetalle: View {
         // igual: un lápiz verde del tamaño del clip. La jerarquía de una acción
         // la lleva el texto.
         .labelStyle(.titleAndIcon)
-        .buttonStyle(.glass)
         .tint(Paleta.brand)
     }
 

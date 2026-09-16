@@ -223,7 +223,10 @@ struct AportanteDetalle: View {
         Button { onEditar?() } label: {
             Label(L.t("Editar", "Edit"), systemImage: "pencil")
         }
-        .buttonStyle(.glass)
+        // Sin `.buttonStyle(.glass)` aquí: este botón va en la BARRA, donde la
+        // cápsula la pone el sistema. El cristal se lo pone desde fuera quien
+        // lo usa en el cuerpo de una pantalla, que es el único sitio donde
+        // hace falta. Ver la nota larga en `botonNuevo`.
         .tint(Color.secondary)
     }
 
@@ -299,15 +302,15 @@ struct AportanteDetalle: View {
         ViewThatFits(in: .horizontal) {
             // Ancho (iPad): tres en línea
             HStack(spacing: 8) {
-                botonEditar
-                menuDocumentos
+                botonEditar.buttonStyle(.glass)
+                menuDocumentos.buttonStyle(.glass)
             }
             // Estrecho (iPhone): Editar arriba, documentos abajo. (El botón
             // de eliminar se fue con 6f7a544: dar de baja a alguien del padrón
             // es de Secretaría, no de Tesorería.)
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) { botonEditar }
-                menuDocumentos
+                HStack(spacing: 8) { botonEditar.buttonStyle(.glass) }
+                menuDocumentos.buttonStyle(.glass)
             }
         }
     }

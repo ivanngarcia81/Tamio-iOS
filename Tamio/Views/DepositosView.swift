@@ -112,7 +112,20 @@ struct DepositosView: View {
         Button { mostrarNuevo = true } label: {
             Label(L.t("Nuevo", "New"), systemImage: "plus")
         }
-        .buttonStyle(.glass)
+        // **Sin `.buttonStyle(.glass)`: en una barra la cápsula la pone el
+        // sistema.** Es la misma regla que ya obligaba a dejar el segmentado
+        // como `Picker` en el `toolbar` —"glass dentro de glass es lo que Apple
+        // desaconseja"—, escrita para los segmentados y nunca aplicada a los
+        // botones. Lo cazó Iván en una captura, rodeando dos cápsulas donde
+        // debía haber una.
+        //
+        // Comprobado quitándolo en una copia: sin él el símbolo queda dentro de
+        // la cápsula del sistema, y con él aparece un segundo anillo dentro del
+        // primero. También explica el "bulto gris más grande que el botón" al
+        // pulsar, que estaba anotado como rareza de iOS 26: era la cápsula del
+        // sistema asomando por detrás de la nuestra.
+        //
+        // El `.tint` SÍ se queda: es lo que colorea el símbolo.
         .tint(Paleta.brand)
     }
 

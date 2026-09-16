@@ -255,7 +255,20 @@ struct MovimientosView: View {
         } label: {
             Label(L.t("Nuevo", "New"), systemImage: "plus")
         }
-        .buttonStyle(.glass)
+        // **Sin `.buttonStyle(.glass)`: en una barra la cápsula la pone el
+        // sistema.** Es la misma regla que ya obligaba a dejar el segmentado
+        // como `Picker` en el `toolbar` —"glass dentro de glass es lo que Apple
+        // desaconseja"—, escrita para los segmentados y nunca aplicada a los
+        // botones. Lo cazó Iván en una captura, rodeando dos cápsulas donde
+        // debía haber una.
+        //
+        // Comprobado quitándolo en una copia: sin él el símbolo queda dentro de
+        // la cápsula del sistema, y con él aparece un segundo anillo dentro del
+        // primero. También explica el "bulto gris más grande que el botón" al
+        // pulsar, que estaba anotado como rareza de iOS 26: era la cápsula del
+        // sistema asomando por detrás de la nuestra.
+        //
+        // El `.tint` SÍ se queda: es lo que colorea el símbolo.
         .tint(Paleta.brand)
     }
 
@@ -587,7 +600,7 @@ struct MovimientosView: View {
                     HStack(spacing: Esp.hueco) {
                         selectorMes
                         Spacer()
-                        botonFiltros
+                        botonFiltros.buttonStyle(.glass)
                     }
                 }
             }
@@ -691,7 +704,10 @@ struct MovimientosView: View {
             }
             .font(.subheadline.weight(.medium))
         }
-        .buttonStyle(.glass)
+        // Sin `.buttonStyle(.glass)` aquí: este botón va en la BARRA, donde la
+        // cápsula la pone el sistema. El cristal se lo pone desde fuera quien
+        // lo usa en el cuerpo de una pantalla, que es el único sitio donde
+        // hace falta. Ver la nota larga en `botonNuevo`.
         .tint(filtrosActivos > 0 ? Paleta.brand : nil)
         .accessibilityLabel(compacto
                             ? L.t("Periodo y filtros: \(etiquetaMes)",
