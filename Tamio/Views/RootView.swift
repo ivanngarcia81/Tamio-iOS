@@ -387,11 +387,28 @@ private struct IPhoneRootView: View {
         .task { corregirPestana() }
         .onChange(of: permisos.rol) { _, _ in corregirPestana() }
         .tint(Paleta.brand)
-        // `.ultraThinMaterial` es el material más transparente del sistema: dejaba
-        // leer el contenido por debajo de la barra. `.bar` es el que usa el sistema
-        // para tab bars, y `.visible` evita que se retire cuando nada scrollea.
-        .toolbarBackground(.bar, for: .tabBar)
-        .toolbarBackground(.visible, for: .tabBar)
+        // **Sin fondo forzado en el tab bar, desde el 16-sep-2026.** Llevaba
+        // `.toolbarBackground(.bar, …)` + `.visible` desde el PR 2 (`cdd267d`),
+        // que es anterior a Liquid Glass: entonces la barra usaba
+        // `.ultraThinMaterial` —el material más transparente del sistema— y se
+        // leía el contenido por debajo, así que se le puso el fondo opaco del
+        // sistema y se forzó a no retirarse.
+        //
+        // Ya no hace falta, y forzar un fondo opaco es justo lo que esta pasada
+        // viene quitando. **Medido** quitándolo en una copia, con Ingresos en el
+        // teléfono, en claro y en oscuro, sin desplazar y con la lista
+        // desplazada: `pixdiff` da **0.000% en las cuatro**, con `RootView`
+        // recompilado. No cambia un píxel.
+        //
+        // Y se entiende por qué: las listas llevan `colchonInferior()`, que mete
+        // un inset, así que **en reposo el contenido nunca queda detrás de la
+        // barra** —se ve el hueco bajo la última fila—. Quien cumple hoy el
+        // criterio de `docs/VERIFICACION-PR1-9.md` ("ningún texto de contenido
+        // se lee a través del tab bar") es el colchón, no este fondo.
+        //
+        // Lo que NO se ha medido es el instante del arrastre, cuando la lista
+        // rebota y algo pasa por detrás. Es el riesgo que queda, y se asumió a
+        // sabiendas.
         .task { await revisarVM.cargar() }
     }
 
