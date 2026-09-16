@@ -145,6 +145,21 @@ struct ServiciosView: View {
             // mismo que el gris agrupado pero por accidente.
             .scrollContentBackground(.hidden)
             .background(Paleta.sueloLista(columna: sizeClass == .regular))
+            // **Un libro vacío tiene que DECIR que está vacío.** Igual que en
+            // Actas: la bitácora nace sin cultos, y sin este aviso quedaba el
+            // rótulo "Historial completo" solo sobre negro, que se lee como
+            // que algo falló. El texto nombra la acción por su etiqueta real
+            // del menú "Acciones", no por una inventada.
+            .overlay {
+                if vm.lista.isEmpty {
+                    ContentUnavailableView(
+                        L.t("Todavía no hay cultos", "No services yet"),
+                        systemImage: "book",
+                        description: Text(L.t("Usa «Acciones» › «Nuevo servicio» para abrir el primero.",
+                                              "Use “Actions” › “New service” to log the first one."))
+                    )
+                }
+            }
     }
 
     @ViewBuilder
@@ -163,9 +178,15 @@ struct ServiciosView: View {
                 // web, que enseña esta misma lista sin partirla.
                 // Sin `.foregroundStyle(.secondary)`, por lo mismo que en
                 // Ingresos: doblar el secundario deja el rótulo en 1.73:1.
-                Text(L.t("Historial completo", "Full history"))
-                    .font(.caption.weight(.semibold))
-                    .textCase(nil)
+                // **Sin cultos no hay rótulo.** Un encabezado sobre una
+                // sección vacía no separa nada: queda un letrero solo sobre
+                // negro, y se lee como que el contenido se perdió al cargar.
+                // El aviso de vacío ya dice lo que hay que decir.
+                if !vm.lista.isEmpty {
+                    Text(L.t("Historial completo", "Full history"))
+                        .font(.caption.weight(.semibold))
+                        .textCase(nil)
+                }
             }
         }
     }

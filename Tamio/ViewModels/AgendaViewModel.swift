@@ -86,6 +86,32 @@ final class AgendaViewModel {
         await cargar()
     }
 
+    /// Lleva la selección a una fecha cualquiera, cruce o no de mes.
+    ///
+    /// **La semana no vive dentro del mes**, y el carrusel de semanas lo
+    /// atraviesa todo el rato: la semana del 27 de septiembre de 2026 termina
+    /// en octubre. Por eso esto recibe una `Date` y no un número de día —"29
+    /// + 7" no es "36"—, y si el destino cae en otro mes se cambia `mesActual`
+    /// y se vuelve a pedir la lista, igual que `irAlMesSiguiente`: los eventos
+    /// se cargan por mes, así que sin recargar octubre enseñaría los de
+    /// septiembre en los mismos números. Si no cruza, no se recarga.
+    func seleccionar(fecha: Date) async {
+        let cambiaDeMes = !cal.isDate(fecha, equalTo: mesActual, toGranularity: .month)
+        mesActual = fecha
+        diaSeleccionado = cal.component(.day, from: fecha)
+        if cambiaDeMes { await cargar() }
+    }
+
+    /// La fecha completa del día elegido, que es lo que el carrusel necesita
+    /// para saber en qué semana está parado.
+    var fechaSeleccionada: Date {
+        let comps = cal.dateComponents([.year, .month], from: mesActual)
+        guard let primero = cal.date(from: comps),
+              let d = cal.date(byAdding: .day, value: diaSeleccionado - 1, to: primero)
+        else { return mesActual }
+        return d
+    }
+
     func irAHoy() async {
         let cambiaDeMes = !cal.isDate(mesActual, equalTo: Date(), toGranularity: .month)
         mesActual = Date()

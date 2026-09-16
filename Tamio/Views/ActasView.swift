@@ -139,13 +139,21 @@ struct ActasView: View {
             .colchonInferior()
     }
 
+    // **Sin actas no hay filtro.** Un chip de año sobre una lista vacía no
+    // filtra nada, y dejaba una cápsula suelta sobre negro por encima del
+    // aviso de vacío. Va `@ViewBuilder` y sin nada dentro a propósito: así la
+    // `safeAreaBar` se queda en cero en vez de reservar una franja con un
+    // hueco. En cuanto haya un acta, la cabecera vuelve sola.
+    @ViewBuilder
     private var cabeceraActas: some View {
-        HStack(spacing: 8) {
-            chipFiltro("2026", desplegable: true)
+        if !vm.lista.isEmpty {
+            HStack(spacing: 8) {
+                chipFiltro("2026", desplegable: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Esp.pantalla)
+            .padding(.vertical, 10)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Esp.pantalla)
-        .padding(.vertical, 10)
     }
 
     @ViewBuilder
@@ -155,6 +163,21 @@ struct ActasView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Paleta.sueloLista(columna: sizeClass == .regular))
+            // **Un libro vacío tiene que DECIR que está vacío.** Los libros de
+            // Secretaría nacen sin nada a propósito, y sin este aviso la
+            // pantalla quedaba en negro entero: no se distingue "no hay actas"
+            // de "no cargó" o "la app se rompió". Mismo idioma que Depósitos,
+            // Cartas y Reportes, que ya lo hacían.
+            .overlay {
+                if vm.lista.isEmpty {
+                    ContentUnavailableView(
+                        L.t("Todavía no hay actas", "No minutes yet"),
+                        systemImage: "doc.text",
+                        description: Text(L.t("Toca «Nuevo» para levantar el acta de una reunión.",
+                                              "Tap “New” to start minutes for a meeting."))
+                    )
+                }
+            }
     }
 
     @ViewBuilder

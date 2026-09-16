@@ -4,6 +4,12 @@ struct AgendaView: View {
     @State private var vm = AgendaViewModel()
     @State private var mostrarNuevo = false
     @State private var diaAbierto = false
+    /// Página del carrusel de semanas, contada desde `anclaSemana`.
+    @State private var paginaSemana = 0
+    /// Domingo de la semana en la que se abrió la pantalla. Es el cero del
+    /// carrusel y no se mueve: si el ancla cambiara, las páginas ya visitadas
+    /// pasarían a significar otra semana.
+    @State private var anclaSemana = AgendaView.domingoDe(Date())
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     /// Mismo criterio que Membresía, Ingresos, Aportantes y Depósitos: en el
@@ -302,22 +308,9 @@ struct AgendaView: View {
 
     @ViewBuilder
     private var vistaSemana: some View {
-        let weekdayOfSel = (vm.primerDiaOffset + vm.diaSeleccionado - 1) % 7
-        let primerDiaSemana = vm.diaSeleccionado - weekdayOfSel
-
         ScrollView {
             VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    ForEach(0..<7, id: \.self) { i in
-                        let d = primerDiaSemana + i
-                        if d >= 1, d <= vm.diasEnMes {
-                            celdaSemana(d, weekdayIndex: i)
-                        } else {
-                            celdaSemanaVacia(weekdayIndex: i)
-                        }
-                    }
-                }
-                .padding(.vertical, 8)
+                carruselSemanas
 
                 Divider()
 
@@ -336,12 +329,107 @@ struct AgendaView: View {
         }
     }
 
-    private func celdaSemana(_ dia: Int, weekdayIndex: Int) -> some View {
-        let sel = dia == vm.diaSeleccionado
-        let hoy = vm.diaHoy == dia
-        let evs = vm.eventos(dia: dia)
+    // MARK: - Carrusel de semanas
 
-        return Button { vm.diaSeleccionado = dia; diaAbierto = true } label: {
+    /// El domingo de la semana de una fecha. Se calcula a mano y no con
+    /// `weekOfYear` a propósito: la tira rotula DOM…SÁB en ese orden fijo
+    /// —igual que la cuadrícula del mes, que usa `primerDiaOffset`—, y
+    /// `Calendar` empezaría la semana en lunes en media Europa, con lo que los
+    /// rótulos dejarían de corresponder con los números debajo.
+    static func domingoDe(_ fecha: Date) -> Date {
+        let cal = Calendar.current
+        let dia = cal.startOfDay(for: fecha)
+        let offset = cal.component(.weekday, from: dia) - 1   // 0 = domingo
+        return cal.date(byAdding: .day, value: -offset, to: dia) ?? dia
+    }
+
+    private func inicioDeSemana(pagina: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: pagina * 7, to: anclaSemana) ?? anclaSemana
+    }
+
+    /// En qué página del carrusel cae una fecha.
+    private func pagina(de fecha: Date) -> Int {
+        let cal = Calendar.current
+        let dias = cal.dateComponents([.day], from: anclaSemana, to: AgendaView.domingoDe(fecha)).day ?? 0
+        // Division entera hacia abajo: hacia atrás, -7/7 tiene que dar -1.
+        return Int(floor(Double(dias) / 7.0))
+    }
+
+    /// **Un carrusel de verdad: la tira sigue al dedo.** Antes era un `HStack`
+    /// clavado a la semana del día elegido, y la semana solo se podía cambiar
+    /// tocando un día o saltando de mes entero con las flechas ‹ ›.
+    ///
+    /// El rango es de dos años a cada lado del día en que se abrió la
+    /// pantalla. No es infinito porque no hace falta —una agenda de iglesia no
+    /// se planea a diez años— y un rango cerrado deja que `TabView` haga el
+    /// paginado sin tener que recolocar el ancla sobre la marcha, que es lo
+    /// que hace saltar la animación justo cuando el dedo está encima.
+    private var carruselSemanas: some View {
+        TabView(selection: $paginaSemana) {
+            ForEach(-104...104, id: \.self) { p in
+                tiraSemana(inicio: inicioDeSemana(pagina: p))
+                    .tag(p)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        // Alto fijo, y no automático: el `TabView` paginado no mide su
+        // contenido, y sin esto se come la pantalla entera.
+        .frame(height: 78)
+        // Deslizar cambia de semana; el día elegido se queda en el MISMO día
+        // de la semana. Saltar del martes al domingo con cada barrido haría
+        // que la lista de abajo cambiara por dos motivos a la vez.
+        .onChange(of: paginaSemana) { _, nueva in
+            let cal = Calendar.current
+            let indice = cal.component(.weekday, from: vm.fechaSeleccionada) - 1
+            guard let destino = cal.date(byAdding: .day, value: indice,
+                                         to: inicioDeSemana(pagina: nueva)) else { return }
+            Task { await vm.seleccionar(fecha: destino) }
+        }
+        // Y al revés: "Hoy" y las flechas de mes mueven el día sin tocar el
+        // carrusel, y la tira se quedaba enseñando la semana de antes.
+        .onChange(of: vm.fechaSeleccionada) { _, _ in sincronizarPagina() }
+        .onAppear { sincronizarPagina() }
+    }
+
+    private func sincronizarPagina() {
+        let p = pagina(de: vm.fechaSeleccionada)
+        if p != paginaSemana, (-104...104).contains(p) { paginaSemana = p }
+    }
+
+    private func tiraSemana(inicio: Date) -> some View {
+        let cal = Calendar.current
+        return HStack(spacing: 0) {
+            ForEach(0..<7, id: \.self) { i in
+                if let fecha = cal.date(byAdding: .day, value: i, to: inicio) {
+                    celdaSemana(fecha, weekdayIndex: i)
+                }
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    /// Una celda de la tira, **por fecha y no por número de día**. Con el
+    /// carrusel, una misma página puede tener días de dos meses —la semana del
+    /// 27 de septiembre de 2026 acaba en octubre—, y con un `Int` no había
+    /// forma de distinguir "el 1" de septiembre del "1" de octubre: los días
+    /// del otro mes se pintaban como huecos vacíos.
+    private func celdaSemana(_ fecha: Date, weekdayIndex: Int) -> some View {
+        let cal = Calendar.current
+        let dia = cal.component(.day, from: fecha)
+        let sel = cal.isDate(fecha, inSameDayAs: vm.fechaSeleccionada)
+        let hoy = cal.isDateInToday(fecha)
+        // **Los puntos solo se prometen del mes cargado.** `vm.eventos` es la
+        // lista del mes en curso y va por día del mes, así que preguntarle por
+        // el "3" estando en septiembre contestaría con los eventos del 3 de
+        // septiembre aunque la celda sea el 3 de octubre. Sin puntos es
+        // honesto; con puntos prestados, no.
+        let delMes = cal.isDate(fecha, equalTo: vm.mesActual, toGranularity: .month)
+        let evs = delMes ? vm.eventos(dia: dia) : []
+
+        return Button {
+            Task { await vm.seleccionar(fecha: fecha) }
+            diaAbierto = true
+        } label: {
             VStack(spacing: 5) {
                 Text(diasSemana[weekdayIndex])
                     .font(.caption2.weight(.semibold))
@@ -352,7 +440,6 @@ struct AgendaView: View {
                 // alto del número en los demás, así que "TUE" quedaba diez
                 // píxeles más arriba que "SUN", "MON" y "WED": la tira de la
                 // semana salía descuadrada justo en el día que estás mirando.
-                // `celdaSemanaVacia` ya reservaba esos 30 pt; esta no.
                 ZStack {
                     if sel {
                         Circle().fill(Paleta.brand).frame(width: 30, height: 30)
@@ -361,7 +448,12 @@ struct AgendaView: View {
                     }
                     Text("\(dia)")
                         .font(.subheadline.weight(sel || hoy ? .semibold : .regular))
-                        .foregroundStyle(sel ? .white : (hoy ? Paleta.brand : .primary))
+                        // Los días del mes de al lado se atenúan, como en la
+                        // cuadrícula de cualquier calendario: siguen siendo
+                        // días que se pueden tocar, pero no son de este mes.
+                        .foregroundStyle(sel ? .white
+                                         : (hoy ? Paleta.brand
+                                            : (delMes ? .primary : Color(.tertiaryLabel))))
                 }
                 .frame(width: 30, height: 30)
 
@@ -375,17 +467,6 @@ struct AgendaView: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
-    }
-
-    private func celdaSemanaVacia(weekdayIndex: Int) -> some View {
-        VStack(spacing: 5) {
-            Text(diasSemana[weekdayIndex])
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(Color(.tertiaryLabel))
-            Color.clear.frame(width: 30, height: 30)
-            Color.clear.frame(height: 6)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Vista Lista
