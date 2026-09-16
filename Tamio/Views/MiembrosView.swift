@@ -523,6 +523,21 @@ struct MiembrosView: View {
             // apilarse, y es el único sitio de la columna que dice cuántos hay.
             .font(.caption)
             .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+            // **La barra no pinta: pinta su contenido.** `safeAreaBar` solo
+            // reserva sitio y marca que ahí hay un borde bajo el que
+            // desvanecer; la superficie la trae lo que va dentro. Las
+            // cabeceras de esta misma pantalla funcionan porque van llenas de
+            // cápsulas y cada una trae su cristal; este pie es TEXTO DESNUDO,
+            // así que se pintaba directamente encima de la fila que se
+            // desvanece y los dos textos se peleaban —"9 contributors · 2026"
+            // cayendo sobre el nombre y el avatar—. Visto en el iPad el
+            // 16-sep con nueve aportantes, que es cuando la lista desborda.
+            //
+            // El borde duro NO lo arregla: probado `.hard` abajo, píxeles
+            // idénticos. Lo que hacía falta es darle cristal al pie, como al
+            // aviso de deshacer de `RevisarView`.
+            .glassEffect(.regular, in: .capsule)
+            .padding(.horizontal, Esp.chip).padding(.bottom, 6)
         }
     }
 
