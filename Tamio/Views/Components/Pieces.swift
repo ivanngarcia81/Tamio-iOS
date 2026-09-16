@@ -360,3 +360,27 @@ extension View {
         }
     }
 }
+
+/// **El hundido de una tarjeta que se toca, en un estilo y no en cada vista.**
+///
+/// Las tarjetas grandes —las plantillas de Cartas, y las de Reportes— se hunden
+/// un poco mientras las tienes apretadas. Sin eso la tarjeta no contesta al
+/// dedo hasta que aparece la pantalla siguiente, y medio segundo de nada se lee
+/// como que el toque no ha entrado.
+///
+/// Estaba resuelto a mano en la vista: un `@State` con el id de la pulsada, un
+/// `onPressingChanged` para moverlo y un `.scaleEffect` leyéndolo. Tres piezas
+/// para algo que un `ButtonStyle` ya sabe: `configuration.isPressed`. Al
+/// pasarlo aquí, la vista deja de llevar estado que no es suyo y el hundido
+/// sale igual en todas las tarjetas.
+struct TarjetaPulsable: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == TarjetaPulsable {
+    static var tarjeta: TarjetaPulsable { TarjetaPulsable() }
+}

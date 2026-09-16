@@ -18,10 +18,6 @@ struct CartasView: View {
     /// La pulsación larga sí, porque durante medio segundo no pasa nada más y
     /// el golpe es lo único que dice "ya está, suelta".
     @State private var golpeAlPulsar = 0
-    /// La tarjeta que tiene el dedo encima ahora mismo, para hundirla mientras
-    /// dure. Es el `id` y no un `Bool` porque en el carrusel hay dieciséis y
-    /// solo se hunde la tocada.
-    @State private var pulsada: String?
     /// La plantilla centrada en el carrusel. La escribe el propio scroll y la
     /// escriben las flechas y los puntos; de ahí sale cuál se resalta.
     @State private var plantillaVisible: String?
@@ -300,7 +296,22 @@ struct CartasView: View {
         let tipo = plantilla.tipo
         let veces = usos(de: tipo)
         let tono = color(de: tipo)
-        return VStack(spacing: 16) {
+        // **Un `Button` de verdad, no una forma con un gesto encima.** La
+        // tarjeta traía de fábrica un botón reconstruido a mano: el aspecto, el
+        // estado de pulsado (`@State pulsada` + `onPressingChanged` +
+        // `scaleEffect`), el área tocable (`contentShape` + `onTapGesture`) y
+        // hasta la semántica para VoiceOver (`accessibilityAddTraits(.isButton)`
+        // + `accessibilityAction`). Cuatro cosas que un `Button` da gratis.
+        //
+        // **Lo que NO se hace es volverla de cristal**, aunque sea lo primero
+        // que uno piensa en esta pasada: dentro lleva el botón "Redactar" en
+        // `.glassProminent` —cristal dentro de cristal—, vive sobre un fondo
+        // plano que no le daría nada que refractar, y perdería el color de cada
+        // tipo de carta, porque `.glass` no usa el tinte (medido el 16-sep).
+        // Una tarjeta es un CONTENEDOR: que sea una superficie opaca es
+        // correcto.
+        return Button { abrir(plantilla) } label: {
+        VStack(spacing: 16) {
             Image(systemName: tipo.icono)
                 .font(.system(size: 34))
                 .foregroundStyle(tono)
@@ -359,33 +370,29 @@ struct CartasView: View {
         .frame(width: lado)
         .frame(minHeight: lado)
         .fondoDeTarjeta(tono)
+        // La sombra se queda: está en la lista de decisiones tomadas, junto con
+        // las de Reportes y las previas de PDF.
         .shadow(color: .black.opacity(0.10), radius: 15, y: 6)
-        // Se hunde un poco mientras la tienes apretada. Sin esto la tarjeta
-        // no contestaba al dedo hasta que aparecía la pantalla siguiente, y
-        // medio segundo de nada se lee como que el toque no ha entrado.
-        .scaleEffect(pulsada == plantilla.id ? 0.97 : 1)
-        .animation(.easeOut(duration: 0.12), value: pulsada)
-        .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .onTapGesture { abrir(plantilla) }
+        }
+        // El hundido, ahora en un `ButtonStyle` compartido: la vista deja de
+        // llevar un `@State` con el id de la tarjeta apretada, que no era suyo.
+        .buttonStyle(.tarjeta)
         // **El toque se queda.** Mantener pulsado es un atajo que se suma,
         // nunca la única forma de abrir: quien usa VoiceOver, o a quien le
         // cuesta sostener el dedo quieto medio segundo, se quedaría sin poder
-        // redactar una carta.
-        .onLongPressGesture {
-            golpeAlPulsar += 1
-            abrir(plantilla)
-        } onPressingChanged: { dedoEncima in
-            pulsada = dedoEncima ? plantilla.id : nil
-        }
-        // **La tarjeta entera es el botón para VoiceOver.** Sin esto el lector
-        // recitaba cuatro trozos sueltos —nombre, descripción, pista— y solo
-        // la píldora de "Redactar" se podía activar, que es la mitad de la
-        // tarjeta que menos se toca con el dedo. Ahora se lee de una y se
-        // activa de una; el toque y la pulsación larga siguen igual para quien
-        // no usa el lector.
+        // redactar una carta. Va como gesto SIMULTÁNEO para no comerse el
+        // toque normal del botón.
+        .simultaneousGesture(
+            LongPressGesture().onEnded { _ in
+                golpeAlPulsar += 1
+                abrir(plantilla)
+            }
+        )
+        // **La tarjeta entera se lee de una.** Sin esto el lector recitaba
+        // cuatro trozos sueltos —nombre, descripción, pista—. Lo que ya NO hace
+        // falta es decir que es un botón ni darle una acción a mano: siéndolo
+        // de verdad, eso viene puesto.
         .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { abrir(plantilla) }
     }
 
     /// Cuántas cartas de este tipo se han emitido. **Es una cuenta sobre las
