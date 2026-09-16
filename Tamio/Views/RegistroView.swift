@@ -88,18 +88,21 @@ struct RegistroView: View {
     // MARK: - Lista
 
     /// **Capas, no hermanos** — el mismo arreglo que Actas, porque era la misma
-    /// estructura: las pastillas, un `Divider` y el scroll apilados en un
-    /// `VStack`. El scroll no corría por debajo de nada, así que al desplazar,
-    /// el contenido chocaba contra el divisor y se CORTABA a media fila.
+    /// estructura: las pastillas de filtro, un `Divider` y el scroll apilados
+    /// en un `VStack`. El scroll no corría por debajo de nada, así que al
+    /// desplazar, el contenido chocaba contra el divisor y se CORTABA a media
+    /// fila. Se quitó el `Divider` —con un desvanecido, una línea vuelve a
+    /// leerse como pared— y el scroll pasó a ocupar la pantalla entera.
     ///
-    /// Con `safeAreaBar` el scroll ocupa la pantalla y pasa por debajo de las
-    /// pastillas, que es lo que le da al glass algo que refractar y al
-    /// desvanecido algo que borrar. El `Divider` se va: con el degradado, una
-    /// línea vuelve a leerse como pared.
+    /// **Este comentario describía una `safeAreaBar` que ya no existe.** La
+    /// llevaba, con las pastillas dentro, hasta que `2f3d53f` recogió los
+    /// cuatro filtros en un botón de la barra de navegación: al irse las
+    /// pastillas se fue la barra, y quedó el scroll a secas. Lo que sigue
+    /// siendo verdad es lo de abajo.
     ///
     /// **Las cabeceras de día siguen fijándose**, que era el riesgo de mover
     /// esto: `pinnedViews` es del `LazyVStack` y no del contenedor de fuera,
-    /// así que se pegan bajo la barra en vez de bajo el `Divider` que ya no
+    /// así que se pegan arriba del scroll y no bajo el `Divider` que ya no
     /// está.
     private var listaColumna: some View {
         scrollApuntes
@@ -109,8 +112,51 @@ struct RegistroView: View {
             // blanco y las filas no se veían como tarjetas. Lo dijo Iván
             // mirándolo en su iPhone.
             .background(Paleta.sueloLista(columna: !compacto))
-            .scrollEdgeEffectStyle(.soft, for: .all)
+            // **La barra vuelve, y con ella el desvanecido.** `2f3d53f` recogió
+            // los cuatro filtros en un botón de la barra de navegación y, sin
+            // querer, se llevó la `safeAreaBar` entera: desde entonces este
+            // `.scrollEdgeEffectStyle(.soft)` **no hacía nada** —un inset
+            // cualquiera no es una barra y no hay borde bajo el que
+            // desvanecer—, y el contenido pasaba NÍTIDO bajo la barra de
+            // navegación. Se veía en la captura del 16-sep en claro: "Ana Lucía
+            // Torres went from visitor…" legible a través de la barra.
+            .safeAreaBar(edge: .top, spacing: 0) { cabeceraRegistro }
+            // **Arriba el borde DURO, y no el suave como en las demás.**
+            // Medido el 16-sep con la captura delante: con `.soft` el canto
+            // superior sí se disuelve —ese era el fallo que dejó `2f3d53f`—
+            // pero dentro de la franja de la barra el contenido seguía
+            // leyéndose ("to active", "Tamio · 07:21" junto a la etiqueta).
+            //
+            // La diferencia con Membresía o Actas es el CONTENIDO de la barra:
+            // allí va llena de cápsulas que tapan su franja, y aquí va una
+            // etiqueta corta con el resto vacío. Con la barra medio vacía, el
+            // degradado no llega: hace falta el corte.
+            .scrollEdgeEffectStyle(.hard, for: .top)
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
             .colchonInferior()
+    }
+
+    /// **Qué va en la barra: lo que estás viendo.**
+    ///
+    /// Los filtros ya no pueden volver aquí —viven en el menú de la barra de
+    /// navegación desde `2f3d53f`, y devolverlos sería deshacer esa decisión—,
+    /// pero la pantalla necesita una barra de verdad o el desvanecido no
+    /// existe. Así que se reparte: **el botón dice lo que puedes CAMBIAR, y
+    /// esta cápsula dice lo que estás VIENDO**.
+    ///
+    /// Va siempre, también con "Todo": una barra que aparece y desaparece deja
+    /// el desvanecido funcionando a ratos, que es peor que no tenerlo porque el
+    /// fallo solo sale en algunas posturas.
+    private var cabeceraRegistro: some View {
+        HStack(spacing: 8) {
+            Text("\(vm.filtro.etiqueta) · \(vm.count(vm.filtro))")
+                .font(.caption.weight(.medium))
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Esp.pantalla)
+        .padding(.vertical, 8)
     }
 
     private var scrollApuntes: some View {
@@ -206,7 +252,13 @@ struct RegistroView: View {
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(.horizontal, Esp.pantalla).padding(.vertical, 6)
-        .background(.regularMaterial)
+        // **Sin material.** Era lo único que tapaba algo mientras el
+        // desvanecido estuvo muerto, y tapaba mal: una banda gris opaca contra
+        // el cristal, y encima traslúcida —en la captura del 16-sep se leía
+        // "Tamio · 06:56" POR DEBAJO de la cabecera "YESTERDAY"—. Con la barra
+        // devuelta, el degradado hace el trabajo y esto sobra. Mismo caso que
+        // las cabeceras de Servicios y la franja de Depósitos: texto pelado que
+        // se apoya en el desvanecido, no en un fondo propio.
     }
 
     private func fila(_ a: Apunte) -> some View {
