@@ -206,6 +206,43 @@ Dicho como lo que es: **una comparación visual de dos instantes parecidos, no
 una medida al píxel** — un arrastre sostenido no cae dos veces en la misma
 posición, así que un `pixdiff` global aquí no diría nada.
 
+### Cristal sobre cristal, y por qué se nos escapó diez días
+
+**En iOS 26+ la cápsula de un botón de barra la pone el SISTEMA.** Dieciséis
+botones llevaban además `.buttonStyle(.glass)`, así que pintaban una segunda
+cápsula dentro de la primera. Lo vio Iván en una captura, rodeando dos cápsulas
+donde debía haber una; comprobado quitándolo en una copia, con las dos versiones
+visibles en la misma imagen.
+
+De paso explica una rareza anotada como "de iOS 26" y nunca resuelta: el **bulto
+gris claro más grande que el botón** al pulsar era la cápsula del sistema
+asomando por detrás de la nuestra.
+
+**Para un botón que va en la barra Y en el cuerpo** —`botonFiltros`, las
+acciones de las fichas— la salida no es un parámetro ni dos ramas: se define
+SIN cristal, que es lo que necesita la barra, y quien lo usa en el cuerpo se lo
+pone desde fuera (`buttonStyle` se aplica igual desde el sitio de uso).
+
+**Y la lección, que vale más que el arreglo.** La regla existía desde el 6-sep,
+pero escrita sobre los SEGMENTADOS: *"en el `toolbar` el sistema ya le pone su
+cápsula"*. Se citó cinco veces el 16-sep para justificar dejar los `Picker` como
+estaban, y ni una vez se miró a los botones que tenían al lado en la misma
+barra.
+
+**Es el tercer caso del mismo patrón en un solo día:**
+
+1. `botonesTargeta` decía "era el último sitio donde quedaba" el relleno de
+   marca pintado a mano. No lo era.
+2. El §0.-4 dio por buenas las cabeceras de texto pelado —"comprobado que
+   aguanta"—, pero comprobado sin nada que desplazar.
+3. Esta regla, cierta para los segmentados y nunca leída para los botones.
+
+Las tres eran **afirmaciones correctas en su contexto que nadie volvió a
+comprobar fuera de él**. Y las tres las destapó MIRAR LA PANTALLA, no leer el
+código: dos las vio Iván en una captura. Cuando aquí se escriba una regla, decir
+también **a qué NO se ha mirado todavía**.
+
+
 ### Lo que queda
 
 - **El verde de marca con contenido blanco no llega a 3:1** en ningún sitio
