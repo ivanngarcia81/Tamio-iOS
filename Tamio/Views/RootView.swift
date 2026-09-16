@@ -406,9 +406,19 @@ private struct IPhoneRootView: View {
         // criterio de `docs/VERIFICACION-PR1-9.md` ("ningún texto de contenido
         // se lee a través del tab bar") es el colchón, no este fondo.
         //
-        // Lo que NO se ha medido es el instante del arrastre, cuando la lista
-        // rebota y algo pasa por detrás. Es el riesgo que queda, y se asumió a
-        // sabiendas.
+        // **Y el instante del arrastre, que quedó pendiente, ya está visto.**
+        // Se midió después, en el iPhone físico, con una prueba que imprime la
+        // marca ANTES del gesto y arrastra sosteniendo el dedo cinco segundos,
+        // de modo que la captura cae con la lista desplazada. En esa postura el
+        // contenido SÍ pasa por detrás —se ve la fila "Missions · Folio 1050 ·
+        // Not deposited" metiéndose bajo la barra— y la cápsula la corta en
+        // seco: no se lee nada a través de ella, ni siquiera la píldora naranja,
+        // que sería lo primero en delatarse. Igual con el fondo forzado y sin
+        // él. Quitarlo no empeoró el único caso que faltaba.
+        //
+        // Es una comparación visual de dos instantes parecidos y no una medida
+        // al píxel: un arrastre sostenido no cae dos veces en la misma
+        // posición, así que un `pixdiff` global aquí no diría nada.
         .task { await revisarVM.cargar() }
     }
 
