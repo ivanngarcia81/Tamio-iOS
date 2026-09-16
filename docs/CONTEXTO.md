@@ -12,50 +12,70 @@ sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
 
 ## 0.-13 Lo que aún delataba a UIKit dentro del cristal · 16 de septiembre
 
-Una pasada por los detalles que seguían pareciendo de otra app: segmentados
-opacos, cápsulas dibujadas a mano, bandas de material y sombras de web. Doce
-commits, de `da7ccfe` a `9ccc8eb`, **sin fusionar a `main`**.
+Una pasada por los detalles que seguían pareciendo de otra app. **Diecinueve
+commits, de `da7ccfe` a `dbb00e1`**, en `liquid-glass` y subidos; **`main` NO se
+fusionó**, por indicación de Iván.
 
 El detalle de cada arreglo está en su commit. Aquí va lo que no se deduce de
 ellos, que es casi todo lo que costó tiempo.
 
-### Lo que cerró, y lo que resultó ser distinto de lo que parecía
+### Se acabaron los segmentados fuera de sitio
 
-**Se acabaron los segmentados fuera de sitio.** `c0804af` dio por cerrado el
-caso del `Picker(.segmented)` dentro de una `safeAreaBar` con Membresía y
-Aportantes, y **quedaban dos**: Ingresos y Depósitos, invisibles en cualquier
-captura del teléfono porque su `cabeceraLista` va dentro de un `if !compacto`.
-De paso se alinearon los tres que quedaban en el CUERPO de una pantalla de iPad
-—Categorías, Inicio y la ficha del aportante—. Los que SIGUEN siendo `Picker` a
-propósito: los del `toolbar` del teléfono, donde el sistema ya pone la cápsula,
-y los de formularios y hojas.
+`c0804af` dio por cerrado el `Picker(.segmented)` dentro de una `safeAreaBar`
+con Membresía y Aportantes, y **quedaban dos**: Ingresos y Depósitos. Además se
+alinearon los tres del CUERPO de una pantalla de iPad —Categorías, Inicio y la
+ficha del aportante—. Siguen siendo `Picker` a propósito los del `toolbar` del
+teléfono, donde el sistema ya pone la cápsula, y los de formularios y hojas.
 
 **Lo que solo se dibuja en iPad no sale en ninguna captura del teléfono.** Salió
-tres veces el mismo día: los dos segmentados de arriba, las cápsulas a mano de
-`filaCompacta`, y una frase en `botonesTargeta` que afirmaba ser "el último
-sitio donde quedaba" el relleno de marca con texto blanco —y no lo era, porque
-esa otra rama no se dibuja en el teléfono—. Al tocar algo que ramifica por
-`compacto`, buscar el gemelo en la otra rama.
+tres veces el mismo día: esos dos segmentados, las cápsulas a mano de
+`filaCompacta`, y una frase de `botonesTargeta` que se decía "el último sitio
+donde quedaba" el relleno de marca con texto blanco, y no lo era. Al tocar algo
+que ramifica por `compacto`, buscar el gemelo en la otra rama.
 
-**El Registro llevaba desde `2f3d53f` sin desvanecido, y nadie lo sabía.** El
-encargo decía "las cabeceras de día llevan `.regularMaterial`". Eso era el
-síntoma. La causa: al recoger los cuatro filtros en un botón de la barra, se fue
-la `safeAreaBar` entera, y con ella el borde bajo el que desvanecer. El
-`.scrollEdgeEffectStyle(.soft)` seguía escrito y **no hacía nada**: el contenido
-pasaba nítido bajo la barra de navegación. Es la regla del §0.-4 mordiendo por
-la espalda meses después. **Cuando se quite una barra, comprobar quién dependía
-de ella.**
+### `safeAreaBar` no pinta nada, y hay DOS fallos que se parecen
 
-**Y matiza esa misma regla:** `.soft` vale cuando la barra va LLENA —cápsulas,
-buscador, chips—, porque su propio contenido cubre la franja. Con una barra
-medio vacía el degradado no llega y hace falta `.hard`. Medido en píxeles
-legibles bajo la barra: 9.88% antes → 4.70% con `.soft` → **2.65% con `.hard`**.
+La regla nueva, y la que más veces se aplicó:
+
+> `safeAreaBar` solo reserva sitio y marca que ahí hay un borde bajo el que
+> desvanecer. **La superficie la trae el contenido.**
+
+De ahí dos fallos distintos que se confunden, y **ninguno cubre al otro**:
+
+1. **Texto sobre texto DENTRO de la barra.** Pasa cuando el contenido es texto
+   desnudo: se pinta encima de lo que se está desvaneciendo y los dos se
+   pelean. Se arregla dándole al contenido su propio `.glassEffect(.regular,
+   in: .capsule)`. Es lo que estropeaba los pies de columna de Membresía y
+   Aportantes.
+2. **Fantasma en la franja ENTRE la barra de navegación y la barra.** Se
+   arregla con `.scrollEdgeEffectStyle(.hard, for: .top)`.
+
+Medido en el Registro, píxeles legibles bajo la barra: 9.88% con material y sin
+barra · 4.70% con barra y `.soft` · 2.65% con `.hard` · **5.48% con cápsula y
+`.soft`** · **2.71% con cápsula y `.hard`**, que es la buena.
+
+**Y así es como se aprendió, que importa:** al ver que la cápsula arreglaba el
+pie del iPad, se generalizó al Registro sin medir, se deshizo un arreglo que
+funcionaba y **salió peor**. Lo cazó la medida, no el ojo. Es la trampa del
+§0.-11 en otra forma: una medida sobre el pie del iPad no es una regla sobre
+todas las barras.
+
+**Esto corrige al §0.-4 en un punto.** Aquella entrada avisó de las "cabeceras
+de texto pelado" y dijo "comprobado que aguanta" — pero comprobado **sin nada
+que desplazar**, con siete personas y tres cortes. Con nueve aportantes y la
+lista desbordando, no aguanta. **Quedan por revisar con este criterio el
+contador de asistencia de Servicios y la franja de cortes de Depósitos.**
+
+Y otra herencia que mordió meses después: `2f3d53f` recogió los filtros del
+Registro en un botón de la barra y **se llevó la `safeAreaBar` entera**. Desde
+entonces su `.scrollEdgeEffectStyle` no hacía nada. **Cuando se quite una barra,
+comprobar quién dependía de ella.**
 
 ### La regla del destinte está caducada en iOS 27
 
-`.glass` ya **no** hereda el tinte del `TabView`. Medido con `contraste.py`
-quitando y poniendo `.tint(Color.primary)`, y confirmando en el log que el
-binario se recompilaba —sin esa confirmación la medida no vale nada—:
+`.glass` ya **no** hereda el tinte del `TabView`. Medido quitando y poniendo
+`.tint(Color.primary)`, y confirmando en el log que el binario se recompilaba
+—sin esa confirmación la medida no vale nada—:
 
 | | elegida | no elegidas |
 |---|---|---|
@@ -64,67 +84,99 @@ binario se recompilaba —sin esa confirmación la medida no vale nada—:
 
 **Con destinte y sin él, idénticos**, en claro y en oscuro. Se midió el iPhone a
 propósito para descartar que fuera cosa de no haber `TabView` en la barra
-lateral: no lo es. Hoy quien distingue a la elegida es `.glassProminent`.
+lateral del iPad: no lo es. Hoy quien distingue a la elegida es
+`.glassProminent`. El destinte **se conserva** en los siete sitios —cuesta cero
+y vuelve a hacer falta solo si Apple lo revierte—, pero lo escrito ya no afirma
+un fallo que no ocurre.
 
-El destinte **se conserva** en los siete sitios —cuesta cero y vuelve a hacer
-falta solo si Apple lo revierte—, pero lo escrito ya no afirma un fallo que no
-ocurre. Decisión de Iván.
+### Botones reconstruidos a mano: la deuda que no es UIKit
 
-### Tres formas de que una corrida mienta
+Preguntando qué había de UIKit salió una categoría aparte: controles **imitados**
+a mano, que ningún `grep` sobre un nombre de API encuentra.
 
-Las tres pasaron el mismo día, y las tres dan verde:
+- El segmentado de Categorías del iPad, hecho con botones `.plain` imitando el
+  estilo de iOS 18 con `tertiarySystemFill` y una sombra de pulgar.
+- Las tarjetas de **Cartas** y de **Reportes**: un `Button` rehecho pieza a
+  pieza —área tocable con `contentShape` + `onTapGesture`, el hundido con un
+  `@State` y un `scaleEffect`, y la semántica con
+  `accessibilityAddTraits(.isButton)` + `accessibilityAction`—. Cuatro cosas que
+  un `Button` da gratis. El hundido vive ahora en `TarjetaPulsable`
+  (`Pieces.swift`).
 
-1. **Una prueba que no cubre lo que dice cubrir.** `CategoriasDeCristalUITests`
-   afirmaba que `isSelected` delata el tinte heredado. Se revirtió el destinte y
-   **siguió en verde**: el rasgo lo pone `.accessibilityAddTraits` en la rama de
-   la elegida, y el destinte vive en la otra. Protege el rasgo, no el color. Por
-   eso se le exige el rojo a una prueba nueva: la que no ha fallado nunca no
-   protege nada.
-2. **Tocar un elemento deshabilitado no da error.** La prueba de H6 abría el
-   menú de Servicios, tocaba "Contar" —apagado, porque no había culto elegido—,
-   no pasaba nada, y la prueba terminaba en verde sin haber llegado a la hoja.
-   Se arregla afirmando `isEnabled` y que el destino está delante.
-3. **Un `-only-testing` que no casa con ninguna clase se salta en silencio.**
-   Lo avisa `aparato.sh` en sus comentarios y aun así picó: al añadir un archivo
-   de prueba nuevo hay que **regenerar el proyecto de la copia** con `xcodegen`,
-   o `xcodebuild` ejecuta 0 pruebas y sale con éxito. Contar las EJECUTADAS.
+**No comparten todo, y comprobarlo cambió el arreglo.** Reportes NO tiene el
+hundido a propósito: su pulsación larga la tiene el `contextMenu`, que trae su
+vibración y su forma de levantar la tarjeta. Por eso va con
+`.tarjeta(hunde: false)`. Se había escrito dos veces que el patrón era
+"calcado"; era media verdad.
+
+**Y una tarjeta NO se vuelve de cristal**, aunque sea lo primero que se piensa
+en una pasada así: lleva dentro un botón `.glassProminent` —cristal dentro de
+cristal—, vive sobre un fondo plano que no le da nada que refractar, y perdería
+el color de cada tipo, porque `.glass` no usa el tinte. Una tarjeta es un
+CONTENEDOR: que sea superficie opaca es correcto.
+
+### Cuatro formas de que una corrida dé VERDE sin probar nada
+
+Las cuatro pasaron el mismo día. **Ninguna la caza el código de la prueba.**
+
+1. **Una prueba que no cubre lo que dice cubrir.**
+   `CategoriasDeCristalUITests` afirmaba que `isSelected` delata el tinte
+   heredado. Se revirtió el destinte y siguió en verde: el rasgo lo pone
+   `.accessibilityAddTraits` en la rama de la elegida y el destinte vive en la
+   otra. Por eso **a una prueba nueva se le exige el rojo**.
+2. **Tocar un elemento deshabilitado no da error.** La prueba de H6 tocaba
+   "Contar" —apagado, porque no había culto elegido— y terminaba en verde sin
+   llegar a la hoja. Se arregla afirmando `isEnabled` y que el destino está
+   delante.
+3. **Un `-only-testing` que no casa se salta en silencio.** Al añadir un archivo
+   de prueba hay que **regenerar el proyecto de la copia** con `xcodegen`, o
+   `xcodebuild` ejecuta 0 pruebas y sale con éxito. Contar las EJECUTADAS.
+4. **Una variable de entorno que no llega al runner.** `xcodebuild` solo reenvía
+   las que empiezan por `TEST_RUNNER_`. Una corrida de 99 s se creía en claro y
+   era en oscuro, y **solo se notó porque el tema viaja en el NOMBRE de la
+   captura**. Que el parámetro de la postura vaya en el nombre del archivo: si
+   no llega, la captura lo delata en vez de mentir.
 
 ### Cómo se prueba interfaz sin perder la tarde
 
-**En el simulador no hay sesión, y eso no está escrito en ningún sitio.**
-`aparato.sh` explica por qué usa el bundle id real —en un aparato físico el
-llavero no se comparte—, pero en el SIMULADOR eso no basta: la app abre en
-"Sign in" y cualquier prueba de interfaz muere en la barra lateral. La única
-forma de recorrer pantallas sin credenciales es **`ModoRevision.activada = true`**,
-y se enciende **en la COPIA**, nunca en el repo.
+**En el simulador no hay sesión.** `aparato.sh` explica por qué usa el bundle id
+real —en un aparato físico el llavero no se comparte—, pero en el SIMULADOR eso
+no basta: la app abre en "Sign in". La única forma de recorrer pantallas sin
+credenciales es **`ModoRevision.activada = true`**, encendido **en la COPIA**,
+nunca en el repo.
 
 **Una prueba de interfaz nueva se escribe con el volcado puesto desde la primera
-línea.** De doce corridas, ocho se fueron en que la app estaba en otro sitio del
-que la prueba suponía: la bienvenida (falta `-prefs.bienvenidaVista 1`), el
+línea.** De catorce corridas, ocho se fueron en que la app estaba en otro sitio
+del que la prueba suponía: la bienvenida (falta `-prefs.bienvenidaVista 1`), el
 login, el hub con otro rótulo —en el teléfono la fila de Tesorería se llama
 "Transactions", no "Income"—, un menú con las acciones apagadas. Imprimir qué
 botones HAY cuando no aparece el que se busca convierte una corrida perdida en
-una que da la respuesta. Las pruebas escritas con volcado acertaron a la
-segunda; la escrita sin él costó cuatro.
+una que da la respuesta.
+
+**En el iPad, el scroll de la COLUMNA va por coordenadas** (`dx: 0.12`): un
+`swipeUp` centrado cae en el panel de detalle y no mueve la lista, así que la
+postura que se quiere —filas pasando por detrás del pie— no llega a provocarse.
 
 **Y se pueden capturar las pantallas del aparato de verdad:**
-`xcrun devicectl device capture screenshot --device <UDID> --destination x.png`.
-Sale enorme; `sips -Z 1100` para leerla. Lo que NO se puede es tocar la pantalla
-desde fuera: para eso están las pruebas. `devicectl device settings appearance`
-mueve claro/oscuro, tamaño de texto, contraste, reducir transparencia y hasta la
-opacidad de Liquid Glass, y `orientation` gira el aparato.
+`xcrun devicectl device capture screenshot --device <UDID> --destination x.png`;
+`sips -Z 1100` para leerla. Lo que NO se puede es tocar la pantalla desde fuera:
+para eso están las pruebas. `devicectl device settings appearance` mueve
+claro/oscuro, tamaño de texto, contraste, reducir transparencia y la opacidad de
+Liquid Glass; `orientation` gira el aparato.
 
 ### Lo que queda
 
-- **La pasada en el iPad físico.** Todo lo de esta entrada está verificado en
-  simulador; el cristal de verdad refracta distinto. Falta sobre todo el §7 (los
-  pies, con la lista desplazada y en apaisado) y confirmar el `.hard` del
-  Registro.
-- **La medida de H6**, el símbolo del botón de contar: el encargo pide que no
-  quede peor que hoy y todavía no hay número. Su prueba ya falla honestamente.
+- **La medida de H6**, el símbolo del botón de contar: el encargo pedía que no
+  quedara peor que hoy y **no hay número**. Su prueba ya falla honestamente.
+- **El contador de Servicios y la franja de Depósitos**, por lo dicho arriba
+  sobre el §0.-4.
+- **Aumentar contraste y Reducir transparencia**: no se probaron en ninguna
+  pantalla.
+- **El iPad físico.** Todo esto es simulador; el cristal de verdad refracta
+  distinto.
 - **El instante del arrastre en el tab bar**, único caso sin medir de la
-  decisión A.
-- **`main` sigue atrás**: esto no se ha fusionado.
+  decisión de quitarle el fondo.
+- **`main` sigue atrás.**
 
 ---
 
