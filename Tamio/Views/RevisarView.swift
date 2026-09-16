@@ -152,9 +152,20 @@ struct RevisarView: View {
                     .font(.subheadline.weight(.semibold)).foregroundStyle(Paleta.brand)
             }
             .padding(.horizontal, Esp.tarjeta).padding(.vertical, 12)
-            .background(.thickMaterial, in: Capsule())
-            .overlay(Capsule().stroke(Color(.separator), lineWidth: 0.5))
-            .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
+            // **Cristal, no material opaco con filete y sombra.** Era
+            // `.thickMaterial` + un borde de 0.5 y una sombra, que es la
+            // receta de un aviso flotante de iOS 18: tres capas dibujadas para
+            // fingir que algo está encima. El cristal ya trae el borde y la
+            // profundidad, y además refracta lo que pasa por debajo —que en
+            // esta pantalla es la lista que acaba de cambiar—, cosa que el
+            // material opaco tapaba.
+            //
+            // El texto se queda en `.primary`. Medido el 16-sep-2026 sobre la
+            // captura, con el aviso encima de la lista: **20.65:1 en claro y
+            // 13.57:1 en oscuro**, y el "Deshacer" en verde de marca a 5.20:1
+            // y 4.60:1. Los cuatro por encima del 4.5:1 que pide el texto
+            // normal.
+            .glassEffect(.regular, in: .capsule)
             // Separado del borde: pegado a 16 pt quedaba contra la barra de
             // pestañas, y las dos cápsulas se leían como una sola pieza rota.
             .padding(.horizontal, Esp.pantalla).padding(.bottom, Esp.panel)
