@@ -931,7 +931,16 @@ struct ConfiguracionInicialView: View {
             // al abrir, así que la primera vista de esta pantalla era un
             // formulario sin forma de continuar. Un `safeAreaInset` sube con
             // el teclado, medido con la app corriendo.
-            .safeAreaInset(edge: .bottom) {
+            // **Y `safeAreaBar`, no `safeAreaInset`.** Al quitar el `.bar`
+            // que tenía debajo, un inset a secas deja pasar la lista NÍTIDA
+            // por detrás del botón —"Currency · USD" cruzando por debajo de
+            // "Get started"—, y `.scrollEdgeEffectStyle` no puede ayudar
+            // porque un inset cualquiera no es una barra y no hay borde bajo
+            // el que desvanecer. Con `safeAreaBar` sí lo es. Lo que NO cambia
+            // es que suba con el teclado, que es la razón de que el botón viva
+            // aquí fuera y no dentro de la `List`: vuelto a medir con la app
+            // corriendo y el campo enfocado.
+            .safeAreaBar(edge: .bottom) {
                 Button(action: comenzar) {
                     if guardando {
                         ProgressView().frame(maxWidth: .infinity)
@@ -941,7 +950,14 @@ struct ConfiguracionInicialView: View {
                             .font(.body.weight(.semibold))
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                // **`.glassProminent` y no `.borderedProminent`.** El
+                // bordeado es el botón lleno de UIKit: un rectángulo opaco de
+                // color plano, que dentro de una barra de cristal se lee como
+                // pegado encima. Con el estilo de cristal el relleno de marca
+                // se mantiene —sigue siendo la acción principal, y la única de
+                // la pantalla— pero refracta la lista que pasa por debajo.
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
                 .controlSize(.large)
                 // **Solo se apaga mientras guarda, no por estar el nombre
                 // vacío.** Deshabilitado por defecto, este botón medía 1.42:1
@@ -961,7 +977,6 @@ struct ConfiguracionInicialView: View {
                 .disabled(guardando)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
-                .background(.bar)
             }
         }
         .interactiveDismissDisabled()
