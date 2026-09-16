@@ -322,7 +322,7 @@ ya dice que la secretaria no puede crear un movimiento, algo mide mal—. Corrid
 como `postgres` el guion no vale y él mismo lo avisa en su primera fila: el
 dueño de las tablas salta RLS.
 
-### El §3, el padrón · escrito y ensayado el 16-sep · SIN APLICAR
+### El §3, el padrón · APLICADO el 16 de septiembre de 2026
 
 `supabase/migrations/20260916_el_padron_con_sus_excepciones.sql`.
 
@@ -342,7 +342,11 @@ El reparto real es a TRES niveles:
 | `parentescos` (todo) | igual que `members` UPDATE |
 | SELECT de las dos | **sin tocar** — Aportantes necesita los miembros |
 
-Ensayo: tres escenarios × tres roles, **21 comprobaciones en verde**.
+**Aplicado y verificado sobre el servidor de verdad**, tres escenarios × tres
+roles, **21 comprobaciones en verde**. Y comprobado después que la iglesia quedó
+como estaba —`completo`, `vePadron=false`— y que no quedó ni una fila `probe-%`
+ni un teléfono pisado: el ensayo mueve `plan` y `tesorero_ve_padron` para poder
+medir, y los devuelve.
 
 **Y el aviso que salió de ahí, que vale para cualquier prueba con escenarios:**
 el primer ensayo dio **dos falsos rojos**. El escenario «vePadron ON» no era tal:

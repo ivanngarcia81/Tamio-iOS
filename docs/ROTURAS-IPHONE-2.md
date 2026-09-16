@@ -939,10 +939,13 @@ plantillas. Lo que ya no está en esta lista es porque se midió o se arregló.
 miran el rol, y ninguna de lectura se tocó. Detalle y comprobación por rol en
 `docs/PERMISOS-EN-EL-SERVIDOR.md`.
 
-Queda de ese documento el **§3** (el padrón, con la excepción del plan
-`tesoreria`), que se puede hacer ya; y el **§4 y §5** —el registro y el borrado
-de verdad—, **bloqueados** hasta que el chat del web decida qué hace
-`compactarBase` con la tabla `registro`.
+**El §3 también está aplicado** (16-sep): el padrón, con sus tres niveles —alta
+y baja para Secretaría, editar también para el tesorero al que la iglesia le
+abrió el padrón, y la lectura sin tocar porque Aportantes la necesita—.
+
+Queda solo el **§4 y §5** —el registro y el borrado de verdad—, **bloqueados**
+hasta que el chat del web decida qué hace `compactarBase` con la tabla
+`registro`.
 
 ### Y una nota de estado
 
