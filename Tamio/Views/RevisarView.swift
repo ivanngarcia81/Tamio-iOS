@@ -282,9 +282,14 @@ struct RevisarView: View {
         // Mismo radio que `filaDeLista`: esta pantalla llevaba tarjetas de 16
         // mientras las otras ocho iban a 10, y puestas una al lado de otra se
         // leían como dos componentes distintos.
+        // **Sin sombra.** La separación del suelo la da el propio color de la
+        // tarjeta contra el fondo agrupado, que es como se separan las otras
+        // ocho pantallas; la sombra de 3 pt era el resto de un diseño de
+        // tarjetas de web y en oscuro no aporta nada —sombra negra sobre casi
+        // negro—. Comprobado en CLARO, que es donde sí se veía y donde podía
+        // perderse el borde.
         .background(Color(.secondarySystemGroupedBackground),
                     in: RoundedRectangle(cornerRadius: Esp.radioFila, style: .continuous))
-        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
     }
 
     /// **"Restaurar" reactiva a una persona del padrón**, y eso es de
