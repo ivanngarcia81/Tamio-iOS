@@ -71,7 +71,9 @@ struct AgendaView: View {
                 Button { mostrarNuevo = true } label: {
                     Label(L.t("Nuevo", "New"), systemImage: "plus")
                 }
-                .buttonStyle(.glass)
+                // Sin `.buttonStyle(.glass)`: en una barra la cápsula la pone
+                // el sistema, y forzarla pinta un segundo anillo dentro del
+                // primero. Ver la nota larga en `MovimientosView.botonNuevo`.
                 .tint(Paleta.brand)
             }
         }

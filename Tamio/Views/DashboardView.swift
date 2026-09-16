@@ -99,7 +99,9 @@ struct DashboardView: View {
                 Label(L.t("Nuevo", "New"), systemImage: "plus")
             }
         }
-        .buttonStyle(.glass)
+        // Sin `.buttonStyle(.glass)`: este botón solo se usa en el `toolbar`
+        // —las dos veces, con y sin texto—, y ahí la cápsula la pone el
+        // sistema. Ver la nota larga en `MovimientosView.botonNuevo`.
         .tint(Paleta.brand)
         .accessibilityLabel(L.t("Nuevo", "New"))
     }
