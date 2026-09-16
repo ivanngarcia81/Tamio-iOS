@@ -7,9 +7,18 @@ import XCTest
 /// gris pegado encima— y pasa a ser dos cápsulas en un `GlassEffectContainer`.
 ///
 /// Lo que la prueba mira, y que la vista sola no dice: que **solo una** esté
-/// marcada. Es el fallo de esta receta: `.glass` hereda el tinte del TabView, y
-/// sin destintar las no elegidas las dos salen en verde y las dos parecen
-/// activas. `isSelected` lo delata aunque en la captura se vean parecidas.
+/// marcada.
+///
+/// **Ojo con lo que esto NO cubre.** Aquí decía que `isSelected` delata el
+/// fallo del tinte heredado —las no elegidas sin `.tint(Color.primary)`— y es
+/// falso: se comprobó el 16-sep-2026 revirtiendo el destinte y la prueba siguió
+/// en VERDE. `isSelected` lo pone `.accessibilityAddTraits` en la rama de la
+/// elegida, y el destinte vive en la otra: son independientes. Lo que esta
+/// prueba protege es que el rasgo esté en una sola cápsula, que también es un
+/// fallo real. El color solo lo dice el píxel.
+///
+/// (Y el tinte heredado, de paso, ya no se reproduce en iOS 27: medido con y
+/// sin destinte, píxeles idénticos en iPhone y iPad.)
 ///
 /// Se corre con el modo revisión ENCENDIDO. Para el diff de píxeles y para
 /// mirarlo en oscuro y en AX1, las paradas están puestas.
