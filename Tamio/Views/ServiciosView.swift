@@ -1245,8 +1245,8 @@ struct ListaAsistenciaSheet: View {
         }
     }
 
-    /// Cuántos van, sin tener que contar filas. Va en una capa con material y
-    /// la lista corre por debajo, como en el resto de la app.
+    /// Cuántos van, sin tener que contar filas. La lista corre por debajo y
+    /// esto va en su propia cápsula de cristal: ver la nota de abajo.
     private var contador: some View {
         VStack(spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -1273,6 +1273,18 @@ struct ListaAsistenciaSheet: View {
             .animation(.spring(duration: 0.3), value: vm.pct)
         }
         .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.chip)
+        // **Cristal propio, por la regla del 16-sep.** `safeAreaBar` no pinta
+        // nada: reserva sitio y marca el borde bajo el que desvanecer, pero la
+        // superficie la trae el contenido. Esto es texto pelado —sin cápsulas
+        // que traigan su cristal—, así que se pintaba directamente sobre las
+        // filas que se desvanecen y los dos textos se peleaban.
+        //
+        // El §0.-4 dio esto por bueno —"comprobado que aguanta"— pero con los
+        // datos de muestra de entonces NO HABÍA NADA QUE DESPLAZAR. Con la
+        // lista desbordando, no aguanta: es el mismo fallo que se vio en los
+        // pies de Membresía y Aportantes.
+        .glassEffect(.regular, in: .rect(cornerRadius: Esp.radioFila))
+        .padding(.horizontal, Esp.chip).padding(.vertical, 6)
     }
 
     private var lista: some View {

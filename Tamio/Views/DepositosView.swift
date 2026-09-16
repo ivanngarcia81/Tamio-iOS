@@ -306,6 +306,18 @@ struct DepositosView: View {
             .font(.footnote)
             .monospacedDigit()
             .padding(.horizontal, Esp.pantalla).padding(.vertical, Esp.hueco)
+        // **Cristal propio, por la regla del 16-sep.** `safeAreaBar` no pinta
+        // nada: reserva sitio y marca el borde bajo el que desvanecer, pero la
+        // superficie la trae el contenido. Esto es texto pelado —sin cápsulas
+        // que traigan su cristal—, así que se pintaba directamente sobre las
+        // filas que se desvanecen y los dos textos se peleaban.
+        //
+        // El §0.-4 dio esto por bueno —"comprobado que aguanta"— pero con los
+        // datos de muestra de entonces NO HABÍA NADA QUE DESPLAZAR. Con la
+        // lista desbordando, no aguanta: es el mismo fallo que se vio en los
+        // pies de Membresía y Aportantes.
+            .glassEffect(.regular, in: .capsule)
+            .padding(.horizontal, Esp.chip).padding(.vertical, 6)
         }
     }
 
