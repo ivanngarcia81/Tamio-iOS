@@ -336,7 +336,20 @@ struct DocumentoPDFSheet<Hoja: View>: View {
                         ShareLink(item: pdfURL) {
                             Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
                         }
-                        .buttonStyle(.glass)
+                        // **Sin `buttonStyle`: el sistema elige, y elige bien.**
+                        // Llevaba `.buttonStyle(.glass)` puesto a propósito para
+                        // BAJAR del prominente que el sistema pone en una acción
+                        // de confirmación, y el motivo escrito era el contraste:
+                        // "un símbolo blanco sobre Paleta.brand da ~2.4:1 en
+                        // oscuro".
+                        //
+                        // **Ese motivo era falso.** Medido el 16-sep en el botón
+                        // "Listo" de la hoja de filtros, que sí es prominente:
+                        // en claro sale blanco sobre el verde oscuro (6.28:1) y
+                        // en OSCURO sale NEGRO sobre el verde claro (9.01:1). El
+                        // sistema ya escoge el color legible de encima; nadie lo
+                        // comprobó y se le puso un parche que además dejaba la
+                        // acción principal sin su énfasis.
                         .tint(Paleta.brand)
                     }
                 }
