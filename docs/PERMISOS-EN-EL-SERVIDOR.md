@@ -256,7 +256,7 @@ Lo único que cambió es el tamaño de los datos: `transactions` pasó de 84 fil
 el 12-sep a **114** el 15. Otra vez la misma lección — una medida caduca; la
 forma del esquema, no.
 
-**El §2 está ESCRITO Y SIN APLICAR**, en dos archivos:
+**El §2 está APLICADO** (15-sep). Los dos archivos:
 
 | archivo | qué es |
 |---|---|
@@ -288,11 +288,33 @@ un no, pero solo uno avisa.
 política que se está probando. Mientras suplanta ya no es `postgres`, así que no
 puede escribir ni en su tabla temporal. Corregido.
 
-**Por qué sigue SIN APLICAR**: el ensayo en transacción deshecha sí pasa, pero
-el aplicado permanente está bloqueado para este cliente
-(`Protected-Scope IaC Apply`). **Lo aplica Iván**, y el SQL exacto y ya
-ensayado está en la migración. Después de aplicarlo, correr el guion otra vez:
-tiene que dar la misma tabla de arriba.
+### APLICADO · 15 de septiembre de 2026
+
+**Lo aplicó Iván desde el editor SQL del panel.** 51 de 51 políticas de
+escritura usan ya `mi_rol()`, y **0 políticas de lectura tocadas** — Reportes de
+la secretaria sigue entero, que era el riesgo.
+
+Comprobado después con seis casos por rol, los dieciocho en `ok`:
+
+| | administrador | tesorero | secretaria |
+|---|---|---|---|
+| leer un movimiento | SÍ | SÍ | **SÍ** |
+| crear un movimiento | SÍ | SÍ | **NO · 42501** |
+| borrar un corte | SÍ | SÍ | **NO · 0 filas** |
+| crear evento de agenda | SÍ | **NO · 42501** | SÍ |
+| borrar un acta | SÍ | **NO · 0 filas** | SÍ |
+
+**Y el aviso de instrumento que costó tres intentos: el editor SQL del panel de
+Supabase NO conserva una tabla temporal entre sentencias.** Va por un pool que
+puede cambiar de conexión, así que `create temp table` seguido de un `insert`
+falla con `42P01: relation "_quien" does not exist`. El guion de
+`supabase/pruebas/permisos_por_area.sql` **no se puede correr ahí**: se corre
+por una conexión que mantenga sesión (psql, o las herramientas MCP). Lo que sí
+funciona en el panel es la migración, que son `alter policy` sueltos sin estado
+compartido.
+
+Se comprobó además que aquel fallo **no dejó nada escrito**: cero filas
+`probe-%` en `actas`, `transactions` y `registro`.
 
 **Y el orden al aplicar importa: primero el guion de pruebas, después la
 migración, y el guion OTRA VEZ.** La primera pasada es el control negativo —si

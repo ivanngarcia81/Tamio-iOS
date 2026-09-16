@@ -35,6 +35,13 @@
 -- fallo que costó semanas con `iglesias`, y por eso aquí se distingue
 -- «NO (42501)» de «NO (0 filas)»: los dos son un no, pero solo uno avisa.
 
+-- **NO se puede correr en el editor SQL del panel de Supabase.** Ese editor va
+-- por un pool que puede cambiar de conexión entre sentencias, así que la tabla
+-- temporal se pierde y sale `42P01: relation "_quien" does not exist`. Hace
+-- falta una conexión que mantenga sesión: `psql`, o las herramientas MCP.
+-- Costó tres intentos el 15-sep. La MIGRACIÓN sí va en el panel, porque son
+-- `alter policy` sueltos y no comparten estado.
+
 begin;
 
 -- **Los usuarios se BUSCAN, no se escriben aquí.** Dos razones, y la primera
