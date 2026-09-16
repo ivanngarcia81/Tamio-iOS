@@ -275,14 +275,55 @@ struct MiembrosView: View {
         filtros.first { $0.0 == f }?.1 ?? ""
     }
 
+    /// **Un `Picker(.segmented)` no es de cristal.** Dibuja el fondo opaco de
+    /// UIKit, y dentro de una `safeAreaBar` —que no pone cápsula ninguna— eso
+    /// es un rectángulo gris flotando sobre el material. Se sustituye por
+    /// cápsulas en un `GlassEffectContainer`, que además se funden entre sí al
+    /// estar cerca. Misma vuelta que ya dieron Agenda, Servicios y Membresía.
+    ///
+    /// Solo se veía en iPad: en el teléfono este control no se dibuja.
     private var pickerFiltro: some View {
-        Picker(L.t("Filtro", "Filter"), selection: $vm.filtro) {
-            ForEach(Self.filtros, id: \.0) { valor, nombre in
-                Text(nombre).tag(valor)
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                ForEach(Self.filtros, id: \.0) { valor, nombre in
+                    chipFiltroVista(valor, nombre)
+                }
             }
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
+    }
+
+    /// El elegido va `.glassProminent` con la marca: en un "elige uno", el
+    /// relleno es lo único que dice cuál está activo. **Los NO elegidos se
+    /// destiñen a `.primary`**: `.glass` hereda el tinte del TabView y salían
+    /// todos en verde, que es la trampa que dejó escrita `chipVista` de
+    /// Agenda. Con `.tint` y no con `.foregroundStyle`, que el estilo de botón
+    /// pinta encima.
+    @ViewBuilder
+    private func chipFiltroVista(_ valor: FiltroMiembro, _ nombre: String) -> some View {
+        let activa = vm.filtro == valor
+        // Dos ramas y no un `buttonStyle` condicional: los estilos de botón no
+        // son un valor que se pueda elegir en línea.
+        if activa {
+            Button { vm.filtro = valor } label: { etiquetaFiltro(nombre, activa: true) }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+                .accessibilityAddTraits(.isSelected)
+        } else {
+            Button { vm.filtro = valor } label: { etiquetaFiltro(nombre, activa: false) }
+                .buttonStyle(.glass)
+                .tint(Color.primary)
+        }
+    }
+
+    private func etiquetaFiltro(_ nombre: String, activa: Bool) -> some View {
+        Text(nombre)
+            // No se parte: en la columna de 320 pt del iPad "Activos" y
+            // "Bajas" caben, pero con texto grande no, y el control crecía a
+            // dos renglones.
+            .font(.subheadline.weight(activa ? .semibold : .regular))
+            .lineLimit(1).minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
     }
 
     /// Exporta lo que se está viendo, con los filtros y la búsqueda ya

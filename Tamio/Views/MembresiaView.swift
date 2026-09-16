@@ -219,14 +219,57 @@ struct MembresiaView: View {
         subtab == 2 ? vm.itemsSeguimiento.count : vm.itemsFiltrados.count
     }
 
+
+    /// **Un `Picker(.segmented)` no es de cristal.** Dibuja el fondo opaco de
+    /// UIKit, y dentro de una `safeAreaBar` —que no pone cápsula ninguna— eso
+    /// es un rectángulo gris flotando sobre el material. Se sustituye por
+    /// cápsulas en un `GlassEffectContainer`, que además se funden entre sí al
+    /// estar cerca. Es la misma vuelta que ya dieron Agenda y Servicios.
+    ///
+    /// Solo se veía en iPad: en el teléfono este control no se dibuja.
     private var pickerVista: some View {
-        Picker(L.t("Vista", "View"), selection: $subtab) {
-            ForEach(Self.vistas, id: \.0) { valor, nombre in
-                Text(nombre).tag(valor)
+        GlassEffectContainer(spacing: Esp.hueco) {
+            HStack(spacing: Esp.hueco) {
+                ForEach(Self.vistas, id: \.0) { valor, nombre in
+                    chipVista(valor, nombre)
+                }
             }
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
+    }
+
+    /// La elegida va `.glassProminent` con la marca: en un "elige uno", el
+    /// relleno es lo único que dice cuál está activa, y sin él las cápsulas se
+    /// leen como acciones sueltas. **Las NO elegidas se destiñen a
+    /// `.primary`**: `.glass` hereda el tinte del TabView y salían todas en
+    /// verde, que es la trampa que ya dejó escrita `chipVista` de Agenda. Con
+    /// `.tint` y no con `.foregroundStyle`, que el estilo de botón pinta
+    /// encima.
+    @ViewBuilder
+    private func chipVista(_ valor: Int, _ nombre: String) -> some View {
+        let activa = subtab == valor
+        // Dos ramas y no un `buttonStyle` condicional: los estilos de botón no
+        // son un valor que se pueda elegir en línea. Mismo reparto que Agenda.
+        if activa {
+            Button { subtab = valor } label: { etiquetaVista(nombre, activa: true) }
+                .buttonStyle(.glassProminent)
+                .tint(Paleta.brand)
+                .accessibilityAddTraits(.isSelected)
+        } else {
+            Button { subtab = valor } label: { etiquetaVista(nombre, activa: false) }
+                .buttonStyle(.glass)
+                .tint(Color.primary)
+        }
+    }
+
+    private func etiquetaVista(_ nombre: String, activa: Bool) -> some View {
+        Text(nombre)
+            // El nombre de una vista no se parte: en la columna de 320 pt del
+            // iPad "Seguimiento" salía en dos renglones y el control entero
+            // crecía con él.
+            .font(.subheadline.weight(activa ? .semibold : .regular))
+            .lineLimit(1).minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
     }
 
     private var botonNuevo: some View {
