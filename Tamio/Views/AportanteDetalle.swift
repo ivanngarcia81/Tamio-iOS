@@ -206,6 +206,22 @@ struct AportanteDetalle: View {
             }
             .font(.subheadline.weight(.medium))
             .foregroundStyle(.primary)
+            // **La cápsula va aquí, con `.glassEffect`, y no con un
+            // `buttonStyle`.** En `ToolbarItem(placement: .title)` el sistema no
+            // pone cápsula —a diferencia de `.topBarTrailing`, donde sí la pone
+            // y añadir otra da la cápsula doble— y **`.buttonStyle(.glass)` ahí
+            // se IGNORA**: se probó, y el título seguía saliendo como texto
+            // suelto. Lo que sí funciona es el efecto sobre la etiqueta.
+            //
+            // Decisión de Iván, y la razón es que preguntó DOS VECES por este
+            // mismo elemento: si un control hay que explicarlo, no se explica
+            // solo. Aquí el menú del título no es adorno —es cómo se cambia de
+            // informe, de vista o de sección— y tiene que verse tocable.
+            //
+            // Lo que se quitó fue la cápsula DIBUJADA con `tertiarySystemFill`,
+            // opaca dentro de una barra de cristal. Esta es de cristal.
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .glassEffect(.regular, in: .capsule)
             // **`.glass` aquí SÍ, y no es contradicción.** En
             // `ToolbarItem(placement: .title)` el sistema NO pone cápsula —se
             // ve en Informes, donde este mismo menú queda como texto suelto—,
@@ -225,16 +241,6 @@ struct AportanteDetalle: View {
             // El `grep` de `.buttonStyle(.glass)` NO encuentra esto: aquí la
             // cápsula estaba pintada a mano. Lo encontró Iván mirando la app.
         }
-        // **`.glass` aquí SÍ, y no contradice lo de las barras.** En
-        // `ToolbarItem(placement: .title)` el sistema NO pone cápsula —se ve en
-        // "General" de Informes, que quedaba como texto suelto con una flecha—,
-        // al contrario que en `.topBarTrailing`, donde sí la pone y añadir otra
-        // daba la cápsula doble que vio Iván.
-        //
-        // Así que aquí el cristal es la ÚNICA cápsula, y hace falta: sin ella el
-        // menú no parece tocable. Lo que se quitó fue la cápsula DIBUJADA con
-        // `tertiarySystemFill`, que era opaca dentro de una barra de cristal.
-        .buttonStyle(.glass)
     }
 
     /// Un solo sitio con los cuatro nombres: el segmentado del iPad y el menú
