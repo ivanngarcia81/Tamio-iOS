@@ -158,6 +158,16 @@ struct InformesMembresiaView: View {
             }
             .foregroundStyle(.primary)
         }
+        // **`.glass` aquí SÍ, y no contradice lo de las barras.** En
+        // `ToolbarItem(placement: .title)` el sistema NO pone cápsula —se ve en
+        // "General" de Informes, que quedaba como texto suelto con una flecha—,
+        // al contrario que en `.topBarTrailing`, donde sí la pone y añadir otra
+        // daba la cápsula doble que vio Iván.
+        //
+        // Así que aquí el cristal es la ÚNICA cápsula, y hace falta: sin ella el
+        // menú no parece tocable. Lo que se quitó fue la cápsula DIBUJADA con
+        // `tertiarySystemFill`, que era opaca dentro de una barra de cristal.
+        .buttonStyle(.glass)
     }
 
     /// El nombre del informe, con el pendiente pegado cuando lo hay. El menú

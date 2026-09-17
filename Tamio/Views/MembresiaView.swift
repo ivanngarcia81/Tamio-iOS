@@ -197,6 +197,15 @@ struct MembresiaView: View {
             }
             .font(.subheadline.weight(.medium))
             .foregroundStyle(.primary)
+            // **`.glass` aquí SÍ, y no es contradicción.** En
+            // `ToolbarItem(placement: .title)` el sistema NO pone cápsula —se
+            // ve en Informes, donde este mismo menú queda como texto suelto—,
+            // al contrario que en `.topBarTrailing`. Así que aquí el cristal no
+            // se apila sobre nada: es la única cápsula, y sin ella el menú no
+            // parece tocable.
+            //
+            // Lo que se quitó fue la cápsula DIBUJADA con `tertiarySystemFill`,
+            // que era opaca. Esta es de cristal.
             // **Sin cápsula dibujada.** Llevaba
             // `.background(Color(.tertiarySystemFill), in: Capsule())`, y este
             // menú vive en el `toolbar`: el sistema ya le pone su cápsula de
@@ -207,6 +216,16 @@ struct MembresiaView: View {
             // El `grep` de `.buttonStyle(.glass)` NO encuentra esto: aquí la
             // cápsula estaba pintada a mano. Lo encontró Iván mirando la app.
         }
+        // **`.glass` aquí SÍ, y no contradice lo de las barras.** En
+        // `ToolbarItem(placement: .title)` el sistema NO pone cápsula —se ve en
+        // "General" de Informes, que quedaba como texto suelto con una flecha—,
+        // al contrario que en `.topBarTrailing`, donde sí la pone y añadir otra
+        // daba la cápsula doble que vio Iván.
+        //
+        // Así que aquí el cristal es la ÚNICA cápsula, y hace falta: sin ella el
+        // menú no parece tocable. Lo que se quitó fue la cápsula DIBUJADA con
+        // `tertiarySystemFill`, que era opaca dentro de una barra de cristal.
+        .buttonStyle(.glass)
     }
 
     /// Un solo sitio con los tres nombres: el menú del teléfono y el segmentado
