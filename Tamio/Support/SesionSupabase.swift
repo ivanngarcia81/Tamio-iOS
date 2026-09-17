@@ -366,3 +366,56 @@ final class SesionSupabase {
         return texto
     }
 }
+
+// MARK: - Borrar la cuenta
+
+/// **Lo que «Borrar mi cuenta» dice y hace, escrito una sola vez.**
+///
+/// La regla 5.1.1(v) de Apple pide que la cuenta se pueda borrar desde dentro
+/// de la app, y «dentro de la app» son DOS pantallas: `IPhoneAjustesView` en el
+/// teléfono y `ConfiguracionView` en el iPad. Escrito dos veces, el día que
+/// cambie el aviso —o el orden de los tres pasos— se corrige uno y el otro se
+/// queda mintiendo sobre una operación que no tiene vuelta atrás.
+///
+/// Vive aquí y no en una de las dos vistas porque la operación es de la sesión:
+/// la parte de servidor ya está arriba, en `borrarCuentaEnElServidor`.
+enum BorradoDeCuenta {
+
+    /// **El aviso dice la REGLA, no un caso.** El servidor borra la iglesia
+    /// entera solo si al irte no queda ningún otro perfil en ella; con más
+    /// gente dentro, la iglesia sigue y tú te vas. Y el aparato no puede saber
+    /// en cuál de los dos casos está: las políticas RLS de `perfiles` no dejan
+    /// a un aparato leer los perfiles de los demás, así que no hay forma de
+    /// contarlos. Por eso se enuncia la condición en vez de adivinarla.
+    ///
+    /// El web avisa siempre con el caso fuerte —"todos los datos de tu iglesia
+    /// en la nube"— sin la condición, así que exagera cuando quedan otros
+    /// miembros. Apuntado para el otro repo.
+    static var aviso: String {
+        L.t("Tu cuenta se elimina para siempre. Si eres la única persona con acceso a tu iglesia, se borran TAMBIÉN todos sus datos en la nube: movimientos, miembros, actas y cartas. Si hay más personas, la iglesia sigue y solo se va tu acceso.\n\nPuedes volver a registrarte con el mismo correo, pero eso crea una iglesia NUEVA y vacía: no recuperas nada. Para volver a esta tendría que invitarte un administrador.",
+            "Your account is permanently deleted. If you are the only person with access to your church, ALL of its cloud data goes too: transactions, members, minutes and letters. If there are other people, the church stays and only your access is removed.\n\nYou can sign up again with the same email, but that creates a NEW, empty church: nothing comes back. To return to this one, an administrator would have to invite you.")
+    }
+
+    /// **El diálogo dice menos que el pie, a propósito.** El pie está siempre a
+    /// la vista y puede explicarse; el diálogo es la última pregunta antes de
+    /// una acción sin vuelta, y cuatro frases ahí se leen en diagonal. Aquí van
+    /// solo las dos que cambian la decisión.
+    static var avisoCorto: String {
+        L.t("Se elimina para siempre y no se puede deshacer. Si eres la única persona con acceso, se van también todos los datos de tu iglesia.",
+            "This is permanent and cannot be undone. If you are the only person with access, all of your church's data goes too.")
+    }
+
+    /// Los tres pasos, y **el orden no es intercambiable**: el aparato se
+    /// limpia solo si el servidor dijo que sí. Al revés —borrar primero aquí—
+    /// dejaría a alguien sin sus datos locales y con la cuenta viva si la
+    /// llamada falla, que es el peor de los dos fallos posibles.
+    ///
+    /// Lanza lo que venga del servidor para que la pantalla lo enseñe: quien
+    /// acaba de pedir esto merece saber por qué no ocurrió.
+    @MainActor
+    static func ejecutar(_ sesion: SesionSupabase?) async throws {
+        try await SesionSupabase.borrarCuentaEnElServidor()
+        try await BorradoMasivo.reinicioDeFabrica()
+        await sesion?.cerrarSesion()
+    }
+}

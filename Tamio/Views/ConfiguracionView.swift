@@ -366,6 +366,9 @@ private struct SeccionCuenta: View {
     private let motor = MotorSincronizacion.compartido
     @State private var bloqueo = BloqueoBiometrico.compartido
     @State private var confirmarCierre = false
+    @State private var confirmarBorrado = false
+    @State private var borrando = false
+    @State private var errorBorrado: String?
 
     /// Se pregunta al construir y no dentro del `body`: `canEvaluatePolicy`
     /// toca el sistema de seguridad y el `body` se reevalúa muchas veces.
@@ -492,6 +495,62 @@ private struct SeccionCuenta: View {
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, Esp.hueco)
                 }
+
+                // **Borrar la cuenta va AQUÍ, al lado de cerrar sesión.** La
+                // regla 5.1.1(v) de Apple pide que se pueda borrar la cuenta
+                // desde dentro de la app y que se ENCUENTRE, y quien la busca
+                // la busca en «Cuenta». No vale la Zona de riesgo, que además
+                // habla de otra cosa: allí «Borrar datos de este iPad» se lleva
+                // la copia local y deja la cuenta viva. Mismo sitio que en el
+                // teléfono (`IPhoneAjustesView`), por la misma razón.
+                //
+                // **Estaba solo en el teléfono.** La app es universal, así que
+                // en el iPad no había ninguna forma de borrar la cuenta — y es
+                // justo lo que el revisor de Apple prueba.
+                VStack(alignment: .leading, spacing: 8) {
+                    Button(role: .destructive) { confirmarBorrado = true } label: {
+                        Group {
+                            if borrando {
+                                ProgressView()
+                            } else {
+                                Text(L.t("Borrar mi cuenta", "Delete my account"))
+                                    .font(.escalada(16.5, relativeTo: .body))
+                                    .foregroundStyle(Paleta.negativo)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: Esp.altoBoton)
+                        .background(
+                            Color(.secondarySystemGroupedBackground),
+                            in: RoundedRectangle(cornerRadius: Esp.radioTarjeta, style: .continuous)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(sesion == nil || borrando)
+                    .confirmationDialog(L.t("¿Borrar tu cuenta?", "Delete your account?"),
+                                        isPresented: $confirmarBorrado,
+                                        titleVisibility: .visible) {
+                        Button(L.t("Sí, borrar mi cuenta", "Yes, delete my account"),
+                               role: .destructive) {
+                            Task { await borrarCuenta() }
+                        }
+                        Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
+                    } message: {
+                        Text(BorradoDeCuenta.avisoCorto)
+                    }
+                    if let errorBorrado {
+                        Text(errorBorrado)
+                            .font(.escalada(12.5, relativeTo: .caption1))
+                            .foregroundStyle(Paleta.negativo)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, Esp.hueco)
+                    }
+                    Text(BorradoDeCuenta.aviso)
+                        .font(.escalada(12.5, relativeTo: .caption1))
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Esp.hueco)
+                }
             }
             .padding(Esp.panel)
             .frame(maxWidth: 640)
@@ -499,6 +558,21 @@ private struct SeccionCuenta: View {
         }
         .background(Color(.systemGroupedBackground))
         .scrollEdgeEffectStyle(.soft, for: .all)
+    }
+
+    /// Los avisos y los tres pasos viven en `BorradoDeCuenta`, junto a la
+    /// sesión: esta pantalla y la del teléfono ofrecen lo mismo, y escrito dos
+    /// veces se corrige una y la otra se queda mintiendo sobre una operación
+    /// que no tiene vuelta atrás.
+    private func borrarCuenta() async {
+        borrando = true
+        errorBorrado = nil
+        do {
+            try await BorradoDeCuenta.ejecutar(sesion)
+        } catch {
+            errorBorrado = error.localizedDescription
+        }
+        borrando = false
     }
 }
 

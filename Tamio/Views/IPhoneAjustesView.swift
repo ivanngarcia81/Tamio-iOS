@@ -355,13 +355,13 @@ private struct AjustesCuentaView: View {
                     }
                     Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
                 } message: {
-                    Text(avisoConfirmacion)
+                    Text(BorradoDeCuenta.avisoCorto)
                 }
                 if let errorBorrado {
                     Text(errorBorrado).font(.caption).foregroundStyle(Paleta.negativo)
                 }
             } footer: {
-                Text(avisoBorrado)
+                Text(BorradoDeCuenta.aviso)
             }
             .listRowBackground(Color(.secondarySystemGroupedBackground))
         }
@@ -371,45 +371,14 @@ private struct AjustesCuentaView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    /// **El aviso dice la regla, no un caso.** El servidor borra la iglesia
-    /// entera SOLO si al irte no queda ningún otro perfil en ella; con más
-    /// gente dentro, la iglesia sigue y tú te vas. Y el aparato no puede saber
-    /// en cuál de los dos casos está: las políticas RLS de `perfiles` no dejan
-    /// a un aparato leer los perfiles de los demás, así que no hay forma de
-    /// contarlos. Por eso se enuncia la condición en vez de adivinarla.
-    ///
-    /// El web avisa siempre con el caso fuerte —"todos los datos de tu iglesia
-    /// en la nube"— sin la condición, así que exagera cuando quedan otros
-    /// miembros. Apuntado para el otro repo.
-    private var avisoBorrado: String {
-        L.t("Tu cuenta se elimina para siempre. Si eres la única persona con acceso a tu iglesia, se borran TAMBIÉN todos sus datos en la nube: movimientos, miembros, actas y cartas. Si hay más personas, la iglesia sigue y solo se va tu acceso.\n\nPuedes volver a registrarte con el mismo correo, pero eso crea una iglesia NUEVA y vacía: no recuperas nada. Para volver a esta tendría que invitarte un administrador.",
-            "Your account is permanently deleted. If you are the only person with access to your church, ALL of its cloud data goes too: transactions, members, minutes and letters. If there are other people, the church stays and only your access is removed.\n\nYou can sign up again with the same email, but that creates a NEW, empty church: nothing comes back. To return to this one, an administrator would have to invite you.")
-    }
-
-    /// **El diálogo dice menos que el pie, a propósito.** El pie está siempre a
-    /// la vista y puede explicarse; el diálogo es la última pregunta antes de
-    /// una acción sin vuelta, y cuatro frases ahí se leen en diagonal. Aquí van
-    /// solo las dos que cambian la decisión.
-    private var avisoConfirmacion: String {
-        L.t("Se elimina para siempre y no se puede deshacer. Si eres la única persona con acceso, se van también todos los datos de tu iglesia.",
-            "This is permanent and cannot be undone. If you are the only person with access, all of your church's data goes too.")
-    }
-
-    /// La parte de servidor la hace la Edge Function `borrar-cuenta`, que ya
-    /// existe y es la misma que usa el app web: identifica al usuario por su
-    /// JWT, borra su perfil, borra la iglesia si se queda sin nadie —el
-    /// `ON DELETE CASCADE` arrastra el resto— y elimina la cuenta de acceso.
-    ///
-    /// **El aparato se limpia solo si el servidor dijo que sí.** Al revés
-    /// —borrar primero aquí— dejaría a alguien sin sus datos locales y con la
-    /// cuenta viva si la llamada falla.
+    /// Los avisos y los tres pasos viven en `BorradoDeCuenta`, junto a la
+    /// sesión: esta pantalla y la del iPad ofrecen lo mismo, y escrito dos
+    /// veces se corrige una y la otra se queda mintiendo.
     private func borrarCuenta() async {
         borrando = true
         errorBorrado = nil
         do {
-            try await SesionSupabase.borrarCuentaEnElServidor()
-            try await BorradoMasivo.reinicioDeFabrica()
-            await sesion?.cerrarSesion()
+            try await BorradoDeCuenta.ejecutar(sesion)
         } catch {
             errorBorrado = error.localizedDescription
         }
