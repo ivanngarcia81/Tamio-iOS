@@ -279,6 +279,28 @@ medir, escrita con la seguridad de un dato y con un número inventado al lado**
 aquí se escriba un número, decir **dónde y cómo se midió**; y si no se midió,
 escribirlo como lo que es.
 
+### El "on-color" que faltaba, y los ocho que no se pueden arreglar igual
+
+Los tres colores fuertes —marca, aviso, negativo— son oscuros en claro y CLAROS
+en oscuro, a propósito: en oscuro tienen que leerse como texto sobre negro, y
+ahí dan 8.81, 10.30 y 7.57. El precio es que **el blanco ENCIMA de ellos se
+hunde**: 2.38, 2.04 y 2.78.
+
+No se arregla moviendo los colores. Se arregla con **`Paleta.sobreRelleno`**
+—blanco en claro, casi negro en oscuro—, que es el papel "on-color" que a esta
+paleta le faltaba. Aplicado a doce sitios: avatares con iniciales, el botón de
+confirmar firmas, los chips de filtro activo y la `x` de quitar filtro.
+
+**Se llamó `sobreMarca` durante un día y el nombre mentía**: en cuanto apareció
+el primer relleno rojo quedó claro que los tres tienen el mismo problema.
+
+**Y quedan OCHO que no se arreglan así**, sobre un color VARIABLE —el de una
+categoría, el de un estado—. Ahí el fondo puede ser cualquiera, así que un
+blanco encima está bien sobre unos y mal sobre otros, y un color fijo no sirve:
+haría falta elegir según la luminancia del fondo, y en SwiftUI eso no se lee de
+un `Color` sin desarmarlo. **Es un cambio de mecanismo, no una sustitución**, y
+está anotado en vez de hecho a medias.
+
 ### Lo que queda
 
 - **El verde de marca con contenido blanco no llega a 3:1** en ningún sitio
