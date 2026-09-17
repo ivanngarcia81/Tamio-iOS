@@ -5,7 +5,8 @@ paquete y las respuestas del cuestionario de App Store Connect tienen que decir
 lo mismo.** El manifiesto vive en el repo y se revisa solo; el cuestionario se
 contesta a mano en una web, se olvida, y ahí es donde se separan.
 
-Al día del **8 de septiembre de 2026**.
+Al día del **17 de septiembre de 2026**. Lo de privacidad y venta sigue siendo
+del 8-sep y no ha cambiado; lo del bundle id, la firma y la ficha es de hoy.
 
 ## Privacidad · qué contestar
 
@@ -77,11 +78,43 @@ borrado **destruye la demo entera** (la Edge Function borra la iglesia en
 cascada cuando se queda sin perfiles) y hay que rehacerla para la siguiente
 ronda.
 
+## El bundle id, y la ficha · CERRADO el 17-sep-2026
+
+**`church.tamio.native`, ficha NUEVA.** Ya no es provisional y esa línea de
+`project.yml` no se toca. El razonamiento entero está ahí, en su comentario; en
+corto: la publicada es gratis, sin cuenta y local, y mandarle esta encima como
+actualización rompe la app a quien la tenga, sin nada que migrar.
+
+**Lo que se registró en la cuenta de Apple al exportar** (17-sep):
+
+- App ID `4N9XEU7F4P.church.tamio.native`.
+- Perfil `iOS Team Store Provisioning Profile: church.tamio.native`, hasta el
+  25 de julio de 2027.
+
+**Y el error que sale si se sube antes de crear la ficha**, que cuesta un rato
+entender porque suena a problema de firma y no lo es:
+
+    Could not create a temporary .itmsp package for the app "Tamio.ipa".
+    No suitable application records were found. Verify your bundle identifier
+    "church.tamio.native" is correct.
+
+El App ID del portal de desarrollador y la FICHA de App Store Connect son dos
+cosas distintas. El primero sirve para firmar; a la segunda se sube el binario,
+y hay que crearla a mano: Apps → `+` → Nueva app, con ese bundle id en el
+desplegable.
+
+**El nombre de la ficha es único en toda la tienda.** Si la app de Tauri ya
+ocupa "Tamio", esta necesita otro o hay que renombrar aquella primera.
+
+**La vieja no se borra.** Sigue publicada y funcionando; la mudanza se hace
+cuando haya a quién mudar, con una última actualización suya que diga dónde
+está esta. Borrarla deja tirado a quien la tenga.
+
 ## Antes de la primera subida
 
-- **El bundle id.** Hoy `church.tamio.native`. Si la app se sube a la ficha de
-  `com.tesoreria.app` para reemplazar a la de Tauri, tiene que decir eso — una
-  app publicada no cambia de id nunca. Ver §0.-2 del traspaso.
-- **El número de compilación.** `CURRENT_PROJECT_VERSION` es `1`. Si se hereda
-  aquella ficha, hay que ponerlo por encima del más alto ya subido allí.
+- ~~El bundle id.~~ **Cerrado el 17-sep**, arriba.
+- **El número de compilación.** `CURRENT_PROJECT_VERSION` es `1`, y con ficha
+  nueva `1.0.0 (1)` es correcto. Lo que sí hay que recordar: **cada subida a
+  App Store Connect necesita un número MAYOR que el anterior**, aunque la
+  anterior se rechazara o se borrara. El primero que se suba quema el `1`.
 - **Las capturas y el texto de la ficha**, que no están en este repo.

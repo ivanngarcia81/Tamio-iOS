@@ -26,25 +26,27 @@ targets:
       - path: Tamio
     settings:
       base:
-        # **Id propio, y a propósito, MIENTRAS TANTO.** Decidido con Iván el
-        # 8-sep-2026.
+        # **Id definitivo. Ficha NUEVA. Decidido con Iván el 17-sep-2026.**
         #
-        # Ya hay una app publicada: `com.tesoreria.app`, la de Tauri del repo
-        # `Tamio-app`, en App Store desde el 13 de agosto de 2026 y hoy en
-        # TestFlight con la 1.3.5. Esta app nativa está llamada a REEMPLAZARLA
-        # y a salir como la 2.0.
+        # Estuvo desde el 8-sep como provisional, a la espera de decidir si
+        # esta app heredaba la ficha de `com.tesoreria.app` —la de Tauri del
+        # repo `Tamio-app`, publicada el 13 de agosto de 2026 y hoy con la
+        # 1.3.5 en TestFlight— y salía como su 2.0. **Ya no: se queda aparte
+        # para siempre.**
         #
-        # **Y ahí está el nudo: una app publicada no puede cambiar de bundle
-        # id.** "2.0 de esa misma app" y "id propio" no pueden ser las dos
-        # verdad el día de la subida. El día que se suba a esa ficha, esto
-        # tiene que decir `com.tesoreria.app` — no hay segunda oportunidad, y
-        # equivocarse crea una app distinta para siempre.
+        # El porqué, que es el mismo que lo tenía aparcado: la publicada es
+        # gratis, sin cuenta y 100% local; la nativa exige cuenta y guarda en
+        # un servidor. Mandarla como actualización despierta a quien tenga la
+        # vieja con una pantalla de acceso que no puede pasar y sus libros
+        # detrás —viven en SU aparato, y aquí se lee de Supabase: no migra
+        # nada—. No es una versión nueva de esa app: es otra app.
         #
-        # Se queda aparte por ahora porque la nativa EXIGE cuenta y la
-        # publicada salió gratis, sin login y 100% local para pasar la
-        # revisión: mandarla como actualización a esos usuarios les rompe la
-        # app que tienen. Eso se resuelve antes, no con un ajuste de
-        # compilación.
+        # **Y una se deshace y la otra no.** Con ficha nueva la vieja sigue
+        # funcionando y las iglesias se mudan cuando les toca. Al revés no hay
+        # vuelta: una app publicada no cambia de bundle id nunca.
+        #
+        # Lo que esto obliga a NO hacer: cambiar esta línea. Ya no es un
+        # "mientras tanto".
         PRODUCT_BUNDLE_IDENTIFIER: church.tamio.native
         # **Firma, y lo que NO se puede hacer aquí.** El `.pbxproj` decía
         # `iPhone Developer`, que es el nombre de antes de Xcode 11. Hoy la
