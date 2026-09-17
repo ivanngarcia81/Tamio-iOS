@@ -243,6 +243,30 @@ código: dos las vio Iván en una captura. Cuando aquí se escriba una regla, de
 también **a qué NO se ha mirado todavía**.
 
 
+### Un parche que esquivaba un problema que no existía
+
+Cuatro `ShareLink` de "Compartir" en las previas de PDF llevaban
+`.buttonStyle(.glass)` puesto a propósito para BAJAR del prominente que el
+sistema pone en una `confirmationAction`. El motivo estaba escrito: *"un
+símbolo blanco sobre `Paleta.brand` da ~2.4:1 en oscuro"*.
+
+**Falso, y nunca medido.** En un botón prominente de barra el sistema escoge él
+el color de encima: claro, **blanco** sobre el verde oscuro (6.28:1); oscuro,
+**NEGRO** sobre el verde claro (9.01:1). Durante semanas la acción principal de
+una previa de PDF estuvo sin su énfasis para esquivar algo que no pasaba.
+
+De paso quedó comprobado que los cinco **"Listo" / "Guardar" con
+`.glassProminent` NO son cristal sobre cristal**: en la captura se ve una sola
+cápsula rellena. `.glassProminent` sustituye el estilo, no lo apila. El hallazgo
+del cristal doble se cierra en **diecinueve** botones, no en veinticuatro.
+
+**Y es el CUARTO caso del mismo patrón en un día, el peor de los cuatro.** Los
+tres anteriores eran verdades mal extrapoladas. Este era **una suposición sin
+medir, escrita con la seguridad de un dato y con un número inventado al lado**
+—ese "~2.4:1"—, y sobrevivió precisamente porque parecía una medición. Cuando
+aquí se escriba un número, decir **dónde y cómo se midió**; y si no se midió,
+escribirlo como lo que es.
+
 ### Lo que queda
 
 - **El verde de marca con contenido blanco no llega a 3:1** en ningún sitio
