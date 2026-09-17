@@ -1162,6 +1162,13 @@ private struct NuevoMiembroSheet: View {
         + (m.iglesiaAnterior.isEmpty ? 0 : 1) + (tieneCongrega ? 1 : 0)
     }
 
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    private var faltan: [String] {
+        m.nombre.trimmingCharacters(in: .whitespaces).isEmpty
+            ? [L.t("el nombre", "the name")] : []
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -1264,18 +1271,21 @@ private struct NuevoMiembroSheet: View {
             }
             .navigationTitle(miembroExistente != nil ? L.t("Editar miembro", "Edit member") : L.t("Nuevo miembro", "New member"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(miembroExistente != nil ? L.t("Guardar cambios", "Save changes") : L.t("Guardar", "Save")) {
+                        guard faltan.isEmpty else {
+                            withAnimation(.snappy) { mostrarFaltan = true }; return
+                        }
                         onGuardar(construirMiembro())
                         dismiss()
                     }
                     .fontWeight(.semibold)
-                    .foregroundStyle(puedeGuardar ? Paleta.brand : .secondary)
-                    .disabled(!puedeGuardar)
+                    .tint(Paleta.brand)
                 }
             }
         }

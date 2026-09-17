@@ -28,6 +28,12 @@ struct NuevoCorteView: View {
         titulo.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    private var faltan: [String] {
+        tituloLimpio.isEmpty ? [L.t("el título del corte", "the cut title")] : []
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -44,12 +50,16 @@ struct NuevoCorteView: View {
             }
             .navigationTitle(L.t("Nuevo corte", "New cut"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.t("Crear", "Create")) {
+                        guard faltan.isEmpty else {
+                            withAnimation(.snappy) { mostrarFaltan = true }; return
+                        }
                         onGuardar(tituloLimpio, cuenta)
                         dismiss()
                     }

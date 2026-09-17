@@ -173,6 +173,12 @@ struct MapearColumnasView: View {
         CSVLector.faltantes(mapeo, campos: campos)
     }
 
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    /// Aquí la lista ya existía —`faltantes` son las columnas sin asignar— y aun
+    /// así el botón solo se apagaba: había que ir mirando fila por fila cuál era.
+    private var faltan: [String] { faltantes.map(\.rotulo) }
+
     var body: some View {
         NavigationStack {
             List {
@@ -197,16 +203,19 @@ struct MapearColumnasView: View {
             // subtítulo de la sección ya dice de qué va.
             .navigationTitle(L.t("Columnas", "Columns"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { cerrar() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.t("Continuar", "Continue")) {
+                        guard faltan.isEmpty else {
+                            withAnimation(.snappy) { mostrarFaltan = true }; return
+                        }
                         alContinuar(CSVLector.aplicar(mapeo, a: documento, campos: campos))
                         cerrar()
                     }
-                    .disabled(!faltantes.isEmpty)
                 }
             }
             // La sugerencia se calcula una vez, al abrir: recalcularla en cada

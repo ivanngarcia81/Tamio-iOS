@@ -8,6 +8,13 @@ struct NuevaNotaView: View {
     let onGuardar: (_ texto: String, _ area: ApunteArea) -> Void
 
     @State private var texto = ""
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    private var faltan: [String] {
+        texto.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? [L.t("el texto de la nota", "the note text")] : []
+    }
+
     @State private var area: ApunteArea = .tesoreria
 
     var body: some View {
@@ -39,12 +46,16 @@ struct NuevaNotaView: View {
             }
             .navigationTitle(L.t("Escribir una nota", "Write a note"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.t("Guardar", "Save")) {
+                        guard faltan.isEmpty else {
+                            withAnimation(.snappy) { mostrarFaltan = true }; return
+                        }
                         onGuardar(texto.trimmingCharacters(in: .whitespacesAndNewlines), area)
                         dismiss()
                     }

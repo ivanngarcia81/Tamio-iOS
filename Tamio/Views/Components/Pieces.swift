@@ -435,3 +435,31 @@ struct AvisoFaltan: View {
         return L.t("Faltan \(todos) y \(ultimo)", "\(todos) and \(ultimo) are missing")
     }
 }
+
+extension View {
+    /// **El aviso de lo que falta, en una línea por formulario.**
+    ///
+    /// Va colgado de una `safeAreaBar` para que salga siempre en el mismo sitio
+    /// —pegado abajo, sobre el teclado si lo hay— independientemente de si el
+    /// formulario es un `Form`, una `List` o un `ScrollView`. Con veinte
+    /// pantallas que arreglar, lo que no puede pasar es que el aviso aparezca en
+    /// un sitio distinto en cada una.
+    ///
+    /// Lleva su propio `.glassEffect`: una `safeAreaBar` no pinta nada, y esto
+    /// es texto desnudo (ver la nota de los pies de columna del 16-sep). Y se
+    /// colapsa a cero cuando no hay nada que decir.
+    func avisoDeFaltantes(_ faltan: [String], visible: Bool) -> some View {
+        safeAreaBar(edge: .bottom, spacing: 0) {
+            if visible && !faltan.isEmpty {
+                AvisoFaltan(faltan: faltan)
+                    .padding(.horizontal, Esp.pantalla)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .glassEffect(.regular, in: .capsule)
+                    .padding(.horizontal, Esp.chip)
+                    .padding(.bottom, 6)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+    }
+}

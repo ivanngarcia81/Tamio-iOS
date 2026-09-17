@@ -33,6 +33,13 @@ struct EditarRecurrenteView: View {
         _dia = State(initialValue: recurrente.dia)
     }
 
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    private var faltan: [String] {
+        (Money.desdeTexto(importe) ?? 0) <= 0
+            ? [L.t("un importe mayor que cero", "an amount greater than zero")] : []
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -83,13 +90,16 @@ struct EditarRecurrenteView: View {
             }
             .navigationTitle(L.t("Editar recurrente", "Edit recurring"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L.t("Guardar", "Save")) { guardar() }
-                        .disabled((Money.desdeTexto(importe) ?? 0) <= 0)
+                    Button(L.t("Guardar", "Save")) {
+                        if faltan.isEmpty { guardar() }
+                        else { withAnimation(.snappy) { mostrarFaltan = true } }
+                    }
                 }
             }
             .confirmationDialog(L.t("Dejar de repetir", "Stop repeating"),

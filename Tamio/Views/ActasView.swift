@@ -479,6 +479,12 @@ private struct NuevaActaSheet: View {
 
     private var guardadoHabilitado: Bool { !tituloCustom.isEmpty }
 
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    private var faltan: [String] {
+        tituloCustom.isEmpty ? [L.t("el título del acta", "the minutes title")] : []
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -491,18 +497,21 @@ private struct NuevaActaSheet: View {
             }
             .navigationTitle(L.t("Nueva acta", "New minutes"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.t("Guardar acta", "Save minutes")) {
+                        guard faltan.isEmpty else {
+                            withAnimation(.snappy) { mostrarFaltan = true }; return
+                        }
                         onGuardar(construir())
                         dismiss()
                     }
                     .fontWeight(.semibold)
-                    .foregroundStyle(guardadoHabilitado ? Paleta.brand : Color.secondary)
-                    .disabled(!guardadoHabilitado)
+                    .tint(Paleta.brand)
                 }
             }
         }

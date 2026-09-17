@@ -42,6 +42,12 @@ struct HojaFirma: View {
     /// que es lo que distingue "he firmado" de "he borrado".
     private var vacio: Bool { trazos == 0 || lienzo.drawing.strokes.isEmpty }
 
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    private var faltan: [String] {
+        vacio ? [L.t("dibujar la firma", "drawing the signature")] : []
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: Esp.pantalla) {
@@ -115,13 +121,16 @@ struct HojaFirma: View {
             .padding(.top, Esp.pantalla)
             .navigationTitle(firmante.titulo)
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L.t("Guardar", "Save")) { guardarDibujo() }
-                        .disabled(vacio)
+                    Button(L.t("Guardar", "Save")) {
+                        if faltan.isEmpty { guardarDibujo() }
+                        else { withAnimation(.snappy) { mostrarFaltan = true } }
+                    }
                 }
             }
             .fileImporter(isPresented: $mostrarArchivos,

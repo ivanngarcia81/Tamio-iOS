@@ -68,6 +68,19 @@ struct SegundaFirmaView: View {
         !nombreLimpio.isEmpty && (modo == .revision || veredicto?.cuadra == true)
     }
 
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    /// Dos cosas distintas pueden faltar aquí, y antes las dos daban el mismo
+    /// botón gris: quién firma, y —en modo conteo— que la cifra cuadre.
+    private var faltan: [String] {
+        var f: [String] = []
+        if nombreLimpio.isEmpty { f.append(L.t("el nombre de quien firma", "the signer's name")) }
+        if modo != .revision && veredicto?.cuadra != true {
+            f.append(L.t("que la cifra contada cuadre", "the counted figure to match"))
+        }
+        return f
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -93,18 +106,21 @@ struct SegundaFirmaView: View {
             }
             .navigationTitle(L.t("Segunda firma", "Second signature"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.t("Firmar", "Sign")) {
+                        guard faltan.isEmpty else {
+                            withAnimation(.snappy) { mostrarFaltan = true }; return
+                        }
                         onFirmar(nombreLimpio, cargo, modo,
                                  modo == .conteo ? veredicto?.cifra : nil)
                         dismiss()
                     }
                     .fontWeight(.semibold).tint(Paleta.brand)
-                    .disabled(!listo)
                 }
             }
         }

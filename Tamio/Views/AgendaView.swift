@@ -684,6 +684,13 @@ private struct NuevoEventoSheet: View {
     let onGuardar: (EventoAgenda) -> Void
 
     @State private var titulo = ""
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    private var faltan: [String] {
+        titulo.trimmingCharacters(in: .whitespaces).isEmpty
+            ? [L.t("el título de la actividad", "the activity title")] : []
+    }
+
     @State private var tipo: TipoEvento = .culto
     @State private var fechaEvento: Date
     @State private var todoDia = false
@@ -853,16 +860,19 @@ private struct NuevoEventoSheet: View {
             }
             .navigationTitle(L.t("Nueva actividad", "New activity"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L.t("Guardar actividad", "Save activity")) { guardar() }
-                        .fontWeight(.semibold)
-                        .foregroundStyle(titulo.trimmingCharacters(in: .whitespaces).isEmpty
-                                         ? .secondary : Paleta.brand)
-                        .disabled(titulo.trimmingCharacters(in: .whitespaces).isEmpty)
+                    // Responde siempre: si falta el título, lo dice.
+                    Button(L.t("Guardar actividad", "Save activity")) {
+                        if faltan.isEmpty { guardar() }
+                        else { withAnimation(.snappy) { mostrarFaltan = true } }
+                    }
+                    .fontWeight(.semibold)
+                    .tint(Paleta.brand)
                 }
             }
         }

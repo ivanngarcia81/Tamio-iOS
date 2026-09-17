@@ -33,6 +33,12 @@ struct NuevoParienteView: View {
         catalogo.first { $0.id == miembroId }
     }
 
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    private var faltan: [String] {
+        elegido == nil ? [L.t("elegir a la persona", "choosing the person")] : []
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -65,13 +71,16 @@ struct NuevoParienteView: View {
             }
             .navigationTitle(L.t("Añadir pariente", "Add relative"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.t("Guardar", "Save")) {
-                        guard let elegido else { return }
+                        guard let elegido else {
+                            withAnimation(.snappy) { mostrarFaltan = true }; return
+                        }
                         // El id es el de la FILA, no el de la persona: usar el
                         // del pariente convertía en una sola dos relaciones
                         // distintas —y al quitar una se iba la otra.
@@ -81,7 +90,6 @@ struct NuevoParienteView: View {
                     }
                     .fontWeight(.semibold)
                     .tint(Paleta.brand)
-                    .disabled(elegido == nil)
                 }
             }
             .task { catalogo = (try? await catalogoAportantes().activos()) ?? [] }

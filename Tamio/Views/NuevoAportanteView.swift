@@ -9,6 +9,13 @@ struct NuevoAportanteView: View {
     private let onGuardar: (Aportante) -> Void
 
     @State private var nombre: String
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    private var faltan: [String] {
+        nombre.trimmingCharacters(in: .whitespaces).isEmpty
+            ? [L.t("el nombre", "the name")] : []
+    }
+
     @State private var rol: String
     @State private var miembroDesde: String
     @State private var telefono: String
@@ -70,14 +77,17 @@ struct NuevoAportanteView: View {
             }
             .navigationTitle(editando ? L.t("Editar aportante", "Edit contributor") : L.t("Nuevo aportante", "New contributor"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L.t("Guardar", "Save")) { guardar() }
-                        .fontWeight(.semibold).tint(Paleta.brand)
-                        .disabled(nombre.trimmingCharacters(in: .whitespaces).isEmpty)
+                    Button(L.t("Guardar", "Save")) {
+                        if faltan.isEmpty { guardar() }
+                        else { withAnimation(.snappy) { mostrarFaltan = true } }
+                    }
+                    .fontWeight(.semibold).tint(Paleta.brand)
                 }
             }
         }

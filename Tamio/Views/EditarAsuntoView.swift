@@ -71,6 +71,13 @@ struct EditarAsuntoView: View {
         r.campos.first { $0.label == L.t("Folio", "Folio") }?.valor ?? ""
     }
 
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    private var faltan: [String] {
+        (Money.desdeTexto(importe) ?? 0) <= 0
+            ? [L.t("un importe mayor que cero", "an amount greater than zero")] : []
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -125,10 +132,14 @@ struct EditarAsuntoView: View {
             }
             .navigationTitle(r.esGasto ? L.t("Editar gasto", "Edit expense") : L.t("Editar ingreso", "Edit income"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(L.t("Cancelar", "Cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.t("Guardar cambios", "Save changes")) {
+                        guard faltan.isEmpty else {
+                            withAnimation(.snappy) { mostrarFaltan = true }; return
+                        }
                         onGuardar(concepto, importe, categoria, metodo,
                                   r.esGasto ? nil : aportante, fecha)
                         dismiss()
@@ -139,7 +150,6 @@ struct EditarAsuntoView: View {
                     // viajaba sin que nadie lo leyera nunca. Y el concepto ya
                     // no apaga el botón: es la nota, y una nota vacía es
                     // legítima —la hoja de alta tampoco la exige—.
-                    .disabled((Money.desdeTexto(importe) ?? 0) <= 0)
                 }
             }
         }
