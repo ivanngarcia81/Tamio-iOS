@@ -90,8 +90,6 @@ struct InformesMembresiaView: View {
         }
         ToolbarItem(placement: .topBarTrailing) { botonFiltros }
         ToolbarItem(placement: .topBarTrailing) { menuAcciones }
-        ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        ToolbarItem(placement: .topBarTrailing) { botonCompartir }
     }
 
     // MARK: - Columna maestra (iPad)
@@ -211,17 +209,31 @@ struct InformesMembresiaView: View {
     /// Las dos acciones, en la fila compacta de iconos que Fotos enseña arriba
     /// de su menú. Sin `.compactMenu` saldrían como dos filas normales, que es
     /// lo que eran antes.
+    /// **Las tres salidas del informe, en un sitio y con nombre.**
+    ///
+    /// La flecha de compartir vivía suelta en la barra, al lado de este menú. Lo
+    /// señaló Iván: desde fuera parecía que hacía lo mismo que el CSV. Y casi:
+    /// los dos acaban en la hoja de compartir, solo que uno manda TEXTO —para
+    /// pegar en un mensaje— y el otro un ARCHIVO .csv —para abrir en una hoja de
+    /// cálculo—. La diferencia existe y era invisible.
+    ///
+    /// Ahora hay una sola puerta con tres destinos nombrados. Y **no van como
+    /// `ControlGroup(.compactMenu)`**, que es como estaban Imprimir y CSV: ese
+    /// estilo los dibuja como una fila de ICONOS, y un icono de tabla al lado de
+    /// una flecha vuelve a dejar la diferencia sin decir. Con el nombre escrito,
+    /// se lee "Compartir texto" y "Descargar CSV".
     private var menuAcciones: some View {
         Menu {
-            ControlGroup {
-                Button { imprimirInforme() } label: {
-                    Label(L.t("Imprimir", "Print"), systemImage: "printer")
-                }
-                Button { prepararCSV() } label: {
-                    Label(L.t("CSV", "CSV"), systemImage: "tablecells")
-                }
+            ShareLink(item: vm.textoInforme) {
+                Label(L.t("Compartir texto", "Share as text"),
+                      systemImage: "square.and.arrow.up")
             }
-            .controlGroupStyle(.compactMenu)
+            Button { prepararCSV() } label: {
+                Label(L.t("Descargar CSV", "Download CSV"), systemImage: "tablecells")
+            }
+            Button { imprimirInforme() } label: {
+                Label(L.t("Imprimir", "Print"), systemImage: "printer")
+            }
         } label: {
             Label(L.t("Más", "More"), systemImage: "ellipsis")
         }
@@ -233,13 +245,6 @@ struct InformesMembresiaView: View {
     /// Compartir el informe como texto, que es lo que se pega en un mensaje.
     /// Es otra cosa que imprimir —que va al papel— y que exportar —que da un
     /// archivo—, y por eso va en su propio grupo.
-    private var botonCompartir: some View {
-        ShareLink(item: vm.textoInforme) {
-            Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
-        }
-        .disabled(vm.informeSeleccionado != 0)
-    }
-
     /// Un traslado en el teléfono: dos renglones y nada fuera de la pantalla.
     ///
     /// El folio va con la persona y no en su propia columna —es su
