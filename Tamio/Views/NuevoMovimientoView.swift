@@ -58,6 +58,8 @@ struct NuevoMovimientoView: View {
     /// El importe es el primer campo: se enfoca al presentar la hoja para que
     /// salga el teclado y se lea como editable y no como texto gris estático.
     @FocusState private var importeEnfocado: Bool
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
 
     init(tipo: TipoMovimiento, folio: String, existente: Movimiento?,
          onGuardar: @escaping (Movimiento) -> Void,
@@ -164,8 +166,28 @@ struct NuevoMovimientoView: View {
     /// Es la misma condición que `EditarRecurrenteView` ya usaba —
     /// `(Money.desdeTexto(importe) ?? 0) <= 0`—, que era la única pantalla de
     /// dinero que lo hacía bien.
-    private var guardadoHabilitado: Bool {
-        (montoTecleado ?? 0) > 0 && !categoria.isEmpty && (tipo == .ingreso || !pagadoA.isEmpty)
+    private var guardadoHabilitado: Bool { faltan.isEmpty }
+
+    /// **Lo que falta, con el nombre que se ve en la pantalla.**
+    ///
+    /// Antes esto era una sola condición de tres partes y el botón solo se
+    /// apagaba: había que adivinar cuál de las tres. Lo dijo Iván usando la
+    /// app. Ahora la misma regla nombra lo que falta, en el orden en que
+    /// aparece en el formulario.
+    private var faltan: [String] {
+        var f: [String] = []
+        if (montoTecleado ?? 0) <= 0 { f.append(L.t("el importe", "the amount")) }
+        if categoria.isEmpty { f.append(L.t("la categoría", "the category")) }
+        if tipo == .gasto && pagadoA.isEmpty { f.append(L.t("a quién se pagó", "who it was paid to")) }
+        return f
+    }
+
+    /// Enciende el aviso y lleva el foco al primer campo que falta. Se llama al
+    /// PULSAR, no al abrir: un formulario que empieza gritando en rojo regaña
+    /// antes de que nadie haya hecho nada.
+    private func avisarDeLoQueFalta() {
+        withAnimation(.snappy) { mostrarFaltan = true }
+        if (montoTecleado ?? 0) <= 0 { importeEnfocado = true }
     }
 
     var body: some View {
@@ -210,10 +232,16 @@ struct NuevoMovimientoView: View {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(L.t("Guardar", "Save")) { guardar() }
-                        .fontWeight(.semibold)
-                        .tint(Paleta.brand)
-                        .disabled(!guardadoHabilitado)
+                    // **Sin `.disabled`.** Responde siempre: si falta algo lo
+                    // dice y lleva al campo. Es la decisión que ya tomó la
+                    // configuración inicial —"no se maquilla el botón apagado,
+                    // se quita el motivo de apagarlo"— y que no se había
+                    // llevado a los otros diecinueve formularios.
+                    Button(L.t("Guardar", "Save")) {
+                        if guardadoHabilitado { guardar() } else { avisarDeLoQueFalta() }
+                    }
+                    .fontWeight(.semibold)
+                    .tint(Paleta.brand)
                 }
             }
             .fileImporter(isPresented: $mostrarImportador,
@@ -392,12 +420,17 @@ struct NuevoMovimientoView: View {
     @ViewBuilder
     private var seccionGuardarOtro: some View {
         Section {
-            Button(action: guardarYAgregar) {
+            Button {
+                if guardadoHabilitado { guardarYAgregar() } else { avisarDeLoQueFalta() }
+            } label: {
                 Text(L.t("Guardar y agregar otro", "Save and add another"))
                     .frame(maxWidth: .infinity)
-                    .foregroundStyle(guardadoHabilitado ? Paleta.brand : Color.secondary)
+                    .foregroundStyle(Paleta.brand)
             }
-            .disabled(!guardadoHabilitado)
+        } footer: {
+            // El aviso vive aquí, pegado a los botones y bajo el formulario
+            // entero, que es donde se mira cuando algo no pasa.
+            if mostrarFaltan { AvisoFaltan(faltan: faltan) }
         }
     }
 

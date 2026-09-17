@@ -392,3 +392,46 @@ extension ButtonStyle where Self == TarjetaPulsable {
     static var tarjeta: TarjetaPulsable { TarjetaPulsable() }
     static func tarjeta(hunde: Bool) -> TarjetaPulsable { TarjetaPulsable(hunde: hunde) }
 }
+
+/// **El aviso de lo que falta para poder guardar.**
+///
+/// Nace de algo que dijo Iván usando la app: *"a veces uno le quiere dar save y
+/// no salva porque quedan cosas incompletas… uno tiene que estar adivinando qué
+/// hace falta"*. De veinte formularios con el botón de guardar apagado, solo uno
+/// decía por qué.
+///
+/// La forma la decidió antes esta misma app, en la configuración inicial: **no
+/// se maquilla el botón apagado, se quita el motivo de apagarlo**. El botón
+/// responde siempre; si falta algo, lo DICE en rojo y lleva el foco al campo.
+/// Una cápsula que parece botón y no responde promete algo que no cumple.
+///
+/// Se pasa la lista de lo que falta, ya nombrado como el usuario lo ve en la
+/// pantalla —"Importe", "Categoría"—, no el nombre de la variable.
+struct AvisoFaltan: View {
+    let faltan: [String]
+
+    var body: some View {
+        if !faltan.isEmpty {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.caption)
+                Text(texto)
+                    .font(.footnote)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // `Paleta.negativo`, que desde el 17-sep pasa el 4.5:1 en claro.
+            .foregroundStyle(Paleta.negativo)
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// "Falta el Importe" · "Faltan Importe y Categoría" · "Faltan A, B y C".
+    private var texto: String {
+        if faltan.count == 1 {
+            return L.t("Falta \(faltan[0])", "\(faltan[0]) is missing")
+        }
+        let todos = faltan.dropLast().joined(separator: ", ")
+        let ultimo = faltan[faltan.count - 1]
+        return L.t("Faltan \(todos) y \(ultimo)", "\(todos) and \(ultimo) are missing")
+    }
+}
