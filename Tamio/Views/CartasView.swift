@@ -42,21 +42,6 @@ struct CartasView: View {
                 vm.nuevaCarta(datos)
             }
         }
-        .sheet(isPresented: $mostrarPrevia) {
-            VistaPreviaSheet(carta: vm.carta,
-                             tipo: vm.plantillaSeleccionada,
-                             cuerpo: cuerpoPlantilla)
-        }
-        .alert(firmaAlertTitulo, isPresented: $mostrarFirmaAlert) {
-            if vm.carta.camposCompletos < vm.carta.camposTotales {
-                Button(L.t("Aceptar", "OK"), role: .cancel) { }
-            } else {
-                Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
-                Button(L.t("Firmar y emitir", "Sign & issue")) { Task { await vm.emitirCarta() } }
-            }
-        } message: {
-            Text(firmaAlertMensaje)
-        }
     }
 
     // MARK: - Pantalla
@@ -691,6 +676,31 @@ struct CartasView: View {
             .padding(Esp.panel)
         }
         .background(Color(.systemGroupedBackground))
+        // **La alerta y la previa cuelgan del EDITOR, no de la raíz.**
+        //
+        // Estaban en la vista raíz de `CartasView`, y el botón que las dispara
+        // vive aquí, en una pantalla EMPUJADA con `navigationDestination`. Una
+        // alerta colgada de una vista que ya no es la de arriba no se presenta:
+        // se queda esperando. El síntoma que vio Iván es exactamente ese —tocar
+        // "Firmar y enviar" no hacía nada, y el aviso aparecía de golpe al
+        // volver atrás, encima del carrusel de plantillas—.
+        //
+        // La previa tenía el mismo defecto de origen y se mueve con ella.
+        .sheet(isPresented: $mostrarPrevia) {
+            VistaPreviaSheet(carta: vm.carta,
+                             tipo: vm.plantillaSeleccionada,
+                             cuerpo: cuerpoPlantilla)
+        }
+        .alert(firmaAlertTitulo, isPresented: $mostrarFirmaAlert) {
+            if vm.carta.camposCompletos < vm.carta.camposTotales {
+                Button(L.t("Aceptar", "OK"), role: .cancel) { }
+            } else {
+                Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
+                Button(L.t("Firmar y emitir", "Sign & issue")) { Task { await vm.emitirCarta() } }
+            }
+        } message: {
+            Text(firmaAlertMensaje)
+        }
     }
 
     private var cuerpoPlantilla: String {
