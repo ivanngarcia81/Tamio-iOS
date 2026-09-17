@@ -46,6 +46,29 @@ targets:
         # app que tienen. Eso se resuelve antes, no con un ajuste de
         # compilación.
         PRODUCT_BUNDLE_IDENTIFIER: church.tamio.native
+        # **Firma, y lo que NO se puede hacer aquí.** El `.pbxproj` decía
+        # `iPhone Developer`, que es el nombre de antes de Xcode 11. Hoy la
+        # identidad se llama `Apple Development` y es la que va en las DOS
+        # configuraciones.
+        #
+        # Y no, en Release no se pone `Apple Distribution`. Se probó el 17 de
+        # septiembre de 2026 y `xcodebuild` lo rechaza de plano:
+        #
+        #     error: Tamio has conflicting provisioning settings. Tamio is
+        #     automatically signed for development, but a conflicting code
+        #     signing identity Apple Distribution has been manually specified.
+        #
+        # Con firma AUTOMÁTICA el archivo se firma de desarrollo a propósito
+        # —lleva `get-task-allow` y su lista de aparatos— y quien pone la firma
+        # de distribución es el paso de EXPORTAR: `xcodebuild -exportArchive`
+        # con `method: app-store-connect`, o "Distribute App" del Organizer.
+        # Vuelve a firmar el paquete entero. Fijarlo aquí solo rompe el
+        # archivo; no adelanta nada.
+        #
+        # Firmar de distribución desde el archivo pediría `CODE_SIGN_STYLE:
+        # Manual` y nombrar un perfil concreto en el proyecto, que es lo que se
+        # hace en un servidor de integración y no lo que hace falta aquí.
+        CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: YES
         # Se MEZCLA con el plist generado. Solo lleva `CFBundleLocalizations`,
         # que no tiene ajuste `INFOPLIST_KEY_` y no hay otra forma de poner.
