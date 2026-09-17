@@ -53,20 +53,22 @@ enum Paleta {
     }
 
     static let brand = Color("TamioBrand")
-    /// **Lo que va ENCIMA de un relleno de marca**, y no `.white` a secas.
+    /// **Lo que va ENCIMA de un relleno vivo**, y no `.white` a secas.
     ///
-    /// El verde de marca es oscuro en claro y CLARO en oscuro —a propósito: en
-    /// oscuro tiene que leerse como texto sobre negro, y ahí da 8.81:1—. El
-    /// precio es que el blanco encima se hunde: medido en el iPad físico el
-    /// 16-sep, el símbolo del botón de contar daba **2.30:1**, cuando un
-    /// símbolo de ese tamaño pide 3:1.
+    /// Los tres colores fuertes de la paleta —marca, aviso y negativo— son
+    /// oscuros en claro y CLAROS en oscuro, a propósito: en oscuro tienen que
+    /// leerse como texto sobre negro, y ahí dan 8.81:1, 10.30:1 y 7.57:1. El
+    /// precio es que el blanco ENCIMA de ellos se hunde: 2.38, 2.04 y 2.78.
     ///
-    /// No se arregla moviendo el verde: haría ilegible el texto verde sobre
-    /// negro, que es su otro trabajo. Se arregla cambiando lo que va encima.
-    /// Blanco en claro (5.36:1) y casi negro en oscuro (8.5:1 sobre el verde
-    /// claro). Es el papel "on-color" de cualquier sistema de diseño, que aquí
-    /// faltaba.
-    static let sobreMarca = Color("TamioSobreMarca")
+    /// No se arregla moviendo los colores —haría ilegible el texto de color
+    /// sobre negro, que es su otro trabajo—. Se arregla cambiando lo que va
+    /// encima: blanco en claro y casi negro en oscuro. Con eso los mismos tres
+    /// pasan a 6.4:1, 7.3:1 y 6.5:1 en claro, y a ~8.8:1 en oscuro.
+    ///
+    /// Es el papel "on-color" de cualquier sistema de diseño, que aquí faltaba.
+    /// **Sirve para los tres**, y por eso no se llama `sobreMarca`: se probó ese
+    /// nombre primero y mentía en cuanto apareció el primer relleno rojo.
+    static let sobreRelleno = Color("TamioSobreRelleno")
     /// Fondo de lo seleccionado: filas, píldoras de filtro, cabecera de nav.
     static let brandFill = Color("TamioBrandFill")
     /// Verde atenuado de las barras secundarias (meses que no son el último).

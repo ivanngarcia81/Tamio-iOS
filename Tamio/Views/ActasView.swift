@@ -831,7 +831,7 @@ private struct FirmasSheet: View {
                                 Text(L.t("Confirmar firmas · cambiar a Firmada",
                                           "Confirm signatures · mark as Signed"))
                             }
-                            .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(Paleta.sobreRelleno)
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
                             .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 12))
                         }

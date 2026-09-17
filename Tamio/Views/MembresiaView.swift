@@ -308,7 +308,7 @@ struct MembresiaView: View {
                 if filtrosActivos > 0 {
                     Text("\(filtrosActivos)")
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Paleta.sobreRelleno)
                         .frame(minWidth: 16, minHeight: 16)
                         .background(Paleta.brand, in: Circle())
                 }

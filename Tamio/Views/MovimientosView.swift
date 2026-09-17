@@ -388,7 +388,7 @@ struct MovimientosView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Paleta.sobreRelleno)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(Paleta.negativo, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -739,7 +739,7 @@ struct MovimientosView: View {
     private func contador(_ n: Int) -> some View {
         Text("\(n)")
             .font(.caption2.weight(.bold))
-            .foregroundStyle(.white)
+            .foregroundStyle(Paleta.sobreRelleno)
             .frame(minWidth: 16, minHeight: 16)
             .background(Paleta.brand, in: Circle())
     }

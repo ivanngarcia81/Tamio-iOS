@@ -103,7 +103,7 @@ struct SelectorLogo: View {
         } else {
             Text(iniciales)
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Paleta.sobreRelleno)
                 .frame(width: 46, height: 46)
                 .background(Paleta.brand,
                             in: RoundedRectangle(cornerRadius: 12, style: .continuous))

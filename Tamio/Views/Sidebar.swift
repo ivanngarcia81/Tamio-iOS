@@ -215,7 +215,7 @@ struct Sidebar: View {
             HStack(spacing: 10) {
                 Text(iglesia.iniciales)
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Paleta.sobreRelleno)
                     .frame(width: 36, height: 36)
                     .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 VStack(alignment: .leading, spacing: 1) {

@@ -966,7 +966,7 @@ private struct SeccionAcceso: View {
                     let p = sesion?.perfil ?? SesionSupabase.Perfil()
                     HStack(spacing: 12) {
                         Text(p.iniciales)
-                            .font(.escalada(14, weight: .bold, relativeTo: .subheadline)).foregroundStyle(.white)
+                            .font(.escalada(14, weight: .bold, relativeTo: .subheadline)).foregroundStyle(Paleta.sobreRelleno)
                             .frame(width: 34, height: 34)
                             .background(Paleta.brand, in: Circle())
                         VStack(alignment: .leading, spacing: 1) {
@@ -1256,7 +1256,7 @@ private struct SeccionCategorias: View {
                     Divider()
                     Button { nombreNuevo = ""; creando = true } label: {
                         HStack(spacing: 12) {
-                            Text("+").font(.escalada(16, relativeTo: .body)).foregroundStyle(.white)
+                            Text("+").font(.escalada(16, relativeTo: .body)).foregroundStyle(Paleta.sobreRelleno)
                                 .frame(width: 24, height: 24)
                                 .background(Paleta.brand, in: Circle())
                             Text(labelNueva).font(.escalada(16, relativeTo: .body)).foregroundStyle(.primary)

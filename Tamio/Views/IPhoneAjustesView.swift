@@ -112,7 +112,7 @@ struct IPhoneAjustesView: View {
         let p = sesion?.perfil ?? SesionSupabase.Perfil()
         return HStack(spacing: 14) {
             Text(p.iniciales)
-                .font(.subheadline.weight(.bold)).foregroundStyle(.white)
+                .font(.subheadline.weight(.bold)).foregroundStyle(Paleta.sobreRelleno)
                 .frame(width: 44, height: 44)
                 .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
@@ -253,7 +253,7 @@ private struct AjustesCuentaView: View {
                 let p = sesion?.perfil ?? SesionSupabase.Perfil()
                 HStack(spacing: 14) {
                     Text(p.iniciales)
-                        .font(.title2.weight(.bold)).foregroundStyle(.white)
+                        .font(.title2.weight(.bold)).foregroundStyle(Paleta.sobreRelleno)
                         .frame(width: 64, height: 64)
                         .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     VStack(alignment: .leading, spacing: 3) {
@@ -963,7 +963,7 @@ private struct AjustesAccesoView: View {
         let p = sesion?.perfil ?? SesionSupabase.Perfil()
         return HStack(spacing: 12) {
             Text(p.iniciales)
-                .font(.caption.weight(.bold)).foregroundStyle(.white)
+                .font(.caption.weight(.bold)).foregroundStyle(Paleta.sobreRelleno)
                 .frame(width: 30, height: 30)
                 .background(Paleta.brand, in: Circle())
             VStack(alignment: .leading, spacing: 1) {
@@ -983,7 +983,7 @@ private struct AjustesAccesoView: View {
         let soyYo = p.id == sesion?.perfil.id
         return HStack(spacing: 12) {
             Text(p.iniciales)
-                .font(.caption.weight(.bold)).foregroundStyle(.white)
+                .font(.caption.weight(.bold)).foregroundStyle(Paleta.sobreRelleno)
                 .frame(width: 30, height: 30)
                 .background(soyYo ? Paleta.brand : Color.secondary, in: Circle())
             VStack(alignment: .leading, spacing: 1) {
