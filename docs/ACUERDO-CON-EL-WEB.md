@@ -202,6 +202,69 @@ interruptor**, que para la serie sin borrar lo ya registrado.
 
 ---
 
+## 4 · La política de privacidad viva contradice a la app nativa · 17-sep
+
+**Esto no es un acuerdo de datos: es algo que hay que publicar en la web antes
+de que la app nativa se pueda enviar a revisión.** Va aquí porque el sitio lo
+lleva el otro chat.
+
+### El problema
+
+Lo vivo en `tamio.church/privacidad.html` (29 de julio) dice, literal:
+
+> «…ni inicio de sesión, no enviamos tu información a ningún servidor…»
+
+La app nativa **no abre sin cuenta** y sincroniza la iglesia entera contra
+Supabase. Un revisor de Apple que compare la pantalla de acceso con esa URL
+tiene motivo para rechazarla. Y la propia política del 29 se comprometió a
+actualizarse *antes* de lanzar nada que enviara datos fuera del aparato.
+
+Además le faltan, cruzado contra `Tamio/PrivacyInfo.xcprivacy`: las fotos de
+comprobantes, la **información sensible de afiliación religiosa** —bautismo,
+estado de membresía, ministerios—, Face ID, y que el borrado de cuenta ya se
+hace desde dentro de la app y es inmediato.
+
+### Lo que hay escrito y listo para publicar
+
+- **`docs/privacidad-propuesta.html`** — sustituye a la viva. Cubre las DOS
+  apps con una tabla que las distingue de entrada, en español e inglés, con el
+  mismo armazón y los mismos estilos que la página de hoy: entra sin rehacer
+  nada. Comprobada en el navegador.
+- **`docs/soporte-propuesta.html`** — la URL de soporte, que **no existe**:
+  `/soporte`, `/support`, `/contacto` y `/ayuda` dan 404 hoy, y App Store
+  Connect la exige para poder enviar.
+
+### Tres avisos para quien las publique
+
+1. **NO se publican desde `Tamio-web`.** Ese repo tiene en `main` —local y en
+   el remoto— la privacidad del **20 de julio**, nueve días más vieja que la
+   que está viva. Empujar desde ahí haría RETROCEDER la política. Lo vivo es
+   byte a byte `Tamio-app/docs/privacidad.html` (mismo md5, comprobado). De
+   dónde publica el sitio de verdad, sin averiguar.
+2. **Hay CUATRO privacidades en disco** con cuatro fechas: 19, 20, 27 y 29 de
+   julio. Editar la que no es no cambia nada, o peor.
+3. **Dos correos distintos.** El sitio y la política viva usan
+   `ivanngarcia82@gmail.com`; otras copias usan `ig07644@gmail.com`. Elegir uno
+   y que sea el mismo en la ficha de App Store, en la política y en soporte.
+
+### El nombre, ya decidido
+
+La ficha nueva se llama **«Tamio Iglesia»** (17-sep), y así está escrito en las
+dos páginas. No es un marcador.
+
+«Tamio» a secas no se puede: lo ocupa la app de Tauri, publicada en iOS
+(`apps.apple.com/us/app/tamio/id6794741319`). En toda la tienda no hay ningún
+otro «Tamio», solo ese.
+
+Y se descartó **«Tamio Pro»** a conciencia, que es la opción que sale sola: la
+directriz **4.3** va contra dos fichas del mismo producto y su remedio expreso
+es *una sola app con compra integrada*, que es justo lo que este proyecto
+evita apoyándose en 3.1.3(c) y (f). Un nombre de gama anuncia en el título que
+son la misma app en dos niveles. «Iglesia» dice lo contrario, que es además lo
+cierto: una es de un aparato y sin cuenta, la otra es multiusuario con roles.
+
+---
+
 ## Cómo se llegó a esto
 
 Las tres salieron de la misma pasada y por el mismo camino: **mirar qué

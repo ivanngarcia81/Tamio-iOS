@@ -85,6 +85,20 @@ ronda.
 corto: la publicada es gratis, sin cuenta y local, y mandarle esta encima como
 actualización rompe la app a quien la tenga, sin nada que migrar.
 
+**El nombre de la ficha: «Tamio Iglesia».** Decidido el 17-sep. «Tamio» a
+secas lo ocupa la app de Tauri, que sigue publicada
+(`apps.apple.com/us/app/tamio/id6794741319`), y el nombre es único en toda la
+tienda. Se descartó «Tamio Pro»: la **4.3** va contra dos fichas del mismo
+producto y su remedio expreso es *una sola app con compra integrada*, que es lo
+que este proyecto evita apoyándose en 3.1.3(c) y (f) — un nombre de gama regala
+ese encuadre al revisor.
+
+**Y de ahí sale una nota obligatoria para el revisor:** decir por qué hay dos
+apps. Una es de un solo aparato, sin cuenta y local; la otra es multiusuario,
+para que el tesorero, el pastor y la secretaria trabajen sobre los mismos
+libros con permisos por rol. Eso es lo que desactiva un 4.3; el nombre solo
+puede estorbar.
+
 **Lo que se registró en la cuenta de Apple al exportar** (17-sep):
 
 - App ID `4N9XEU7F4P.church.tamio.native`.
