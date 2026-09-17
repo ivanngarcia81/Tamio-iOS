@@ -17,6 +17,12 @@ struct IPhoneSecretariaView: View {
     /// `nil` mientras cargan: un guion se entiende, un cero inventado no.
     @State private var padron: MembresiaResumen?
     @State private var agenda: ResumenAgenda?
+    /// **Actas y cartas, contadas de verdad.** El hub enseñaba "Acta 2026-08 en
+    /// borrador" con un badge de 1, y "3 documentos abiertos", los dos escritos
+    /// a mano en la maqueta y nunca enchufados. Lo cazó Iván: el badge decía 1 y
+    /// la pantalla de Actas estaba vacía.
+    @State private var actas: [Acta] = []
+    @State private var cartas: [CartaEmitida] = []
 
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
@@ -99,13 +105,15 @@ struct IPhoneSecretariaView: View {
                 NavigationLink { ActasView() } label: {
                     HubRow(icono: "doc.text.fill", color: Color(hex: 0x7C3AED),
                            titulo: L.t("Actas", "Minutes"),
-                           subtitulo: L.t("Acta 2026-08 en borrador", "Draft minutes 2026-08"),
-                           badge: 1)
+                           subtitulo: subtituloActas,
+                           // El badge solo cuando hay borradores: un "0" ocupa
+                           // lo mismo que un aviso y esta fila avisa o calla.
+                           badge: borradores > 0 ? borradores : nil)
                 }
                 NavigationLink { CartasView() } label: {
                     HubRow(icono: "envelope.fill", color: Color(hex: 0x06B6D4),
                            titulo: L.t("Cartas y traslados", "Letters & transfers"),
-                           subtitulo: L.t("3 documentos abiertos", "3 open documents"))
+                           subtitulo: subtituloCartas)
                 }
             }
 
@@ -154,6 +162,28 @@ struct IPhoneSecretariaView: View {
     private func cargarCifras() async {
         padron = await repositorioMembresia().resumen()
         agenda = await repositorioAgenda().resumen()
+        actas  = (try? await repositorioActas().lista()) ?? []
+        cartas = (try? await repositorioCartas().emitidas()) ?? []
+    }
+
+    /// Lo que de verdad hay en Actas. **Un borrador es trabajo a medias**, así
+    /// que se cuenta aparte: es lo que justifica el badge.
+    private var borradores: Int { actas.filter { $0.estado == .borrador }.count }
+
+    private var subtituloActas: String {
+        if borradores > 0 {
+            return borradores == 1 ? L.t("1 acta en borrador", "1 draft minutes")
+                                   : L.t("\(borradores) actas en borrador", "\(borradores) draft minutes")
+        }
+        if actas.isEmpty { return L.t("Todavía no hay actas", "No minutes yet") }
+        return actas.count == 1 ? L.t("1 acta", "1 minutes")
+                                : L.t("\(actas.count) actas", "\(actas.count) minutes")
+    }
+
+    private var subtituloCartas: String {
+        if cartas.isEmpty { return L.t("Sin cartas emitidas", "No issued letters") }
+        return cartas.count == 1 ? L.t("1 carta emitida", "1 issued letter")
+                                 : L.t("\(cartas.count) cartas emitidas", "\(cartas.count) issued letters")
     }
 
     // MARK: - KPI Padrón
