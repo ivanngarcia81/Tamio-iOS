@@ -166,10 +166,22 @@ Liquid Glass; `orientation` gira el aparato.
 
 ### Cerrado en el iPad FÍSICO, al final del día
 
-Cuando el aparato estuvo disponible se repitió todo en él. **Si el runner se
-queda en "Timed out while enabling automation mode" con el interruptor de
-*Enable UI Automation* ya encendido, reintentar**: falló a la primera y pasó a
-la segunda sin cambiar nada, como el `git push`.
+Cuando el aparato estuvo disponible se repitió todo en él.
+
+**"Timed out while enabling automation mode" NO es intermitente, y esta entrada
+lo dijo mal durante medio día.** El aparato tiene un diálogo esperando en
+pantalla —*«Enter iPad Passcode for "XCTest" · Enable UI Automation»*— y hasta
+que alguien escribe el código, `xcodebuild` espera y agota el tiempo. Se ve en
+una captura con `devicectl device capture screenshot`, que es como se descubrió.
+
+Aquí se archivó primero como "falla a la primera y pasa a la segunda, como el
+`git push`". Era una **suposición**: la primera vez funcionó al reintentar
+porque Iván escribió el código mientras tanto, sin decirlo. Encajaba con lo
+observado y se dio por buena sin comprobar el mecanismo — el mismo error que
+esta entrada le señala al código en otros cuatro sitios.
+
+**Antes de reintentar, mirar la pantalla del aparato.** Si hay un diálogo, no
+hay nada que reintentar.
 
 - **H1, H3, H7, B y los alineados**: verificados en hardware. Las cápsulas se
   forman y se distinguen; los pies con cristal quedan limpios.
