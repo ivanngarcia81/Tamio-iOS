@@ -382,7 +382,8 @@ struct ReportesView: View {
         ShareLink(item: texto) {
             Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
         }
-        .buttonStyle(.glass)
+        // Sin `.buttonStyle(.glass)`: vive en el `toolbar`, donde la cápsula la
+        // pone el sistema. Ver `chipFiltro`.
         .tint(Color.secondary)
     }
 
@@ -395,7 +396,6 @@ struct ReportesView: View {
         // "Editar": estas dos son acciones hermanas, y el verde ya distingue
         // cuál es la principal.
         .labelStyle(.iconOnly)
-        .buttonStyle(.glass)
         .tint(Paleta.brand)
     }
 
@@ -526,8 +526,10 @@ struct ReportesView: View {
 
     @ViewBuilder
     private var filtrosDelEstado: some View {
-        menuPeriodo { chipFiltro(vm.periodoEtiqueta) }
-        menuCategoria { chipFiltro(vm.categoriaEtiqueta) }
+        // El cristal se pone aquí, no en el chip: en la barra lo pone el
+        // sistema y ponerlo dos veces es lo que se veía como cápsula doble.
+        menuPeriodo { chipFiltro(vm.periodoEtiqueta) }.buttonStyle(.glass)
+        menuCategoria { chipFiltro(vm.categoriaEtiqueta) }.buttonStyle(.glass)
     }
 
     @ViewBuilder
@@ -571,14 +573,24 @@ struct ReportesView: View {
         } label: { etiqueta() }
     }
 
+    /// **Solo el contenido: la cápsula la pone quien lo usa.**
+    ///
+    /// Se pintaba su propia cápsula con `Color(.tertiarySystemFill)`, opaca. En
+    /// la BARRA eso era doblemente malo: el sistema ya pone una cápsula de
+    /// cristal a un `Menu` de `toolbar`, así que salía un pastilla gris DENTRO
+    /// de ella —lo vio Iván en el reporte anual y en el estado financiero— y
+    /// además un relleno opaco dentro del cristal es justo lo que la regla
+    /// prohíbe, porque no deja nada que refractar.
+    ///
+    /// En el cuerpo sí hace falta una cápsula, pero de cristal: se la pone el
+    /// sitio de uso con `.buttonStyle(.glass)`, como con los demás controles
+    /// que viven en los dos lados.
     private func chipFiltro(_ t: String) -> some View {
         HStack(spacing: 4) {
             Text(t).lineLimit(1)
             Image(systemName: "chevron.down").font(.caption2)
         }
-        .font(.subheadline).foregroundStyle(.primary)
-        .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-        .background(Color(.tertiarySystemFill), in: Capsule())
+        .font(.subheadline)
     }
 
     // MARK: - Chips KPI
@@ -776,12 +788,12 @@ struct ReportesView: View {
     private func barraFiltrosAnual(_ a: ReporteAnual) -> some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 10) {
-                menuAnio { chipFiltro(vm.anioSel) }
+                menuAnio { chipFiltro(vm.anioSel) }.buttonStyle(.glass)
                 Spacer()
                 accionesDelAnual
             }
             VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 10) { menuAnio { chipFiltro(vm.anioSel) }; Spacer() }
+                HStack(spacing: 10) { menuAnio { chipFiltro(vm.anioSel) }.buttonStyle(.glass); Spacer() }
                 HStack(spacing: 10) { Spacer(); accionesDelAnual }
             }
         }

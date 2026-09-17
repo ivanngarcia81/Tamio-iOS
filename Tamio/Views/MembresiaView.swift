@@ -197,8 +197,15 @@ struct MembresiaView: View {
             }
             .font(.subheadline.weight(.medium))
             .foregroundStyle(.primary)
-            .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-            .background(Color(.tertiarySystemFill), in: Capsule())
+            // **Sin cápsula dibujada.** Llevaba
+            // `.background(Color(.tertiarySystemFill), in: Capsule())`, y este
+            // menú vive en el `toolbar`: el sistema ya le pone su cápsula de
+            // cristal, así que salía una pastilla gris DENTRO de ella. Y un
+            // relleno opaco dentro del cristal es lo que la regla prohíbe,
+            // porque no deja nada que refractar.
+            //
+            // El `grep` de `.buttonStyle(.glass)` NO encuentra esto: aquí la
+            // cápsula estaba pintada a mano. Lo encontró Iván mirando la app.
         }
     }
 
