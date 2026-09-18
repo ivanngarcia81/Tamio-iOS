@@ -438,6 +438,56 @@ es cerrado: es RLS filtrando, y eso ya lo hacía con las filas ajenas.
   pasa y devuelve la fila con `rol = tesorero`. Lo legítimo sigue funcionando.
   (Dentro de una transacción deshecha; la fila real no cambió, comprobado.)
 
+## El barrido del 18-sep · ¿el mismo agujero en otra tabla?
+
+Después de cerrar `perfiles` se buscó el mismo patrón en el resto del esquema
+—columnas de las que dependen las políticas y que `authenticated` puede
+escribir—, más lo que suele fallar alrededor. Todo contra la base, y lo que
+pudo probarse con sesión se probó con sesión.
+
+| qué se miró | resultado |
+|---|---|
+| RLS en las 24 tablas de `public` | **activo en todas** |
+| Políticas por tabla | 22 con las cuatro operaciones; `perfiles` e `iglesias` sin INSERT/DELETE **a propósito** (las crea el disparador de alta y las borra la Edge Function); `folios_contador` con **cero**, ver abajo |
+| UPDATE cuyo WITH CHECK no ate la iglesia | **solo `perfil_update_propio`**, ya cerrada |
+| `iglesias`: grants de `authenticated` | UPDATE sobre las **32** columnas, `plan`, `sub_estado`, `sub_vence`, `tesorero_ve_padron` y `tesorero_puede_eliminar` incluidas… |
+| …pero `iglesias` tiene disparador | **`iglesias_congelar_administradas`** (BEFORE UPDATE): revierte `id`, `plan`, `sub_estado` y `sub_vence` salvo para `service_role`/`postgres`, y los dos permisos del tesorero salvo con la marca `tamio.permisos_por_rpc` que pone `fijar_permisos_tesoreria` |
+| Ese disparador, **probado** con sesión de tesorero | `update iglesias set plan='HACKEADO', sub_estado='activa', sub_vence='2099-12-31', tesorero_ve_padron=true, nombre='x'` → **devuelve la fila con `plan=completo`, `sub_estado=cortesia`, `sub_vence=null`, `ve_padron=false` y `nombre='x'`**. Congela lo administrado y deja pasar lo editable. Deshecho después. |
+| Funciones `security definer` al alcance de `authenticated` (9) | `mi_iglesia`, `mi_rol`, `mi_plan`, `mi_tesorero_ve_padron`: solo leen. `siguiente_folio`, `folio_previsto` y sus `_anual`: comprueban pertenencia a `p_church_id` y lanzan `Sin acceso a esta iglesia`. `fijar_permisos_tesoreria`: exige `rol = 'administrador'` y lanza si no. **Ninguna abierta.** |
+| `folios_contador` sin políticas | Intencional: solo la tocan los RPC de folio, y **ninguna de las dos apps la consulta directamente** (grep en iOS y en `Tamio-app/src`: cero). RLS sin políticas deniega todo a `authenticated`, que es lo que se quiere. |
+| Avisos de Supabase (`get_advisors`, security) | 1 INFO (`folios_contador`, lo de arriba); 9 WARN por las funciones `security definer` (revisadas una a una, arriba); 1 WARN por contraseñas filtradas (**pide plan Pro**, §E del contexto, ya sabido) |
+
+**Conclusión:** el de `perfiles` era el único. `iglesias` tenía los grants
+igual de abiertos pero **estaba protegida por otra capa**, y esa capa funciona.
+
+### Lo que el barrido deja, y no es un agujero
+
+**La protección de `iglesias` es silenciosa.** Un tesorero que escriba
+`plan = 'completo'` recibe *«1 fila actualizada»* y nada cambia. No es un
+fallo de seguridad —el valor no se mueve— pero es exactamente el patrón que
+«Los riesgos» de abajo advierte: la escritura descartada sin un solo mensaje.
+Un `revoke update` sobre esas cinco columnas convertiría el silencio en un
+`42501`, y **sería seguro**: iOS (`IglesiaUpdate`) no las sube, el web
+(`COLUMNAS_IGLESIA` en `sync.ts`) tampoco, y el webhook de pagos va con
+`service_role`. Es defensa en profundidad, no urgencia; se hace cuando se
+quiera y con la misma forma que la de `perfiles` (fuera el grant de tabla,
+dentro las columnas editables).
+
+### Lo que un QA de verdad tiene que añadir a esto
+
+Este barrido mira la ESTRUCTURA: qué columnas se pueden escribir y qué políticas
+las leen. Lo que **no** mira es si cada política deja hacer exactamente lo que
+la tabla de «Cómo se comprueba» dice que debe dejar. Esa tabla —rol × tabla ×
+operación— **sigue sin rellenarse**, y es el QA que falta. Se puede escribir
+como un guion: `set local role authenticated` + `request.jwt.claims` de un
+usuario de cada rol, una operación por celda, dentro de una transacción que se
+deshace, y que **falle** cuando una celda dé lo contrario de lo esperado. Sin
+eso, lo de hoy demuestra que no hay puertas abiertas; no demuestra que cada
+puerta esté donde el diseño dice.
+
+Hace falta además la cuenta de **secretaria**, que no existe (medido el 10-sep
+y sigue igual): sin ella, esa columna de la tabla no se puede probar.
+
 ## Los riesgos, que son reales
 
 - **Una política mal escrita no da error: devuelve cero filas o descarta la
