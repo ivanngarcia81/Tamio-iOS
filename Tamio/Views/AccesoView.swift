@@ -502,14 +502,26 @@ struct AccesoView: View {
             GeometryReader { g in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    BaldosaCristal(lado: 92, radio: 27, alta: 0.4, baja: 0.16) {
-                        Image("LogoTamio")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 82, height: 82)
-                            .clipShape(.rect(cornerRadius: 22))
-                    }
-                    .padding(.bottom, 22)
+                    // **El logo va solo, sin la baldosa de vidrio.** Lo llevaba
+                    // dentro de `BaldosaCristal` como los iconos de las
+                    // diapositivas, pero el caso no es el mismo: allí el
+                    // contenido es un SF Symbol blanco, que sin una placa
+                    // detrás flota suelto sobre el verde. Aquí el contenido ya
+                    // ES una baldosa —el icono de la app, con su propio fondo y
+                    // sus propias esquinas—, así que la placa le ponía un
+                    // segundo marco alrededor del que ya trae: relleno claro,
+                    // filo de 1.5 pt y todo.
+                    //
+                    // Queda la sombra, que no es el vidrio: es lo que separa el
+                    // icono del degradado. Sin ella el verde del logo y el del
+                    // fondo se tocan sin nada en medio.
+                    Image("LogoTamio")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 92, height: 92)
+                        .clipShape(.rect(cornerRadius: 25, style: .continuous))
+                        .shadow(color: .black.opacity(0.28), radius: 14, x: 0, y: 10)
+                        .padding(.bottom, 22)
 
                     Text("Tamio")
                         .font(.escalada(44, weight: .bold, relativeTo: .largeTitle))
