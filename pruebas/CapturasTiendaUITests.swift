@@ -114,6 +114,12 @@ final class CapturasTienda: XCTestCase {
     private func elegirVista(_ nombre: String) {
         let b = app.buttons.matching(NSPredicate(format: "label == %@", nombre)).firstMatch
         guard b.waitForExistence(timeout: 5) else { print("  !! no está la vista \(nombre)"); return }
+        // Y de paso arregló otra cosa, que se vio comparando dos corridas: la
+        // primera captura de la Agenda decía «0 pendientes» y la de después
+        // «7», con más puntos en la rejilla. **La captura llegaba antes de que
+        // la agenda cargara** —la misma trampa del §0.0— y el reintento le da
+        // el tiempo que le faltaba. Una parada más larga lo taparía; preguntar
+        // por el estado lo resuelve y además lo dice.
         for intento in 1...3 {
             b.tap()
             sleep(2)
