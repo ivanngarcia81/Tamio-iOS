@@ -63,8 +63,17 @@ struct CartasView: View {
             // El título va `.inline`: el segmentado ocupa su hueco, igual que
             // en Ingresos/Gastos, y el grande no cabe con él.
             contenidoTelefono
-                .navigationTitle(L.t("Cartas y traslados", "Letters & transfers"))
-                .navigationBarTitleDisplayMode(.inline)
+                // **Título grande, y el segmentado sigue en la barra.** Lo pidió
+                // Iván sobre la captura: el hueco de arriba estaba vacío y la
+                // pantalla no decía cómo se llama, porque el segmentado ocupa el
+                // sitio del título EN LÍNEA. El grande es otro elemento, debajo
+                // de la barra, así que caben los dos.
+                //
+                // Sin subtítulo: el de la columna del iPad —"Plantillas, cartas
+                // emitidas y traslados"— repetiría lo que ya dice el segmentado,
+                // y el recuento lo da la línea de debajo del carrusel.
+                .encabezadoNav(L.t("Cartas y traslados", "Letters & transfers"), nil)
+                .navigationBarTitleDisplayMode(.large)
                 .navigationDestination(isPresented: $panelAbierto) {
                     detalleColumna
                         .navigationBarTitleDisplayMode(.inline)
