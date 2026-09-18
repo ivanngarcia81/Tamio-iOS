@@ -16,6 +16,8 @@ struct ReportesView: View {
     /// El reporte abierto en el teléfono (empujado en la pila).
     @State private var abierto: ReporteTipo?
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// `Paleta.sobre` no lo puede leer solo: ver su comentario.
+    @Environment(\.colorScheme) private var esquema
 
     /// Ver `MovimientosView`: la barra es de la pantalla entera, así que subir
     /// los controles solo tiene sentido cuando la pantalla ES el reporte.
@@ -84,9 +86,14 @@ struct ReportesView: View {
     /// cual: la tarjeta es la misma pieza.
     private var tarjetasReportes: some View {
         VStack(spacing: 16) {
+            // Centradas, que es lo que hace el carrusel de Cartas: al dejar de
+            // estirarse el par necesita decidir dónde se apoya, y pegarlas
+            // arriba deja todo el hueco de una vez al fondo.
+            Spacer(minLength: 12)
             ForEach(vm.tipos) { t in
                 tarjetaReporte(t)
             }
+            Spacer(minLength: 12)
         }
         .padding(.horizontal, Esp.pantalla)
         .padding(.vertical, Esp.pantalla)
@@ -125,30 +132,62 @@ struct ReportesView: View {
         // tarjeta. Por eso este botón va con `.tarjeta(hunde: false)`: necesita
         // la semántica, no el efecto. Un `.plain` tampoco valdría, porque pinta
         // su propio apagado al apretar.
+        // **La tarjeta ES el color, y el contenido va encima.** Es el patrón de
+        // los widgets de color de iOS —el de Música— que trajo Iván, en vez del
+        // de los grises de Claude y Grok: aquel es un racimo de tres controles
+        // y estas tarjetas tienen una acción, y además perdería el color por
+        // tipo, que aquí significa algo.
+        //
+        // **La tinta no se elige, se calcula.** `Paleta.sobre` la saca de la
+        // luminancia del fondo, igual que en las placas de icono. Aquí los dos
+        // tonos dan blanco —medido: 6.28:1 el verde de la casa y 5.70:1 el
+        // morado, contra la meta de 5— pero escribir `.white` a mano sería
+        // atarlo a que los reportes sigan siendo estos dos: de los siete tonos
+        // de Cartas, CUATRO piden tinta negra.
+        //
+        // **Y el relleno es plano, sin degradado.** Un velo blanco encima
+        // aclara el fondo y tira abajo el contraste que se acaba de medir, y un
+        // velo negro rompe los tonos claros. Lo medido es el color liso; que
+        // sea eso lo que se pinta.
+        let tinta = Paleta.sobre(tono, esquema)
         return Button { abrir(t) } label: {
-        VStack(spacing: 14) {
-            Image(systemName: icono(de: t))
-                .font(.system(size: 30))
-                .foregroundStyle(tono)
-                .frame(width: 72, height: 72)
-                .background(tono.opacity(0.15),
-                            in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            VStack(spacing: 6) {
-                Text(t.titulo)
-                    .font(.title3.weight(.bold))
-                    .lineLimit(2).minimumScaleFactor(0.8)
-                Text(t.subtitulo)
-                    .font(.subheadline).foregroundStyle(.secondary)
-                    .lineLimit(2)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 14) {
+                Image(systemName: icono(de: t))
+                    .font(.system(size: 26))
+                    .frame(width: 60, height: 60)
+                    .background(tinta.opacity(0.18),
+                                in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(t.titulo)
+                        .font(.title3.weight(.bold))
+                        .lineLimit(2).minimumScaleFactor(0.8)
+                    Text(t.subtitulo)
+                        .font(.subheadline).opacity(0.85)
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 0)
             }
-            .multilineTextAlignment(.center)
+            // **Nada de `Spacer` aquí.** Un `Spacer` es voraz: con él la
+            // tarjeta se comía todo el alto que el padre le ofreciera y
+            // quedaba medio vacía en el centro, aunque el suelo fuera 170.
+            // Medido en el simulador, no leído: con `Spacer` la tarjeta salía
+            // de 470 pt para 180 de contenido.
+            botonPrevia(t, tono: tono, tinta: tinta)
         }
-        .padding(22)
-        .frame(maxWidth: .infinity)
-        // Se reparten el alto, con un suelo para que con el texto grande de
-        // Accesibilidad no se aplasten contra el botón.
-        .frame(minHeight: 180, maxHeight: .infinity)
-        .fondoDeTarjeta(tono)
+        // A la izquierda y no centrado: con una cápsula de acción abajo, el
+        // texto centrado sobre un botón alineado deja la tarjeta descuadrada
+        // —es lo mismo que ya se anotó en la tarjeta de Cartas, al revés—.
+        .foregroundStyle(tinta)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // **Alto por contenido, no repartido.** Antes llevaban
+        // `maxHeight: .infinity` y se estiraban a todo el alto de la pantalla:
+        // con el contenido arriba y la cápsula abajo quedaba media tarjeta
+        // vacía en medio. El suelo se queda para que con el texto grande de
+        // Accesibilidad no se aplaste.
+        .frame(minHeight: 170)
+        .background(tono, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: .black.opacity(0.10), radius: 15, y: 6)
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         // **Mantener pulsado enseña la hoja del PDF.** Aquí sí gana a abrir
@@ -186,6 +225,35 @@ struct ReportesView: View {
     /// cuando no las hay** —el sistema no deja negarse a enseñarla—, así que en
     /// vez de una ventana en blanco dice por qué está vacía, que es lo mismo
     /// que hace el reporte al abrirse.
+    /// **La cápsula de acción del estilo de widget** —el "Play" del de Música—.
+    ///
+    /// Hace algo DISTINTO de tocar la tarjeta, que es la condición que este
+    /// mismo archivo le puso en su día a "Ver reporte" antes de quitarlo por
+    /// repetirse: la tarjeta abre el reporte y la cápsula enseña la hoja del
+    /// PDF. Y de paso saca a la luz lo que hasta ahora solo salía manteniendo
+    /// pulsado, que no se descubre solo.
+    ///
+    /// **Rellena de `tinta`, con el rótulo en `tono`; no translúcida.** Una
+    /// cápsula de `tinta.opacity(0.2)` sobre el color aclara el fondo y hunde
+    /// el contraste del rótulo por debajo del mínimo. Así se queda en la misma
+    /// cifra ya medida de la tarjeta. Es además la píldora blanca con texto
+    /// verde que ya usa la pantalla de acceso.
+    private func botonPrevia(_ t: ReporteTipo, tono: Color, tinta: Color) -> some View {
+        Button { vm.seleccionId = t.id; mostrarPDF = true } label: {
+            Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.richtext")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(tono)
+                .padding(.horizontal, 18)
+                .frame(minHeight: 44)
+                .background(tinta, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(!hayHoja(t))
+        .opacity(hayHoja(t) ? 1 : 0.45)
+        .accessibilityLabel(L.t("Vista previa PDF de \(t.titulo)",
+                                "PDF preview of \(t.titulo)"))
+    }
+
     private func hayHoja(_ t: ReporteTipo) -> Bool {
         t.id == "anual" ? vm.anual != nil : vm.estado != nil
     }
