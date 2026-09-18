@@ -227,6 +227,14 @@ struct ReportesView: View {
         }
         .buttonStyle(.tarjeta(hunde: false))
         .accessibilityElement(children: .combine)
+        // La segunda acción de la tarjeta, la que la cápsula hace con el dedo.
+        // Con `children: .combine` este es el único sitio desde el que
+        // VoiceOver puede alcanzarla.
+        .accessibilityAction(named: Text(L.t("Vista previa PDF", "PDF preview"))) {
+            guard hayHoja(t) else { return }
+            vm.seleccionId = t.id
+            mostrarPDF = true
+        }
     }
 
     /// Si hay cifras con las que dibujar la hoja. **La ventana se abre igual
@@ -258,8 +266,16 @@ struct ReportesView: View {
         .buttonStyle(.plain)
         .disabled(!hayHoja(t))
         .opacity(hayHoja(t) ? 1 : 0.45)
-        .accessibilityLabel(L.t("Vista previa PDF de \(t.titulo)",
-                                "PDF preview of \(t.titulo)"))
+        // **Oculta para el lector, y su orden va como ACCIÓN de la tarjeta.**
+        // La tarjeta se lee de una pieza (`children: .combine`), y eso mete a
+        // los hijos DENTRO del elemento padre: la cápsula dejaba de ser
+        // alcanzable con VoiceOver y su rótulo se pegaba al final de la
+        // parrafada de la tarjeta. Aquí no da igual, porque la cápsula hace
+        // algo DISTINTO de tocar la tarjeta —en Cartas "Redactar" hace lo
+        // mismo que la tarjeta, así que allí no se pierde nada—.
+        //
+        // Lo introduje yo al añadir la cápsula; no estaba antes.
+        .accessibilityHidden(true)
     }
 
     private func hayHoja(_ t: ReporteTipo) -> Bool {
