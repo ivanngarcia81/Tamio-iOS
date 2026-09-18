@@ -250,12 +250,24 @@ struct CartasView: View {
             // 12.1 pt saltaba de golpe al fondo. Un corte seco, no un
             // desvanecido.
             //
-            // Las dos sombras llegan a `radius + y` hacia abajo —26+14— y a
-            // `radius − y` hacia arriba. De ahí 44 y 16, no un número redondo.
-            // Lo cortaba el `ScrollView`, no el fondo: el fondo va detrás y es
-            // opaco, `systemGroupedBackground`.
-            .padding(.top, 16)
-            .padding(.bottom, 44)
+            // **El alcance se MIDE, no se calcula.** Primero se pusieron 16 y
+            // 44, sacados de `radius ± y`. Seguía cortando, y Iván lo volvió a
+            // ver: un desenfoque gaussiano llega bastante más lejos que su
+            // radio. Medido sobre la captura, esta sombra necesita **43.6 pt
+            // hacia arriba y 73.8 hacia abajo** para acabar de desvanecerse.
+            // De ahí 48 y 80.
+            //
+            // El síntoma de que falta sitio es un SALTO SECO al color del
+            // fondo en vez de un degradado; con 16/44 saltaba desde
+            // (236,236,241) y (235,235,240). Ahora el último valor antes del
+            // fondo es (241,241,246), a un punto de él.
+            //
+            // Lo corta el `ScrollView`, no el fondo: el fondo va detrás y es
+            // opaco, `systemGroupedBackground`. Reportes no tiene el problema
+            // porque sus tarjetas van en un `VStack` — medido, 75.2 pt de
+            // desvanecido completo.
+            .padding(.top, 48)
+            .padding(.bottom, 80)
         }
         .scrollTargetBehavior(.viewAligned)
         .scrollPosition(id: $plantillaVisible)
@@ -267,7 +279,8 @@ struct CartasView: View {
         // único para lo que sirven. El negativo recorta lo que la vista ocupa
         // sin tocar lo que el `ScrollView` recorta, que sigue siendo su marco
         // con el relleno dentro.
-        .padding(.bottom, -32)
+        .padding(.top, -32)
+        .padding(.bottom, -68)
         // Una vez aquí y no dieciséis veces, una por tarjeta.
         .sensoryFeedback(.impact, trigger: golpeAlPulsar)
         // **Sin flechas.** Se montaban sobre la tarjeta: medido sobre la
