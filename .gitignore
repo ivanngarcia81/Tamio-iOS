@@ -54,3 +54,4 @@ Config.xcconfig
 .agents/
 .mcp.json
 skills-lock.json
+__pycache__/

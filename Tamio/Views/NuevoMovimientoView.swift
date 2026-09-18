@@ -177,7 +177,22 @@ struct NuevoMovimientoView: View {
     private var faltan: [String] {
         var f: [String] = []
         if (montoTecleado ?? 0) <= 0 { f.append(L.t("el importe", "the amount")) }
-        if categoria.isEmpty { f.append(L.t("la categoría", "the category")) }
+        // **El aviso sigue al rótulo del selector, que cambia con el tipo.**
+        // En un ingreso el selector se llama "Tipo de ingreso" y no "Categoría"
+        // —lo decide `pickerCategoriaBase`—, así que decir "falta la categoría"
+        // manda a buscar un campo que no se llama así.
+        //
+        // **Pero eso casi no se ve, y conviene saberlo.** Un ingreso NUEVO
+        // nace con categoría puesta (la primera del catálogo), así que aquí
+        // solo entra editando un movimiento que llegó sin ella. El caso que sí
+        // se ve a diario es el GASTO, que nace vacío, y ahí el selector se
+        // llama "Categoría" —que es lo que decía antes—. O sea: esto no
+        // arreglaba la pantalla de todos los días, solo cierra el hueco de la
+        // otra. Se comprobó corriendo, no leyendo.
+        if categoria.isEmpty {
+            f.append(tipo == .ingreso ? L.t("el tipo de ingreso", "the income type")
+                                      : L.t("la categoría", "the category"))
+        }
         if tipo == .gasto && pagadoA.isEmpty { f.append(L.t("a quién se pagó", "who it was paid to")) }
         return f
     }
@@ -209,6 +224,16 @@ struct NuevoMovimientoView: View {
             // primero que se teclea. Al editar no aparece: el tipo de un
             // movimiento ya guardado no se cambia, y un segmentado desactivado
             // ocupa sitio para no dejar hacer nada.
+            // **El aviso va en la barra fija, no en el pie de la última
+            // sección.** Ahí era el único de los catorce formularios que no
+            // usaba `avisoDeFaltantes`, con el motivo escrito de que el pie
+            // queda "pegado a los botones y bajo el formulario entero, que es
+            // donde se mira cuando algo no pasa". El motivo era falso: el botón
+            // que se toca está en la BARRA DE ARRIBA, así que el aviso salía al
+            // final de un formulario largo, fuera de pantalla. Tocabas Guardar
+            // y no pasaba nada visible, que es la queja de la que salió todo
+            // esto. Lo cazó la prueba en el iPhone, no la lectura del código.
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .navigationTitle(editando ? tituloPantalla : "")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: tipo) { _, nuevo in
@@ -427,10 +452,6 @@ struct NuevoMovimientoView: View {
                     .frame(maxWidth: .infinity)
                     .foregroundStyle(Paleta.brand)
             }
-        } footer: {
-            // El aviso vive aquí, pegado a los botones y bajo el formulario
-            // entero, que es donde se mira cuando algo no pasa.
-            if mostrarFaltan { AvisoFaltan(faltan: faltan) }
         }
     }
 

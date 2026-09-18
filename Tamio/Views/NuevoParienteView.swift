@@ -36,7 +36,9 @@ struct NuevoParienteView: View {
     /// Se enciende al intentar guardar, no al abrir.
     @State private var mostrarFaltan = false
     private var faltan: [String] {
-        elegido == nil ? [L.t("elegir a la persona", "choosing the person")] : []
+        // El selector se llama "Del padrón": el aviso lo nombra igual, para no
+        // hacer traducir de "la persona" a la única fila que hay que tocar.
+        elegido == nil ? [L.t("elegir del padrón", "choosing from the roster")] : []
     }
 
     var body: some View {

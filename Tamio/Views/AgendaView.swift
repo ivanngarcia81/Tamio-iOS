@@ -688,6 +688,12 @@ private struct NuevoEventoSheet: View {
     @State private var mostrarFaltan = false
     private var faltan: [String] {
         titulo.trimmingCharacters(in: .whitespaces).isEmpty
+            // **"de la actividad", que es como la llama la pantalla.** La hoja
+            // se titula "Nueva actividad" y el botón dice "Guardar actividad".
+            // La cabecera de sección decía "EVENTO" —el único sitio— y se
+            // cambió a "ACTIVIDAD": una cosa, un nombre. Mirar solo la cabecera
+            // llevó a cambiar esto al revés, y el aviso pasó a nombrar algo que
+            // la pantalla no dice en ninguna otra parte.
             ? [L.t("el título de la actividad", "the activity title")] : []
     }
 
@@ -765,7 +771,7 @@ private struct NuevoEventoSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(L.t("EVENTO", "EVENT")) {
+                Section(L.t("ACTIVIDAD", "ACTIVITY")) {
                     TextField(L.t("Título", "Title"), text: $titulo)
                     .accessibilityLabel(L.t("Título", "Title"))
                     Picker(L.t("Tipo", "Type"), selection: $tipo) {
