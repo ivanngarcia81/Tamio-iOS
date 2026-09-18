@@ -22,6 +22,8 @@ struct CartasView: View {
     /// escriben las flechas y los puntos; de ahí sale cuál se resalta.
     @State private var plantillaVisible: String?
     @Environment(\.horizontalSizeClass) private var sizeClass
+    /// `Paleta.sobre` no lo puede leer solo: ver su comentario.
+    @Environment(\.colorScheme) private var esquema
     /// El membrete sale de Ajustes, no de esta vista. El nombre iba escrito a
     /// mano aquí y en otros nueve sitios, con DOS valores distintos —"Iglesia
     /// Getsemaní" y "Iglesia Nueva Vida"—, así que los documentos y la sidebar
@@ -330,69 +332,65 @@ struct CartasView: View {
         // tipo de carta, porque `.glass` no usa el tinte (medido el 16-sep).
         // Una tarjeta es un CONTENEDOR: que sea una superficie opaca es
         // correcto.
+        // **La tarjeta ES el color**, como las de Reportes y como los widgets
+        // de color de iOS. La tinta la calcula `Paleta.sobre` por luminancia,
+        // y aquí eso no es un lujo: de los siete tonos, CUATRO —cian, naranja,
+        // azul cielo y ámbar— piden tinta negra y tres la piden blanca.
+        // Escribir `.white` a mano habría dejado cuatro tarjetas ilegibles.
+        let tinta = Paleta.sobre(tono, esquema)
         return Button { abrir(plantilla) } label: {
-        VStack(spacing: 16) {
-            Image(systemName: tipo.icono)
-                .font(.system(size: 34))
-                .foregroundStyle(tono)
-                .frame(width: 86, height: 86)
-                .background(tono.opacity(0.15),
-                            in: RoundedRectangle(cornerRadius: 27, style: .continuous))
-
-            VStack(spacing: 8) {
-                Text(plantilla.nombre.isEmpty ? tipo.titulo : plantilla.nombre)
-                    .font(.title3.weight(.bold))
-                    .lineLimit(2).minimumScaleFactor(0.8)
-                Text(tipo.subtitulo)
-                    .font(.subheadline).foregroundStyle(.secondary)
-                    .lineLimit(2)
-                HStack(spacing: 6) {
-                    if veces > 0 {
-                        Text(veces == 1 ? L.t("Usada 1 vez", "Used once")
-                                        : L.t("Usada \(veces) veces", "Used \(veces) times"))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(tono)
-                            .padding(.horizontal, 9).padding(.vertical, 4)
-                            .background(tono.opacity(0.15), in: Capsule())
-                    }
-                    Text(pista(de: tipo))
-                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+        VStack(alignment: .leading, spacing: 16) {
+            // `.top` y no el centro: con un nombre de dos renglones —"Recommendation
+            // letter"— el icono se quedaba flotando a media altura en vez de
+            // arrancar con la primera línea, que es como lo hace el widget.
+            HStack(alignment: .top, spacing: 14) {
+                Image(systemName: tipo.icono)
+                    .font(.system(size: 26))
+                    .frame(width: 60, height: 60)
+                    .background(tinta.opacity(0.18),
+                                in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(plantilla.nombre.isEmpty ? tipo.titulo : plantilla.nombre)
+                        .font(.title3.weight(.bold))
+                        .lineLimit(2).minimumScaleFactor(0.8)
+                    Text(tipo.subtitulo)
+                        .font(.subheadline).opacity(0.85)
+                        .lineLimit(2)
                 }
-                Button { abrir(plantilla) } label: {
-                    Text(L.t("Redactar", "Compose"))
-                        .font(.subheadline.weight(.semibold))
-                        // Ancho al texto y no a la tarjeta, que con todo
-                        // centrado la banda de lado a lado pesaba más que el
-                        // nombre de la plantilla.
-                        //
-                        // **El alto se queda en 44.** Es el mínimo de Apple
-                        // para algo que se toca con el dedo, y esta es la
-                        // acción de la pantalla: estrecharlo de ancho no
-                        // cuesta nada, bajarlo de 44 sí.
-                        .padding(.horizontal, 26)
-                        .frame(minHeight: 44)
-                }
-                .buttonStyle(.glassProminent)
-                .tint(Paleta.brand)
-                .padding(.top, 2)
+                Spacer(minLength: 0)
             }
-            // Todo centrado: la placa, el nombre, la descripción y las
-            // etiquetas. El diseño del handoff alineaba el texto a la
-            // izquierda bajo una placa centrada, y esa mezcla dejaba la
-            // tarjeta descuadrada.
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
+            // **El contador pierde su cápsula, y es una medida, no un gusto.**
+            // Era `tono.opacity(0.15)` sobre blanco; sobre el color tendría que
+            // ser `tinta.opacity(...)`, y eso aclara el fondo bajo su propio
+            // texto: medido, lo mejor que da es 3.50:1 —con 0.18, y empeora al
+            // subirlo—. Sin fondo, el texto va directo sobre el tono, que es
+            // donde ya está medido entre 5.03 y 10.21. Misma razón por la que
+            // la cápsula de Redactar es OPACA.
+            HStack(spacing: 6) {
+                if veces > 0 {
+                    Text(veces == 1 ? L.t("Usada 1 vez", "Used once")
+                                    : L.t("Usada \(veces) veces", "Used \(veces) times"))
+                        .font(.caption.weight(.semibold))
+                }
+                Text(pista(de: tipo))
+                    .font(.caption).opacity(0.85).lineLimit(1)
+            }
+            botonRedactar(plantilla, tono: tono, tinta: tinta)
         }
-        .padding(22)
-        // Cuadrada al tamaño de letra normal, **pero puede crecer**: con el
-        // texto grande de Accesibilidad el alto fijo recortaba el botón de
-        // Redactar, que es lo único que la tarjeta hace.
-        .frame(width: lado)
-        .frame(minHeight: lado)
-        .fondoDeTarjeta(tono)
-        // La sombra se queda: está en la lista de decisiones tomadas, junto con
-        // las de Reportes y las previas de PDF.
-        .shadow(color: .black.opacity(0.10), radius: 15, y: 6)
+        .foregroundStyle(tinta)
+        .padding(20)
+        // **Ancho el del carrusel; el alto, el del contenido.** Era cuadrada
+        // —`minHeight: lado`— con todo centrado. Con el reparto del widget
+        // —cabecera arriba, cápsula abajo— el cuadrado dejaba un tercio vacío,
+        // y un `Spacer` para rellenarlo es justo lo que se probó en Reportes y
+        // salió mal: es voraz, y dentro de un `ScrollView` con
+        // `fixedSize(vertical:)` pide alto infinito.
+        .frame(width: lado, alignment: .leading)
+        .background(tono, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        // Dos sombras, las mismas de Reportes: medidas contra el widget, 47.5 %
+        // de caída de luminancia bajo el borde contra su 47.1 %.
+        .shadow(color: .black.opacity(0.16), radius: 6, y: 3)
+        .shadow(color: .black.opacity(0.20), radius: 26, y: 14)
         }
         // El hundido, ahora en un `ButtonStyle` compartido: la vista deja de
         // llevar un `@State` con el id de la tarjeta apretada, que no era suyo.
@@ -413,6 +411,25 @@ struct CartasView: View {
         // falta es decir que es un botón ni darle una acción a mano: siéndolo
         // de verdad, eso viene puesto.
         .accessibilityElement(children: .combine)
+    }
+
+    /// **La cápsula de Redactar, opaca.** Rellena de `tinta` con el rótulo en
+    /// `tono`, igual que en Reportes: una translúcida aclara el fondo bajo su
+    /// propio texto y hunde el contraste. Así se queda en la cifra ya medida
+    /// del par tono/tinta.
+    ///
+    /// Se mantiene el alto de 44, que es el mínimo de Apple para algo que se
+    /// toca, y el ancho al texto y no a la tarjeta.
+    private func botonRedactar(_ plantilla: Plantilla, tono: Color, tinta: Color) -> some View {
+        Button { abrir(plantilla) } label: {
+            Text(L.t("Redactar", "Compose"))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(tono)
+                .padding(.horizontal, 26)
+                .frame(minHeight: 44)
+                .background(tinta, in: Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     /// Cuántas cartas de este tipo se han emitido. **Es una cuenta sobre las
@@ -460,8 +477,14 @@ struct CartasView: View {
         case .bautismo, .autorizacion, .solicitud:
             return Paleta.azulCielo
         // Sin plantilla: sin color propio.
+        //
+        // **Pero no `Paleta.pizarra` tal cual.** Medido, es el ÚNICO de los
+        // siete que no llega como fondo de tarjeta: 4.76:1 con tinta blanca en
+        // claro, contra la meta de 5. Se usa el mismo par oscurecido que la
+        // pasada de placas ya calculó para él —claro `#617087`, 5.03:1— y en
+        // oscuro se deja el de categoría, que da 6.65 y tiene más margen.
         case .personalizada:
-            return Paleta.pizarra
+            return Paleta.placa(claro: 0x617087, oscuro: 0x94A3B8)
         }
     }
 
