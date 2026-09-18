@@ -188,6 +188,7 @@ struct ReportesView: View {
         // Accesibilidad no se aplaste.
         .frame(minHeight: 170)
         .background(tono, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .filoDeCristal()
         // **Dos sombras, y medidas contra el widget.** La de antes —una sola,
         // 10 % a radio 15— oscurecía el fondo un 16.9 % justo bajo el borde;
         // en la galería de widgets que trajo Iván la misma medida da 47.1 % y

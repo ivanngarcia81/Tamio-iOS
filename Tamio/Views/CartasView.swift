@@ -414,6 +414,7 @@ struct CartasView: View {
         // `fixedSize(vertical:)` pide alto infinito.
         .frame(width: lado, alignment: .leading)
         .background(tono, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .filoDeCristal()
         // Dos sombras, las mismas de Reportes: medidas contra el widget, 47.5 %
         // de caída de luminancia bajo el borde contra su 47.1 %.
         .shadow(color: .black.opacity(0.16), radius: 6, y: 3)
