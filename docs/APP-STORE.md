@@ -78,6 +78,75 @@ borrado **destruye la demo entera** (la Edge Function borra la iglesia en
 cascada cuando se queda sin perfiles) y hay que rehacerla para la siguiente
 ronda.
 
+### «Iglesia de prueba» NO sirve · comprobado el 18-sep-2026
+
+Es la candidata obvia —5 perfiles, 30 miembros, 114 movimientos, ya hecha— y
+hay que descartarla. Lo que se midió:
+
+- De sus **30 miembros, 14 tienen teléfono y los 14 son distintos**, de 8 a 10
+  dígitos; solo 2 son del tipo `1234` o `5555`. Nueve tienen forma de número
+  real.
+- Uno de sus cinco perfiles es un **tesorero con correo de una congregación**,
+  con sesión iniciada el 8 de septiembre.
+- Y ese padrón guarda bautismo, estado de membresía y ministerios, que es
+  exactamente lo que este archivo declara arriba como **información sensible**
+  en el cuestionario de privacidad.
+
+No se puede demostrar desde aquí que esas personas sean reales, pero la forma
+de los datos no es la de una semilla. **Darle esas credenciales a Apple sería
+mandarle datos personales sensibles de gente que no publica la app.** Cuesta
+media hora hacer una iglesia inventada; no hacerla no se puede justificar
+después.
+
+### Cómo se monta la iglesia de demostración
+
+La semilla está escrita y comprobada contra el esquema:
+**`docs/demo-revision.sql`**. Catorce miembros inventados, 34 movimientos de
+tres meses, tres cortes, dos actas, tres cultos con asistencia y ocho
+actividades. Los teléfonos van en el bloque 555 y los correos en
+`example.com`, que la RFC 2606 reserva para que no puedan ser de nadie. La
+iglesia se llama **«Iglesia Nueva Vida», en Monterrey**, que es el mismo nombre
+que sale en las capturas de la ficha: si el revisor las compara con lo que ve
+al entrar, tiene que reconocerlo.
+
+Los tres pasos, en este orden —y **los dos primeros los hace Iván**, porque uno
+pide el panel y el otro pide la app:
+
+1. **Dar de alta la cuenta del revisor.** Panel de Supabase →
+   *Authentication → Users → Add user*, con **Auto Confirm User** puesto (sin
+   eso no puede entrar). El correo, uno que Iván reciba: `…+revision@gmail.com`.
+   El disparador `al_crear_usuario` **le crea una iglesia vacía sola**; esa es
+   la de la demo. Apuntar su `church_id`:
+
+       select p.id, p.rol, p.church_id from perfiles p
+       join auth.users u on u.id = p.id where u.email = '…+revision@gmail.com';
+
+   Y ponerle el rol y el nombre, que nacen en blanco:
+
+       update perfiles set rol = 'administrador', nombre = 'Revisión App Store'
+       where id = '<el id de arriba>';
+
+2. **Correr `docs/demo-revision.sql`** con ese `church_id` pegado en su línea.
+   Se para sola si el id apunta a una de las tres iglesias reales o a una que
+   ya tenga datos de otro.
+
+3. **El SEGUNDO administrador, desde la app.** Entrar con la cuenta del revisor
+   e invitar a un `…+revision2@gmail.com` como **administrador**. Lo hace la
+   función `invitar-usuario`, que suma a la persona a la iglesia de quien
+   invita. **No hace falta que nadie acepte la invitación**: el perfil se crea
+   en el momento, y lo que protege a la demo es que la fila exista, no que
+   alguien entre con ella.
+
+**Y la comprobación que decide si la demo aguanta la revisión**, al final del
+propio SQL:
+
+    select count(*) from perfiles where church_id = '<el id>';   -- ≥ 2
+
+Con **uno solo**, el revisor prueba el borrado —que es justo lo que va a
+hacer— y `borrar-cuenta` se lleva la iglesia en cascada. Con dos, borra su
+perfil, la iglesia sobrevive, y la demo sigue en pie para la ronda siguiente.
+Ese número es el que hay que mirar antes de mandar nada.
+
 ## El bundle id, y la ficha · CERRADO el 17-sep-2026
 
 **`church.tamio.native`, ficha NUEVA.** Ya no es provisional y esa línea de
