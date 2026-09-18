@@ -49,26 +49,44 @@ final class PlacasDeIconoUITests: XCTestCase {
     /// que las filas existen, y una placa con el símbolo en blanco sobre cian
     /// —2.43:1— pasaba igual de verde que una arreglada.
     ///
-    /// Se recorta el cuadrado de la placa dentro de la fila, se cuentan los
-    /// colores y se toman **los dos más frecuentes**: en un círculo liso con un
-    /// SF Symbol sólido encima son el relleno y el símbolo. Los intermedios son
-    /// el suavizado del borde y salen con cuentas muy bajas, así que no ganan.
+    /// **La primera versión medía otra cosa y pasaba igual.** Recortaba un
+    /// cuadrado suponiendo que la placa estaba a 18 pt del arranque de la fila,
+    /// y se quedaba con los dos colores más frecuentes. En el iPhone físico esa
+    /// suposición no se cumple: el recorte caía sobre la TARJETA, y las trece
+    /// medidas salieron "relleno sobre #1C1C1E" —el fondo—, no "relleno sobre
+    /// símbolo". Daban de 4.54 a 9.67 y la prueba pasaba tan contenta.
     ///
-    /// Devuelve `nil` si no puede leer el mapa de bits, y quien llama lo trata
-    /// como fallo: un `nil` que se ignora es una prueba que se salta su objeto.
+    /// Lo peor es que la comprobación en rojo también pasó, y por casualidad:
+    /// en CLARO la tarjeta es blanca y el símbolo también, así que las dos
+    /// lecturas coinciden y el error no asoma. Solo se separó en el aparato,
+    /// en oscuro. De ahí la regla: **una medida que solo se ha visto en una
+    /// apariencia no está comprobada.**
+    ///
+    /// Ahora no se supone nada de la geometría. Se busca la placa:
+    ///
+    /// 1. El **fondo** se lee de la columna derecha de la ventana, a 64 pt del
+    ///    arranque de la fila, donde no llega ninguna placa (la mayor mide 36).
+    /// 2. El **relleno** es el color más frecuente que no es el fondo.
+    /// 3. La **caja** de la placa es el recuadro de los píxeles del relleno, y
+    ///    de ella se toma el **60 % central**, que en un círculo cae entero
+    ///    dentro. Ahí no hay tarjeta: lo que no es relleno es símbolo.
+    /// 4. El **símbolo** es lo más frecuente de ese centro que no es el
+    ///    relleno. Si no llega al 2 %, no se ha encontrado y se devuelve
+    ///    `nil`: eso es un fallo, no un aprobado.
+    ///
+    /// El paso 3 es el que cierra el agujero, y por sitio y no por color. La
+    /// primera corrección excluía el fondo por su COLOR, y eso volvía a
+    /// romperse en claro —tarjeta blanca y símbolo blanco son el mismo color—.
     func contrasteDeLaPlaca(_ fila: XCUIElement) -> (Double, String)? {
-        let img = XCUIScreen.main.screenshot().image
-        guard let cg = img.cgImage else { return nil }
+        let captura = XCUIScreen.main.screenshot()
+        guard let cg = captura.image.cgImage else { return nil }
+        let escala = CGFloat(cg.width) / captura.image.size.width
 
-        // La escala sale de la imagen, no se supone: 3x en el 17e, 2x en otros.
-        let escala = CGFloat(cg.width) / XCUIScreen.main.screenshot().image.size.width
         let f = fila.frame
-        // La placa va pegada al borde de arranque de la fila: 36 pt de lado.
-        let lado: CGFloat = 36
-        let centro = CGPoint(x: f.minX + 18, y: f.midY)
-        let r = CGRect(x: (centro.x - lado/3) * escala, y: (centro.y - lado/3) * escala,
-                       width: (lado * 2/3) * escala, height: (lado * 2/3) * escala)
-        guard let recorte = cg.cropping(to: r) else { return nil }
+        let ventana = CGRect(x: f.minX * escala, y: (f.midY - 26) * escala,
+                             width: 64 * escala, height: 52 * escala)
+        guard ventana.maxX <= CGFloat(cg.width), ventana.maxY <= CGFloat(cg.height),
+              let recorte = cg.cropping(to: ventana) else { return nil }
 
         let an = recorte.width, al = recorte.height
         var bytes = [UInt8](repeating: 0, count: an * al * 4)
@@ -79,13 +97,65 @@ final class PlacasDeIconoUITests: XCTestCase {
         else { return nil }
         ctx.draw(recorte, in: CGRect(x: 0, y: 0, width: an, height: al))
 
-        var cuenta: [UInt32: Int] = [:]
-        for i in stride(from: 0, to: bytes.count, by: 4) {
-            let k = UInt32(bytes[i]) << 16 | UInt32(bytes[i+1]) << 8 | UInt32(bytes[i+2])
-            cuenta[k, default: 0] += 1
+        func color(_ x: Int, _ y: Int) -> UInt32 {
+            let i = (y * an + x) * 4
+            return UInt32(bytes[i]) << 16 | UInt32(bytes[i+1]) << 8 | UInt32(bytes[i+2])
         }
-        let top = cuenta.sorted { $0.value > $1.value }.prefix(2)
-        guard top.count == 2 else { return nil }
+        // Se agrupa por tono aproximado —cinco bits por canal— para que el
+        // suavizado del borde no cuente como un color distinto cada vez.
+        func grupo(_ c: UInt32) -> UInt32 {
+            ((c >> 19) & 0x1F) << 10 | ((c >> 11) & 0x1F) << 5 | ((c >> 3) & 0x1F)
+        }
+        func masFrecuente(_ px: [(Int, Int)], excluyendo: Set<UInt32>) -> (UInt32, Int)? {
+            var cuenta: [UInt32: Int] = [:], muestra: [UInt32: UInt32] = [:]
+            for (x, y) in px {
+                let c = color(x, y), g = grupo(c)
+                if excluyendo.contains(g) { continue }
+                cuenta[g, default: 0] += 1
+                if muestra[g] == nil { muestra[g] = c }
+            }
+            guard let (g, n) = cuenta.max(by: { $0.value < $1.value }) else { return nil }
+            return (muestra[g]!, n)
+        }
+
+        // 1 · el fondo, en la columna de más a la derecha
+        let columna = (0..<al).map { (an - 1, $0) }
+        guard let (fondo, _) = masFrecuente(columna, excluyendo: []) else { return nil }
+
+        // 2 · el relleno de la placa
+        let todo = (0..<al).flatMap { y in (0..<an).map { ($0, y) } }
+        guard let (relleno, _) = masFrecuente(todo, excluyendo: [grupo(fondo)]) else { return nil }
+
+        // 3 · la caja de la placa, y su parte CENTRAL
+        //
+        // **La distinción que importa no es de color, es de sitio: dentro o
+        // fuera de la placa.** Excluir el fondo por su color funcionaba en
+        // oscuro y fallaba en claro, donde la tarjeta es blanca y el símbolo
+        // también: al quitar el fondo se quitaba el símbolo, y no quedaba nada
+        // que medir. Es el mismo espejismo que escondió el fallo anterior,
+        // visto por el otro lado.
+        //
+        // Así que se recorta al 60 % central del recuadro. En un círculo eso
+        // cae entero dentro —la media diagonal, 0.42 del diámetro, es menor
+        // que el radio— y en un cuadrado redondeado, con más razón. Ahí no hay
+        // un solo píxel de tarjeta, y el símbolo se puede buscar por ser lo
+        // único que no es el relleno.
+        var x0 = an, x1 = -1, y0 = al, y1 = -1
+        for (x, y) in todo where grupo(color(x, y)) == grupo(relleno) {
+            x0 = min(x0, x); x1 = max(x1, x); y0 = min(y0, y); y1 = max(y1, y)
+        }
+        guard x1 > x0, y1 > y0 else { return nil }
+        let mx = (x1 - x0) / 5, my = (y1 - y0) / 5
+        guard x0 + mx < x1 - mx, y0 + my < y1 - my else { return nil }
+        let centro = ((y0 + my)...(y1 - my)).flatMap { y in
+            ((x0 + mx)...(x1 - mx)).map { ($0, y) }
+        }
+
+        // 4 · el símbolo: lo más frecuente que no sea el relleno, con cuerpo
+        //     suficiente para no ser el suavizado de un borde.
+        guard let (simbolo, n) = masFrecuente(centro, excluyendo: [grupo(relleno)]),
+              Double(n) >= Double(centro.count) * 0.02
+        else { return nil }
 
         func luz(_ c: UInt32) -> Double {
             func lineal(_ v: Double) -> Double {
@@ -95,17 +165,19 @@ final class PlacasDeIconoUITests: XCTestCase {
             let b = Double(c & 0xFF)/255
             return 0.2126*lineal(r) + 0.7152*lineal(g) + 0.0722*lineal(b)
         }
-        let a = luz(top[0].key), b = luz(top[1].key)
+        let a = luz(relleno), b = luz(simbolo)
         let ratio = (max(a, b) + 0.05) / (min(a, b) + 0.05)
-        let detalle = String(format: "#%06X sobre #%06X", top[1].key, top[0].key)
-        return (ratio, detalle)
+        return (ratio, String(format: "#%06X sobre #%06X (fondo #%06X)",
+                              simbolo, relleno, fondo))
     }
 
     /// Mide y exige el mínimo de texto. 4.5:1, que es lo que pide WCAG AA.
     func exigirContraste(_ fila: XCUIElement, _ nombre: String) {
         guard fila.exists else { XCTFail("no está la fila «\(nombre)»"); return }
         guard let (r, detalle) = contrasteDeLaPlaca(fila) else {
-            XCTFail("no se pudo leer la placa de «\(nombre)»"); return
+            XCTFail("no se encontró el símbolo dentro de la placa de «\(nombre)» "
+                    + "—o la ventana no cayó sobre la placa—; sin eso no hay nada que medir")
+            return
         }
         print(String(format: "PLACA %@ · %@ · %.2f:1", nombre, detalle, r)); fflush(stdout)
         XCTAssertGreaterThanOrEqual(r, 4.5,

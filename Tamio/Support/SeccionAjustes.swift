@@ -72,21 +72,27 @@ enum SeccionAjustes: String, CaseIterable, Identifiable, Hashable {
     /// y 5.09:1 (índigo); el mínimo para texto es 4.5:1. El rojo, que además se
     /// usa como TEXTO en "Zona de riesgo", daba 3.57:1.
     ///
-    /// En claro baja el brillo lo justo para llegar a 4.55:1 —solo el brillo:
-    /// el tono y la saturación son los de Apple, así que el verde sigue siendo
-    /// el verde de iOS, más hondo—. Índigo no se movió porque ya llegaba.
+    /// En claro baja el brillo hasta **5:1**, no hasta 4.5 —solo el brillo: el
+    /// tono y la saturación son los de Apple, así que el verde sigue siendo el
+    /// verde de iOS, más hondo—. Índigo no se movió porque ya llegaba.
+    ///
+    /// **Medio punto de margen, y es medido.** La primera vuelta apuntó al
+    /// 4.55 y el iPhone físico dio 4.43 en el cian: la pantalla es P3 y el
+    /// píxel que vuelve no es el que se pidió. Un umbral sin margen deja la
+    /// placa por debajo del mínimo y la prueba en verde, que es lo peor de los
+    /// dos mundos.
     /// En oscuro se queda el del sistema: ahí el problema no era el fondo sino
     /// el símbolo, y lo arregla `Paleta.sobre(_:_:)`.
     var color: Color {
         switch self {
-        case .cuenta:       return Paleta.placa(claro: 0x75757A, oscuroSistema: .systemGray)
-        case .iglesia:      return Paleta.placa(claro: 0x23873D, oscuroSistema: .systemGreen)
+        case .cuenta:       return Paleta.placa(claro: 0x6F6F73, oscuroSistema: .systemGray)
+        case .iglesia:      return Paleta.placa(claro: 0x217F39, oscuroSistema: .systemGreen)
         case .institucion:  return Paleta.placa(claro: 0x6155F5, oscuroSistema: .systemIndigo)
-        case .tesorero:     return Paleta.placa(claro: 0x00819B, oscuroSistema: .systemCyan)
-        case .acceso:       return Paleta.placa(claro: 0x0075DC, oscuroSistema: .systemBlue)
-        case .categorias:   return Paleta.placa(claro: 0xB0621C, oscuroSistema: .systemOrange)
-        case .preferencias: return Paleta.placa(claro: 0xC12ED4, oscuroSistema: .systemPurple)
-        case .zona:         return Paleta.placa(claro: 0xDE3134, oscuroSistema: .systemRed)
+        case .tesorero:     return Paleta.placa(claro: 0x007993, oscuroSistema: .systemCyan)
+        case .acceso:       return Paleta.placa(claro: 0x006FD1, oscuroSistema: .systemBlue)
+        case .categorias:   return Paleta.placa(claro: 0xA75C1A, oscuroSistema: .systemOrange)
+        case .preferencias: return Paleta.placa(claro: 0xB62BC9, oscuroSistema: .systemPurple)
+        case .zona:         return Paleta.placa(claro: 0xD22E32, oscuroSistema: .systemRed)
         }
     }
 

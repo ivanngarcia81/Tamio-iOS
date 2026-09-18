@@ -179,7 +179,11 @@ enum Paleta {
     /// símbolos blancos y media con negros—, sino que la PLACA cambie con el
     /// tema, igual que ya hacen `brand`, `aviso` y `enlace`:
     ///
-    /// - En **claro** el tono baja lo justo para que el blanco llegue a 4.5:1.
+    /// - En **claro** el tono baja hasta que el blanco llega a **5:1**, no a
+    ///   4.5. Medio punto de más, y es medido: apuntando al 4.51 el iPhone
+    ///   físico daba 4.34, porque la pantalla es P3 y el píxel que vuelve no es
+    ///   el que se pidió —`#0C857B` sale `#0F867D`—. Cinco placas se quedaron
+    ///   por debajo del mínimo pareciendo aprobadas en el simulador.
     ///   Se baja solo el brillo (HSB): el tono y la saturación no se tocan, así
     ///   que el cian sigue siendo el mismo cian, más hondo.
     /// - En **oscuro** se queda el tono original, que es donde se diseñó, y el
@@ -187,7 +191,8 @@ enum Paleta {
     ///   el gris, que en oscuro no daban contra el casi negro (2.99 y 3.58),
     ///   suben un escalón de luz para que sí.
     ///
-    /// Resultado medido: **4.51:1 como mínimo en las dos apariencias**, y
+    /// Resultado medido EN EL APARATO: **5:1 pedido, nunca menos de 4.5 en
+    /// pantalla**, en las dos apariencias, y
     /// dentro de cada una todos los símbolos del mismo color —blancos en claro,
     /// casi negros en oscuro—. Quien las pinta no elige: lo hace `sobre(_:_:)`.
     ///
@@ -217,18 +222,18 @@ enum Paleta {
         })
     }
 
-    /// Agenda. Claro 4.51:1 · oscuro 4.55:1.
-    static let placaTeal      = placa(claro: 0x0C857B, oscuro: 0x0D9488)
-    /// Actas. Claro 5.70:1 · oscuro 4.57:1.
-    static let placaMorado    = placa(claro: 0x7C3AED, oscuro: 0x9C64FB)
-    /// Cartas. Claro 4.51:1 · oscuro 7.02:1.
-    static let placaCian      = placa(claro: 0x048298, oscuro: 0x06B6D4)
-    /// Registro. Claro 4.76:1 · oscuro 4.58:1.
-    static let placaPizarra   = placa(claro: 0x64748B, oscuro: 0x7386A0)
-    /// Movimientos. Claro 4.52:1 · oscuro 6.72:1.
-    static let placaEsmeralda = placa(claro: 0x0C875E, oscuro: 0x10B981)
-    /// Aportantes. Claro 4.52:1 · oscuro 6.15:1.
-    static let placaCielo     = placa(claro: 0x0B7EB3, oscuro: 0x0EA5E9)
+    /// Agenda. Claro 5.01:1 · oscuro 5.01:1.
+    static let placaTeal      = placa(claro: 0x0B7D73, oscuro: 0x0E9C8F)
+    /// Actas. Claro 5.70:1 · oscuro 5.02:1.
+    static let placaMorado    = placa(claro: 0x7C3AED, oscuro: 0xA26EFD)
+    /// Cartas. Claro 5.02:1 · oscuro 7.02:1.
+    static let placaCian      = placa(claro: 0x047A8F, oscuro: 0x06B6D4)
+    /// Registro. Claro 5.03:1 · oscuro 5.02:1.
+    static let placaPizarra   = placa(claro: 0x617087, oscuro: 0x798DA8)
+    /// Movimientos. Claro 5.01:1 · oscuro 6.72:1.
+    static let placaEsmeralda = placa(claro: 0x0B7F59, oscuro: 0x10B981)
+    /// Aportantes. Claro 5.05:1 · oscuro 6.15:1.
+    static let placaCielo     = placa(claro: 0x0A76A7, oscuro: 0x0EA5E9)
 
     // MARK: - Categorías
 
