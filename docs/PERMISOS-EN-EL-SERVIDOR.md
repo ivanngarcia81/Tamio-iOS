@@ -485,8 +485,13 @@ deshace, y que **falle** cuando una celda dé lo contrario de lo esperado. Sin
 eso, lo de hoy demuestra que no hay puertas abiertas; no demuestra que cada
 puerta esté donde el diseño dice.
 
-Hace falta además la cuenta de **secretaria**, que no existe (medido el 10-sep
-y sigue igual): sin ella, esa columna de la tabla no se puede probar.
+**Y las tres cuentas para probarla ya existen.** Este párrafo decía el 18-sep
+que faltaba la de secretaria «medido el 10-sep y sigue igual», y era falso:
+**`Ivang`, rol `secretaria`, existe desde el 11-sep** —lo dijo Iván, y estaba en
+la propia consulta de `perfiles` de ese día—. Repetir una medida vieja como si
+fuera de hoy es justo lo que este documento le reprocha a otros. Hoy hay
+administradores, tesoreros y una secretaria, y la de secretaria está en la
+misma iglesia que los otros dos roles, así que la tabla entera es probable.
 
 ## Los riesgos, que son reales
 
@@ -501,12 +506,12 @@ y sigue igual): sin ella, esa columna de la tabla no se puede probar.
 - **Las Edge Functions y los RPC no pasan por RLS** si son `security definer`.
   `invitar-usuario`, `siguiente_folio` y `fijar_permisos_tesoreria` hay que
   revisarlos aparte: ahí la comprobación va dentro de la función.
-- **Hace falta una cuenta de cada rol para probar.** Medido el 10-sep: en
-  `perfiles` hay **cuatro administradores repartidos en tres iglesias y dos
-  tesoreros**; **de secretaria no hay ninguna**. Así que falta esa, y crearla es
-  además la prueba de que las invitaciones funcionan, que nunca se ha
-  ejercitado. (Este apartado decía que solo existía la de administrador: ya no
-  era verdad.)
+- **Hace falta una cuenta de cada rol para probar, y ya están las tres.**
+  Medido el 10-sep había cuatro administradores en tres iglesias y dos
+  tesoreros, y de secretaria ninguna. **Desde el 11-sep hay una** (`Ivang`,
+  creada por invitación, así que la invitación quedó ejercitada de paso). Este
+  punto se leyó el 18-sep como si siguiera vigente y se escribió más abajo que
+  faltaba; corregido el mismo día. Una medida lleva fecha por esto.
 - **Y no hace falta una cuenta para todo.** Con `set local role authenticated` y
   `request.jwt.claims` dentro de una transacción que se deshace se prueban las
   tres vistas del mundo desde el servidor. Está ejercitado y funciona: es como
