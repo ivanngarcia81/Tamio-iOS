@@ -5,8 +5,110 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **17 de septiembre de 2026** (§0.-15). Todo lo de hoy verificado en el iPhone físico. La pasada grande
-sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
+Última actualización: **18 de septiembre de 2026** (§0.-16, la subida a App
+Store). Lo de interfaz sigue en §0.-15, verificado en el iPhone físico, y la
+pasada grande sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-16 Lo que faltaba para subir a App Store · 17 y 18 de septiembre
+
+Encargo distinto a los de arriba: no es interfaz ni QA, es qué le falta al repo
+para estar en la tienda. Lo que sigue es lo que no se deduce leyendo el código.
+
+### Los dos bloqueantes eran reales, y ninguno se veía leyendo
+
+- **El icono llevaba canal alfa.** Un PNG de 1024 en RGBA de 16 bits con las
+  esquinas transparentes. Eso es un rechazo automático de la validación de la
+  subida (**ITMS-90717**), no una opinión de un revisor. Y **no se ve en el
+  archivo suelto**: se ve en el `Assets.car` del paquete compilado, que decía
+  `Opaque = false`. Ahora dice `True`.
+- **Borrar la cuenta solo existía en el teléfono.** La regla **5.1.1(v)** estaba
+  cumplida en `IPhoneAjustesView` y nadie había preguntado qué pantalla usa el
+  iPad: `ConfiguracionView`, que tenía cerrar sesión y "Borrar datos de este
+  iPad" —que es otra cosa: borra la copia local y deja la cuenta viva—. La app
+  es universal y **el revisor prueba justo eso**.
+
+La lección repetida: **una regla cumplida en un sitio no está cumplida.** Es la
+misma de «cuando aquí se escriba una regla hay que contar en cuántos sitios más
+aplica», y esta vez los sitios eran dos porque los aparatos son dos.
+
+### La premisa que se cayó, y era mía
+
+El primer informe dijo que Release tenía que firmar con `Apple Distribution`.
+**Falso, y lo dijo el compilador:**
+
+    error: Tamio has conflicting provisioning settings. Tamio is automatically
+    signed for development, but a conflicting code signing identity
+    Apple Distribution has been manually specified.
+
+Con firma **automática** el archivo se firma de desarrollo **a propósito** —lleva
+`get-task-allow` y su lista de aparatos— y quien pone la firma de distribución
+es el paso de EXPORTAR, que reempaqueta y vuelve a firmar entero. Lo único que
+estaba mal era el nombre `iPhone Developer`, de antes de Xcode 11. El razonamiento
+quedó escrito en `project.yml` con el error literal, para que no se reintente.
+
+### La cadena de subida está probada entera
+
+`archive` → `exportArchive` → **`.ipa` firmado de distribución**, desde la línea
+de órdenes y sin abrir el Organizer. Comprobado sobre el paquete, no sobre el
+proyecto: `Apple Distribution: Ivan Garcia`, perfil de tienda,
+`get-task-allow: false`, sin `ProvisionedDevices`, `beta-reports-active`.
+
+**Y el muro no era el proyecto: era que Xcode no tenía ninguna cuenta de Apple
+dada de alta.** Por eso `-allowProvisioningUpdates` no podía crear nada y el
+export moría con *"No Accounts"*. Se resolvió dándola de alta a mano.
+
+**El `.ipa` vive en el directorio de trabajo de la sesión, dentro de `/tmp`, y se
+lo lleva un reinicio.** El que se suba de verdad hay que volver a generarlo.
+
+### App ID no es ficha, y el error no lo dice
+
+Subir antes de crear la ficha da esto, que suena a problema de firma y no lo es:
+
+    Could not create a temporary .itmsp package for the app "Tamio.ipa".
+    No suitable application records were found.
+
+El **App ID** del portal de desarrollador sirve para firmar; a la **ficha** de
+App Store Connect se sube el binario, y hay que crearla a mano. Son dos cosas.
+
+### Las dos decisiones que se cerraron
+
+- **Bundle id: `church.tamio.native`, ficha NUEVA.** No hereda la de
+  `com.tesoreria.app`. El porqué está en `project.yml` y en `docs/APP-STORE.md`;
+  en corto, la publicada es gratis, sin cuenta y local, y mandarle esta encima
+  como actualización rompe la app a quien la tenga, sin nada que migrar.
+- **Nombre: «Tamio Iglesia».** «Tamio» lo ocupa la app de Tauri —en toda la
+  tienda no hay ningún otro—. **Se descartó «Tamio Pro» a conciencia:** la
+  directriz **4.3** va contra dos fichas del mismo producto y su remedio expreso
+  es *una sola app con compra integrada*, que es justo lo que este proyecto evita
+  apoyándose en 3.1.3(c) y (f). Un nombre de gama le regala ese encuadre al
+  revisor. Lo que de verdad desactiva un 4.3 es la **nota para el revisor**
+  explicando por qué hay dos apps, apuntada en `docs/APP-STORE.md`.
+
+### La política de privacidad viva contradice a esta app
+
+`tamio.church/privacidad.html` (29 de julio) dice, literal: *«…ni inicio de
+sesión, no enviamos tu información a ningún servidor…»*. Esta app **no abre sin
+cuenta**. Queda redactado el reemplazo en `docs/privacidad-propuesta.html`, y la
+página de soporte que App Store exige y no existía, en
+`docs/soporte-propuesta.html`. Las publica el otro chat: `ACUERDO-CON-EL-WEB.md`
+§4, que lleva además las tres trampas —**que `Tamio-web` va nueve días atrasado
+y publicar desde ahí haría RETROCEDER la política**, que hay cuatro privacidades
+en disco con cuatro fechas, y que circulan dos correos de contacto—.
+
+### Instrumento: dos cosas que costaron
+
+- **El repo se movió debajo con cambios sin guardar.** La otra sesión metió 33
+  commits, y entre los archivos que tocaron estaban los dos que yo estaba
+  editando. La comprobación que lo zanja en diez segundos: `git diff --numstat`
+  —si tu archivo sale con **0 líneas borradas**, no estás pisando nada— y buscar
+  en tu copia un símbolo que ellos acabaran de introducir (aquí,
+  `Paleta.sobreRelleno`). Si está, tu trabajo va encima del suyo.
+- **Ver una pantalla del iPad sin credenciales.** Compilar con
+  `ModoRevision.activada = true` y `Navegacion.seccion = "config"`, que arranca
+  ya dentro. **Las dos líneas se devuelven en el MISMO comando que compila**, o
+  se quedan puestas: el `.app` ya sale horneado y la fuente vuelve limpia.
 
 ---
 
