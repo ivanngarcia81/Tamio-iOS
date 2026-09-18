@@ -2440,9 +2440,19 @@ final class MotorSincronizacion {
 
     // MARK: - Depósitos bancarios
 
-    /// `monto` va en UNIDADES, no en centavos: la columna es `double precision`,
-    /// igual que `transactions.monto`. La app opera en centavos y solo divide
-    /// aquí, en la frontera.
+    /// `monto` va en **CÉNTIMOS**, igual que `transactions.monto` y que la fila
+    /// local, aunque la columna sea `double precision`.
+    ///
+    /// **Este comentario decía lo contrario hasta el 18-sep-2026** —«va en
+    /// UNIDADES […] y solo divide aquí, en la frontera»— y era de antes del
+    /// cambio del 13-sep, cuando se quitaron las siete conversiones del lado
+    /// iOS para que subiera céntimos como ya hacía el web
+    /// (`docs/ACUERDO-CON-EL-WEB.md` §1). El código de abajo nunca llegó a
+    /// dividir; solo el comentario se quedó atrás.
+    ///
+    /// Se deja dicho porque hizo daño: alguien lo leyó, lo dio por bueno, y
+    /// generalizó a `transactions` la unidad de otra tabla. Un comentario
+    /// caducado no da error de compilación y se cree más que el código.
     private struct DepositoRemoto: Encodable {
         let uid: String
         let churchId: String

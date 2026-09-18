@@ -21,18 +21,47 @@
 -- correos en `example.com`, que la RFC 2606 reserva para que no puedan ser de
 -- nadie.
 --
--- ── Las dos unidades del dinero, que no son la misma ────────────────────────
--- `transactions.monto` va en **UNIDADES** (pesos) y es `double precision`: la
--- app opera en centavos y divide entre cien al subir. Pero
--- `iglesias.saldo_inicial` va en **CENTAVOS** y es `bigint`. Dos columnas
--- vecinas, dos unidades. Meter aquí centavos donde van pesos multiplica la
--- contabilidad de la demo por cien, que es el mismo fallo que costó la pasada
--- del 12 al 14 de septiembre entre las dos apps.
+-- ── El dinero va en CÉNTIMOS · las dos columnas ─────────────────────────────
+-- `transactions.monto` va en **CÉNTIMOS**, aunque la columna sea
+-- `double precision`: $1,200.00 se guarda como `120000`. Y
+-- `iglesias.saldo_inicial` también, que es `bigint`. **Las dos en lo mismo.**
 --
--- ── Y la categoría va en CLAVE, no en etiqueta ──────────────────────────────
+-- Esto tiene una historia y conviene saberla, porque la primera versión de
+-- este archivo se equivocó justo aquí. Hasta el 13-sep iOS DIVIDÍA entre cien
+-- al subir y el web no, así que el mismo importe valía cien veces más o cien
+-- veces menos según qué app lo escribiera (`docs/ACUERDO-CON-EL-WEB.md` §1).
+-- Se resolvió quitando las siete conversiones del lado iOS. El contrato de hoy
+-- lo dicen estos dos sitios, y son los que hay que creer:
+--
+--     SupabaseMovimientosRepository.swift:297  subir → «En CÉNTIMOS […] aquí
+--                                              se dividía entre 100»
+--     SupabaseMovimientosRepository.swift:227  bajar → «En céntimos, sin
+--                                              convertir: la columna remota ya lo está»
+--
+-- **Lo que NO hay que creer es el comentario de `DepositoRemoto`** en
+-- `MotorSincronizacion.swift`, que decía «va en UNIDADES […] y solo divide
+-- aquí» mientras el código de tres líneas más abajo subía sin dividir. Ese
+-- comentario caducó con el cambio del 13-sep y es de otra tabla; leerlo y
+-- generalizarlo a `transactions` es exactamente cómo se sembró esta demo cien
+-- veces más barata la primera vez. Corregido el 18-sep.
+--
+-- ── La categoría va en CLAVE, y son las CLAVES DE iOS ───────────────────────
 -- `diezmo`, no «Diezmo» ni «Tithe». Lo que hay hoy en producción es una sopa
 -- —`Limpieza`, `limpieza`, `Supplies`, `Tithe`, `donacion`— de antes de que la
--- clave existiera. La demo se siembra canónica.
+-- clave existiera.
+--
+-- **Pero no se llaman «canónicas», porque el vocabulario no está cerrado.**
+-- `docs/ACUERDO-CON-EL-WEB.md` lo tiene todavía en «Qué hay que decidir»: iOS
+-- dice `donativo` y `otro` donde el web dice `donacion` y `otros`, y hay
+-- cuatro `id` del web cuyo nombre ya no significa lo que dice —`eventos` es
+-- «Alimentos» allá, `musicos` es «Suministros», `pastores` es «Compensación»,
+-- `administracion` es «Varios»—. Esta semilla usa **tres de esos cuatro**
+-- (`eventos`, `musicos`, `pastores`) con el significado de iOS, que es el que
+-- verá el revisor porque entra por la app de iOS.
+--
+-- Es correcto para lo que hace falta hoy y **no decide nada**: si el acuerdo
+-- con el web sale por el otro lado, esas tres líneas hay que cambiarlas aquí
+-- también.
 --
 -- ── Cómo se usa ─────────────────────────────────────────────────────────────
 -- 1. Iván da de alta la cuenta del revisor. El disparador `al_crear_usuario`
@@ -144,40 +173,40 @@ begin
       fecha, monto, moneda, metodo_pago, estado, folio, folio_seq, aportante_nombre,
       beneficiario, notas, registrado_por, registrado_rol, comprobante_path,
       created_at, updated_at, deleted) values
-    ('demo-ingreso-01', v_iglesia, 'demo-miembro-01', 'ingreso', 'diezmo', 'Diezmo', '2026-09-18T11:00:00Z', 1200.00, 'MXN', 'efectivo', 'pendiente', '1001', 1001, 'María Hernández Ríos', null, 'Entregado en sobre cerrado durante el culto.', 'Jorge Alberto Nava', 'tesorero', 'comprobantes/1001.jpg', '2026-09-18T11:00:00Z', now(), false),
-    ('demo-ingreso-02', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda del culto', '2026-09-17T12:07:00Z', 3180.00, 'MXN', 'efectivo', 'aprobado', '1002', 1002, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-17T12:07:00Z', now(), false),
-    ('demo-ingreso-03', v_iglesia, 'demo-miembro-02', 'ingreso', 'diezmo', 'Diezmo', '2026-09-16T13:14:00Z', 2500.00, 'MXN', 'cheque', 'aprobado', '1003', 1003, 'Pedro Salas Aguirre', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-16T13:14:00Z', now(), false),
-    ('demo-ingreso-04', v_iglesia, null, 'ingreso', 'misiones', 'Ofrenda misionera', '2026-09-16T14:21:00Z', 6845.00, 'MXN', 'efectivo', 'aprobado', '1004', 1004, null, null, '', 'Jorge Alberto Nava', 'tesorero', 'comprobantes/1004.jpg', '2026-09-16T14:21:00Z', now(), false),
-    ('demo-ingreso-05', v_iglesia, 'demo-miembro-03', 'ingreso', 'diezmo', 'Diezmo', '2026-09-15T15:28:00Z', 900.00, 'MXN', 'transferencia', 'aprobado', '1005', 1005, 'Ana Lucía Torres', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-15T15:28:00Z', now(), false),
-    ('demo-ingreso-06', v_iglesia, 'demo-miembro-04', 'ingreso', 'diezmo', 'Diezmo', '2026-09-14T16:35:00Z', 1450.00, 'MXN', 'efectivo', 'pendiente', '1006', 1006, 'Lucía Márquez Peña', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-14T16:35:00Z', now(), false),
-    ('demo-ingreso-07', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda de miércoles', '2026-09-13T17:42:00Z', 2100.00, 'MXN', 'efectivo', 'aprobado', '1007', 1007, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-13T17:42:00Z', now(), false),
-    ('demo-ingreso-08', v_iglesia, 'demo-miembro-05', 'ingreso', 'diezmo', 'Diezmo', '2026-09-12T18:49:00Z', 1800.00, 'MXN', 'cheque', 'aprobado', '1008', 1008, 'Javier Medina Cruz', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-12T18:49:00Z', now(), false),
-    ('demo-ingreso-09', v_iglesia, null, 'ingreso', 'donativo', 'Fondo de construcción', '2026-09-11T11:56:00Z', 1280.00, 'MXN', 'cheque', 'aprobado', '1009', 1009, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-11T11:56:00Z', now(), false),
-    ('demo-ingreso-10', v_iglesia, 'demo-miembro-07', 'ingreso', 'diezmo', 'Diezmo', '2026-09-10T12:03:00Z', 2250.00, 'MXN', 'efectivo', 'aprobado', '1010', 1010, 'Rosa Elena Vega', null, '', 'Jorge Alberto Nava', 'tesorero', 'comprobantes/1010.jpg', '2026-09-10T12:03:00Z', now(), false),
-    ('demo-ingreso-11', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda general', '2026-09-09T13:10:00Z', 1700.00, 'MXN', 'efectivo', 'aprobado', '1011', 1011, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-09T13:10:00Z', now(), false),
-    ('demo-ingreso-12', v_iglesia, 'demo-miembro-08', 'ingreso', 'diezmo', 'Diezmo', '2026-09-07T14:17:00Z', 3100.00, 'MXN', 'transferencia', 'aprobado', '1012', 1012, 'Jorge Alberto Nava', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-07T14:17:00Z', now(), false),
-    ('demo-ingreso-13', v_iglesia, null, 'ingreso', 'eventos', 'Retiro de jóvenes', '2026-09-04T15:24:00Z', 4400.00, 'MXN', 'efectivo', 'pendiente', '1013', 1013, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-04T15:24:00Z', now(), false),
-    ('demo-ingreso-14', v_iglesia, 'demo-miembro-09', 'ingreso', 'diezmo', 'Diezmo', '2026-09-02T16:31:00Z', 1150.00, 'MXN', 'efectivo', 'aprobado', '1014', 1014, 'Claudia Ibarra Solís', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-02T16:31:00Z', now(), false),
-    ('demo-ingreso-15', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda del culto', '2026-08-31T17:38:00Z', 2890.00, 'MXN', 'efectivo', 'aprobado', '1015', 1015, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-31T17:38:00Z', now(), false),
-    ('demo-ingreso-16', v_iglesia, 'demo-miembro-10', 'ingreso', 'diezmo', 'Diezmo', '2026-08-28T18:45:00Z', 1975.00, 'MXN', 'efectivo', 'aprobado', '1016', 1016, 'Miguel Ángel Ponce', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-28T18:45:00Z', now(), false),
-    ('demo-ingreso-17', v_iglesia, null, 'ingreso', 'misiones', 'Ofrenda misionera', '2026-08-26T11:52:00Z', 3260.00, 'MXN', 'efectivo', 'aprobado', '1017', 1017, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-26T11:52:00Z', now(), false),
-    ('demo-ingreso-18', v_iglesia, 'demo-miembro-11', 'ingreso', 'diezmo', 'Diezmo', '2026-08-21T12:59:00Z', 2400.00, 'MXN', 'cheque', 'aprobado', '1018', 1018, 'Sofía Ramírez Gallardo', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-21T12:59:00Z', now(), false),
-    ('demo-ingreso-19', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda del culto', '2026-08-19T13:06:00Z', 3050.00, 'MXN', 'efectivo', 'aprobado', '1019', 1019, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-19T13:06:00Z', now(), false),
-    ('demo-ingreso-20', v_iglesia, null, 'ingreso', 'donativo', 'Donativo para sillas', '2026-08-14T14:13:00Z', 5000.00, 'MXN', 'transferencia', 'aprobado', '1020', 1020, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-14T14:13:00Z', now(), false),
-    ('demo-ingreso-21', v_iglesia, 'demo-miembro-13', 'ingreso', 'diezmo', 'Diezmo', '2026-08-11T15:20:00Z', 1600.00, 'MXN', 'efectivo', 'aprobado', '1021', 1021, 'Verónica Castañeda', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-11T15:20:00Z', now(), false),
-    ('demo-ingreso-22', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda de miércoles', '2026-08-07T16:27:00Z', 1840.00, 'MXN', 'efectivo', 'aprobado', '1022', 1022, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-07T16:27:00Z', now(), false),
-    ('demo-gasto-01', v_iglesia, null, 'gasto', 'utilidades', 'Luz CFE', '2026-09-17T09:00:00Z', 3410.50, 'MXN', 'transferencia', 'aprobado', '501', 501, null, 'CFE', '', 'Jorge Alberto Nava', 'tesorero', 'comprobantes/501.jpg', '2026-09-17T09:00:00Z', now(), false),
-    ('demo-gasto-02', v_iglesia, null, 'gasto', 'renta', 'Renta del local', '2026-09-15T10:11:00Z', 12000.00, 'MXN', 'transferencia', 'aprobado', '502', 502, null, 'Arrendadora del Norte', '', 'Jorge Alberto Nava', 'tesorero', 'comprobantes/502.jpg', '2026-09-15T10:11:00Z', now(), false),
-    ('demo-gasto-03', v_iglesia, null, 'gasto', 'pastores', 'Apoyo pastoral', '2026-09-13T11:22:00Z', 9000.00, 'MXN', 'transferencia', 'pendiente', '503', 503, null, '', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-13T11:22:00Z', now(), false),
-    ('demo-gasto-04', v_iglesia, null, 'gasto', 'musicos', 'Apoyo a músicos', '2026-09-12T12:33:00Z', 2500.00, 'MXN', 'efectivo', 'aprobado', '504', 504, null, '', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-12T12:33:00Z', now(), false),
-    ('demo-gasto-05', v_iglesia, null, 'gasto', 'limpieza', 'Artículos de limpieza', '2026-09-09T13:44:00Z', 860.00, 'MXN', 'efectivo', 'aprobado', '505', 505, null, 'Abarrotes La Luz', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-09T13:44:00Z', now(), false),
-    ('demo-gasto-06', v_iglesia, null, 'gasto', 'suministros', 'Papelería y tóner', '2026-09-06T14:55:00Z', 1240.00, 'MXN', 'tarjeta', 'aprobado', '506', 506, null, 'Papelería Centro', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-06T14:55:00Z', now(), false),
-    ('demo-gasto-07', v_iglesia, null, 'gasto', 'mantenimiento', 'Reparación de aire', '2026-09-01T15:06:00Z', 3800.00, 'MXN', 'efectivo', 'aprobado', '507', 507, null, 'Servicios Térmicos MTY', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-01T15:06:00Z', now(), false),
-    ('demo-gasto-08', v_iglesia, null, 'gasto', 'alimentos', 'Café y galletas', '2026-08-29T16:17:00Z', 540.00, 'MXN', 'efectivo', 'aprobado', '508', 508, null, '', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-29T16:17:00Z', now(), false),
-    ('demo-gasto-09', v_iglesia, null, 'gasto', 'utilidades', 'Agua y drenaje', '2026-08-25T17:28:00Z', 690.00, 'MXN', 'transferencia', 'aprobado', '509', 509, null, 'Agua y Drenaje de Monterrey', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-25T17:28:00Z', now(), false),
-    ('demo-gasto-10', v_iglesia, null, 'gasto', 'tecnologia', 'Cable HDMI y adaptador', '2026-08-22T09:39:00Z', 980.00, 'MXN', 'tarjeta', 'aprobado', '510', 510, null, 'TecnoNorte', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-22T09:39:00Z', now(), false),
-    ('demo-gasto-11', v_iglesia, null, 'gasto', 'misiones', 'Envío misionero mensual', '2026-08-18T10:50:00Z', 4000.00, 'MXN', 'transferencia', 'aprobado', '511', 511, null, '', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-18T10:50:00Z', now(), false),
-    ('demo-gasto-12', v_iglesia, null, 'gasto', 'ayudaSocial', 'Despensa a familia', '2026-08-13T11:01:00Z', 1500.00, 'MXN', 'efectivo', 'aprobado', '512', 512, null, '', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-13T11:01:00Z', now(), false);
+    ('demo-ingreso-01', v_iglesia, 'demo-miembro-01', 'ingreso', 'diezmo', 'Diezmo', '2026-09-18T11:00:00Z', 120000, 'MXN', 'efectivo', 'pendiente', '1001', 1001, 'María Hernández Ríos', null, 'Entregado en sobre cerrado durante el culto.', 'Jorge Alberto Nava', 'tesorero', 'comprobantes/1001.jpg', '2026-09-18T11:00:00Z', now(), false),
+    ('demo-ingreso-02', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda del culto', '2026-09-17T12:07:00Z', 318000, 'MXN', 'efectivo', 'aprobado', '1002', 1002, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-17T12:07:00Z', now(), false),
+    ('demo-ingreso-03', v_iglesia, 'demo-miembro-02', 'ingreso', 'diezmo', 'Diezmo', '2026-09-16T13:14:00Z', 250000, 'MXN', 'cheque', 'aprobado', '1003', 1003, 'Pedro Salas Aguirre', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-16T13:14:00Z', now(), false),
+    ('demo-ingreso-04', v_iglesia, null, 'ingreso', 'misiones', 'Ofrenda misionera', '2026-09-16T14:21:00Z', 684500, 'MXN', 'efectivo', 'aprobado', '1004', 1004, null, null, '', 'Jorge Alberto Nava', 'tesorero', 'comprobantes/1004.jpg', '2026-09-16T14:21:00Z', now(), false),
+    ('demo-ingreso-05', v_iglesia, 'demo-miembro-03', 'ingreso', 'diezmo', 'Diezmo', '2026-09-15T15:28:00Z', 90000, 'MXN', 'transferencia', 'aprobado', '1005', 1005, 'Ana Lucía Torres', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-15T15:28:00Z', now(), false),
+    ('demo-ingreso-06', v_iglesia, 'demo-miembro-04', 'ingreso', 'diezmo', 'Diezmo', '2026-09-14T16:35:00Z', 145000, 'MXN', 'efectivo', 'pendiente', '1006', 1006, 'Lucía Márquez Peña', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-14T16:35:00Z', now(), false),
+    ('demo-ingreso-07', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda de miércoles', '2026-09-13T17:42:00Z', 210000, 'MXN', 'efectivo', 'aprobado', '1007', 1007, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-13T17:42:00Z', now(), false),
+    ('demo-ingreso-08', v_iglesia, 'demo-miembro-05', 'ingreso', 'diezmo', 'Diezmo', '2026-09-12T18:49:00Z', 180000, 'MXN', 'cheque', 'aprobado', '1008', 1008, 'Javier Medina Cruz', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-12T18:49:00Z', now(), false),
+    ('demo-ingreso-09', v_iglesia, null, 'ingreso', 'donativo', 'Fondo de construcción', '2026-09-11T11:56:00Z', 128000, 'MXN', 'cheque', 'aprobado', '1009', 1009, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-11T11:56:00Z', now(), false),
+    ('demo-ingreso-10', v_iglesia, 'demo-miembro-07', 'ingreso', 'diezmo', 'Diezmo', '2026-09-10T12:03:00Z', 225000, 'MXN', 'efectivo', 'aprobado', '1010', 1010, 'Rosa Elena Vega', null, '', 'Jorge Alberto Nava', 'tesorero', 'comprobantes/1010.jpg', '2026-09-10T12:03:00Z', now(), false),
+    ('demo-ingreso-11', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda general', '2026-09-09T13:10:00Z', 170000, 'MXN', 'efectivo', 'aprobado', '1011', 1011, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-09T13:10:00Z', now(), false),
+    ('demo-ingreso-12', v_iglesia, 'demo-miembro-08', 'ingreso', 'diezmo', 'Diezmo', '2026-09-07T14:17:00Z', 310000, 'MXN', 'transferencia', 'aprobado', '1012', 1012, 'Jorge Alberto Nava', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-07T14:17:00Z', now(), false),
+    ('demo-ingreso-13', v_iglesia, null, 'ingreso', 'eventos', 'Retiro de jóvenes', '2026-09-04T15:24:00Z', 440000, 'MXN', 'efectivo', 'pendiente', '1013', 1013, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-04T15:24:00Z', now(), false),
+    ('demo-ingreso-14', v_iglesia, 'demo-miembro-09', 'ingreso', 'diezmo', 'Diezmo', '2026-09-02T16:31:00Z', 115000, 'MXN', 'efectivo', 'aprobado', '1014', 1014, 'Claudia Ibarra Solís', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-02T16:31:00Z', now(), false),
+    ('demo-ingreso-15', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda del culto', '2026-08-31T17:38:00Z', 289000, 'MXN', 'efectivo', 'aprobado', '1015', 1015, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-31T17:38:00Z', now(), false),
+    ('demo-ingreso-16', v_iglesia, 'demo-miembro-10', 'ingreso', 'diezmo', 'Diezmo', '2026-08-28T18:45:00Z', 197500, 'MXN', 'efectivo', 'aprobado', '1016', 1016, 'Miguel Ángel Ponce', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-28T18:45:00Z', now(), false),
+    ('demo-ingreso-17', v_iglesia, null, 'ingreso', 'misiones', 'Ofrenda misionera', '2026-08-26T11:52:00Z', 326000, 'MXN', 'efectivo', 'aprobado', '1017', 1017, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-26T11:52:00Z', now(), false),
+    ('demo-ingreso-18', v_iglesia, 'demo-miembro-11', 'ingreso', 'diezmo', 'Diezmo', '2026-08-21T12:59:00Z', 240000, 'MXN', 'cheque', 'aprobado', '1018', 1018, 'Sofía Ramírez Gallardo', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-21T12:59:00Z', now(), false),
+    ('demo-ingreso-19', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda del culto', '2026-08-19T13:06:00Z', 305000, 'MXN', 'efectivo', 'aprobado', '1019', 1019, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-19T13:06:00Z', now(), false),
+    ('demo-ingreso-20', v_iglesia, null, 'ingreso', 'donativo', 'Donativo para sillas', '2026-08-14T14:13:00Z', 500000, 'MXN', 'transferencia', 'aprobado', '1020', 1020, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-14T14:13:00Z', now(), false),
+    ('demo-ingreso-21', v_iglesia, 'demo-miembro-13', 'ingreso', 'diezmo', 'Diezmo', '2026-08-11T15:20:00Z', 160000, 'MXN', 'efectivo', 'aprobado', '1021', 1021, 'Verónica Castañeda', null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-11T15:20:00Z', now(), false),
+    ('demo-ingreso-22', v_iglesia, null, 'ingreso', 'ofrenda', 'Ofrenda de miércoles', '2026-08-07T16:27:00Z', 184000, 'MXN', 'efectivo', 'aprobado', '1022', 1022, null, null, '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-07T16:27:00Z', now(), false),
+    ('demo-gasto-01', v_iglesia, null, 'gasto', 'utilidades', 'Luz CFE', '2026-09-17T09:00:00Z', 341050, 'MXN', 'transferencia', 'aprobado', '501', 501, null, 'CFE', '', 'Jorge Alberto Nava', 'tesorero', 'comprobantes/501.jpg', '2026-09-17T09:00:00Z', now(), false),
+    ('demo-gasto-02', v_iglesia, null, 'gasto', 'renta', 'Renta del local', '2026-09-15T10:11:00Z', 1200000, 'MXN', 'transferencia', 'aprobado', '502', 502, null, 'Arrendadora del Norte', '', 'Jorge Alberto Nava', 'tesorero', 'comprobantes/502.jpg', '2026-09-15T10:11:00Z', now(), false),
+    ('demo-gasto-03', v_iglesia, null, 'gasto', 'pastores', 'Apoyo pastoral', '2026-09-13T11:22:00Z', 900000, 'MXN', 'transferencia', 'pendiente', '503', 503, null, '', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-13T11:22:00Z', now(), false),
+    ('demo-gasto-04', v_iglesia, null, 'gasto', 'musicos', 'Apoyo a músicos', '2026-09-12T12:33:00Z', 250000, 'MXN', 'efectivo', 'aprobado', '504', 504, null, '', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-12T12:33:00Z', now(), false),
+    ('demo-gasto-05', v_iglesia, null, 'gasto', 'limpieza', 'Artículos de limpieza', '2026-09-09T13:44:00Z', 86000, 'MXN', 'efectivo', 'aprobado', '505', 505, null, 'Abarrotes La Luz', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-09T13:44:00Z', now(), false),
+    ('demo-gasto-06', v_iglesia, null, 'gasto', 'suministros', 'Papelería y tóner', '2026-09-06T14:55:00Z', 124000, 'MXN', 'tarjeta', 'aprobado', '506', 506, null, 'Papelería Centro', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-06T14:55:00Z', now(), false),
+    ('demo-gasto-07', v_iglesia, null, 'gasto', 'mantenimiento', 'Reparación de aire', '2026-09-01T15:06:00Z', 380000, 'MXN', 'efectivo', 'aprobado', '507', 507, null, 'Servicios Térmicos MTY', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-09-01T15:06:00Z', now(), false),
+    ('demo-gasto-08', v_iglesia, null, 'gasto', 'alimentos', 'Café y galletas', '2026-08-29T16:17:00Z', 54000, 'MXN', 'efectivo', 'aprobado', '508', 508, null, '', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-29T16:17:00Z', now(), false),
+    ('demo-gasto-09', v_iglesia, null, 'gasto', 'utilidades', 'Agua y drenaje', '2026-08-25T17:28:00Z', 69000, 'MXN', 'transferencia', 'aprobado', '509', 509, null, 'Agua y Drenaje de Monterrey', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-25T17:28:00Z', now(), false),
+    ('demo-gasto-10', v_iglesia, null, 'gasto', 'tecnologia', 'Cable HDMI y adaptador', '2026-08-22T09:39:00Z', 98000, 'MXN', 'tarjeta', 'aprobado', '510', 510, null, 'TecnoNorte', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-22T09:39:00Z', now(), false),
+    ('demo-gasto-11', v_iglesia, null, 'gasto', 'misiones', 'Envío misionero mensual', '2026-08-18T10:50:00Z', 400000, 'MXN', 'transferencia', 'aprobado', '511', 511, null, '', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-18T10:50:00Z', now(), false),
+    ('demo-gasto-12', v_iglesia, null, 'gasto', 'ayudaSocial', 'Despensa a familia', '2026-08-13T11:01:00Z', 150000, 'MXN', 'efectivo', 'aprobado', '512', 512, null, '', '', 'Jorge Alberto Nava', 'tesorero', null, '2026-08-13T11:01:00Z', now(), false);
 
   -- ── Tres cortes: dos ya depositados y uno pendiente ────────────────────────
   -- Un corte nace VACÍO y se llena desde su ficha: el total sale de la tabla
@@ -308,7 +337,23 @@ begin
 end $$;
 
 -- ── Comprobación, para correr después y mirar ────────────────────────────────
--- Pega el mismo id. El saldo tiene que cuadrar con lo que enseñe la app.
+-- Pega el mismo id. **Estas son las cifras que tiene que dar**, y están aquí
+-- porque la primera versión sembró el dinero cien veces más barato y nada lo
+-- habría dicho: la app habría enseñado $488.20 de ingresos con toda naturalidad.
+-- Un número esperado escrito al lado es lo que convierte esta consulta en una
+-- comprobación en vez de en un vistazo.
+--
+--   miembros           14
+--   movimientos        34   (22 ingresos, 12 gastos)
+--   ingresos aprobados  4 882 000 céntimos =  $48,820.00
+--   gastos aprobados    3 152 050 céntimos =  $31,520.50
+--   balance             1 729 950 céntimos =  $17,299.50
+--   sin aprobar         3 ingresos ($7,050.00) y 1 gasto ($9,000.00)
+--   perfiles           ≥ 2
+--
+-- Si la app enseña **$488.20 en vez de $48,820.00**, el dinero se sembró en
+-- pesos y no en céntimos: es el fallo del 18-sep, y se arregla multiplicando
+-- por cien la columna `monto` de esta iglesia.
 --
 --   select
 --     (select count(*) from members      where church_id = '…' and not deleted) miembros,

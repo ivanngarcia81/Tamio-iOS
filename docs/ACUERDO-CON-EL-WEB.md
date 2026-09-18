@@ -24,13 +24,26 @@ iglesia; ninguna se ha cambiado.
 
 **Es lo más grave de la pasada.** No es un rótulo: es el importe.
 
-| | qué sube a `transactions.monto` | $500.00 se guarda como |
+> ### ⚠️ TODO LO QUE SIGUE HASTA «Lo ya guardado» ES HISTÓRICO · YA NO APLICA
+>
+> Describe cómo estaban las cosas **antes del 13-sep**. Está en presente porque
+> se escribió aquel día y se ha dejado tal cual como registro.
+>
+> **El contrato de HOY es: céntimos en las dos apps, en las dos direcciones.**
+> `$1,200.00` se guarda como `120000`. Los dos sitios que lo mandan son
+> `SupabaseMovimientosRepository.swift:297` (subir) y `:227` (bajar).
+>
+> Este aviso se añadió el **18-sep** porque la tabla de abajo, leída sin el
+> encabezado de la sección, dice exactamente lo contrario de lo que hace el
+> código — y costó una semilla de demostración sembrada cien veces más barata.
+
+| | qué subía a `transactions.monto` **hasta el 13-sep** | $500.00 se guardaba como |
 |---|---|---|
 | **iOS** | **unidades** — `Double(fila.monto) / 100.0` (`MotorSincronizacion:2474`, `:2710`) | `500` |
 | **web** | **céntimos** — copia la columna tal cual, sin dividir (`sync.ts:520`) | `50000` |
 
-Las dos apps guardan céntimos en su base local. La diferencia está en la
-subida: iOS divide, el web no.
+Las dos apps guardaban céntimos en su base local. La diferencia estaba en la
+subida: iOS dividía, el web no. **Ya no: iOS dejó de dividir.**
 
 **Lo que se ve, medido el 13-sep sobre las 38 filas vivas:**
 

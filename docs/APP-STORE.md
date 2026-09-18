@@ -200,4 +200,15 @@ está esta. Borrarla deja tirado a quien la tenga.
   nueva `1.0.0 (1)` es correcto. Lo que sí hay que recordar: **cada subida a
   App Store Connect necesita un número MAYOR que el anterior**, aunque la
   anterior se rechazara o se borrara. El primero que se suba quema el `1`.
-- **Las capturas y el texto de la ficha**, que no están en este repo.
+- ~~Las capturas y el texto de la ficha, que no están en este repo.~~ **Ya
+  están, desde el 18-sep.** El texto en `docs/FICHA-APP-STORE.md`; las capturas
+  las genera `pruebas/capturas-tienda.sh` y salen en `docs/capturas-tienda/`,
+  que está en `.gitignore` a propósito.
+- **La cuenta del revisor y su iglesia**, que es lo único de esta lista que
+  sigue sin hacer. `docs/demo-revision.sql` y el apartado de arriba.
+- **Un solo correo.** Circulan dos (`ivanngarcia82@gmail.com` en el sitio y en
+  la política viva, `ig07644@gmail.com` en otras copias). La ficha, la política
+  y soporte tienen que decir el mismo.
+- **Las dos URL publicadas.** Sin la de soporte App Store Connect no deja
+  enviar, y la de privacidad que está viva hoy contradice a esta app por
+  escrito. Las publica el otro chat: `ACUERDO-CON-EL-WEB.md` §4.

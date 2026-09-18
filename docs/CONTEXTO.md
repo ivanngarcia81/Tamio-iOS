@@ -120,12 +120,40 @@ La sustituta está escrita en **`docs/demo-revision.sql`** —«Iglesia Nueva Vi
 el mismo nombre que sale en las capturas— y el paso a paso en
 `docs/APP-STORE.md`. Tres cosas que costaron:
 
-- **`transactions.monto` va en PESOS y `iglesias.saldo_inicial` en CENTAVOS.**
-  Dos columnas vecinas, dos unidades, y es el mismo factor cien que costó la
-  pasada del 12 al 14. Está dicho en la cabecera del SQL.
+- **El dinero va en CÉNTIMOS en las dos columnas**, `transactions.monto` y
+  `iglesias.saldo_inicial`. Está dicho en la cabecera del SQL.
+
+  **Y esto se escribió al revés el 18-sep, corregido el mismo día tras una
+  revisión de Iván.** La primera versión decía «`monto` en PESOS,
+  `saldo_inicial` en CENTAVOS: dos columnas vecinas, dos unidades», y sembró la
+  demo cien veces más barata — $12.00 donde iban $1,200.00.
+
+  **De dónde salió el error, que es lo que hay que no repetir:** se leyó el
+  comentario de `DepositoRemoto` en `MotorSincronizacion.swift`, que decía «va
+  en UNIDADES […] y solo divide aquí», y se generalizó a `transactions`. Dos
+  fallos en un solo paso: **el comentario era de OTRA TABLA**, y además estaba
+  **caducado** —el código de tres líneas más abajo subía sin dividir desde el
+  13-sep—. La fuente buena era `SupabaseMovimientosRepository.swift:297` y
+  `:227`, que son los dos sitios por donde pasa el importe de un movimiento.
+
+  La regla: **para saber en qué unidad va una columna, leer el código que la
+  escribe, no un comentario sobre una columna parecida.** Un comentario
+  caducado no da error de compilación y se cree más que el código.
+
+  El comentario ya está corregido, y el §1 de `ACUERDO-CON-EL-WEB.md` lleva
+  ahora un aviso de HISTÓRICO sobre su tabla, que también está en presente y
+  también dice lo contrario de lo que hace el código.
 - **`categoria` va en CLAVE minúscula**, `diezmo` y no «Diezmo» ni «Tithe». Lo
   que hay hoy en producción es una sopa de las tres formas, de antes de que la
-  clave existiera; la demo se siembra canónica.
+  clave existiera.
+
+  **La primera versión las llamó «canónicas» y no lo son**, corregido el mismo
+  día: `ACUERDO-CON-EL-WEB.md` tiene el vocabulario todavía en «Qué hay que
+  decidir» —iOS dice `donativo` y `otro` donde el web dice `donacion` y
+  `otros`— y la semilla usa **tres de los cuatro `id` señalados como
+  ambiguos** (`eventos`, `musicos`, `pastores`) con el significado de iOS. Es
+  lo correcto para la demo, que se mira desde iOS, pero **no decide nada**: si
+  el acuerdo sale por el otro lado hay que cambiarlas ahí también.
 - **Los JSON de las actas tienen cada uno su forma**: `acuerdos` y `mociones`
   son objetos, `firmas` lleva `rol`/`firmado`/`fecha`, y presentes/ausentes sí
   son cadenas sueltas. Escribir una lista de cadenas donde van objetos **no da
@@ -143,6 +171,39 @@ verdad: **dos de los tres cortes llevaban dinero de fecha POSTERIOR al corte**
 —el depósito por delante de lo que deposita—. No da error en ninguna parte: la
 tabla puente son dos columnas y no compara fechas. Y los tres se llamaban
 «Culto domingo» cayendo en miércoles.
+
+### La revisión de Iván, el mismo día · doce puntos y los doce ciertos
+
+Iván pasó una revisión sobre todo lo anterior y **acertó en los doce**. Cuatro
+eran fallos de esta sesión —la unidad del dinero, el comentario caducado que la
+causó, la ruta de Borrar cuenta en la nota al revisor, y llamar «canónicas» a
+las categorías—, tres eran documentación que se quedó atrás, y el resto eran
+cosas ya sabidas que conviene no dar por cerradas. Todos corregidos salvo los
+que no son de este repo.
+
+**El que habría costado un rechazo no es el del dinero: es el de la ruta.** La
+nota para el revisor mandaba a *Settings → Danger zone → Delete account*, y ahí
+no está —está en «Cuenta», al lado de cerrar sesión, y el código lo dice con
+todas las letras en los dos aparatos—. Lo que hay en la Zona de riesgo es
+«Borrar datos de este iPad», que borra la copia local y **deja la cuenta
+viva**. Un revisor que sigue la instrucción, no la encuentra, prueba lo de al
+lado y ve que la cuenta sigue en pie, reporta que la app incumple la 5.1.1(v).
+
+Y la del dinero deja la lección de método: **escribí una nota de aviso sobre
+una trampa que yo mismo acababa de caer en ella.** «Dos columnas vecinas, dos
+unidades» sonaba a hallazgo, iba con su explicación y su advertencia, y estaba
+al revés. Que una afirmación venga envuelta en un porqué convincente no la hace
+cierta — sobre todo si el porqué lo escribió quien la afirma.
+
+Lo que queda abierto de esa revisión y no es de aquí:
+
+- **El vocabulario de categorías** sigue sin cerrar entre iOS y el web
+  (`ACUERDO-CON-EL-WEB.md`, «Qué hay que decidir»).
+- **En `Tamio-app`, la rama `claude/padron-secretaria` va 7 commits adelante y
+  8 atrás de `main`** — comprobado el 18-sep—. Parte del contrato de
+  sincronización vive en una rama que todavía no es el producto.
+
+---
 
 ### Lo que queda, y de quién es
 

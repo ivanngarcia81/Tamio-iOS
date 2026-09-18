@@ -256,9 +256,10 @@ la revisión es en inglés.
     destroy the demo.
 
     ACCOUNT DELETION (5.1.1(v))
-    In-app and immediate, on both devices:
-      iPhone -> Settings tab -> Danger zone -> Delete account
-      iPad   -> Settings (sidebar) -> Danger zone -> Delete account
+    In-app and immediate, on both devices, in the ACCOUNT section next to
+    "Sign out" -- not in the Danger zone:
+      iPhone -> Settings tab -> Account -> "Delete my account"
+      iPad   -> Settings (sidebar) -> Account -> "Delete my account"
     Deleting the last profile of a church deletes the church and its data in
     cascade; deleting one of several leaves the church untouched. The review
     account is not the only profile of its church, so it takes the second path.
@@ -287,6 +288,18 @@ la revisión es en inglés.
     LANGUAGE
     The app ships in Spanish and English and opens in the device language.
     To switch: Settings -> Language.
+
+> **Corregido el 18-sep.** Esta nota decía *Settings → Danger zone → Delete
+> account*, y ahí NO está. El código lo dice con todas las letras en los dos
+> sitios —`IPhoneAjustesView:334` y `ConfiguracionView:501`—: *«Borrar la
+> cuenta va AQUÍ y no en la Zona de riesgo […] quien la busca la busca en
+> Cuenta, al lado de cerrar sesión»*. En la Zona de riesgo lo que hay es
+> «Borrar datos de este iPad», que es otra cosa: se lleva la copia local y deja
+> la cuenta viva.
+>
+> Mandar al revisor al sitio equivocado en la instrucción de la 5.1.1(v) es
+> pedir un rechazo: no la encuentra donde se le dice, prueba lo de al lado, ve
+> que la cuenta sigue viva, y reporta que la app no deja borrarla.
 
 **La cuenta de revisión no está creada todavía**, y tiene un requisito que es
 fácil saltarse: **un segundo perfil administrador en esa misma iglesia**. Sin
