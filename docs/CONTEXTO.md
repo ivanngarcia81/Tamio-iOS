@@ -5,9 +5,156 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **18 de septiembre de 2026** (§0.-16, la subida a App
-Store). Lo de interfaz sigue en §0.-15, verificado en el iPhone físico, y la
+Última actualización: **18 de septiembre de 2026** (§0.-17, las capturas, el
+texto de la ficha y la iglesia de demostración). Lo técnico de la subida está
+en §0.-16, lo de interfaz en §0.-15 —verificado en el iPhone físico— y la
 pasada grande sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-17 Las capturas, la ficha y la demo del revisor · 18 de septiembre
+
+Continuación de §0.-16. Aquello dejó el repo listo para firmar y exportar; esto
+es lo que hay que ENTREGAR además del binario. Tres cosas: las capturas, el
+texto de la ficha y la iglesia donde entra el revisor.
+
+`main` quedó al día con `liquid-glass` al empezar (`1422651`): solo le faltaba
+el commit del contexto anterior.
+
+### Las capturas se generan solas, y hay un estorbo que no se ve venir
+
+`pruebas/capturas-tienda.sh telefono|ipad` deja el juego en
+`docs/capturas-tienda/`. Sale con la medida exacta que pide App Store sin
+tocar nada: **1320×2868** del iPhone 17 Pro Max (6.9") y **2752×2064** del iPad
+Pro 13" en apaisado. `simctl io screenshot` NO hay que rotarlo aquí, al
+contrario que en las corridas de QA en apaisado del §0.0.
+
+**El estorbo es el aviso naranja del modo revisión.** Para recorrer pantallas
+sin sesión hace falta `ModoRevision.activada = true`, y encendido la app pinta
+una franja fija en lo alto de TODAS las pantallas que dice «MODO REVISIÓN · sin
+sesión · datos de ejemplo». Está puesta a propósito y no se toca. Lo que hace
+el guion es apagarla **en la copia**, junto con encender el modo, y **los dos
+parches fallan ruidosamente si no encuentran su texto** en vez de seguir: un
+`sed` que no casa no dice nada, y el fallo aparecería ocho minutos después
+dentro del PNG. El repo queda limpio, así que no hay forma de subir el modo
+revisión encendido.
+
+### Cuatro de las diez primeras capturas estaban vacías, y compilaban igual
+
+La primera corrida dio diez capturas correctas y cuatro malas: Depósitos,
+Agenda y Actas salían con **media pantalla en blanco**, y el detalle de un
+movimiento salía con un recuadro que decía «Sin comprobante» justo en la
+captura que tiene que demostrar lo contrario.
+
+No es un fallo de la app: es que **la lista de algo casi siempre enseña menos
+que su ficha**. El recorrido pasó a abrir el corte en vez de la lista de
+cortes, el acta en vez de la lista de actas, y a elegir el movimiento de la
+semilla que SÍ tiene nota, tres entradas de auditoría y comprobante —el folio
+1043—. Eso último ata la captura a la semilla: si `MockMovimientosRepository`
+cambia, la captura se queda muda sin avisar, y por eso está dicho en el código.
+
+### Tres formas de que el recorrido mienta, las tres vistas hoy
+
+1. **`app.staticTexts["texto"]` con dos filas iguales no devuelve la primera:
+   revienta la consulta** con *"Multiple matching elements found"*, y eso **no
+   lo salva `continueAfterFailure`** — se llevó la corrida entera. Pasó con
+   «Ofrenda misionera», que en la semilla sale dos veces: dos capturas buenas y
+   las ocho siguientes sin hacer. En datos de ejemplo el texto repetido es lo
+   normal; el subíndice no vale nunca, va `firstMatch`.
+2. **Un `tap()` que no da error tampoco ha hecho nada.** El cambio de la Agenda
+   a vista de lista se dio por hecho: `waitForExistence` dijo que sí, el toque
+   no se quejó, y la captura salió con la rejilla del mes puesta. Las cápsulas
+   llevan `.isSelected` (`AgendaView.chipVista`), así que se puede PREGUNTAR si
+   quedó elegida en vez de suponerlo. Ahora se pregunta, se reintenta y, si no,
+   vuelca lo que hay.
+3. **Dos corridas comparten la copia y el simulador.** El guion no tenía
+   cerrojo y `aparato.sh` sí, por la misma razón y desde el 12-sep. Aquí el
+   destrozo se vería más tarde y peor: en los PNG. Lleva cerrojo.
+
+### Y un fallo de interfaz que salió de mirar las capturas
+
+**El segmentado de Depósitos trunca «Depositad…»** en el iPhone 17 Pro Max, que
+es el más ancho que hay. No se arregló en esta pasada —está apuntado en §6—,
+pero merece la nota de cómo apareció: nadie lo había visto en catorce corridas
+de QA porque las pruebas miran desbordes contra el ancho de la ventana, y un
+`Picker` que recorta su propia etiqueta **no desborda nada**. Lo cazó mirar la
+imagen.
+
+### El texto de la ficha: `docs/FICHA-APP-STORE.md`
+
+Aparte de `docs/APP-STORE.md` a propósito: aquel dice qué CONTESTAR en los
+cuestionarios, que se tocan una vez; este es lo que se ESCRIBE, que se toca en
+cada versión. Lleva el subtítulo, la descripción y las claves en español y en
+inglés, la nota para el revisor, y las respuestas de categoría y edad.
+
+Las dos decisiones que no son obvias y están razonadas ahí:
+
+- **Categoría principal: Negocios, no Finanzas.** Parece al revés, y sostiene
+  el encuadre del que depende no llevar compra integrada: toda la defensa se
+  apoya en la **3.1.3(c)**, que es «se vende a organizaciones». Una ficha en
+  Finanzas se lee como app personal, que es justo el punto flojo que
+  `docs/APP-STORE.md` se apunta a sí mismo. Finanzas queda de secundaria, que
+  también indexa.
+- **La última línea de la descripción no se toca**: dice que se contrata por
+  iglesia y **no dice dónde se paga**. Un «contacta a soporte para tu plan» o
+  un precio la convierten en la llamada a la compra que la **3.1.3(f)**
+  prohíbe.
+
+### La iglesia del revisor: «Iglesia de prueba» no sirve
+
+Es la candidata obvia y hay que descartarla, y esto es lo que más importa de
+la sesión. De sus 30 miembros, **14 tienen teléfono y los 14 son distintos**;
+solo 2 son del tipo `1234`. Uno de sus cinco perfiles es un tesorero con correo
+de una congregación, con sesión el 8-sep. Y ese padrón guarda bautismo, estado
+de membresía y ministerios, que es **lo mismo que la ficha declara como
+información sensible** en el cuestionario de privacidad.
+
+No se puede demostrar desde aquí que esa gente sea real. **La forma de los
+datos no es la de una semilla, y eso basta**: entregarle esas credenciales a
+Apple sería mandarle datos personales sensibles de personas que no publican la
+app. La regla que deja escrita es de las que se olvidan: *antes de dar acceso a
+alguien de fuera, mirar de quién son los datos que hay dentro, no solo si la
+pantalla se ve bien*.
+
+La sustituta está escrita en **`docs/demo-revision.sql`** —«Iglesia Nueva Vida»,
+el mismo nombre que sale en las capturas— y el paso a paso en
+`docs/APP-STORE.md`. Tres cosas que costaron:
+
+- **`transactions.monto` va en PESOS y `iglesias.saldo_inicial` en CENTAVOS.**
+  Dos columnas vecinas, dos unidades, y es el mismo factor cien que costó la
+  pasada del 12 al 14. Está dicho en la cabecera del SQL.
+- **`categoria` va en CLAVE minúscula**, `diezmo` y no «Diezmo» ni «Tithe». Lo
+  que hay hoy en producción es una sopa de las tres formas, de antes de que la
+  clave existiera; la demo se siembra canónica.
+- **Los JSON de las actas tienen cada uno su forma**: `acuerdos` y `mociones`
+  son objetos, `firmas` lleva `rol`/`firmado`/`fecha`, y presentes/ausentes sí
+  son cadenas sueltas. Escribir una lista de cadenas donde van objetos **no da
+  error**: el acta abre con los acuerdos vacíos y parece que se perdieron.
+
+**La semilla NO se ha ejecutado.** La escritura a la base compartida está
+bloqueada en esta sesión, así que se validó de la otra forma: columna por
+columna y tupla por tupla contra `information_schema`, más la forma de cada
+JSON contra su decodificador en `ActasRepository`. Eso caza la columna que no
+existe, la tupla con un valor de más y el `NOT NULL` sin rellenar; **no caza lo
+que solo se ve al correrla**. Hay que correrla y mirar la app.
+
+Y una comprobación que sí la escribió el propio SQL y encontró un fallo de
+verdad: **dos de los tres cortes llevaban dinero de fecha POSTERIOR al corte**
+—el depósito por delante de lo que deposita—. No da error en ninguna parte: la
+tabla puente son dos columnas y no compara fechas. Y los tres se llamaban
+«Culto domingo» cayendo en miércoles.
+
+### Lo que queda, y de quién es
+
+- **De Iván, y bloquea el envío:** crear la ficha «Tamio Iglesia» en App Store
+  Connect, dar de alta la cuenta del revisor y correr la semilla, invitar al
+  segundo administrador, y **elegir uno de los dos correos** que circulan para
+  que la ficha, la política y soporte digan el mismo.
+- **Del otro chat, y también bloquea:** publicar `privacidad-propuesta.html` y
+  `soporte-propuesta.html`. Sin la URL de soporte App Store Connect no deja
+  enviar, y la privacidad viva contradice a la app por escrito.
+- **De quien siga aquí:** el segmentado de Depósitos, y regenerar el `.ipa`
+  —el de §0.-16 vivía en `/tmp` y se lo llevó el reinicio—.
 
 ---
 
@@ -4423,6 +4570,21 @@ aparato.
 ---
 
 ## 6. Pendientes concretos
+
+### Abierto el 18-sep: el segmentado de Depósitos se recorta
+
+En la cabecera de Depósitos, el `Picker` de «Pendientes / Depositados» enseña
+**«Depositad…»** en el iPhone 17 Pro Max, que es el teléfono más ancho que hay.
+Se ve en `docs/capturas-tienda/telefono/` de la primera corrida.
+
+Lo que merece quedar escrito no es el recorte, es **por qué ninguna prueba lo
+vio en catorce corridas**: las de interfaz avisan de lo que se sale del ancho
+de la ventana, y **un `Picker` que recorta su propia etiqueta no se sale de
+nada** — el control mide lo que le toca y el texto se acorta dentro. Un
+desborde se detecta; un truncado, no. Se cazó mirando la imagen.
+
+Cuando se arregle, mirar también los otros segmentados con etiquetas largas: el
+de Ingresos/Gastos cabe, pero es el mismo patrón.
 
 ### LO SIGUIENTE, en orden
 
