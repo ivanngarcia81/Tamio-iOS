@@ -377,6 +377,59 @@ dos apps la consulta.** No entra en el reparto por área porque meterla sería
 inventarle un dueño. Merece una decisión aparte: o tiene uso y hay que
 clasificarla, o no lo tiene y sobra.
 
+## 🔴 Cualquier usuario podía hacerse administrador · encontrado el 18-sep
+
+Lo encontró Iván revisando la base y es cierto punto por punto. Comprobado con
+consultas, no de memoria:
+
+| hecho | comprobado |
+|---|---|
+| `perfil_update_propio` deja actualizar la fila propia con `auth.uid() = id`, **sin decir nada de columnas** | `pg_policies` |
+| `authenticated` tiene UPDATE sobre las **seis** columnas: `id, nombre, foto, rol, church_id, creado_en` | `information_schema.column_privileges` |
+| `perfiles` **no tiene ningún disparador** — el único que la toca, `al_crear_usuario`, está en `auth.users` | `pg_trigger` |
+| `mi_iglesia()` y `mi_rol()` leen `church_id` y `rol` **de esta misma tabla** | `pg_get_functiondef` |
+| **58 de las 89 políticas** usan `mi_iglesia()`, **57** usan `mi_rol()` | `pg_policies` |
+
+Juntos: un tesorero con sesión llama a la API, pone `rol = 'administrador'` en
+su fila, y la política lo acepta porque la fila sigue siendo suya. Y `church_id`
+igual: si conoce el UUID de otra iglesia, se muda a ella. **Toda la separación
+por iglesia y todo el reparto por rol —lo de arriba entero— se apoyaban en dos
+columnas que el propio usuario podía escribir.**
+
+Lo que este documento decía en «Lo que hay hoy, medido» —que 87 políticas
+comprueban `church_id` y eso «está bien y funciona»— era cierto y no servía:
+comprobaban una columna que no estaba protegida.
+
+**Y lo del `church_id` es anterior al reparto por rol.** El del 10-sep no abrió
+el agujero: lo hizo más grave. Antes, con esa misma política, ya se podía saltar
+de iglesia.
+
+### El arreglo · `supabase/migrations/20260918_cualquier_usuario_podia_…sql`
+
+Se quita el UPDATE de tabla y se concede solo sobre `nombre` y `foto`:
+
+    revoke update on public.perfiles from anon, authenticated;
+    grant  update (nombre, foto) on public.perfiles to authenticated;
+
+No rompe nada legítimo, y está mirado en las dos apps: iOS no escribe nunca en
+`perfiles`, el web hace un único `.update({ nombre, foto })` (`auth.ts`), y las
+Edge Functions van con `service_role`, que no pasa por estos grants.
+
+**La trampa que evita esa forma:** hacer solo `revoke update (rol, church_id)`
+NO cierra nada. En Postgres un REVOKE por columna quita un GRANT por columna, no
+recorta el de tabla; con el de tabla en pie las seis columnas siguen
+escribibles y la migración parece aplicada. Primero se quita el de tabla, luego
+se dan las dos columnas.
+
+**Cómo se sabe que quedó cerrado:** con sesión de tesorero,
+`update perfiles set rol = 'administrador' where id = auth.uid()` tiene que
+fallar con **`42501: permission denied`**. Que devuelva «0 filas» sin error no
+es cerrado: es RLS filtrando, y eso ya lo hacía con las filas ajenas.
+
+**Estado: la migración está escrita y NO aplicada.** Desde esta sesión no se
+puede escribir en la base. La aplica Iván o el chat del web, y después se corre
+la consulta de comprobación que lleva al final.
+
 ## Los riesgos, que son reales
 
 - **Una política mal escrita no da error: devuelve cero filas o descarta la

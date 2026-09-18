@@ -1,0 +1,75 @@
+-- Cualquier usuario podía hacerse administrador —o mudarse a otra iglesia—
+-- editando su propio perfil.
+--
+-- Encontrado por Iván el 18-sep-2026 revisando la base, y comprobado aquí
+-- contra ella. Tres hechos, los tres verificados con consultas y no de
+-- memoria:
+--
+--   1. La política `perfil_update_propio` deja actualizar la fila propia con
+--      `auth.uid() = id` en USING y en WITH CHECK, y no dice nada de columnas.
+--   2. `authenticated` tiene UPDATE sobre las SEIS columnas de `perfiles`:
+--      id, nombre, foto, rol, church_id y creado_en. Es el grant de tabla que
+--      Supabase pone por omisión.
+--   3. `perfiles` no tiene ningún disparador. Cero. El único que la toca es
+--      `al_crear_usuario`, y ese está en `auth.users`.
+--
+-- Juntos: un tesorero autenticado puede llamar a la API y poner
+-- `rol = 'administrador'` en su propia fila, y la política lo acepta porque la
+-- fila sigue siendo suya. Y peor: puede poner `church_id` al de OTRA iglesia
+-- si conoce su UUID, y los UUID no son secretos —viajan en las invitaciones y
+-- en la página de activación—.
+--
+-- Lo que eso derrota no es «buena parte» del control de acceso: es todo. De
+-- las 89 políticas del esquema, 58 usan `mi_iglesia()` y 57 usan `mi_rol()`,
+-- y las dos funciones leen exactamente esas dos columnas de esta tabla:
+--
+--     select church_id from perfiles where id = auth.uid()
+--     select rol       from perfiles where id = auth.uid()
+--
+-- Toda la separación por iglesia y todo el reparto por rol se apoyan en dos
+-- columnas que el propio usuario podía escribir.
+--
+-- ── El arreglo, y por qué tiene esta forma ──────────────────────────────────
+--
+-- Se quita el UPDATE de tabla y se concede SOLO sobre `nombre` y `foto`, que
+-- es lo único que una persona edita de su perfil. Comprobado en las dos apps:
+-- iOS no escribe nunca en `perfiles` (solo `select`), y el web hace un único
+-- `.update({ nombre, foto })` en `auth.ts`. Las Edge Functions
+-- (`invitar-usuario`, `borrar-cuenta`) van con `service_role`, que no pasa por
+-- estos grants. El disparador de alta corre como su dueño. Nada legítimo se
+-- rompe.
+--
+-- **Y no vale hacer solo `revoke update (rol, church_id)`.** En Postgres un
+-- REVOKE por columna quita un GRANT por columna; no recorta un GRANT de tabla.
+-- Con el de tabla en pie, las seis columnas seguirían siendo escribibles y la
+-- migración parecería aplicada sin haber cerrado nada. Primero se quita el de
+-- tabla, luego se da el de las dos columnas.
+--
+-- Se elige el privilegio de columna y no un disparador porque es la capa que
+-- toca: el problema es «quién puede escribir esta columna», y eso es
+-- exactamente lo que un GRANT expresa. Un disparador lo taparía desde otra
+-- capa y habría que acordarse de él en cada migración que toque la tabla.
+--
+-- `anon` se queda sin UPDATE del todo. Hoy no podía pasar la política —sin
+-- sesión `auth.uid()` es null—, pero no tiene por qué tener el grant.
+
+revoke update on public.perfiles from anon, authenticated;
+grant  update (nombre, foto) on public.perfiles to authenticated;
+
+-- ── Comprobación ────────────────────────────────────────────────────────────
+-- Después de aplicar, esto tiene que devolver UNA fila, `authenticated` con
+-- `foto, nombre`, y ninguna para `anon`:
+--
+--   select grantee, string_agg(column_name, ', ' order by column_name)
+--   from information_schema.column_privileges
+--   where table_schema = 'public' and table_name = 'perfiles'
+--     and privilege_type = 'UPDATE' and grantee in ('anon', 'authenticated')
+--   group by grantee;
+--
+-- Y la prueba de verdad, con una sesión de tesorero desde la API:
+--
+--   update perfiles set rol = 'administrador' where id = auth.uid();
+--
+-- tiene que fallar con `42501: permission denied for table perfiles`. Que
+-- devuelva «0 filas» sin error NO es que esté cerrado: es RLS filtrando, y
+-- eso ya lo hacía antes con las filas ajenas. El cierre bueno es el 42501.
