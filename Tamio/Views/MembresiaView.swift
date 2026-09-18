@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MembresiaView: View {
+    @Environment(\.colorScheme) private var esquema
     @State private var vm = MembresiaViewModel()
     @State private var abierto: Miembro?
     @State private var subtab = 0        // 0 Miembros · 1 Asistencia · 2 Seguimiento
@@ -701,8 +702,12 @@ struct MembresiaView: View {
     private func filaSeguimiento(_ m: Miembro) -> some View {
         let esSel = m.id == vm.seleccionId
         return HStack(spacing: 12) {
+            // El estado se pinta con `Paleta.brand`, `.aviso` o `.cian`, que en
+            // oscuro son tonos claros: las iniciales en blanco daban 2.38:1
+            // sobre el verde. `sobre(_:_:)` devuelve el que se lea encima.
             Text(m.iniciales)
-                .font(.caption.weight(.bold)).foregroundStyle(.white)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Paleta.sobre(m.estado.color, esquema))
                 .frame(width: 38, height: 38)
                 .background(m.estado.color, in: Circle())
             VStack(alignment: .leading, spacing: 2) {

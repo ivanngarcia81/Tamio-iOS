@@ -52,6 +52,7 @@ private struct GrupoConf<C: View>: View {
 }
 
 private struct HeroCard: View {
+    @Environment(\.colorScheme) private var esquema
     let seccion: SeccionConfig
 
     var body: some View {
@@ -62,7 +63,7 @@ private struct HeroCard: View {
                 .overlay(
                     Image(systemName: seccion.icono)
                         .font(.escalada(26, weight: .medium, relativeTo: .title1))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Paleta.sobre(seccion.color, esquema))
                 )
             VStack(alignment: .leading, spacing: 8) {
                 Text(seccion.titulo)
@@ -144,6 +145,7 @@ private struct FilaEditable: View {
 // MARK: - Raíz
 
 struct ConfiguracionView: View {
+    @Environment(\.colorScheme) private var esquema
     @Environment(\.horizontalSizeClass) private var hSizeClass
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     @State private var cfg = ConfiguracionIglesiaViewModel.compartido
@@ -208,7 +210,7 @@ struct ConfiguracionView: View {
                                 .overlay(
                                     Image(systemName: SeccionConfig.cuenta.icono)
                                         .font(.escalada(15, weight: .medium, relativeTo: .subheadline))
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(Paleta.sobre(SeccionConfig.cuenta.color, esquema))
                                 )
                             Text(L.t("Cuenta", "Account"))
                                 .font(.escalada(16, relativeTo: .body))
@@ -251,7 +253,7 @@ struct ConfiguracionView: View {
                             .overlay(
                                 Image(systemName: SeccionConfig.zona.icono)
                                     .font(.escalada(12, weight: .medium, relativeTo: .caption1))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(Paleta.sobre(SeccionConfig.zona.color, esquema))
                             )
                         Text(L.t("Zona de riesgo", "Danger zone"))
                             .font(.escalada(15.5, weight: seccion == .zona ? .semibold : .medium, relativeTo: .subheadline))
@@ -291,7 +293,7 @@ struct ConfiguracionView: View {
                             .overlay(
                                 Image(systemName: s.icono)
                                     .font(.escalada(13, weight: .medium, relativeTo: .footnote))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(Paleta.sobre(s.color, esquema))
                             )
                         Text(s.titulo)
                             .font(.escalada(15.5, weight: seccion == s ? .semibold : .medium, relativeTo: .subheadline))
@@ -342,7 +344,7 @@ struct ConfiguracionView: View {
                             .overlay(
                                 Image(systemName: s.icono)
                                     .font(.escalada(14, weight: .medium, relativeTo: .subheadline))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(Paleta.sobre(s.color, esquema))
                             )
                         Text(s.titulo).font(.subheadline)
                         Spacer()

@@ -89,7 +89,7 @@ struct IPhoneSecretariaView: View {
 
             Section(L.t("REGISTRO", "RECORDS")) {
                 NavigationLink { AgendaView() } label: {
-                    HubRow(icono: "calendar", color: Color(hex: 0x0D9488),
+                    HubRow(icono: "calendar", color: Paleta.placaTeal,
                            titulo: L.t("Agenda", "Calendar"),
                            subtitulo: agenda.map {
                                L.t("\(L.mesEnCurso) · \($0.pendientes) compromisos",
@@ -103,7 +103,7 @@ struct IPhoneSecretariaView: View {
                                           "Roster & attendance per service"))
                 }
                 NavigationLink { ActasView() } label: {
-                    HubRow(icono: "doc.text.fill", color: Color(hex: 0x7C3AED),
+                    HubRow(icono: "doc.text.fill", color: Paleta.placaMorado,
                            titulo: L.t("Actas", "Minutes"),
                            subtitulo: subtituloActas,
                            // El badge solo cuando hay borradores: un "0" ocupa
@@ -111,7 +111,7 @@ struct IPhoneSecretariaView: View {
                            badge: borradores > 0 ? borradores : nil)
                 }
                 NavigationLink { CartasView() } label: {
-                    HubRow(icono: "envelope.fill", color: Color(hex: 0x06B6D4),
+                    HubRow(icono: "envelope.fill", color: Paleta.placaCian,
                            titulo: L.t("Cartas y traslados", "Letters & transfers"),
                            subtitulo: subtituloCartas)
                 }
@@ -140,7 +140,7 @@ struct IPhoneSecretariaView: View {
             if permisos.ve(.registro) {
                 Section(L.t("EQUIPO", "TEAM")) {
                     NavigationLink { RegistroView() } label: {
-                        HubRow(icono: "list.bullet.rectangle", color: Color(hex: 0x64748B),
+                        HubRow(icono: "list.bullet.rectangle", color: Paleta.placaPizarra,
                                titulo: L.t("Registro", "Log"),
                                subtitulo: L.t("Lo que ha pasado en la iglesia",
                                               "What has happened at the church"))

@@ -10,6 +10,7 @@ private typealias AjustesRuta = SeccionAjustes
 // MARK: - Vista principal
 
 struct IPhoneAjustesView: View {
+    @Environment(\.colorScheme) private var esquema
     /// Los datos de la iglesia ya no son `@State` de esta pantalla: vienen del
     /// origen único que comparten iPhone, iPad y los documentos. Antes cada
     /// pantalla tenía los suyos y no coincidían — el teléfono decía "Iglesia
@@ -135,7 +136,8 @@ struct IPhoneAjustesView: View {
         NavigationLink(value: ruta) {
             HStack(spacing: 14) {
                 Image(systemName: ruta.icono)
-                    .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Paleta.sobre(ruta.color, esquema))
                     .frame(width: 32, height: 32)
                     .background(ruta.color, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                 Text(ruta.titulo)

@@ -112,11 +112,24 @@ struct HubRow: View {
     let subtitulo: String
     var badge: Int? = nil
 
+    /// **El símbolo no es blanco: es el que se lea sobre SU placa.**
+    ///
+    /// Blanco fijo era 2.43:1 sobre el cian de Cartas y 2.54:1 sobre el verde
+    /// de Movimientos, contra un mínimo de 4.5:1. Con las placas de `Paleta`
+    /// —que ahora cambian con el tema— `sobre(_:_:)` devuelve blanco en claro y
+    /// el casi negro en oscuro, igual para las nueve filas, así que la columna
+    /// de símbolos sigue siendo de un solo color dentro de cada apariencia.
+    ///
+    /// Hace falta el `colorScheme` del entorno: resolver por
+    /// `UITraitCollection.current` dentro de un `body` devuelve a veces el tema
+    /// contrario.
+    @Environment(\.colorScheme) private var esquema
+
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: icono)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Paleta.sobre(color, esquema))
                 .frame(width: 36, height: 36)
                 .background(color, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
@@ -128,9 +141,12 @@ struct HubRow: View {
             }
             Spacer(minLength: 6)
             if let badge {
+                // El rojo de badge es #FF6B6B en oscuro, donde el blanco
+                // encima daba 2.30:1. `sobreRelleno` es el color que la paleta
+                // ya tiene medido para sus propios rellenos: 6.48:1 y 6.14:1.
                 Text("\(badge)")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Paleta.sobreRelleno)
                     .frame(minWidth: 20, minHeight: 20)
                     .background(Paleta.badge, in: Circle())
             }

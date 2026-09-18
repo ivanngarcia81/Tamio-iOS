@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// **Las ocho secciones de Ajustes, definidas una sola vez.**
 ///
@@ -64,16 +65,28 @@ enum SeccionAjustes: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
+    /// **El color de la sección: el de iOS en oscuro, uno más hondo en claro.**
+    ///
+    /// Eran los ocho colores de sistema a secas, como en Ajustes de iOS. Con el
+    /// símbolo blanco encima, medidos en el aparato, daban entre 2.16:1 (cian)
+    /// y 5.09:1 (índigo); el mínimo para texto es 4.5:1. El rojo, que además se
+    /// usa como TEXTO en "Zona de riesgo", daba 3.57:1.
+    ///
+    /// En claro baja el brillo lo justo para llegar a 4.55:1 —solo el brillo:
+    /// el tono y la saturación son los de Apple, así que el verde sigue siendo
+    /// el verde de iOS, más hondo—. Índigo no se movió porque ya llegaba.
+    /// En oscuro se queda el del sistema: ahí el problema no era el fondo sino
+    /// el símbolo, y lo arregla `Paleta.sobre(_:_:)`.
     var color: Color {
         switch self {
-        case .cuenta:       return .gray
-        case .iglesia:      return .green
-        case .institucion:  return .indigo
-        case .tesorero:     return .cyan
-        case .acceso:       return .blue
-        case .categorias:   return .orange
-        case .preferencias: return .purple
-        case .zona:         return .red
+        case .cuenta:       return Paleta.placa(claro: 0x75757A, oscuroSistema: .systemGray)
+        case .iglesia:      return Paleta.placa(claro: 0x23873D, oscuroSistema: .systemGreen)
+        case .institucion:  return Paleta.placa(claro: 0x6155F5, oscuroSistema: .systemIndigo)
+        case .tesorero:     return Paleta.placa(claro: 0x00819B, oscuroSistema: .systemCyan)
+        case .acceso:       return Paleta.placa(claro: 0x0075DC, oscuroSistema: .systemBlue)
+        case .categorias:   return Paleta.placa(claro: 0xB0621C, oscuroSistema: .systemOrange)
+        case .preferencias: return Paleta.placa(claro: 0xC12ED4, oscuroSistema: .systemPurple)
+        case .zona:         return Paleta.placa(claro: 0xDE3134, oscuroSistema: .systemRed)
         }
     }
 

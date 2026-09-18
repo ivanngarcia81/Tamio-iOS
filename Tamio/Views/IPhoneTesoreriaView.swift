@@ -33,12 +33,12 @@ struct IPhoneTesoreriaView: View {
             // la cápsula sin quitarle nada a nadie.
             Section(L.t("REGISTRO", "RECORDS")) {
                 NavigationLink { MovimientosView(tipo: .ingreso) } label: {
-                    HubRow(icono: "arrow.left.arrow.right", color: Color(hex: 0x10B981),
+                    HubRow(icono: "arrow.left.arrow.right", color: Paleta.placaEsmeralda,
                            titulo: L.t("Movimientos", "Transactions"),
                            subtitulo: subtituloMovimientos)
                 }
                 NavigationLink { MiembrosView() } label: {
-                    HubRow(icono: "person.2.fill", color: Color(hex: 0x0D9488),
+                    HubRow(icono: "person.2.fill", color: Paleta.placaTeal,
                            titulo: L.t("Aportantes", "Contributors"),
                            subtitulo: L.t("Diezmos y ofrendas por persona",
                                           "Tithes & offerings per person"))
@@ -53,7 +53,7 @@ struct IPhoneTesoreriaView: View {
 
             Section(L.t("ANÁLISIS", "ANALYSIS")) {
                 NavigationLink { ReportesView() } label: {
-                    HubRow(icono: "chart.bar.fill", color: Color(hex: 0x0EA5E9),
+                    HubRow(icono: "chart.bar.fill", color: Paleta.placaCielo,
                            titulo: L.t("Reportes", "Reports"),
                            subtitulo: L.t("Documentos del mes · PDF y hoja",
                                           "Monthly docs · PDF & spreadsheet"))

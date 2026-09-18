@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 extension Color {
     /// Inicializador por hex (0xRRGGBB).
@@ -69,6 +70,38 @@ enum Paleta {
     /// **Sirve para los tres**, y por eso no se llama `sobreMarca`: se probó ese
     /// nombre primero y mentía en cuanto apareció el primer relleno rojo.
     static let sobreRelleno = Color("TamioSobreRelleno")
+
+    /// **Lo que va encima de un color CUALQUIERA**, elegido por su luminancia.
+    ///
+    /// `sobreRelleno` sirve para los tres colores de la paleta, que se conocen.
+    /// Esto es para los que no: el color de una categoría, el de una sección de
+    /// Ajustes, el de un estado. Ahí el fondo puede ser un morado oscuro —donde
+    /// el blanco va bien— o un cian claro —donde el blanco se hunde—, así que no
+    /// vale un color fijo.
+    ///
+    /// Se calcula la luminancia del fondo y se devuelve el que MÁS contrasta,
+    /// blanco o casi negro. Es el mecanismo que faltaba y por el que estos ocho
+    /// sitios se quedaron fuera del barrido de `.foregroundStyle(.white)`.
+    ///
+    /// **El esquema se pasa a mano y no se lee de `UITraitCollection.current`**:
+    /// dentro de un `body` de SwiftUI ese valor no siempre es el de la vista, y
+    /// resolver con el equivocado devolvería el color del otro tema. Quien lo
+    /// llame tiene `@Environment(\.colorScheme)` a mano.
+    static func sobre(_ fondo: Color, _ esquema: ColorScheme) -> Color {
+        let traits = UITraitCollection(userInterfaceStyle: esquema == .dark ? .dark : .light)
+        let ui = UIColor(fondo).resolvedColor(with: traits)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard ui.getRed(&r, green: &g, blue: &b, alpha: &a) else { return .white }
+
+        func lineal(_ v: CGFloat) -> CGFloat {
+            v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
+        }
+        let luz = 0.2126 * lineal(r) + 0.7152 * lineal(g) + 0.0722 * lineal(b)
+        // Contraste contra blanco y contra el casi negro de la paleta.
+        let conBlanco = 1.05 / (luz + 0.05)
+        let conNegro  = (luz + 0.05) / (0.0106 + 0.05)   // #06210F
+        return conNegro > conBlanco ? Color(red: 6/255, green: 33/255, blue: 15/255) : .white
+    }
     /// Fondo de lo seleccionado: filas, píldoras de filtro, cabecera de nav.
     static let brandFill = Color("TamioBrandFill")
     /// Verde atenuado de las barras secundarias (meses que no son el último).
@@ -129,6 +162,73 @@ enum Paleta {
     static let enlace = Color("TamioEnlace")
     /// Badge de conteo urgente (Por revisar 7, Mensajes 2).
     static let badge = Color("TamioNegativo")
+
+    // MARK: - Placas de icono
+
+    /// **Una placa de icono no es un color de texto, y por eso necesita su
+    /// propio tono.**
+    ///
+    /// Los hubs del iPhone llevan el símbolo dentro de un círculo de color. Ese
+    /// círculo se pintaba con seis hex sueltos repartidos entre
+    /// `IPhoneSecretariaView` e `IPhoneTesoreriaView`, heredados del handoff, y
+    /// todos eran tonos pensados para verse sobre un fondo OSCURO. Con el
+    /// símbolo en blanco encima medían entre 2.43:1 (el cian #06B6D4) y 3.74:1
+    /// (el teal #0D9488); el mínimo es 4.5:1.
+    ///
+    /// La salida no es poner el símbolo en negro —eso deja media fila con
+    /// símbolos blancos y media con negros—, sino que la PLACA cambie con el
+    /// tema, igual que ya hacen `brand`, `aviso` y `enlace`:
+    ///
+    /// - En **claro** el tono baja lo justo para que el blanco llegue a 4.5:1.
+    ///   Se baja solo el brillo (HSB): el tono y la saturación no se tocan, así
+    ///   que el cian sigue siendo el mismo cian, más hondo.
+    /// - En **oscuro** se queda el tono original, que es donde se diseñó, y el
+    ///   símbolo pasa a ser el casi negro de `sobreRelleno`. Los dos morados y
+    ///   el gris, que en oscuro no daban contra el casi negro (2.99 y 3.58),
+    ///   suben un escalón de luz para que sí.
+    ///
+    /// Resultado medido: **4.51:1 como mínimo en las dos apariencias**, y
+    /// dentro de cada una todos los símbolos del mismo color —blancos en claro,
+    /// casi negros en oscuro—. Quien las pinta no elige: lo hace `sobre(_:_:)`.
+    ///
+    /// No valen para texto ni para puntos de agenda. Son el relleno de una
+    /// placa, y ese es su único trabajo.
+    static func placa(claro: UInt32, oscuro: UInt32) -> Color {
+        Color(UIColor { t in
+            UIColor(Color(hex: t.userInterfaceStyle == .dark ? oscuro : claro))
+        })
+    }
+
+    /// Igual, pero en oscuro deja el color DEL SISTEMA tal cual.
+    ///
+    /// Las ocho placas de Ajustes usan `.green`, `.cyan`, `.orange`… porque es
+    /// lo que usa Ajustes de iOS. Medidos en el aparato, **ninguno de los
+    /// catorce colores de sistema llega a 4.5:1 contra el blanco**: el mejor es
+    /// `indigo` en claro con 5.09 y el resto va de 5.09 a 1.51. Apple los usa
+    /// así porque el símbolo de una placa es decorativo y va con su rótulo al
+    /// lado; aquí se corrige igual, porque no cuesta nada.
+    ///
+    /// En OSCURO no hace falta tocarlos —contra el casi negro los catorce dan
+    /// 4.70:1 o más—, así que se deja el del sistema y se gana que la placa
+    /// siga a iOS si Apple lo cambia. Solo se sustituye el de claro.
+    static func placa(claro: UInt32, oscuroSistema: UIColor) -> Color {
+        Color(UIColor { t in
+            t.userInterfaceStyle == .dark ? oscuroSistema : UIColor(Color(hex: claro))
+        })
+    }
+
+    /// Agenda. Claro 4.51:1 · oscuro 4.55:1.
+    static let placaTeal      = placa(claro: 0x0C857B, oscuro: 0x0D9488)
+    /// Actas. Claro 5.70:1 · oscuro 4.57:1.
+    static let placaMorado    = placa(claro: 0x7C3AED, oscuro: 0x9C64FB)
+    /// Cartas. Claro 4.51:1 · oscuro 7.02:1.
+    static let placaCian      = placa(claro: 0x048298, oscuro: 0x06B6D4)
+    /// Registro. Claro 4.76:1 · oscuro 4.58:1.
+    static let placaPizarra   = placa(claro: 0x64748B, oscuro: 0x7386A0)
+    /// Movimientos. Claro 4.52:1 · oscuro 6.72:1.
+    static let placaEsmeralda = placa(claro: 0x0C875E, oscuro: 0x10B981)
+    /// Aportantes. Claro 4.52:1 · oscuro 6.15:1.
+    static let placaCielo     = placa(claro: 0x0B7EB3, oscuro: 0x0EA5E9)
 
     // MARK: - Categorías
 
