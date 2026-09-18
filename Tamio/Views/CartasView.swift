@@ -160,14 +160,27 @@ struct CartasView: View {
             // arrastra, que es lo que pide el diseño.
             let margen = max(0, (geo.size.width - lado) / 2)
             VStack(spacing: 0) {
-                resumenPlantillas
-                    .padding(.horizontal, Esp.pantalla)
                 Spacer(minLength: 12)
                 // Los puntos van pegados a la tarjeta, no al borde de la
                 // pantalla: numeran el carrusel, así que se leen con él.
+                //
+                // **Y el resumen va con ellos, por lo mismo.** Estaba pegado
+                // arriba, bajo la barra. Medido sobre una captura del iPhone:
+                // alineado no estaba mal —su borde izquierdo cae en el mismo
+                // píxel que el de la cápsula de volver—, el problema era la
+                // DISTANCIA: unos 300 pt por encima de la tarjeta que cuenta,
+                // con el tercio de arriba vacío, y siendo además el único
+                // texto de la pantalla en el sitio donde el ojo busca un
+                // título —que aquí no hay, porque el segmentado ocupa su
+                // hueco—. Es la misma regla que ya aplicó Aportantes al meter
+                // su conteo dentro de la etiqueta que filtra: el número lo
+                // dice quien lo produce, y aquí quien lo produce es el
+                // carrusel.
                 VStack(spacing: 10) {
                     carrusel(lado: lado, margen: margen)
                     puntosCarrusel
+                    resumenPlantillas
+                        .padding(.horizontal, Esp.pantalla)
                 }
                 Spacer(minLength: 12)
             }
@@ -189,19 +202,28 @@ struct CartasView: View {
     /// sobre los datos cargados, no texto fijo: el número de plantillas lo pone
     /// la iglesia desde el web, y el de emitidas se filtra por el mes corriente
     /// —la lista de abajo las trae todas—.
+    ///
+    /// **Un solo `Text` y no un `HStack` de tres.** Al bajar bajo los puntos deja
+    /// de ir alineado a la izquierda y pasa a ir centrado con ellos, y un
+    /// `HStack` de tres `Text` centrado no sabe partirse: con el texto en AX1
+    /// recorta el mes en vez de pasar a dos renglones. Concatenados se
+    /// en uno solo se comporta como un párrafo —envuelve y se centra— sin
+    /// perder el punto en `tertiary`, que es lo único que el `HStack` daba a
+    /// cambio.
     private var resumenPlantillas: some View {
-        HStack(spacing: 6) {
-            Text(vm.plantillas.count == 1
-                 ? L.t("1 plantilla", "1 template")
-                 : L.t("\(vm.plantillas.count) plantillas", "\(vm.plantillas.count) templates"))
-            Text("·").foregroundStyle(.tertiary)
-            Text(L.t("\(emitidasEsteMes) emitidas en \(Fechas.mes(Date()))",
-                     "\(emitidasEsteMes) issued in \(Fechas.mes(Date()))"))
-            Spacer()
-        }
-        .font(.footnote)
-        .monospacedDigit()
-        .foregroundStyle(.secondary)
+        // Interpolando un `Text` dentro de otro, que es lo que sustituye al
+        // `Text + Text`: el `+` quedó obsoleto en iOS 26 y este proyecto
+        // compila sin avisos, que es una propiedad que cuesta recuperar.
+        let cuantas = vm.plantillas.count == 1
+            ? L.t("1 plantilla", "1 template")
+            : L.t("\(vm.plantillas.count) plantillas", "\(vm.plantillas.count) templates")
+        let cuantasEmitidas = L.t("\(emitidasEsteMes) emitidas en \(Fechas.mes(Date()))",
+                                  "\(emitidasEsteMes) issued in \(Fechas.mes(Date()))")
+        return Text("\(cuantas)\(Text(" · ").foregroundStyle(Color(.tertiaryLabel)))\(cuantasEmitidas)")
+            .font(.footnote)
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
     }
 
     /// El carrusel **abraza su alto**: sin `fixedSize` el `ScrollView` se come
