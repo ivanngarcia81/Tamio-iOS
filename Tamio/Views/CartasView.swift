@@ -242,14 +242,32 @@ struct CartasView: View {
             }
             .scrollTargetLayout()
             .padding(.horizontal, margen)
-            // Sitio para la sombra de la tarjeta, que si no queda recortada
-            // por el borde del `ScrollView`.
-            .padding(.vertical, 12)
+            // **Sitio para la sombra, y medido.** Un `ScrollView` recorta su
+            // contenido a su propio marco, así que la sombra sobrevive solo
+            // hasta donde llegue este relleno. Con 12 pt bastaba para la
+            // sombra de antes; con las dos nuevas no: medido sobre la captura,
+            // el degradado bajaba de (186,186,190) a (213,213,217) y a los
+            // 12.1 pt saltaba de golpe al fondo. Un corte seco, no un
+            // desvanecido.
+            //
+            // Las dos sombras llegan a `radius + y` hacia abajo —26+14— y a
+            // `radius − y` hacia arriba. De ahí 44 y 16, no un número redondo.
+            // Lo cortaba el `ScrollView`, no el fondo: el fondo va detrás y es
+            // opaco, `systemGroupedBackground`.
+            .padding(.top, 16)
+            .padding(.bottom, 44)
         }
         .scrollTargetBehavior(.viewAligned)
         .scrollPosition(id: $plantillaVisible)
         .scrollIndicators(.hidden)
         .fixedSize(horizontal: false, vertical: true)
+        // **Y el hueco de la sombra se devuelve al reparto.** El relleno de
+        // arriba es para DIBUJAR; si además ocupara sitio, los puntos se irían
+        // 32 pt más abajo y dejarían de estar pegados a la tarjeta, que es lo
+        // único para lo que sirven. El negativo recorta lo que la vista ocupa
+        // sin tocar lo que el `ScrollView` recorta, que sigue siendo su marco
+        // con el relleno dentro.
+        .padding(.bottom, -32)
         // Una vez aquí y no dieciséis veces, una por tarjeta.
         .sensoryFeedback(.impact, trigger: golpeAlPulsar)
         // **Sin flechas.** Se montaban sobre la tarjeta: medido sobre la
