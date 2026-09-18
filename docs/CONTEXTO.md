@@ -5,8 +5,116 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **16 de septiembre de 2026** (§0.-13). La pasada grande
+Última actualización: **17 de septiembre de 2026** (§0.-14). La pasada grande
 sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-14 Las placas de icono, y por qué ninguna cumplía · 17 de septiembre
+
+Salió de una pregunta de Iván sobre los símbolos blancos de las placas de
+color —el círculo con un SF Symbol dentro de las filas de los hubs, el cuadrado
+de las ocho secciones de Ajustes—. Lo que empezó como "ocho sitios que se
+quedaron fuera del barrido de `.foregroundStyle(.white)`" acabó siendo otra
+cosa al medirlo.
+
+### Ningún color de sistema de iOS llega a 4.5:1 contra el blanco
+
+Se resolvieron los catorce `UIColor.system*` en el simulador con iOS 27,
+`resolvedColor(with:)` en las dos apariencias, y se calculó el contraste:
+
+    CLARO    gris 3.26 · verde 2.22 · índigo 5.09 · cian 2.16 · azul 3.52
+             naranja 2.31 · morado 4.17 · rojo 3.57 · amarillo 1.51
+    OSCURO   ninguno pasa de 3.63
+
+**El mejor de los catorce es `indigo` en claro, con 5.09; el resto no llega.**
+Ajustes de iOS los usa así, con el símbolo en blanco, porque el símbolo de una
+placa es decorativo y va siempre con su rótulo al lado: quien no lo distingue
+lee "Church" a dos centímetros. No es un descuido de Apple, es que la regla de
+4.5:1 es para texto.
+
+Aquí se corrigió igual, porque no costaba nada. Pero conviene tenerlo escrito:
+**copiar el color de sistema de una placa de Ajustes no hereda un contraste
+que cumpla, porque no lo hay.**
+
+### La salida no fue oscurecer, fue partir el color en dos
+
+La primera propuesta —bajar el tono de las placas para que el blanco pasara—
+era peor de lo que parecía: en oscuro no hacía falta, y dejaba placas apagadas
+de noche. La segunda —elegir el símbolo por luminancia— dejaba media fila con
+símbolos blancos y media con negros, que es justo lo que no hace ningún iOS.
+
+Lo que quedó es lo que ya hacían `brand`, `aviso` y `enlace` sin que estuviera
+dicho: **una placa es un color distinto según la apariencia.**
+
+- En **claro** el tono baja lo justo para que el blanco llegue a 4.5:1. Se baja
+  solo el brillo en HSB; el tono y la saturación no se tocan, así que el cian
+  sigue siendo el mismo cian, más hondo. En las ocho de Ajustes el tono de
+  partida es el de Apple, medido, no uno inventado.
+- En **oscuro** se deja el tono original —que es donde se diseñó— y el símbolo
+  pasa al casi negro `#06210F`. En las ocho de Ajustes se deja **el color del
+  sistema tal cual**, no una copia de sus valores, para que la placa siga a
+  iOS si Apple lo cambia.
+
+Quien pinta la placa no elige el color del símbolo: lo hace
+`Paleta.sobre(_:_:)` a partir de la luminancia del fondo. Resultado: dentro de
+cada apariencia todos los símbolos son del mismo color.
+
+**Lo que NO vale**: estos tonos son el relleno de una placa y solo eso. No se
+pueden usar para texto ni para los puntos de la agenda. Y al revés: los colores
+que también son TEXTO —`Paleta.brand`, `.aviso`, `.enlace`, o el `var color` de
+`TipoEvento`, que en `AgendaView` pinta la hora— **no se pueden oscurecer** sin
+romper el sitio donde se leen sobre fondo oscuro. Fue lo que salvó de cambiar
+seis hex de `Secretaria.swift` que parecían iguales a los de los hubs.
+
+### Dos que no estaban en la lista
+
+El barrido por nombre encontró ocho `.foregroundStyle(.white)`. Medirlos
+encontró dos más que nadie había mirado, porque el blanco allí no estaba mal
+escrito, estaba mal en oscuro:
+
+- El **badge rojo** de los hubs: blanco sobre `#FF6B6B`, **2.30:1**.
+- Las **iniciales de seguimiento** de Membresía: blanco sobre el verde de
+  estado, **2.38:1**.
+
+Van con `Paleta.sobreRelleno`, que es el token que ya existía para eso.
+
+### La prueba nació sin poder ponerse roja
+
+`PlacasDeIconoUITests` se escribió primero afirmando solo que las filas
+existían, como las demás pruebas de cristal —el aspecto no se juzga con
+`XCTAssert`—. Pero el contraste **sí es un número**, y una prueba que solo mira
+si la fila está ahí pasa igual de verde con la placa rota. Se comprobó
+devolviendo los colores a los de antes: seguía en verde.
+
+Ahora lee los píxeles de la placa del propio pantallazo (`XCUIScreen`, recorte
+al cuadrado de la placa, los dos colores más frecuentes) y exige 4.5:1.
+Las trece placas medidas desde dentro coinciden **cifra por cifra** con la
+lectura externa de los PNG hecha con `pruebas/contraste.py`, que es la
+comprobación cruzada que hacía falta para fiarse del recorte.
+
+### Dos trampas de instrumento, otra vez
+
+- **El desvanecido del tab bar falsea una medida.** El morado de Ajustes midió
+  3.92:1 en la primera lectura y 4.56:1 en la segunda. La diferencia era que en
+  la primera la fila caía bajo el borde de cristal del tab bar, que lava los
+  dos colores hacia el blanco. Si un número sale bajo, mirar DÓNDE está la fila
+  antes de tocar el color. Vuelta más del §0.-11.
+- **El simulador no tiene sesión, y la app se queda en la pantalla de acceso.**
+  La primera corrida dio "no está la pestaña «Settings»" con el volcado de
+  pestañas VACÍO, que es la firma. En el aparato físico no pasa porque la
+  sesión vive en el llavero. Para el simulador hay que encender
+  `ModoRevision.activada` **en la copia** (nunca en el repo), que además
+  inyecta los `Mock*` y así los hubs salen con filas.
+
+### Cómo se corre en el simulador
+
+`aparato.sh` vale igual: `-destination "id=<UDID>"` acepta un simulador. Pero
+el rsync rehace la copia en cada vuelta, así que el `ModoRevision` encendido se
+pierde. Para iterar: correrlo una vez, encender el interruptor en la copia, y
+después llamar a `xcodebuild test` dentro de la copia directamente.
+`pruebas/capturar.sh` mira el log y dispara `simctl io screenshot` por cada
+`MARCA:` — ojo, **con espacio**: `MARCA: nombre`, que es lo que casa su grep.
 
 ---
 
