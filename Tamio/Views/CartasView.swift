@@ -258,6 +258,16 @@ struct CartasView: View {
             HStack(spacing: margen * 2) {
                 ForEach(vm.plantillas) { plantilla in
                     tarjetaPlantilla(plantilla, lado: lado)
+                        // **Inclinada hacia atrás, como en la galería de
+                        // widgets.** Lo pidió Iván: allí la tarjeta va angulada
+                        // y con sombra densa, y eso es lo que le da el brillo
+                        // al borde de abajo, que queda más cerca del ojo. De
+                        // frente no se nota. Solo Cartas: Reportes se queda de
+                        // frente, con la sombra densa nada más.
+                        //
+                        // El ángulo se ajustó midiendo el ancho del borde de
+                        // abajo contra el de arriba en la captura, no a ojo.
+                        .rotation3DEffect(.degrees(6), axis: (x: 1, y: 0, z: 0))
                         .id(plantilla.id)
                 }
             }
@@ -274,9 +284,11 @@ struct CartasView: View {
             // **El alcance se MIDE, no se calcula.** Primero se pusieron 16 y
             // 44, sacados de `radius ± y`. Seguía cortando, y Iván lo volvió a
             // ver: un desenfoque gaussiano llega bastante más lejos que su
-            // radio. Medido sobre la captura, esta sombra necesita **43.6 pt
-            // hacia arriba y 73.8 hacia abajo** para acabar de desvanecerse.
-            // De ahí 48 y 80.
+            // radio. La sombra anterior necesitaba 43.6 pt arriba y 73.8 abajo;
+            // la densa de `sombraFlotante`, con la tarjeta ya inclinada, llega
+            // a **57.7 pt hacia arriba y 102 hacia abajo** (medido sobre la
+            // captura). De ahí 64 y 112: el de abajo con 10 pt de margen,
+            // porque 104 lo dejaba a 2 pt del corte.
             //
             // El síntoma de que falta sitio es un SALTO SECO al color del
             // fondo en vez de un degradado; con 16/44 saltaba desde
@@ -287,8 +299,8 @@ struct CartasView: View {
             // opaco, `systemGroupedBackground`. Reportes no tiene el problema
             // porque sus tarjetas van en un `VStack` — medido, 75.2 pt de
             // desvanecido completo.
-            .padding(.top, 48)
-            .padding(.bottom, 80)
+            .padding(.top, 64)
+            .padding(.bottom, 112)
         }
         .scrollTargetBehavior(.viewAligned)
         .scrollPosition(id: $plantillaVisible)
@@ -300,8 +312,8 @@ struct CartasView: View {
         // único para lo que sirven. El negativo recorta lo que la vista ocupa
         // sin tocar lo que el `ScrollView` recorta, que sigue siendo su marco
         // con el relleno dentro.
-        .padding(.top, -32)
-        .padding(.bottom, -68)
+        .padding(.top, -48)
+        .padding(.bottom, -100)
         // Una vez aquí y no dieciséis veces, una por tarjeta.
         .sensoryFeedback(.impact, trigger: golpeAlPulsar)
         // **Sin flechas.** Se montaban sobre la tarjeta: medido sobre la
@@ -417,8 +429,7 @@ struct CartasView: View {
         .filoDeCristal()
         // Dos sombras, las mismas de Reportes: medidas contra el widget, 47.5 %
         // de caída de luminancia bajo el borde contra su 47.1 %.
-        .shadow(color: .black.opacity(0.16), radius: 6, y: 3)
-        .shadow(color: .black.opacity(0.20), radius: 26, y: 14)
+        .sombraFlotante()
         }
         // El hundido, ahora en un `ButtonStyle` compartido: la vista deja de
         // llevar un `@State` con el id de la tarjeta apretada, que no era suyo.

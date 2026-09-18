@@ -562,3 +562,22 @@ extension View {
         )
     }
 }
+
+extension View {
+    /// **La sombra que hace flotar la tarjeta.** Una sola para Reportes y
+    /// Cartas, porque las dos pantallas se separaban con cada retoque.
+    ///
+    /// La versión anterior —0.16/6/3 + 0.20/26/14— se calibró contra la
+    /// galería de widgets: 47.5 % de caída de luminancia bajo el borde contra
+    /// su 47.1 %. Iván la quiso más densa aún, "para que parezca flotando", y
+    /// señaló que en la galería la tarjeta va inclinada y la sombra es lo que
+    /// da el brillo a los bordes. La corta define el borde; la larga hace la
+    /// profundidad. Las cifras nuevas se miden después, no se deducen: el
+    /// alcance de un desenfoque no sale de `radius + y` (ya falló dos veces).
+    func sombraFlotante() -> some View {
+        self
+            .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
+            .shadow(color: .black.opacity(0.30), radius: 34, y: 20)
+    }
+}
+
