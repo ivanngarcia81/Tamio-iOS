@@ -5,8 +5,71 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **17 de septiembre de 2026** (§0.-14, ampliado tras verificar en el iPhone físico). La pasada grande
+Última actualización: **17 de septiembre de 2026** (§0.-15). Todo lo de hoy verificado en el iPhone físico. La pasada grande
 sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-15 Los avisos de formulario, mirados en pantalla · 17 de septiembre
+
+Los catorce formularios dicen qué falta desde `e6e8a54` y `4b637b6`. Quedaba
+pendiente lo único que el compilador no puede comprobar: **que el aviso nombre
+el campo como lo nombra la pantalla.** Se repasaron los catorce contra el título
+de la hoja, el botón y el rótulo del campo. Trece casaban.
+
+### El de Movimientos existía y no se veía
+
+Era el único que no usaba `avisoDeFaltantes`. Colgaba del pie de la última
+sección, y el motivo estaba escrito en el código: ahí queda «pegado a los
+botones y bajo el formulario entero, que es donde se mira cuando algo no pasa».
+
+**El motivo era falso.** El botón que se toca está en la barra de ARRIBA, así
+que el aviso aparecía al final de un formulario largo, fuera de pantalla: tocabas
+Guardar y no pasaba nada visible. Que es, literalmente, la queja de la que salió
+toda esta tanda de trabajo.
+
+No se vio leyendo el código —el comentario sonaba razonable— sino corriendo la
+prueba en el aparato, que pidió el aviso y no lo encontró. **Un comentario que
+justifica una decisión no es prueba de que la decisión funcione.**
+
+### Dos veces cambié un texto leyendo, y la pantalla me corrigió
+
+- **Agenda**: se cambió «el título de la actividad» por «del evento» mirando
+  solo la cabecera de sección, que decía «EVENTO». El título de la hoja es
+  «Nueva actividad» y el botón «Guardar actividad»: el original estaba bien. Lo
+  que sobraba era la cabecera, y es la que se cambió. **Una cosa, un nombre.**
+- **Movimientos**: se hizo que el aviso siguiera al rótulo del selector, que en
+  un ingreso dice «Tipo de ingreso». Correcto, pero se presentó como si
+  arreglara la pantalla de todos los días, y no: un ingreso NUEVO nace con
+  categoría puesta, así que esa rama solo se alcanza EDITANDO. El caso diario es
+  el gasto, que nace vacío, y ahí el selector ya se llamaba «Categoría».
+
+La regla, que vale para todo el repo: **para saber cómo se llama un campo hay
+que mirar el título de la hoja y el botón, no solo la cabecera de su sección.**
+Y antes de cambiar un texto por una rama, comprobar que la rama se alcanza.
+
+### Afirmar el texto, no solo la presencia
+
+`AvisoFaltan` lleva `.accessibilityElement(children: .combine)`, así que su
+texto sale entero en el árbol y **se puede afirmar con `XCTAssert`**, que es
+raro en esta clase de comprobación. `AvisoNombraLoQueSeVeUITests` lo usa.
+
+Dos tropiezos del instrumento, los dos con la misma forma —suponer el rótulo—:
+
+- El aviso en inglés **no empieza por «Missing»**: `AvisoFaltan` compone
+  «\(campo) is missing», con el sujeto delante. El predicado `BEGINSWITH
+  'Missing'` no encontraba nada y la prueba acusaba a la app de no sacar aviso.
+- El botón de guardar de Agenda se llama **«Save activity»**, no «Save». Buscar
+  el rótulo exacto daba «no hay botón de guardar» en una pantalla que lo tenía
+  delante. Ahora se busca también por prefijo.
+
+### Cómo correr una clase NUEVA en la copia
+
+`-only-testing` con una clase que el proyecto de la copia no conoce da
+**«Executed 0 tests» y sale con éxito**. Es la quinta forma de que una corrida
+mienta. Al añadir un archivo de prueba hay que volver a correr `xcodegen
+generate` **en la copia** antes del `xcodebuild test`; `aparato.sh` ya lo hace,
+pero al iterar llamando a `xcodebuild` directamente se salta.
 
 ---
 
