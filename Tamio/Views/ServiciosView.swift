@@ -1042,6 +1042,17 @@ private struct TomarAsistenciaSheet: View {
     private var pct: Double { total > 0 ? Double(presentes) / Double(total) : 0 }
     private var pctColor: Color { pct >= 0.85 ? Paleta.brand : (pct >= 0.65 ? Paleta.aviso : Paleta.negativo) }
 
+    /// Se enciende al intentar guardar, no al abrir.
+    @State private var mostrarFaltan = false
+    /// **Cero no es un dato válido aquí, y es una decisión, no un descuido.**
+    /// Se planteó lo contrario —que un culto suspendido o sin nadie también es
+    /// información que la iglesia querría guardar— y Iván lo zanjó: "en un servicio
+    /// actual siempre hay miembros". Así que el bloqueo se queda; lo que faltaba era
+    /// DECIR por qué, en vez de dejar un botón gris sin explicación.
+    private var faltan: [String] {
+        presentes == 0 ? [L.t("contar a los presentes", "counting who is present")] : []
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -1138,19 +1149,22 @@ private struct TomarAsistenciaSheet: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle(L.t("Tomar asistencia", "Take attendance"))
             .navigationBarTitleDisplayMode(.inline)
+            .avisoDeFaltantes(faltan, visible: mostrarFaltan)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.t("Cancelar", "Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.t("Registrar", "Record")) {
+                        guard faltan.isEmpty else {
+                            withAnimation(.snappy) { mostrarFaltan = true }; return
+                        }
                         let fecha = Self.fmtFecha.string(from: Date())
                         onGuardar(presentes, total, fecha)
                         dismiss()
                     }
                     .fontWeight(.semibold)
                     .foregroundStyle(Paleta.brand)
-                    .disabled(presentes == 0)
                 }
             }
         }
