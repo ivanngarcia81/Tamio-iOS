@@ -18,8 +18,9 @@ struct CartasView: View {
     /// La pulsación larga sí, porque durante medio segundo no pasa nada más y
     /// el golpe es lo único que dice "ya está, suelta".
     @State private var golpeAlPulsar = 0
-    /// La plantilla centrada en el carrusel. La escribe el propio scroll y la
-    /// escriben las flechas y los puntos; de ahí sale cuál se resalta.
+    /// La plantilla centrada en el carrusel. La escribe el propio scroll; de
+    /// ahí sale cuál punto se resalta. (La escribían también las flechas, que
+    /// ya no existen.)
     @State private var plantillaVisible: String?
     @Environment(\.horizontalSizeClass) private var sizeClass
     /// `Paleta.sobre` no lo puede leer solo: ver su comentario.
@@ -151,12 +152,12 @@ struct CartasView: View {
 
     private var paginaPlantillas: some View {
         GeometryReader { geo in
-            // La tarjeta del diseño mide 340 pt sobre un teléfono de 402, con
-            // las flechas encima de sus esquinas. **Encima del título**: con
-            // 340 reales la de la izquierda se comía la primera letra del
-            // nombre de la plantilla. Se le deja sitio a las dos —48 pt a cada
-            // lado— y el tope de 340 solo actúa en pantallas muy anchas.
-            let lado = min(340, geo.size.width - 96)
+            // La tarjeta del diseño mide 340 pt sobre un teléfono de 402. El
+            // recorte era de 96 —48 a cada lado— para dejar sitio a las
+            // flechas; sin ellas vuelve al margen del diseño, 32, y la tarjeta
+            // recupera los 48 pt de ancho que había cedido. El tope de 340
+            // solo actúa en pantallas muy anchas.
+            let lado = min(340, geo.size.width - 64)
             // El hueco entre tarjetas es el doble del margen lateral: así la
             // vecina cae JUSTO fuera de la pantalla y solo asoma mientras se
             // arrastra, que es lo que pide el diseño.
@@ -251,23 +252,17 @@ struct CartasView: View {
         .fixedSize(horizontal: false, vertical: true)
         // Una vez aquí y no dieciséis veces, una por tarjeta.
         .sensoryFeedback(.impact, trigger: golpeAlPulsar)
-        .overlay(alignment: .leading)  { flecha(atras: true) }
-        .overlay(alignment: .trailing) { flecha(atras: false) }
-    }
-
-    private func flecha(atras: Bool) -> some View {
-        Button { mover(atras: atras) } label: {
-            Image(systemName: atras ? "chevron.left" : "chevron.right")
-                .font(.system(size: 15, weight: .semibold))
-                .frame(width: 38, height: 38)
-        }
-        .buttonStyle(.glass)
-        .tint(Paleta.brand)
-        .padding(.horizontal, 8)
-        .disabled(atras ? indiceVisible <= 0
-                        : indiceVisible >= vm.plantillas.count - 1)
-        .accessibilityLabel(atras ? L.t("Plantilla anterior", "Previous template")
-                                  : L.t("Plantilla siguiente", "Next template"))
+        // **Sin flechas.** Se montaban sobre la tarjeta: medido sobre la
+        // captura, la flecha ocupaba de 8.1 a 71 pt y la tarjeta empezaba en
+        // 48 —23 pt de solape a cada lado—. El hueco reservado se había
+        // calculado en 48, pero la cápsula de cristal mide 63 de ancho, no los
+        // 38 del `frame`. Sobre la tarjeta blanca no se veía; sobre el color
+        // sí, y en oscuro parecían un borrón gris encima del morado.
+        //
+        // Se quitan en vez de estrecharles sitio: el carrusel ya se arrastra
+        // con el dedo y el "1 / 16" de debajo dice dónde estás, así que no
+        // eran la única forma de pasar de tarjeta. Decisión de Iván, con las
+        // cuatro salidas medidas delante.
     }
 
     @ViewBuilder
@@ -303,12 +298,6 @@ struct CartasView: View {
         guard let id = plantillaVisible,
               let i = vm.plantillas.firstIndex(where: { $0.id == id }) else { return 0 }
         return i
-    }
-
-    private func mover(atras: Bool) {
-        let destino = indiceVisible + (atras ? -1 : 1)
-        guard vm.plantillas.indices.contains(destino) else { return }
-        withAnimation(.snappy) { plantillaVisible = vm.plantillas[destino].id }
     }
 
     /// La tarjeta del carrusel. Enseña **el nombre que la iglesia le puso**,
