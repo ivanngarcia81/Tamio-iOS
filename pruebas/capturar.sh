@@ -8,7 +8,12 @@ vistas=""
 while true; do
   sleep 1
   [[ -f $LOG ]] || continue
-  marcas=$(grep -o 'MARCA: [A-Za-z0-9_·-]*' $LOG 2>/dev/null | sed 's/MARCA: //')
+  # **Sin espacio tras los dos puntos.** Las pruebas imprimen `MARCA:nombre`
+  # —`print("MARCA:\(nombre)")`, en las cuatro clases que lo usan—, y este
+  # patron pedia `MARCA: ` con espacio: no casaba NUNCA. El guion terminaba con
+  # exito, sin una sola captura y sin decir nada, que es la peor forma de
+  # fallar. El espacio se deja opcional por si alguna lo escribe con el.
+  marcas=$(grep -oE 'MARCA: ?[A-Za-z0-9_·-]+' $LOG 2>/dev/null | sed -E 's/MARCA: ?//')
   for m in ${(f)marcas}; do
     if [[ ! " $vistas " == *" $m "* ]]; then
       vistas="$vistas $m"
