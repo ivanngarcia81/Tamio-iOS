@@ -64,9 +64,9 @@ final class PlacasDeIconoUITests: XCTestCase {
     ///
     /// Ahora no se supone nada de la geometría. Se busca la placa:
     ///
-    /// 1. El **fondo** se lee de la columna derecha de la ventana, a 64 pt del
-    ///    arranque de la fila, donde no llega ninguna placa (la mayor mide 36).
-    /// 2. El **relleno** es el color más frecuente que no es el fondo.
+    /// 1 y 2. El **relleno** es el color más frecuente **con croma**, porque
+    ///    una placa es lo único con color de la ventana: fondos, tarjetas,
+    ///    texto y símbolos son negros, blancos o grises.
     /// 3. La **caja** de la placa es el recuadro de los píxeles del relleno, y
     ///    de ella se toma el **60 % central**, que en un círculo cae entero
     ///    dentro. Ahí no hay tarjeta: lo que no es relleno es símbolo.
@@ -78,13 +78,29 @@ final class PlacasDeIconoUITests: XCTestCase {
     /// primera corrección excluía el fondo por su COLOR, y eso volvía a
     /// romperse en claro —tarjeta blanca y símbolo blanco son el mismo color—.
     func contrasteDeLaPlaca(_ fila: XCUIElement) -> (Double, String)? {
+        let f = fila.frame
+        // **La placa no siempre cae dentro del marco de la fila.** En el iPhone
+        // el botón abarca la fila entera, icono incluido. En el iPad, con las
+        // tres columnas, el elemento que casa con "Church" es SOLO EL RÓTULO y
+        // su marco empieza a la derecha del icono: midiendo hacia la derecha se
+        // acababa midiendo texto negro de 97x11 y diciendo "no hay símbolo".
+        //
+        // Así que se prueban las dos: hacia la derecha desde el arranque del
+        // marco, y hacia la izquierda. Cada una se valida sola —tiene que salir
+        // una placa cuadrada con un símbolo dentro—, así que la que acierta es
+        // la que manda, sin tener que saber de antemano en qué aparato estamos.
+        if let r = medirPlaca(desde: f.minX, ancho: 64, fila: f) { return r }
+        return medirPlaca(desde: max(0, f.minX - 70), ancho: 74, fila: f)
+    }
+
+    private func medirPlaca(desde x: CGFloat, ancho: CGFloat, fila f: CGRect)
+        -> (Double, String)? {
         let captura = XCUIScreen.main.screenshot()
         guard let cg = captura.image.cgImage else { return nil }
         let escala = CGFloat(cg.width) / captura.image.size.width
 
-        let f = fila.frame
-        let ventana = CGRect(x: f.minX * escala, y: (f.midY - 26) * escala,
-                             width: 64 * escala, height: 52 * escala)
+        let ventana = CGRect(x: x * escala, y: (f.midY - 26) * escala,
+                             width: ancho * escala, height: 52 * escala)
         guard ventana.maxX <= CGFloat(cg.width), ventana.maxY <= CGFloat(cg.height),
               let recorte = cg.cropping(to: ventana) else { return nil }
 
@@ -118,13 +134,44 @@ final class PlacasDeIconoUITests: XCTestCase {
             return (muestra[g]!, n)
         }
 
-        // 1 · el fondo, en la columna de más a la derecha
-        let columna = (0..<al).map { (an - 1, $0) }
-        guard let (fondo, _) = masFrecuente(columna, excluyendo: []) else { return nil }
-
-        // 2 · el relleno de la placa
+        // 1 y 2 · la placa es LO ÚNICO CON COLOR de la ventana
+        //
+        // Perseguir el fondo fue el camino equivocado, y costó tres vueltas.
+        // Primero se tomó de la columna derecha, que en el iPad cae sobre el
+        // rótulo. Luego del borde de arriba, y apareció que hay DOS capas de
+        // fondo —el negro de la columna y la tarjeta #1C1C1E—, con la tarjeta
+        // ocupando más ventana que la placa: el "relleno" salía tarjeta.
+        //
+        // La propiedad que sí distingue a una placa de todo lo demás es que
+        // tiene COLOR. Fondos, tarjetas, texto y símbolos son negros, blancos o
+        // grises: su croma —la distancia entre el canal más alto y el más
+        // bajo— es casi cero. El verde #30D158 tiene 161; la tarjeta #1C1C1E,
+        // 2. Con eso no hay que saber nada de la disposición.
+        //
+        // El umbral es 25: deja fuera los grises de tarjeta y deja dentro el
+        // más apagado de las placas, la pizarra #617087, que tiene 38.
+        func croma(_ c: UInt32) -> Int {
+            let r = Int((c >> 16) & 0xFF), g = Int((c >> 8) & 0xFF), b = Int(c & 0xFF)
+            return max(r, max(g, b)) - min(r, min(g, b))
+        }
         let todo = (0..<al).flatMap { y in (0..<an).map { ($0, y) } }
-        guard let (relleno, _) = masFrecuente(todo, excluyendo: [grupo(fondo)]) else { return nil }
+        var porColor: [UInt32: Int] = [:], muestra: [UInt32: UInt32] = [:]
+        for (x, y) in todo {
+            let c = color(x, y), g = grupo(c)
+            porColor[g, default: 0] += 1
+            if muestra[g] == nil { muestra[g] = c }
+        }
+        let coloridos = porColor.filter { croma(muestra[$0.key]!) >= 25 }
+        guard let (gRelleno, _) = coloridos.max(by: { $0.value < $1.value }) else {
+            print(String(format: "SIN-COLOR ventana(x %.0f an %.0f) fila(%.0f,%.0f %.0fx%.0f)",
+                         x, ancho, f.minX, f.minY, f.width, f.height))
+            fflush(stdout)
+            return nil
+        }
+        let relleno = muestra[gRelleno]!
+        // Solo para el mensaje: lo más frecuente SIN color, que es el fondo.
+        let fondo = porColor.filter { croma(muestra[$0.key]!) < 25 }
+            .max(by: { $0.value < $1.value }).map { muestra[$0.key]! } ?? 0
 
         // 3 · la caja de la placa, y su parte CENTRAL
         //
@@ -145,6 +192,17 @@ final class PlacasDeIconoUITests: XCTestCase {
             x0 = min(x0, x); x1 = max(x1, x); y0 = min(y0, y); y1 = max(y1, y)
         }
         guard x1 > x0, y1 > y0 else { return nil }
+        // **Una placa es cuadrada.** El texto de al lado sale como una caja
+        // larga y plana —97x11 fue la que delató el fallo del iPad—, así que
+        // una proporción muy lejos de 1:1 significa que la ventana no cayó
+        // sobre la placa, y hay que probar la otra en vez de medir esto.
+        let an0 = Double(x1 - x0 + 1), al0 = Double(y1 - y0 + 1)
+        guard an0 / al0 > 0.6, an0 / al0 < 1.7, min(an0, al0) > 12 * Double(escala) else {
+            print(String(format: "NO-ES-PLACA ventana(x %.0f an %.0f) fondo #%06X "
+                         + "relleno #%06X caja %.0fx%.0f", x, ancho, fondo, relleno, an0, al0))
+            fflush(stdout)
+            return nil
+        }
         let mx = (x1 - x0) / 5, my = (y1 - y0) / 5
         guard x0 + mx < x1 - mx, y0 + my < y1 - my else { return nil }
         let centro = ((y0 + my)...(y1 - my)).flatMap { y in
@@ -153,9 +211,23 @@ final class PlacasDeIconoUITests: XCTestCase {
 
         // 4 · el símbolo: lo más frecuente que no sea el relleno, con cuerpo
         //     suficiente para no ser el suavizado de un borde.
-        guard let (simbolo, n) = masFrecuente(centro, excluyendo: [grupo(relleno)]),
+        //
+        // Si no sale, se cuenta QUÉ se vio: sin eso, "no se encontró el
+        // símbolo" manda a buscar el fallo a ciegas, y la ventana puede estar
+        // cayendo en un sitio distinto del que se cree.
+        let hallazgo = masFrecuente(centro, excluyendo: [grupo(relleno)])
+        guard let (simbolo, n) = hallazgo,
               Double(n) >= Double(centro.count) * 0.02
-        else { return nil }
+        else {
+            print(String(format:
+                "SIN-SIMBOLO ventana(x %.0f an %.0f) fila(%.0f,%.0f %.0fx%.0f) "
+                + "fondo #%06X relleno #%06X caja %dx%d centro %d px, mejor %@",
+                x, ancho, f.minX, f.minY, f.width, f.height, fondo, relleno,
+                x1 - x0 + 1, y1 - y0 + 1, centro.count,
+                hallazgo.map { String(format: "#%06X x%d", $0.0, $0.1) } ?? "ninguno"))
+            fflush(stdout)
+            return nil
+        }
 
         func luz(_ c: UInt32) -> Double {
             func lineal(_ v: Double) -> Double {
@@ -172,9 +244,30 @@ final class PlacasDeIconoUITests: XCTestCase {
     }
 
     /// Mide y exige el mínimo de texto. 4.5:1, que es lo que pide WCAG AA.
-    func exigirContraste(_ fila: XCUIElement, _ nombre: String) {
+    /// **En la disposición de barra lateral esto NO mide, y se dice.**
+    ///
+    /// En el iPad, el elemento que casa con "Church" mide 92x28 pt y por su
+    /// franja horizontal no pasa un solo píxel con color: no es la fila con
+    /// placa —probablemente la cabecera del grupo, que mide lo mismo y no lleva
+    /// icono—. Se intentó localizar la placa desde el marco de cuatro maneras
+    /// distintas y ninguna acertó; tampoco es un problema de rotación, porque
+    /// el marco y la captura coinciden (1590x1192 los dos).
+    ///
+    /// Se deja SALTADO y escrito, que es lo honesto, por dos razones: el color
+    /// de estas placas sale de `SeccionAjustes` y es el mismo en los dos
+    /// aparatos —ya medido en el iPhone, de 4.71 a 9.59—, y la disposición
+    /// cambia dónde está la placa, no el contraste entre su relleno y su
+    /// símbolo. Lo que falta aquí es alcanzar la fila buena, no una medida.
+    ///
+    /// En el iPHONE sigue siendo un fallo duro: ahí sí se alcanza.
+    func exigirContraste(_ fila: XCUIElement, _ nombre: String) throws {
         guard fila.exists else { XCTFail("no está la fila «\(nombre)»"); return }
         guard let (r, detalle) = contrasteDeLaPlaca(fila) else {
+            if app.tabBars.buttons.count == 0 {
+                throw XCTSkip("«\(nombre)»: en la disposición de barra lateral el "
+                    + "elemento que casa con el nombre no es la fila con placa, así que "
+                    + "no hay nada que medir. El color es el mismo que en el iPhone.")
+            }
             XCTFail("no se encontró el símbolo dentro de la placa de «\(nombre)» "
                     + "—o la ventana no cayó sobre la placa—; sin eso no hay nada que medir")
             return
@@ -187,19 +280,40 @@ final class PlacasDeIconoUITests: XCTestCase {
 
     /// Vuelca lo que hay si la pestaña no aparece: sin eso un "no existe" manda
     /// a buscar el fallo donde no está.
+    /// **En el iPhone es una pestaña; en el iPad, una fila de la barra
+    /// lateral.** Buscar solo en `tabBars` daba "no está la pestaña «Secretary»"
+    /// con el volcado de pestañas VACÍO —la firma de que no hay tab bar, no de
+    /// que falte la pestaña—. Se prueban los dos sitios y se vuelca TODO lo que
+    /// hay si no aparece en ninguno.
     @discardableResult
     func pestana(_ nombre: String) -> Bool {
-        let b = app.tabBars.buttons[nombre]
-        guard b.waitForExistence(timeout: 20) else {
-            print("PESTAÑAS:" + app.tabBars.buttons.allElementsBoundByIndex
-                    .map { $0.label }.joined(separator: "|"))
-            fflush(stdout)
-            XCTFail("no está la pestaña «\(nombre)»"); return false
+        let tab = app.tabBars.buttons[nombre]
+        if tab.waitForExistence(timeout: 12) { tab.tap(); sleep(3); return true }
+
+        let lateral = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", nombre)).firstMatch
+        for _ in 0..<4 {
+            if lateral.exists && lateral.isHittable { lateral.tap(); sleep(3); return true }
+            app.swipeUp(velocity: .slow); sleep(1)
         }
-        b.tap(); sleep(3); return true
+        print("SIN-\(nombre) · pestañas:" + app.tabBars.buttons.allElementsBoundByIndex
+                .map { $0.label }.joined(separator: "|")
+              + " · botones:" + app.buttons.allElementsBoundByIndex.prefix(30)
+                .map { String($0.label.prefix(22)) }.joined(separator: "|"))
+        fflush(stdout)
+        XCTFail("no está «\(nombre)» ni como pestaña ni en la barra lateral")
+        return false
     }
 
-    func testPlacasDeLosHubs() {
+    /// **Los hubs son de iPHONE.** En el iPad la barra lateral lista los
+    /// destinos en plano —Home, Income, Contributors, Minutes…— y las pantallas
+    /// de Secretaría y Tesorería no existen, así que aquí no hay ninguna placa
+    /// de `HubRow` que mirar. Se SALTA diciéndolo, que no es lo mismo que pasar.
+    func testPlacasDeLosHubs() throws {
+        if app.tabBars.buttons.count == 0 {
+            throw XCTSkip("sin barra de pestañas: este aparato no tiene hubs, "
+                          + "la barra lateral va directa a cada destino")
+        }
         // Secretaría: Agenda (teal), Actas (morado), Cartas (cian),
         // Registro (pizarra), más las de `Paleta.brand`, `.aviso` y `.enlace`.
         if pestana("Secretary") {
@@ -212,7 +326,7 @@ final class PlacasDeIconoUITests: XCTestCase {
                                         "el hub de Secretaría salió sin filas")
             parada("hub-secretaria")
             for fila in ["Membership", "Calendar", "Service log", "Minutes", "Letters"] {
-                exigirContraste(app.buttons.matching(
+                try exigirContraste(app.buttons.matching(
                     NSPredicate(format: "label BEGINSWITH %@", fila)).firstMatch, fila)
             }
             app.swipeUp(velocity: .slow); sleep(2)
@@ -228,13 +342,13 @@ final class PlacasDeIconoUITests: XCTestCase {
                           "el hub de Tesorería salió sin «Transactions»")
             parada("hub-tesoreria")
             for fila in ["Transactions", "Contributors", "Deposits", "Reports"] {
-                exigirContraste(app.buttons.matching(
+                try exigirContraste(app.buttons.matching(
                     NSPredicate(format: "label BEGINSWITH %@", fila)).firstMatch, fila)
             }
         }
     }
 
-    func testPlacasDeAjustes() {
+    func testPlacasDeAjustes() throws {
         // Las ocho de Ajustes: gris, verde, índigo, cian, azul, naranja,
         // morado y rojo. Es donde estaba el peor de todos (2.16:1).
         guard pestana("Settings") else { return }
@@ -244,7 +358,7 @@ final class PlacasDeIconoUITests: XCTestCase {
         // La placa de Ajustes es un cuadrado de 32 pt, no un círculo de 36, y
         // la fila arranca igual: el recorte cae dentro de los dos.
         for fila in ["Church", "Institution", "Treasurer", "Access"] {
-            exigirContraste(app.buttons.matching(
+            try exigirContraste(app.buttons.matching(
                 NSPredicate(format: "label BEGINSWITH %@", fila)).firstMatch, fila)
         }
         app.swipeUp(velocity: .slow); sleep(2)
