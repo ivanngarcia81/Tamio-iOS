@@ -188,7 +188,14 @@ struct ReportesView: View {
         // Accesibilidad no se aplaste.
         .frame(minHeight: 170)
         .background(tono, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: .black.opacity(0.10), radius: 15, y: 6)
+        // **Dos sombras, y medidas contra el widget.** La de antes —una sola,
+        // 10 % a radio 15— oscurecía el fondo un 16.9 % justo bajo el borde;
+        // en la galería de widgets que trajo Iván la misma medida da 47.1 % y
+        // tarda unos 60 pt en volver al fondo. Por eso la tarjeta parecía
+        // pegada al fondo y el widget levantado. La corta define el borde y la
+        // larga hace la profundidad; una sola no da las dos cosas.
+        .shadow(color: .black.opacity(0.16), radius: 6, y: 3)
+        .shadow(color: .black.opacity(0.20), radius: 26, y: 14)
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         // **Mantener pulsado enseña la hoja del PDF.** Aquí sí gana a abrir
         // directamente —que es lo que hace la tarjeta de Cartas—: el reporte
