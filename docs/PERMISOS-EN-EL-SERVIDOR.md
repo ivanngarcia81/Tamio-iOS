@@ -426,9 +426,17 @@ se dan las dos columnas.
 fallar con **`42501: permission denied`**. Que devuelva «0 filas» sin error no
 es cerrado: es RLS filtrando, y eso ya lo hacía con las filas ajenas.
 
-**Estado: la migración está escrita y NO aplicada.** Desde esta sesión no se
-puede escribir en la base. La aplica Iván o el chat del web, y después se corre
-la consulta de comprobación que lleva al final.
+**APLICADA y comprobada el 18-sep-2026, 14:47 UTC** (`20260918144751` en
+`schema_migrations`). Las tres comprobaciones, contra la base:
+
+- `column_privileges`: `authenticated` tiene UPDATE solo sobre **`foto, nombre`**;
+  `anon` no tiene UPDATE.
+- Con sesión de tesorero (`set local role authenticated` + `request.jwt.claims`),
+  `update perfiles set rol = 'administrador' where id = auth.uid()` →
+  **`42501: permission denied for table perfiles`**. Es el cierre bueno.
+- Con la misma sesión, `update perfiles set nombre = … where id = auth.uid()` →
+  pasa y devuelve la fila con `rol = tesorero`. Lo legítimo sigue funcionando.
+  (Dentro de una transacción deshecha; la fila real no cambió, comprobado.)
 
 ## Los riesgos, que son reales
 
