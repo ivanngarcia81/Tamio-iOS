@@ -223,24 +223,22 @@ necesita el anterior. Lo que **no** está aquí no bloquea el envío.
 > no se publica**: editarlo no cambia nada. Todo el detalle, con las dos
 > trampas de abajo, en `ACUERDO-CON-EL-WEB.md` §4.
 
-5. **Descongelar Pages, ANTES que nada.** Está configurado para construir desde
-   la rama `claude/hello-9v3atw`, **que ya no existe**: el último build es del
-   18 de agosto y **ningún push republica nada**. Hay que repuntarlo en
-   *Settings → Pages* a una rama viva, carpeta `/docs`.
-6. **Y antes de repuntarlo a `main`, traerse los 5 commits que le faltan.**
-   `main` va 565 por delante pero **5 por detrás** de lo publicado, y esos
-   cinco son los precios, los botones de comprar, la descarga del `.dmg`, el
-   enlace a la ficha y la página de activación. Publicar `main` tal cual los
-   borra del sitio.
-7. **Publicar la privacidad** que cubre esta app, en `docs/privacidad.html`. La
-   viva dice *«ni inicio de sesión, no enviamos tu información a ningún
-   servidor»*, que es lo contrario de lo que hace Tamio Iglesia. Redactada en
-   `docs/privacidad-propuesta.html` de este repo.
-8. **Crear `docs/soporte.html` y COMPROBAR que responde.** Hoy dan 404
-   `/soporte`, `/support`, `/contacto` y `/ayuda`, y en `docs/` solo hay
-   `index`, `invitacion`, `privacidad`, `reembolsos` y `terminos`. **Sin esta
-   URL App Store Connect no deja enviar**, y tiene que responder exactamente la
-   que se escriba en la ficha, no una parecida.
+5. ~~**Descongelar Pages.**~~ **HECHO el 18-sep.** Estaba construyendo desde
+   una rama borrada y el sitio llevaba un mes congelado. Ahora construye desde
+   la rama `pages` de `Tamio-app`, carpeta `/docs`.
+6. ~~**Los 5 commits que le faltaban a `main`.**~~ **Esquivado, no resuelto.**
+   Se publicó desde una rama creada sobre el commit que ya estaba vivo, así que
+   no hizo falta tocar `main` y **no se perdió nada** del sitio. La
+   reconciliación de `docs/` sigue pendiente y ya no bloquea a Apple.
+7. ~~**Publicar la privacidad.**~~ **VIVA y verificada**, 18-sep 13:44 UTC:
+   `https://tamio.church/privacidad.html`. Cubre las dos apps, declara la
+   información religiosa como sensible y ya no dice que no haya cuenta.
+8. ~~**Crear `soporte.html`.**~~ **VIVA y verificada**:
+   `https://tamio.church/soporte.html` responde 200. **Esta es la URL que va en
+   la ficha**, tal cual, con `.html`.
+
+Las dos usan **`ivanngarcia82@gmail.com`**, que es lo que decide el punto 4: ese
+es el correo oficial y es el que hay que poner también en App Store Connect.
 
 ### C · La iglesia del revisor · Supabase y la app, en este orden
 

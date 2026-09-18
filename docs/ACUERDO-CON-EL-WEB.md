@@ -273,36 +273,37 @@ hace desde dentro de la app y es inmediato.
      distinto (md5 `8e94ee…`) y existe en cuatro copias en disco. Editarlo no
      cambia el sitio. **La buena es `docs/privacidad.html`.**
 
-> ### ESTADO 18-sep, tarde · las páginas ya están subidas; falta UN interruptor
+> ### ✅ PUBLICADO Y VERIFICADO · 18-sep-2026, 13:44 UTC
 >
-> Hecho desde aquí, en `Tamio-app`:
+> **`tamio.church/privacidad.html` y `tamio.church/soporte.html` están vivas.**
+> Pages construye ahora desde la rama **`pages`** del repo `Tamio-app`, carpeta
+> `/docs`, commit `dae257a`. El CNAME sigue puesto y HTTPS forzado.
 >
-> - Rama **`pages`**, creada desde `eb163f7` —el commit que el sitio enseña
->   hoy—, con el commit `dae257a`: privacidad nueva y `docs/soporte.html`.
-> - Comprobado que entre lo publicado y esa rama **solo cambian esos dos
->   archivos**. Portada, términos, reembolsos e invitación quedan exactamente
->   como están hoy, así que **no puede retroceder nada**.
-> - A las dos páginas se les quitó el comentario HTML de cabecera, que llevaba
->   notas internas —incluida la del correo— y se habría publicado con ellas.
-> - Correo: `ivanngarcia82@gmail.com`, el del sitio y el de la política viva.
+> Comprobado sobre el dominio, no sobre el repo:
 >
-> **Lo único que queda es apuntar Pages a esa rama**, y eso no se pudo hacer
-> desde aquí: cambiar la fuente de Pages publica en un sitio real y el permiso
-> está cerrado. Lo hace Iván, por cualquiera de los dos caminos:
+> - Los seis HTML responden 200, y **lo vivo es byte a byte la rama `pages`**
+>   en los seis.
+> - La privacidad viva **ya no contiene** la frase que contradecía a la app
+>   —cero apariciones de «ni inicio de sesión / no enviamos tu información a
+>   ningún servidor»—, menciona «Tamio Iglesia», declara la información
+>   sensible y nombra a Supabase.
+> - **Nada retrocedió**: la portada conserva los precios ($23.99 / $239.99),
+>   los dos botones de compra de Lemon Squeezy, la descarga del `.dmg` y el
+>   enlace a la ficha de la App Store — que era justo lo que se habría perdido
+>   publicando `main`.
+> - No se filtró ninguna nota interna al código fuente de las páginas.
 >
->     gh api -X PUT repos/ivanngarcia81/Tamio-app/pages \
->       -f 'source[branch]=pages' -f 'source[path]=/docs'
+> **Lo que queda del sitio, y ya no bloquea a Apple:**
 >
-> o en *Settings → Pages → Build and deployment → Branch:* `pages` / `/docs`.
->
-> Y después, comprobar que responden —tarda un minuto en construir—:
->
->     curl -sI https://tamio.church/soporte.html | head -1     # 200
->     curl -s  https://tamio.church/privacidad.html | grep -c "Tamio Iglesia"
->
-> Lo de abajo explica por qué el sitio estaba parado y por qué no se publicó
-> desde `main`. Sigue valiendo: **la reconciliación de `docs/` con `main` está
-> sin hacer**, y es lo que queda pendiente del sitio después de esto.
+> - **Reconciliar `docs/` entre `main` y la rama `pages`.** Siguen divergidos:
+>   `main` tiene `terminos.html` y `reembolsos.html` más nuevos, y las dos ramas
+>   cambiaron `index.html` e `invitacion.html` por su lado. Mientras no se
+>   resuelva, **Pages construye desde `pages`**: quien empuje a `main` creyendo
+>   que publica, no publica.
+> - **La portada no enlaza a soporte.** No hace falta para App Store —la URL va
+>   en la ficha— pero una página de soporte a la que no se llega desde el sitio
+>   es rara. Es una línea en `index.html`, que es archivo divergido: mejor
+>   hacerlo al reconciliar.
 
 2. **EL SITIO ESTÁ CONGELADO, y esto hay que arreglarlo antes de publicar
    nada.** GitHub Pages está configurado para construir desde la rama
