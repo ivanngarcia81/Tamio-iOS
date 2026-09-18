@@ -28,19 +28,27 @@ def leer(path):
         data = d[pos+8:pos+8+ln]; pos += 12+ln
         if typ == b'IHDR':
             w,h,bd,ct,comp,filt,inter = struct.unpack('>IIBBBBB', data)
-            assert bd==8 and inter==0, (bd,inter)
+            # **16 bits por canal también.** Una captura que ha pasado por otra
+            # app —recortada, anotada, reexportada— sale a menudo a 16, y esto
+            # se plantaba con un `AssertionError` en mitad de una medida. El
+            # filtrado del PNG es por BYTES, así que lo único que cambia es el
+            # paso; al final se baja a 8 quedándose con el byte alto, que es
+            # exactamente el mismo color.
+            assert bd in (8,16) and inter==0, (bd,inter)
         elif typ == b'IDAT': idat += data
         elif typ == b'IEND': break
     raw = zlib.decompress(idat)
     canales = {0:1,2:3,3:1,4:2,6:4}[ct]
-    stride = w*canales
+    ancho = bd//8              # bytes por muestra: 1 u 2
+    stride = w*canales*ancho
     out = bytearray(h*stride); prev = bytearray(stride); p=0
     for y in range(h):
         f = raw[p]; p+=1
         linea = bytearray(raw[p:p+stride]); p+=stride
+        paso = canales*ancho   # el `bpp` del spec, en bytes
         for i in range(stride):
-            a = linea[i-canales] if i>=canales else 0
-            b = prev[i]; c = prev[i-canales] if i>=canales else 0
+            a = linea[i-paso] if i>=paso else 0
+            b = prev[i]; c = prev[i-paso] if i>=paso else 0
             if f==1: linea[i]=(linea[i]+a)&255
             elif f==2: linea[i]=(linea[i]+b)&255
             elif f==3: linea[i]=(linea[i]+(a+b)//2)&255
@@ -49,6 +57,8 @@ def leer(path):
                 pr = a if (pa<=pb and pa<=pc) else (b if pb<=pc else c)
                 linea[i]=(linea[i]+pr)&255
         out[y*stride:(y+1)*stride] = linea; prev = linea
+    if ancho == 2:
+        out = bytearray(out[i] for i in range(0, len(out), 2))
     return w,h,canales,out
 
 def px(img, x, y):
