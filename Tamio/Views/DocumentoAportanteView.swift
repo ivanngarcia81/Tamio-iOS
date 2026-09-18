@@ -170,8 +170,12 @@ struct DocumentoAportanteView: View {
         }
         .font(.subheadline.weight(.medium))
         .foregroundStyle(.primary)
+        // **De cristal, no una pastilla gris.** Ver `MiembrosView.menuFiltro`:
+        // esta cápsula vive en `ToolbarItem(placement: .title)`, donde el
+        // sistema no pone ninguna, y el relleno opaco quedaba dentro de la
+        // barra de cristal sin nada que refractar.
         .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-        .background(Color(.tertiarySystemFill), in: Capsule())
+        .glassEffect(.regular, in: .capsule)
     }
 
     @ViewBuilder

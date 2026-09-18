@@ -270,8 +270,19 @@ struct MiembrosView: View {
             }
             .font(.subheadline.weight(.medium))
             .foregroundStyle(.primary)
+            // **De cristal, no una pastilla gris.** Llevaba
+            // `.background(Color(.tertiarySystemFill), in: Capsule())`: un
+            // relleno OPACO dentro de una barra de cristal, que no deja nada
+            // que refractar. En `ToolbarItem(placement: .title)` el sistema NO
+            // pone cápsula —al contrario que en `.topBarTrailing`, donde
+            // añadir una da la doble— y `.buttonStyle(.glass)` ahí se ignora,
+            // así que el efecto va sobre la etiqueta y es la única cápsula.
+            // Misma vuelta que ya dieron Membresía, Informes y la ficha del
+            // aportante; este menú y el de Constancias se quedaron fuera
+            // porque el `grep` de `.buttonStyle(.glass)` no ve una cápsula
+            // pintada a mano. Lo cazó Iván en una captura, rodeándola.
             .padding(.horizontal, Esp.chip).padding(.vertical, 7)
-            .background(Color(.tertiarySystemFill), in: Capsule())
+            .glassEffect(.regular, in: .capsule)
         }
     }
 
