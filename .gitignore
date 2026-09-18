@@ -55,3 +55,10 @@ Config.xcconfig
 .mcp.json
 skills-lock.json
 __pycache__/
+
+# Las capturas de la ficha de App Store. **Fuera del repo a propósito.**
+# Pesan 10 MB y el repo empaquetado pesa 4,5: triplicarlo con archivos que
+# `pruebas/capturas-tienda.sh` rehace en tres minutos no sale a cuenta. El
+# registro permanente de qué capturas llevó cada versión es la propia ficha de
+# App Store Connect, igual que con el `.ipa`, que tampoco se guarda aquí.
+docs/capturas-tienda/
