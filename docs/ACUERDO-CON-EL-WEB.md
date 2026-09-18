@@ -249,14 +249,67 @@ hace desde dentro de la app y es inmediato.
 
 ### Tres avisos para quien las publique
 
-1. **NO se publican desde `Tamio-web`.** Ese repo tiene en `main` —local y en
-   el remoto— la privacidad del **20 de julio**, nueve días más vieja que la
-   que está viva. Empujar desde ahí haría RETROCEDER la política. Lo vivo es
-   byte a byte `Tamio-app/docs/privacidad.html` (mismo md5, comprobado). De
-   dónde publica el sitio de verdad, sin averiguar.
-2. **Hay CUATRO privacidades en disco** con cuatro fechas: 19, 20, 27 y 29 de
-   julio. Editar la que no es no cambia nada, o peor.
-3. **Dos correos distintos.** El sitio y la política viva usan
+1. **De dónde publica el sitio · AVERIGUADO el 18-sep-2026.** Este punto decía
+   «sin averiguar» y ya no lo está. El sitio **no está en Vercel: lo sirve
+   GitHub Pages** (`server: GitHub.com`), y sale de:
+
+   | | |
+   |---|---|
+   | **Repo** | `ivanngarcia81/Tamio-app` |
+   | **Carpeta** | `/docs` — ahí vive el `CNAME` con `tamio.church` |
+   | **Archivo** | `docs/privacidad.html`, byte a byte lo vivo (10 128 bytes, md5 `22e5114c…`) |
+
+   Tres cosas que se aclaran de paso:
+
+   - **`Tamio-web` no tiene nada que ver con el dominio.** Su Pages sirve
+     `ivanngarcia81.github.io/Tamio-web/` y **no tiene CNAME**. El aviso de no
+     publicar desde ahí sigue valiendo, y ahora se sabe por qué: no publicaría
+     nada, el dominio no es suyo.
+   - **`tesoreria-mac-` es el NOMBRE ANTIGUO de `Tamio-app`.** GitHub redirige,
+     así que las dos rutas contestan lo mismo y parecen dos repos que se pelean
+     por el dominio. Es uno solo. (`~/Desktop/tesoreria-mac-` es ese mismo repo
+     clonado con el nombre viejo.)
+   - **`web/privacidad.html` NO es la página publicada.** Es otro archivo
+     distinto (md5 `8e94ee…`) y existe en cuatro copias en disco. Editarlo no
+     cambia el sitio. **La buena es `docs/privacidad.html`.**
+
+2. **EL SITIO ESTÁ CONGELADO, y esto hay que arreglarlo antes de publicar
+   nada.** GitHub Pages está configurado para construir desde la rama
+   **`claude/hello-9v3atw`**, y esa rama **ya no existe** (404). El último
+   build es del **18 de agosto** (`eb163f7`) y no se ha movido desde entonces.
+
+   **Consecuencia:** empujar a `main` —o a cualquier rama— **no republica
+   nada**. Es build `legacy`, por rama, no por Actions: no hay ningún flujo que
+   lo rescate. Hay que ir a *Settings → Pages → Build and deployment → Source*
+   y apuntarlo a una rama que exista, con la carpeta `/docs`.
+
+3. **Y cuidado al repuntarlo a `main`, porque main va 5 commits POR DETRÁS de
+   lo que está publicado.** Está divergido: 565 por delante y 5 por detrás.
+   Los cinco son del 15 y el 18 de agosto y tocan `docs/`:
+
+       e1d0bc2  Pagina de activacion de cuenta para las invitaciones
+       cdb8dc3  tamio.church: precio $23.99/mes + $239.99/año
+       b9d32e2  tamio.church: agrega el botón de comprar a cada plan
+       8644d45  tamio.church: enlace de descarga del .dmg
+       eb163f7  tamio.church: enlace a la ficha de la App Store
+
+   Cambian `docs/index.html` y añaden `docs/invitacion.html`. **Publicar `main`
+   tal cual borraría del sitio los precios, los botones de comprar, la descarga
+   del `.dmg`, el enlace a la ficha y la página de activación entera.** Hay que
+   traerse esos cinco a `main` antes de repuntar Pages.
+
+   Es la misma advertencia que este apartado traía —publicar desde el sitio
+   equivocado hace RETROCEDER la página— pero el sitio equivocado no era el que
+   se creía: es `main`, hoy.
+
+4. **`docs/soporte.html` no existe**, confirmado contra el repo. En `docs/` de
+   `main` hay `index.html`, `invitacion.html`, `privacidad.html`,
+   `reembolsos.html` y `terminos.html`. La de soporte hay que **crearla ahí**,
+   junto a las otras.
+5. **Hay CUATRO privacidades en disco** con cuatro fechas: 19, 20, 27 y 29 de
+   julio, más las cuatro copias de `web/privacidad.html` que no se publican.
+   Editar la que no es no cambia nada, o peor.
+6. **Dos correos distintos.** El sitio y la política viva usan
    `ivanngarcia82@gmail.com`; otras copias usan `ig07644@gmail.com`. Elegir uno
    y que sea el mismo en la ficha de App Store, en la política y en soporte.
 

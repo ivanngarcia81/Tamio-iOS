@@ -216,42 +216,59 @@ necesita el anterior. Lo que **no** está aquí no bloquea el envío.
 
 ### B · La web · lo lleva el otro chat (`ACUERDO-CON-EL-WEB.md` §4)
 
-5. **Publicar la privacidad** que cubre esta app. La viva es del 29 de julio y
-   dice *«ni inicio de sesión, no enviamos tu información a ningún servidor»*,
-   que es lo contrario de lo que hace Tamio Iglesia. Redactada en
-   `docs/privacidad-propuesta.html`.
-6. **Publicar `tamio.church/soporte.html`, y COMPROBAR que responde.** Hoy dan
-   404 `/soporte`, `/support`, `/contacto` y `/ayuda`. **Sin esta URL App Store
-   Connect no deja enviar**, y tiene que existir exactamente la que se escriba
-   en la ficha, no una parecida.
+> **Dónde se publica, averiguado el 18-sep:** el sitio lo sirve **GitHub
+> Pages** desde la carpeta **`/docs` del repo `Tamio-app`** — no Vercel, y no
+> `Tamio-web`, que ni siquiera tiene el dominio. Los archivos son
+> `docs/privacidad.html` y un `docs/soporte.html` nuevo. **`web/privacidad.html`
+> no se publica**: editarlo no cambia nada. Todo el detalle, con las dos
+> trampas de abajo, en `ACUERDO-CON-EL-WEB.md` §4.
+
+5. **Descongelar Pages, ANTES que nada.** Está configurado para construir desde
+   la rama `claude/hello-9v3atw`, **que ya no existe**: el último build es del
+   18 de agosto y **ningún push republica nada**. Hay que repuntarlo en
+   *Settings → Pages* a una rama viva, carpeta `/docs`.
+6. **Y antes de repuntarlo a `main`, traerse los 5 commits que le faltan.**
+   `main` va 565 por delante pero **5 por detrás** de lo publicado, y esos
+   cinco son los precios, los botones de comprar, la descarga del `.dmg`, el
+   enlace a la ficha y la página de activación. Publicar `main` tal cual los
+   borra del sitio.
+7. **Publicar la privacidad** que cubre esta app, en `docs/privacidad.html`. La
+   viva dice *«ni inicio de sesión, no enviamos tu información a ningún
+   servidor»*, que es lo contrario de lo que hace Tamio Iglesia. Redactada en
+   `docs/privacidad-propuesta.html` de este repo.
+8. **Crear `docs/soporte.html` y COMPROBAR que responde.** Hoy dan 404
+   `/soporte`, `/support`, `/contacto` y `/ayuda`, y en `docs/` solo hay
+   `index`, `invitacion`, `privacidad`, `reembolsos` y `terminos`. **Sin esta
+   URL App Store Connect no deja enviar**, y tiene que responder exactamente la
+   que se escriba en la ficha, no una parecida.
 
 ### C · La iglesia del revisor · Supabase y la app, en este orden
 
-7. **Dar de alta la cuenta** en el panel, con *Auto Confirm User*. El
+9. **Dar de alta la cuenta** en el panel, con *Auto Confirm User*. El
    disparador `al_crear_usuario` le crea una iglesia sola: esa es la demo.
-8. **Correr `docs/demo-revision.sql`** con ese `church_id`. **Nunca se ha
+10. **Correr `docs/demo-revision.sql`** con ese `church_id`. **Nunca se ha
    ejecutado**: está validada contra el esquema, no contra la base. Al acabar,
    correr su consulta de comprobación y contrastar con las cifras que lleva
    escritas al lado — si la app enseña $488.20 en vez de $48,820.00, el dinero
    entró en pesos y no en céntimos.
-9. **Invitar al SEGUNDO administrador** desde la app. Sin él, el revisor prueba
+11. **Invitar al SEGUNDO administrador** desde la app. Sin él, el revisor prueba
    el borrado —que es lo que va a hacer— y se lleva la demo entera.
-10. **Rellenar la contraseña** en la nota al revisor de
+12. **Rellenar la contraseña** en la nota al revisor de
     `docs/FICHA-APP-STORE.md`, que va en blanco.
 
 ### D · App Store Connect · nada de esto se puede hacer antes
 
-11. **CREAR LA FICHA.** Apps → `+` → Nueva app, con `church.tamio.native` en el
+13. **CREAR LA FICHA.** Apps → `+` → Nueva app, con `church.tamio.native` en el
     desplegable y el nombre «Tamio Iglesia». **Es el bloqueante estructural:
     sin ficha no se puede ni subir el binario**, y el error que da no lo dice
     —suena a problema de firma—. Ver §0.-16 del contexto.
-12. **Contestar los tres cuestionarios**, que son tres pantallas distintas y es
+14. **Contestar los tres cuestionarios**, que son tres pantallas distintas y es
     donde se pierden las respuestas: **privacidad** (los nueve tipos de arriba,
     con la información sensible declarada), **clasificación por edad** (4+) y
     **cumplimiento de exportación**. Las respuestas están en este archivo y en
     `docs/FICHA-APP-STORE.md`.
-13. **Pegar el texto, las dos URL y las capturas.**
-14. **Regenerar el `.ipa` y subirlo.** El del 17-sep vivía en el directorio de
+15. **Pegar el texto, las dos URL y las capturas.**
+16. **Regenerar el `.ipa` y subirlo.** El del 17-sep vivía en el directorio de
     sesión dentro de `/tmp` y ya no existe — comprobado el 18-sep. La cadena
     `archive` → `exportArchive` está probada entera.
 
