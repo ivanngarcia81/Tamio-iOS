@@ -265,33 +265,19 @@ struct CartasView: View {
         // cuatro salidas medidas delante.
     }
 
-    @ViewBuilder
+    /// **Puntos siempre, también con dieciséis.** Aquí había un "1 / 16" en
+    /// texto porque dieciséis círculos a mano no caben; `PuntosDePagina` usa el
+    /// `UIPageControl` de UIKit, que encoge los de los extremos en vez de
+    /// desbordarse —es lo que hace la galería de widgets de iOS, que es de
+    /// donde salió la idea— y de paso devuelve el "página 1 de 16" de VoiceOver
+    /// que se fue con las flechas.
     private var puntosCarrusel: some View {
-        if vm.plantillas.count > 12 {
-            // Con más de doce los puntos se apelotonan y dejan de decir en qué
-            // parte del carrusel estás, que es para lo único que sirven.
-            Text("\(indiceVisible + 1) / \(vm.plantillas.count)")
-                .font(.caption).monospacedDigit().foregroundStyle(.secondary)
-        } else {
-            HStack(spacing: 6) {
-                ForEach(Array(vm.plantillas.enumerated()), id: \.element.id) { i, plantilla in
-                    Button {
-                        withAnimation(.snappy) { plantillaVisible = plantilla.id }
-                    } label: {
-                        Circle()
-                            .fill(i == indiceVisible ? Paleta.brand : Color(.tertiaryLabel))
-                            .frame(width: 7, height: 7)
-                            // El punto se ve de 7 pt pero se toca en 28: por
-                            // debajo de 44 ya cuesta, y siete es imposible.
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(plantilla.nombre.isEmpty ? plantilla.tipo.titulo
-                                                                 : plantilla.nombre)
-                }
-            }
-        }
+        PuntosDePagina(total: vm.plantillas.count, actual: Binding(
+            get: { indiceVisible },
+            set: { i in
+                guard vm.plantillas.indices.contains(i) else { return }
+                withAnimation(.snappy) { plantillaVisible = vm.plantillas[i].id }
+            }))
     }
 
     private var indiceVisible: Int {

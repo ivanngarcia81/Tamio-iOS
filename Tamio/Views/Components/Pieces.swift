@@ -479,3 +479,54 @@ extension View {
         }
     }
 }
+
+/// **Los puntos de página de un carrusel, con el `UIPageControl` de UIKit.**
+///
+/// SwiftUI no tiene un control de página suelto: `TabView(.page)` trae el suyo,
+/// pero exige que el carrusel SEA un `TabView`, y el de Cartas es un
+/// `ScrollView` horizontal con `scrollTargetBehavior`, que es lo que le da el
+/// encaje y el asomo de la vecina.
+///
+/// A mano tampoco sale: dieciséis círculos de 7 pt con su área tocable de 28 no
+/// caben en un teléfono, y esa es la razón por la que Cartas enseñaba un
+/// "1 / 16" en su lugar. `UIPageControl` resuelve las dos cosas de fábrica:
+///
+/// - **Con muchas páginas encoge los puntos de los extremos** en vez de
+///   desbordarse, que es exactamente lo que hace la galería de widgets de iOS.
+/// - **Es `adjustable` para VoiceOver** —dice "página 1 de 16" y se cambia
+///   deslizando arriba y abajo—, que es el atajo que se perdió al quitar las
+///   flechas del carrusel.
+///
+/// `hidesForSinglePage` va encendido: con una sola plantilla el control no dice
+/// nada que la pantalla no diga ya.
+struct PuntosDePagina: UIViewRepresentable {
+    let total: Int
+    @Binding var actual: Int
+    var tinte: Color = Paleta.brand
+
+    func makeUIView(context: Context) -> UIPageControl {
+        let control = UIPageControl()
+        control.hidesForSinglePage = true
+        control.addTarget(context.coordinator,
+                          action: #selector(Coordinador.cambio(_:)),
+                          for: .valueChanged)
+        return control
+    }
+
+    func updateUIView(_ control: UIPageControl, context: Context) {
+        context.coordinator.alCambiar = { actual = $0 }
+        control.numberOfPages = total
+        // Solo si cambió: escribirlo en cada pasada corta la animación del
+        // propio control mientras el dedo arrastra.
+        if control.currentPage != actual { control.currentPage = actual }
+        control.currentPageIndicatorTintColor = UIColor(tinte)
+        control.pageIndicatorTintColor = UIColor(Color(.tertiaryLabel))
+    }
+
+    func makeCoordinator() -> Coordinador { Coordinador() }
+
+    final class Coordinador {
+        var alCambiar: (Int) -> Void = { _ in }
+        @objc func cambio(_ control: UIPageControl) { alCambiar(control.currentPage) }
+    }
+}
