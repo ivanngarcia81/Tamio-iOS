@@ -193,22 +193,76 @@ ocupa "Tamio", esta necesita otro o hay que renombrar aquella primera.
 cuando haya a quién mudar, con una última actualización suya que diga dónde
 está esta. Borrarla deja tirado a quien la tenga.
 
-## Antes de la primera subida
+## Antes de la primera subida · la lista entera, en orden
 
-- ~~El bundle id.~~ **Cerrado el 17-sep**, arriba.
-- **El número de compilación.** `CURRENT_PROJECT_VERSION` es `1`, y con ficha
-  nueva `1.0.0 (1)` es correcto. Lo que sí hay que recordar: **cada subida a
-  App Store Connect necesita un número MAYOR que el anterior**, aunque la
-  anterior se rechazara o se borrara. El primero que se suba quema el `1`.
-- ~~Las capturas y el texto de la ficha, que no están en este repo.~~ **Ya
-  están, desde el 18-sep.** El texto en `docs/FICHA-APP-STORE.md`; las capturas
-  las genera `pruebas/capturas-tienda.sh` y salen en `docs/capturas-tienda/`,
-  que está en `.gitignore` a propósito.
-- **La cuenta del revisor y su iglesia**, que es lo único de esta lista que
-  sigue sin hacer. `docs/demo-revision.sql` y el apartado de arriba.
-- **Un solo correo.** Circulan dos (`ivanngarcia82@gmail.com` en el sitio y en
-  la política viva, `ig07644@gmail.com` en otras copias). La ficha, la política
-  y soporte tienen que decir el mismo.
-- **Las dos URL publicadas.** Sin la de soporte App Store Connect no deja
-  enviar, y la de privacidad que está viva hoy contradice a esta app por
-  escrito. Las publica el otro chat: `ACUERDO-CON-EL-WEB.md` §4.
+Revisada el **18-sep-2026**. Está ordenada por dependencias: cada bloque
+necesita el anterior. Lo que **no** está aquí no bloquea el envío.
+
+### A · Lo que no depende de nadie más
+
+1. ~~**El bundle id.**~~ Cerrado el 17-sep: `church.tamio.native`, ficha nueva.
+2. **El número de compilación.** `1.0.0 (1)` es correcto para una ficha nueva.
+   Lo que hay que recordar: **cada subida necesita un número MAYOR que el
+   anterior**, aunque la anterior se rechazara o se borrara. El primero que
+   suba quema el `1`.
+3. ~~**Las capturas y el texto de la ficha.**~~ Hechos el 18-sep. El texto en
+   `docs/FICHA-APP-STORE.md`; las capturas las genera
+   `pruebas/capturas-tienda.sh` y salen en `docs/capturas-tienda/`, fuera del
+   repo a propósito.
+4. **Un solo correo.** Circulan dos: `ivanngarcia82@gmail.com` en el sitio y en
+   la política viva, `ig07644@gmail.com` en otras copias. Hay que elegir uno y
+   que sea el mismo en la ficha, en la política y en soporte. **Esto va antes
+   que B y que C**, porque los dos lo necesitan escrito.
+
+### B · La web · lo lleva el otro chat (`ACUERDO-CON-EL-WEB.md` §4)
+
+5. **Publicar la privacidad** que cubre esta app. La viva es del 29 de julio y
+   dice *«ni inicio de sesión, no enviamos tu información a ningún servidor»*,
+   que es lo contrario de lo que hace Tamio Iglesia. Redactada en
+   `docs/privacidad-propuesta.html`.
+6. **Publicar `tamio.church/soporte.html`, y COMPROBAR que responde.** Hoy dan
+   404 `/soporte`, `/support`, `/contacto` y `/ayuda`. **Sin esta URL App Store
+   Connect no deja enviar**, y tiene que existir exactamente la que se escriba
+   en la ficha, no una parecida.
+
+### C · La iglesia del revisor · Supabase y la app, en este orden
+
+7. **Dar de alta la cuenta** en el panel, con *Auto Confirm User*. El
+   disparador `al_crear_usuario` le crea una iglesia sola: esa es la demo.
+8. **Correr `docs/demo-revision.sql`** con ese `church_id`. **Nunca se ha
+   ejecutado**: está validada contra el esquema, no contra la base. Al acabar,
+   correr su consulta de comprobación y contrastar con las cifras que lleva
+   escritas al lado — si la app enseña $488.20 en vez de $48,820.00, el dinero
+   entró en pesos y no en céntimos.
+9. **Invitar al SEGUNDO administrador** desde la app. Sin él, el revisor prueba
+   el borrado —que es lo que va a hacer— y se lleva la demo entera.
+10. **Rellenar la contraseña** en la nota al revisor de
+    `docs/FICHA-APP-STORE.md`, que va en blanco.
+
+### D · App Store Connect · nada de esto se puede hacer antes
+
+11. **CREAR LA FICHA.** Apps → `+` → Nueva app, con `church.tamio.native` en el
+    desplegable y el nombre «Tamio Iglesia». **Es el bloqueante estructural:
+    sin ficha no se puede ni subir el binario**, y el error que da no lo dice
+    —suena a problema de firma—. Ver §0.-16 del contexto.
+12. **Contestar los tres cuestionarios**, que son tres pantallas distintas y es
+    donde se pierden las respuestas: **privacidad** (los nueve tipos de arriba,
+    con la información sensible declarada), **clasificación por edad** (4+) y
+    **cumplimiento de exportación**. Las respuestas están en este archivo y en
+    `docs/FICHA-APP-STORE.md`.
+13. **Pegar el texto, las dos URL y las capturas.**
+14. **Regenerar el `.ipa` y subirlo.** El del 17-sep vivía en el directorio de
+    sesión dentro de `/tmp` y ya no existe — comprobado el 18-sep. La cadena
+    `archive` → `exportArchive` está probada entera.
+
+### Lo que NO bloquea, aunque lo parezca
+
+- **El vocabulario de categorías entre iOS y el web.** Apple no lo ve: el
+  revisor entra por iOS a una iglesia sembrada con claves de iOS y se le dibuja
+  todo bien. Es trabajo real —`eventos` llega a cambiar lo que dice un
+  reporte— pero va después de enviar. `ACUERDO-CON-EL-WEB.md`, «Qué hay que
+  decidir».
+- **El segmentado de Depósitos que trunca «Depositad…»** (`CONTEXTO.md` §6).
+- **`ModoRevision`**, que a veces preocupa: está en `false` en el repo
+  —comprobado el 18-sep— y además va dentro de `#if DEBUG`, así que una
+  compilación de Release lo apaga aunque alguien lo deje encendido.
