@@ -273,6 +273,37 @@ hace desde dentro de la app y es inmediato.
      distinto (md5 `8e94ee…`) y existe en cuatro copias en disco. Editarlo no
      cambia el sitio. **La buena es `docs/privacidad.html`.**
 
+> ### ESTADO 18-sep, tarde · las páginas ya están subidas; falta UN interruptor
+>
+> Hecho desde aquí, en `Tamio-app`:
+>
+> - Rama **`pages`**, creada desde `eb163f7` —el commit que el sitio enseña
+>   hoy—, con el commit `dae257a`: privacidad nueva y `docs/soporte.html`.
+> - Comprobado que entre lo publicado y esa rama **solo cambian esos dos
+>   archivos**. Portada, términos, reembolsos e invitación quedan exactamente
+>   como están hoy, así que **no puede retroceder nada**.
+> - A las dos páginas se les quitó el comentario HTML de cabecera, que llevaba
+>   notas internas —incluida la del correo— y se habría publicado con ellas.
+> - Correo: `ivanngarcia82@gmail.com`, el del sitio y el de la política viva.
+>
+> **Lo único que queda es apuntar Pages a esa rama**, y eso no se pudo hacer
+> desde aquí: cambiar la fuente de Pages publica en un sitio real y el permiso
+> está cerrado. Lo hace Iván, por cualquiera de los dos caminos:
+>
+>     gh api -X PUT repos/ivanngarcia81/Tamio-app/pages \
+>       -f 'source[branch]=pages' -f 'source[path]=/docs'
+>
+> o en *Settings → Pages → Build and deployment → Branch:* `pages` / `/docs`.
+>
+> Y después, comprobar que responden —tarda un minuto en construir—:
+>
+>     curl -sI https://tamio.church/soporte.html | head -1     # 200
+>     curl -s  https://tamio.church/privacidad.html | grep -c "Tamio Iglesia"
+>
+> Lo de abajo explica por qué el sitio estaba parado y por qué no se publicó
+> desde `main`. Sigue valiendo: **la reconciliación de `docs/` con `main` está
+> sin hacer**, y es lo que queda pendiente del sitio después de esto.
+
 2. **EL SITIO ESTÁ CONGELADO, y esto hay que arreglarlo antes de publicar
    nada.** GitHub Pages está configurado para construir desde la rama
    **`claude/hello-9v3atw`**, y esa rama **ya no existe** (404). El último
