@@ -5,7 +5,7 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **17 de septiembre de 2026** (§0.-14). La pasada grande
+Última actualización: **17 de septiembre de 2026** (§0.-14, ampliado tras verificar en el iPhone físico). La pasada grande
 sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
 
 ---
@@ -79,6 +79,25 @@ escrito, estaba mal en oscuro:
 
 Van con `Paleta.sobreRelleno`, que es el token que ya existía para eso.
 
+### Un umbral sin margen no es un umbral · lo destapó el iPhone
+
+Las placas se calcularon para dar 4.51:1, el mínimo justo. **En el iPhone
+físico cinco de ellas daban menos de 4.5**: Agenda 4.34, Cartas 4.40, el cian de
+Ajustes 4.43, Aportantes 4.44, Reportes 4.46. El simulador las daba por buenas.
+
+La causa es que la pantalla es P3 y **el píxel que vuelve no es el que se
+pidió**: `#0C857B` se lee `#0F867D`. La diferencia es de una o dos centésimas de
+contraste, pero sobre un umbral clavado en el mínimo tira por debajo.
+
+Por eso las placas apuntan ahora a **5:1 y no a 4.5**. Medio punto de margen,
+sacado de la medida y no de una corazonada. Regla general: **un color calculado
+al borde del mínimo no cumple en pantalla; hay que pedirle margen o medirlo en
+el aparato.**
+
+(El morado de oscuro no llegaba subiendo el brillo —el tono ya estaba al tope—,
+así que hubo que bajarle la saturación al 75 %. Cuando un tono no da, el brillo
+no siempre es la palanca.)
+
 ### La prueba nació sin poder ponerse roja
 
 `PlacasDeIconoUITests` se escribió primero afirmando solo que las filas
@@ -87,11 +106,27 @@ existían, como las demás pruebas de cristal —el aspecto no se juzga con
 si la fila está ahí pasa igual de verde con la placa rota. Se comprobó
 devolviendo los colores a los de antes: seguía en verde.
 
-Ahora lee los píxeles de la placa del propio pantallazo (`XCUIScreen`, recorte
-al cuadrado de la placa, los dos colores más frecuentes) y exige 4.5:1.
-Las trece placas medidas desde dentro coinciden **cifra por cifra** con la
-lectura externa de los PNG hecha con `pruebas/contraste.py`, que es la
-comprobación cruzada que hacía falta para fiarse del recorte.
+Ahora lee los píxeles de la placa del propio pantallazo y exige 4.5:1. Pero la
+primera versión de esa lectura **medía otra cosa y pasaba igual**, y costó dos
+vueltas:
+
+1. Recortaba suponiendo que la placa estaba a 18 pt del arranque de la fila. En
+   el aparato eso no se cumple: el recorte caía sobre la TARJETA y las trece
+   medidas salieron "relleno sobre `#1C1C1E`" —el fondo—, no "relleno sobre
+   símbolo". Verde de punta a punta.
+2. El arreglo obvio —excluir el fondo por su COLOR— se rompió en claro por el
+   mismo motivo del revés: ahí la tarjeta es blanca y el símbolo también, así
+   que al quitar el fondo se quitaba el símbolo.
+
+**El error de fondo era usar el color para distinguir lo que hay que distinguir
+por SITIO.** La versión buena recorta el 60 % central de la placa, donde no cabe
+un píxel de tarjeta, y ahí lo que no es relleno es símbolo. En un círculo ese
+centro cae entero dentro: la media diagonal es 0.42 del diámetro y el radio 0.5.
+
+Y de aquí sale la regla que más vale de todo esto: **una medida que solo se ha
+visto en UNA apariencia no está comprobada.** La comprobación en rojo del primer
+día pasó porque en claro la tarjeta y el símbolo son los dos blancos, así que
+medir uno u otro da lo mismo. En oscuro se separan y el fallo asoma solo.
 
 ### Dos trampas de instrumento, otra vez
 
