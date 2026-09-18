@@ -60,18 +60,12 @@ struct CartasView: View {
     @ViewBuilder
     private var pantalla: some View {
         if compacto {
-            // El título va `.inline`: el segmentado ocupa su hueco, igual que
-            // en Ingresos/Gastos, y el grande no cabe con él.
+            // **Título grande, y el segmentado sigue en la barra.** Lo pidió
+            // Iván sobre la captura: el hueco de arriba estaba vacío y la
+            // pantalla no decía cómo se llama, porque el segmentado ocupa el
+            // sitio del título EN LÍNEA. El grande es otro elemento, debajo de
+            // la barra, así que caben los dos.
             contenidoTelefono
-                // **Título grande, y el segmentado sigue en la barra.** Lo pidió
-                // Iván sobre la captura: el hueco de arriba estaba vacío y la
-                // pantalla no decía cómo se llama, porque el segmentado ocupa el
-                // sitio del título EN LÍNEA. El grande es otro elemento, debajo
-                // de la barra, así que caben los dos.
-                //
-                // Sin subtítulo: el de la columna del iPad —"Plantillas, cartas
-                // emitidas y traslados"— repetiría lo que ya dice el segmentado,
-                // y el recuento lo da la línea de debajo del carrusel.
                 .encabezadoNav(L.t("Cartas y traslados", "Letters & transfers"), nil)
                 .navigationBarTitleDisplayMode(.large)
                 .navigationDestination(isPresented: $panelAbierto) {
@@ -189,6 +183,24 @@ struct CartasView: View {
                 // dice quien lo produce, y aquí quien lo produce es el
                 // carrusel.
                 VStack(spacing: 10) {
+                    // **El rótulo del carrusel, encima de lo que rotula.**
+                    // Iván lo pidió en ese hueco, no pegado al título, y así
+                    // se arregla solo el problema que tenía como subtítulo de
+                    // la barra: viviendo DENTRO de la página de plantillas no
+                    // viaja a Emitidas, donde pedir que elijas una plantilla
+                    // sobre una lista de cartas ya emitidas sería mentira.
+                    //
+                    // Y no va en `navigationSubtitle`: con un título grande y
+                    // un `ToolbarItem(placement: .title)` a la vez, el nativo
+                    // sale DOS veces —centrado bajo el segmentado y otra vez
+                    // bajo el título—. Se vio en la captura.
+                    //
+                    // Centrado, que es como va el recuento de debajo: el
+                    // bloque queda rotulado arriba y contado abajo.
+                    Text(L.t("Elige una plantilla", "Choose a template"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 2)
                     carrusel(lado: lado, margen: margen)
                     puntosCarrusel
                     resumenPlantillas
