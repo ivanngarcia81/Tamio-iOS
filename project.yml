@@ -75,6 +75,25 @@ targets:
         # Se MEZCLA con el plist generado. Solo lleva `CFBundleLocalizations`,
         # que no tiene ajuste `INFOPLIST_KEY_` y no hay otra forma de poner.
         INFOPLIST_FILE: Config/Info.plist
+        # **Cumplimiento de exportación.** Sin esta clave, App Store Connect
+        # pregunta lo mismo en CADA subida.
+        #
+        # `NO` = "no usa cifrado NO exento". Lo que la app cifra son los
+        # respaldos, con AES-GCM de **CryptoKit** (`RespaldoCifrado`), más la
+        # protección de datos del propio iOS y HTTPS contra Supabase. Las tres
+        # son cifrado del sistema operativo de Apple con algoritmos estándar,
+        # que es justo lo que la exención cubre: no hay criptografía propia ni
+        # algoritmo inventado en ninguna parte del repo.
+        #
+        # **Vivía en `Config/Info.plist` y se perdió**: Xcode reescribió ese
+        # archivo el 19-sep y se llevó la clave con los comentarios. Aquí no
+        # puede pasar —este ajuste SÍ tiene prefijo `INFOPLIST_KEY_`, al
+        # contrario que `CFBundleLocalizations`—, y así regenerar el proyecto
+        # la vuelve a poner en vez de borrarla.
+        #
+        # ES UNA DECLARACIÓN LEGAL. Está puesta con ese razonamiento, pero la
+        # firma Iván, no yo.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         # **Los tres permisos van en INGLÉS aquí**, que es la región de
         # desarrollo del proyecto: son el valor BASE, el que se usa cuando el
         # idioma del aparato no es ninguno de los dos. El español vive en

@@ -2,34 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Los idiomas que la app habla, declarados a mano.
-
-	     No hay `en.lproj` ni `es.lproj`: la app no usa `Localizable.strings`,
-	     traduce con `L.t` en el código. Sin esta clave el paquete no declara
-	     NINGUNA localización, así que App Store la listaría como app solo en
-	     inglés aunque el español esté dentro entero.
-
-	     No se puede poner como `INFOPLIST_KEY_CFBundleLocalizations`: ese
-	     prefijo solo vale para una lista cerrada de claves y esta no está —
-	     probado, no llega al plist compilado. Este archivo se MEZCLA con el
-	     Info.plist generado (`GENERATE_INFOPLIST_FILE` sigue en YES), así que
-	     el bundle id, la versión, la pantalla de arranque y las orientaciones
-	     se siguen poniendo desde los ajustes de compilación. -->
-	<!-- **Cumplimiento de exportación.** Sin esta clave, App Store Connect
-	     pregunta lo mismo en CADA subida.
-
-	     `false` = "no usa cifrado NO exento". Lo que la app cifra son los
-	     respaldos, con AES-GCM de **CryptoKit** (`RespaldoCifrado`), más la
-	     protección de datos del propio iOS y HTTPS contra Supabase. Las tres
-	     son cifrado del sistema operativo de Apple con algoritmos estándar, que
-	     es justo lo que la exención cubre: no hay criptografía propia ni
-	     algoritmo inventado en ninguna parte del repo.
-
-	     ES UNA DECLARACIÓN LEGAL. Está puesta con ese razonamiento, pero la
-	     firma Iván, no yo. -->
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
