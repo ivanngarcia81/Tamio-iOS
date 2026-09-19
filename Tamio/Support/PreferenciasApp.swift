@@ -50,7 +50,17 @@ final class PreferenciasApp {
     }
 
     enum Idioma: String, CaseIterable {
-        case espanol, ingles, automatico
+        /// **«Automático» va primero porque es el valor por omisión**, y el
+        /// orden de los `case` ES el orden de las tres cápsulas: `allCases`
+        /// alimenta el selector de la bienvenida y los dos de Ajustes. Con
+        /// «Español» delante, en un estreno la cápsula blanca arrancaba en la
+        /// tercera posición —la elegida a la derecha del todo, las otras dos
+        /// a su izquierda—, que es al revés de como se lee un segmentado de
+        /// iOS: lo neutro primero y las opciones concretas después.
+        ///
+        /// El `rawValue` es el nombre del `case`, no su posición, así que
+        /// moverlos no toca lo que ya está guardado en `UserDefaults`.
+        case automatico, espanol, ingles
 
         /// Sin `L.t`: el nombre de un idioma se escribe en ESE idioma, o quien
         /// no entiende el actual no sabe cuál elegir para salir de él.
