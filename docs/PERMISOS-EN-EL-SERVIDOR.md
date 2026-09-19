@@ -685,11 +685,17 @@ de fuera:
 - **Anotar `20260919b` en `schema_migrations`**, si se quiere el libro completo.
 - **El §5 para las demás tablas**: escrito y ensayado el mismo día, ver abajo.
 
-## El §5 · escrito y ensayado, falta aplicarlo · 19-sep-2026
+## El §5 · APLICADO · 19-sep-2026
 
 `supabase/migrations/20260919c_el_borrado_de_verdad_solo_alcanza_a_las_lapidas.sql`
-y `supabase/pruebas/borrado_de_verdad.sql`. **No aplicada**: el clasificador de
-permisos frenó la escritura en producción, así que la corre Iván.
+y `supabase/pruebas/borrado_de_verdad.sql`. **Aplicada por Iván desde el panel**
+—y como la del `registro`, **aplicada sin quedar anotada**: `schema_migrations`
+sigue acabando en `20260919221803`—.
+
+**Comprobado contra la base después de aplicar**: 1 función y **20 disparadores
+sobre las 20 tablas con lápida**, y el guion entero en **17 de 17 `ok`**, cero
+`### REVISAR`, con la cobertura en 0. Sin rastro de la prueba: 115 movimientos,
+7 actas, 32 apuntes, cero filas `probe-%`.
 
 **El agujero, medido antes de escribir nada.** Las veinte tablas de datos
 tienen política de DELETE y `authenticated` tiene el permiso; desde el 15-sep
@@ -724,12 +730,12 @@ COBERTURA —toda tabla con lápida tiene que llevar el guarda—, que es lo que
 caza la tabla nueva que nadie acordó proteger. Es la trampa que el web ya
 documenta en `verificar-borrado`.
 
-**El ensayo, hecho.** Aplicando la migración dentro de una transacción que se
-deshace: **16 de 16 en `ok`**, cero `### REVISAR`, y cobertura 0 tablas sin
-guarda. Las dos caras medidas: la fila viva contesta `42501` a quien escribe en
-esa área y «0 filas» a quien no; la fila con lápida se borra, que es la
-compactación. Comprobado después que no quedó nada: cero función, cero
-disparadores, cero filas `probe-%`.
+**El ensayo, y después la medida de verdad.** Primero aplicando la migración
+dentro de una transacción que se deshace (16 de 16), y después sobre la base
+con la migración ya puesta: **17 de 17 en `ok`**. Las dos caras medidas: la
+fila viva contesta `42501` a quien escribe en esa área —«Una fila viva de
+"transactions" no se borra: primero se le pone la lápida»— y «0 filas» a quien
+no; la fila con lápida se borra, que es la compactación.
 
 **Lo que este §5 NO es.** No es el permiso de dar de baja. Quién puede poner la
 lápida sigue donde estaba —las políticas por área del 15-sep y los dos
