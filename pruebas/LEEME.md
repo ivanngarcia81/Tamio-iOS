@@ -478,3 +478,26 @@ Hasta entonces la novena presentación sigue sin abrirse nunca.
   su propio mensaje**. Con `guard ... else { throw XCTSkip(...) }` el motivo de
   dentro llega entero. Un motivo de salto que miente cuesta lo mismo que un
   verde que no mide.
+
+## Capturas y medidas del iPhone FÍSICO · 18 de septiembre
+
+`devicectl` no captura pantalla y `simctl` solo ve simuladores, así que hasta
+hoy lo visual del aparato se verificaba a ojo. Tres piezas que lo resuelven:
+
+- **`MaterialesEnAparatoUITests.swift`** — recorre Reportes y Cartas en claro y
+  en oscuro (`-prefs.tema`) y adjunta una captura de cada parada con
+  `XCTAttachment` (`.keepAlways`), que sobrevive en el `.xcresult`.
+- **`fotos.sh <resultado.xcresult> <destino>`** — saca los adjuntos a PNG con
+  el nombre que puso la prueba.
+- **`tarjeta.py captura.png morada|verde|azul|moradaOscura|verdeOscuro`** —
+  mide la tarjeta: cuerpo, filo (subida de luminancia por dentro del borde),
+  sombra (caída bajo el borde y hasta dónde llega) y contraste del título.
+
+La receta entera, en el aparato:
+
+    pruebas/aparato.sh <UDID> -only-testing:PruebasUIAparato/MaterialesEnAparato
+    pruebas/fotos.sh $TMPDIR/tamio-aparato/resultado.xcresult /tmp/fotos-iphone
+    python3 pruebas/tarjeta.py /tmp/fotos-iphone/cartas-claro.png morada
+
+Sirve para comparar un material contra otro donde importa: la pantalla es P3 y
+devuelve otro píxel del que se pidió.
