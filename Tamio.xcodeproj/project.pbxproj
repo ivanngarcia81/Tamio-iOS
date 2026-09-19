@@ -110,6 +110,7 @@
 		64EC970C1489C0FB43C9A5E5 /* MovimientoFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78F1A6AA085FD7F5F3231ABC /* MovimientoFila.swift */; };
 		64FE433C5CB1C3497D842015 /* BorradoMasivo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 312E4C816C111860A5D879C2 /* BorradoMasivo.swift */; };
 		66601EF88A02C227A60BBD07 /* PreferenciasApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E478666D7AD087B2BD5F242 /* PreferenciasApp.swift */; };
+		67423A3549A03EC9BEA866C2 /* TablaRegistro.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B9AEE04A26612BD5F8E8EFD /* TablaRegistro.swift */; };
 		68001DA6045D256E4BA2092E /* ServiciosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1283425908338B34926D5B4A /* ServiciosRepository.swift */; };
 		68B5D753490C5616D404CE71 /* ConfiguracionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C9E0C3772DBD4E6582C8AE3 /* ConfiguracionView.swift */; };
 		69ED19FCE62B2D27B4A16D9B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DACD9F9945ED7749BE68C28 /* Models.swift */; };
@@ -274,6 +275,7 @@
 		15A5130CEB89DC504039D507 /* Revision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Revision.swift; sourceTree = "<group>"; };
 		18B65D57D2D2B817B8EFC946 /* CategoriasRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasRepository.swift; sourceTree = "<group>"; };
 		1AD7AC08B4DD324D9C830368 /* en.lproj */ = {isa = PBXFileReference; path = en.lproj; sourceTree = "<group>"; };
+		1B9AEE04A26612BD5F8E8EFD /* TablaRegistro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TablaRegistro.swift; sourceTree = "<group>"; };
 		1E31171D90F95C88B95D2E62 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		1E5D851F21AE3D7F49043807 /* SelectorLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectorLogo.swift; sourceTree = "<group>"; };
 		20DDE9E2E66EF03B27058376 /* OfflineMiembrosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineMiembrosRepository.swift; sourceTree = "<group>"; };
@@ -466,6 +468,7 @@
 				E9713DD4E1959A5A6820F895 /* InspectorTamio.swift */,
 				610A5F6071F2275CB2FD1FF0 /* SeccionMac.swift */,
 				F993A49067D797DD0DF8FB5A /* TablaMovimientos.swift */,
+				1B9AEE04A26612BD5F8E8EFD /* TablaRegistro.swift */,
 				A61F59FF898533ECBA63E8AC /* TamioMacApp.swift */,
 				BCE413ED846978A63EBC7D2B /* VentanaPrincipal.swift */,
 			);
@@ -887,6 +890,7 @@
 				2EB3E496574A63359C67E88F /* Supabase.swift in Sources */,
 				8DFEC31CBFA4B0CCBD6DFF38 /* SupabaseMovimientosRepository.swift in Sources */,
 				EEBB95C5424A37685EF6ED7C /* TablaMovimientos.swift in Sources */,
+				67423A3549A03EC9BEA866C2 /* TablaRegistro.swift in Sources */,
 				B418A7F3ABB4E926D751CBA0 /* TamioMacApp.swift in Sources */,
 				A984E66AF4F6BC5D36DCC4F4 /* VentanaPrincipal.swift in Sources */,
 				D9BED2809973F19E50D3C904 /* VersionApp.swift in Sources */,

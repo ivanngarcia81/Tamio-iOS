@@ -5,17 +5,29 @@ import SwiftUI
 /// La maqueta tiene una regla sobre él que conviene no perder: *los campos y
 /// el historial solo salen cuando hay algo que enseñar*. Una ficha con los
 /// rótulos puestos y los valores en blanco parece que no cargó.
+/// **Lo que el inspector tiene delante.**
+///
+/// Empezó siendo un `Movimiento?` y dejó de valer en cuanto entró el Registro:
+/// cada pantalla enseña una ficha distinta, y encadenar opcionales —uno por
+/// tipo— deja estados imposibles, como dos fichas a la vez. Un enum solo puede
+/// ser una cosa.
+enum FichaInspector {
+    case nada
+    case movimiento(Movimiento)
+    case apunte(Apunte)
+}
+
 struct InspectorTamio: View {
     let seccion: SeccionMac
-    let movimiento: Movimiento?
+    let ficha: FichaInspector
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                if let m = movimiento {
-                    ficha(m)
-                } else {
-                    vacio
+                switch ficha {
+                case .movimiento(let m): fichaMovimiento(m)
+                case .apunte(let a):     fichaApunte(a)
+                case .nada:              vacio
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -27,7 +39,7 @@ struct InspectorTamio: View {
     // MARK: - Con algo seleccionado
 
     @ViewBuilder
-    private func ficha(_ m: Movimiento) -> some View {
+    private func fichaMovimiento(_ m: Movimiento) -> some View {
         Text(m.esIngreso ? L.t("INGRESO", "INCOME") : L.t("GASTO", "EXPENSE"))
             .font(.system(size: 11, weight: .bold))
             .kerning(0.55)
@@ -125,6 +137,66 @@ struct InspectorTamio: View {
         }
     }
 
+    // MARK: - Un apunte del registro
+
+    @ViewBuilder
+    private func fichaApunte(_ a: Apunte) -> some View {
+        Text(a.esNota ? L.t("NOTA", "NOTE") : a.area.etiqueta.uppercased())
+            .font(.system(size: 11, weight: .bold))
+            .kerning(0.55)
+            .foregroundStyle(.secondary)
+
+        // **La frase entera, sin recortar.** En la tabla va a una línea porque
+        // una fila no puede crecer; aquí es donde se lee completa, y por eso
+        // esta ficha existe.
+        Text(a.texto)
+            .font(.system(size: 15, weight: .medium))
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, 6)
+
+        if let aviso = a.tipo.etiquetaAlerta {
+            Label(aviso, systemImage: "exclamationmark.triangle.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Paleta.negativo)
+                .padding(.top, 10)
+        }
+
+        VStack(spacing: 0) {
+            campo(L.t("Cuándo", "When"),
+                  a.creadoEn.formatted(.dateTime.day().month(.abbreviated).year()
+                                       .hour().minute()))
+            campo(L.t("Quién", "Who"), a.autor.isEmpty ? "—" : a.autor)
+            campo(L.t("Área", "Area"), a.area.etiqueta, ultimo: a.folio == nil)
+            if let folio = a.folio {
+                campo(L.t("Folio", "Folio"), folio, ultimo: true)
+            }
+        }
+        .background(.quaternary.opacity(0.4),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.top, 14)
+
+        // **Las piezas crudas, y no por capricho.** `texto` compone la frase a
+        // partir de `datos`, y si una clave falta la frase sale con un guión.
+        // Cuando alguien viene a auditar y la frase no cuadra, esto es lo
+        // único que dice qué se guardó de verdad.
+        if !a.datos.isEmpty {
+            Text(L.t("LO QUE SE GUARDÓ", "WHAT WAS STORED"))
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.55)
+                .foregroundStyle(.secondary)
+                .padding(.top, 18)
+            VStack(spacing: 0) {
+                let claves = a.datos.keys.sorted()
+                ForEach(Array(claves.enumerated()), id: \.element) { i, k in
+                    campo(k, a.datos[k] ?? "—", ultimo: i == claves.count - 1)
+                }
+            }
+            .background(.quaternary.opacity(0.4),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.top, 8)
+        }
+    }
+
     // MARK: - Sin nada seleccionado
 
     @ViewBuilder
@@ -147,6 +219,7 @@ struct InspectorTamio: View {
         case .porRevisar: return L.t("BANDEJA", "TRAY")
         case .reportes:   return L.t("REPORTE", "REPORT")
         case .config:     return L.t("CONFIGURACIÓN", "SETTINGS")
+        case .registro:   return L.t("REGISTRO", "LOG")
         default:          return seccion.titulo.uppercased()
         }
     }
@@ -156,7 +229,7 @@ struct InspectorTamio: View {
         case .config:
             return L.t("La configuración se edita en el panel de la izquierda",
                        "Settings are edited in the panel on the left")
-        case .ingresos, .gastos:
+        case .ingresos, .gastos, .registro:
             return L.t("Elige una fila para ver su ficha aquí",
                        "Pick a row to see its details here")
         default:

@@ -3,6 +3,7 @@ import SwiftUI
 /// **La ventana: barra lateral, contenido, inspector y pie.**
 struct VentanaPrincipal: View {
     @Environment(EstadoVentana.self) private var estado
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
     @Environment(\.openWindow) private var abrirVentana
     @State private var columnas: NavigationSplitViewVisibility = .all
 
@@ -14,8 +15,11 @@ struct VentanaPrincipal: View {
     /// a moverse por la barra lateral, que es lo que espera cualquiera.
     @State private var ingresos = MovimientosViewModel(tipo: .ingreso)
     @State private var gastos = MovimientosViewModel(tipo: .gasto)
+    @State private var registro = RegistroViewModel()
     @State private var selIngresos: Set<Movimiento.ID> = []
     @State private var selGastos: Set<Movimiento.ID> = []
+    @State private var selRegistro: Set<Apunte.ID> = []
+    @State private var escribiendoNota = false
 
     var body: some View {
         @Bindable var estado = estado
@@ -34,20 +38,15 @@ struct VentanaPrincipal: View {
             .toolbar { barraDeHerramientas }
         }
         .inspector(isPresented: $estado.inspectorAbierto) {
-            InspectorTamio(seccion: estado.seccion, movimiento: movimientoElegido)
+            InspectorTamio(seccion: estado.seccion, ficha: ficha)
         }
         .searchable(text: bindingFiltro, placement: .toolbar,
                     prompt: L.t("Filtrar", "Filter"))
-        .task {
-            await ingresos.cargar()
-            await gastos.cargar()
-        }
+        .task { await cargarTodo() }
         // Cuando la sincronización termina de escribir, releer.
-        .onChange(of: estado.recarga) {
-            Task {
-                await ingresos.cargar()
-                await gastos.cargar()
-            }
+        .onChange(of: estado.recarga) { Task { await cargarTodo() } }
+        .sheet(isPresented: $escribiendoNota) {
+            NuevaNotaMac(vm: registro, autor: sesion?.perfil.firma ?? "")
         }
     }
 
@@ -60,9 +59,17 @@ struct VentanaPrincipal: View {
             TablaMovimientos(vm: ingresos, seleccion: $selIngresos)
         case .gastos:
             TablaMovimientos(vm: gastos, seleccion: $selGastos)
+        case .registro:
+            TablaRegistro(vm: registro, seleccion: $selRegistro)
         default:
             PantallaPorEscribir(seccion: estado.seccion)
         }
+    }
+
+    private func cargarTodo() async {
+        await ingresos.cargar()
+        await gastos.cargar()
+        await registro.cargar()
     }
 
     // MARK: - Lo elegido
@@ -71,11 +78,18 @@ struct VentanaPrincipal: View {
     ///
     /// Con varias filas marcadas el inspector no enseña ninguna: una ficha que
     /// dice los datos de la primera de ocho es una ficha que miente.
-    private var movimientoElegido: Movimiento? {
+    private var ficha: FichaInspector {
         switch estado.seccion {
-        case .ingresos: return unico(selIngresos, en: ingresos)
-        case .gastos:   return unico(selGastos, en: gastos)
-        default:        return nil
+        case .ingresos:
+            return unico(selIngresos, en: ingresos).map(FichaInspector.movimiento) ?? .nada
+        case .gastos:
+            return unico(selGastos, en: gastos).map(FichaInspector.movimiento) ?? .nada
+        case .registro:
+            guard selRegistro.count == 1, let id = selRegistro.first,
+                  let a = registro.todos.first(where: { $0.id == id }) else { return .nada }
+            return .apunte(a)
+        default:
+            return .nada
         }
     }
 
@@ -113,11 +127,39 @@ struct VentanaPrincipal: View {
             }
         }
 
+        // **El Registro se encuadra por ÁREA, no por mes.** Lo que se busca
+        // aquí es "qué tocó Secretaría" o "qué notas hay", no "qué pasó en
+        // septiembre": un registro de auditoría se lee entero.
+        if estado.seccion == .registro {
+            ToolbarItem(placement: .principal) {
+                Picker("", selection: Binding(
+                    get: { registro.filtro },
+                    set: { registro.filtro = $0 }
+                )) {
+                    ForEach(registro.filtrosVisibles()) { f in
+                        Text("\(f.etiqueta) (\(registro.count(f)))").tag(f)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 340)
+            }
+        }
+
         ToolbarItem(placement: .primaryAction) {
             Button {
-                abrirVentana(id: CapturaRapida.idVentana)
+                // **El botón "Nuevo" hace lo de la pantalla en la que estás.**
+                // En el Registro, lo único que una persona puede añadir es una
+                // nota: lo demás lo escribe la app sola y no se toca.
+                if estado.seccion == .registro {
+                    escribiendoNota = true
+                } else {
+                    abrirVentana(id: CapturaRapida.idVentana)
+                }
             } label: {
-                Label(L.t("Nuevo", "New"), systemImage: "plus")
+                Label(estado.seccion == .registro ? L.t("Anotar", "Add note")
+                                                  : L.t("Nuevo", "New"),
+                      systemImage: estado.seccion == .registro ? "square.and.pencil" : "plus")
             }
             // **El atajo NO se declara aquí.** Vive en el menú Archivo, y
             // ponerlo en los dos sitios deja a SwiftUI con dos destinos para
@@ -169,6 +211,10 @@ struct VentanaPrincipal: View {
             let registros = n == 1 ? L.t("registro", "record") : L.t("registros", "records")
             return "\(n) \(registros) · \(Money.fmt(vm.total))"
         }
+        if estado.seccion == .registro {
+            let n = registro.visibles.count
+            return n == 1 ? L.t("1 apunte", "1 entry") : L.t("\(n) apuntes", "\(n) entries")
+        }
         if estado.seccion == .config {
             return L.t("Iglesia, accesos y respaldos", "Church, access & backups")
         }
@@ -181,6 +227,10 @@ struct VentanaPrincipal: View {
             if let e = vm.error { return e }
             return L.t("\(vm.items.count) movimientos en el aparato",
                        "\(vm.items.count) movements on this device")
+        }
+        if estado.seccion == .registro {
+            return L.t("\(registro.totalCount) apuntes en el aparato",
+                       "\(registro.totalCount) entries on this device")
         }
         return L.t("Andamiaje: esta pantalla todavía no lee del motor",
                    "Scaffolding: this screen is not reading from the engine yet")

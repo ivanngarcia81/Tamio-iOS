@@ -8,18 +8,21 @@ import SwiftUI
 /// mueve la navegación desde dentro de una pantalla —el "Ver todos" del
 /// Inicio— sigue funcionando sin traducir nada entre plataformas.
 ///
-/// **Faltan cuatro que SÍ existen en iOS**: Registro de servicios, Cartas y
-/// traslados, Informes de membresía y el Registro de auditoría. No es un
-/// olvido. La maqueta de Mac no las dibuja —solo asoma el registro como un
-/// "Audit log ⌥⌘L" en el menú Tesorería— y está sin decidir si se portan
-/// desde el iPad o si la primera versión del Mac sale sin ellas. Cuando se
-/// decida, entran aquí: añadir un `case` las pone en la barra, en el menú y en
-/// el enrutador de golpe.
+/// **Están las quince, incluidas las cuatro que la maqueta no dibuja**:
+/// Registro de servicios, Cartas y traslados, Informes de membresía y el
+/// Registro. Se decidió el 19-sep REDISEÑARLAS para el Mac en vez de traer las
+/// del iPad tal cual: el Mac, el iPad y el iPhone son apps distintas, no copias
+/// la una de la otra.
+///
+/// Rediseñar no es inventar de cero. La maqueta ya define los patrones y cada
+/// una cae en uno: Registro y Servicios en la TABLA ordenable de Ingresos;
+/// Cartas e Informes en el patrón de Reportes —lista a la izquierda, documento
+/// a la derecha—. Lo que cambia es el contenido, no el lenguaje.
 enum SeccionMac: String, CaseIterable, Identifiable {
     case inicio
     case ingresos, gastos, miembros, reportes, depositos, porRevisar
-    case membresia, actas, agenda
-    case config
+    case membresia, actas, servicios, cartas, informes, agenda
+    case registro, config
 
     var id: String { rawValue }
 
@@ -45,8 +48,9 @@ enum SeccionMac: String, CaseIterable, Identifiable {
         case .inicio: return .portada
         case .ingresos, .gastos, .miembros, .reportes, .depositos, .porRevisar:
             return .tesoreria
-        case .membresia, .actas, .agenda: return .secretaria
-        case .config: return .pie
+        case .membresia, .actas, .servicios, .cartas, .informes, .agenda:
+            return .secretaria
+        case .registro, .config: return .pie
         }
     }
 
@@ -63,7 +67,11 @@ enum SeccionMac: String, CaseIterable, Identifiable {
         case .porRevisar: return L.t("Por revisar", "To review")
         case .membresia:  return L.t("Membresía", "Membership")
         case .actas:      return L.t("Actas", "Minutes")
+        case .servicios:  return L.t("Registro de servicios", "Service log")
+        case .cartas:     return L.t("Cartas y traslados", "Letters & transfers")
+        case .informes:   return L.t("Informes de membresía", "Membership reports")
         case .agenda:     return L.t("Agenda", "Calendar")
+        case .registro:   return L.t("Registro", "Log")
         case .config:     return L.t("Configuración", "Settings")
         }
     }
@@ -81,7 +89,11 @@ enum SeccionMac: String, CaseIterable, Identifiable {
         case .porRevisar: return "tray"
         case .membresia:  return "person.text.rectangle"
         case .actas:      return "doc.text"
+        case .servicios:  return "book"
+        case .cartas:     return "envelope"
+        case .informes:   return "doc.plaintext"
         case .agenda:     return "calendar"
+        case .registro:   return "list.bullet.rectangle"
         case .config:     return "gearshape"
         }
     }
@@ -102,7 +114,8 @@ enum SeccionMac: String, CaseIterable, Identifiable {
         case .porRevisar: return "7"
         case .membresia:  return "8"
         case .actas:      return "9"
-        case .agenda, .config: return nil
+        case .servicios, .cartas, .informes, .agenda, .registro, .config:
+            return nil
         }
     }
 
