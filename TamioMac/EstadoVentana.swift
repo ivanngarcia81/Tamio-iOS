@@ -73,6 +73,15 @@ final class EstadoVentana {
         }
     }
 
+    /// **El testigo de "vuelve a leer de la base".**
+    ///
+    /// La sincronización escribe por debajo, sin pasar por ningún ViewModel.
+    /// Las pantallas que ya habían cargado no se enteran, así que en un Mac
+    /// recién estrenado la tabla se quedaba vacía aunque los datos acabaran de
+    /// bajar. Subiendo este número se les pide que relean.
+    private(set) var recarga = 0
+    func recargar() { recarga += 1 }
+
     func filtro(_ s: SeccionMac) -> String { filtros[s.rawValue] ?? "" }
     func ponerFiltro(_ texto: String, en s: SeccionMac) { filtros[s.rawValue] = texto }
 }

@@ -10,6 +10,7 @@ import SwiftUI
 /// no pasa nada. Entran cuando entre su pantalla.
 struct ComandosTamio: Commands {
     let estado: EstadoVentana
+    let sesion: SesionSupabase
     @Environment(\.openWindow) private var abrirVentana
     @State private var prefs = PreferenciasApp.compartidas
 
@@ -62,6 +63,19 @@ struct ComandosTamio: Commands {
                 ForEach(PreferenciasApp.Tema.allCases, id: \.self) { t in
                     Text(t.etiqueta).tag(t)
                 }
+            }
+        }
+
+        // MARK: Cerrar sesión
+        //
+        // Va en el menú de la app, junto a Configuración, que es donde lo
+        // busca cualquiera en un Mac. **Sin atajo a propósito**: cerrar sesión
+        // por un resbalón del teclado, a media captura de un domingo, no se
+        // puede deshacer con ⌘Z.
+        CommandGroup(after: .appSettings) {
+            Divider()
+            Button(L.t("Cerrar sesión", "Sign out")) {
+                Task { await sesion.cerrarSesion() }
             }
         }
 

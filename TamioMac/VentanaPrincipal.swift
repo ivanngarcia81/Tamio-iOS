@@ -42,6 +42,13 @@ struct VentanaPrincipal: View {
             await ingresos.cargar()
             await gastos.cargar()
         }
+        // Cuando la sincronización termina de escribir, releer.
+        .onChange(of: estado.recarga) {
+            Task {
+                await ingresos.cargar()
+                await gastos.cargar()
+            }
+        }
     }
 
     // MARK: - Contenido

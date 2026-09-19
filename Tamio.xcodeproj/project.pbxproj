@@ -77,6 +77,7 @@
 		430A6D712452EB588141AFA4 /* RevisarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467795455C0E441168B94F26 /* RevisarView.swift */; };
 		45164FFE5E30779CB58A35F4 /* AgendaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D24BE7D1DD2D35A1828DC568 /* AgendaRepository.swift */; };
 		457211F4F6408BFBFF2E9820 /* ConfiguracionIglesia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FA3730DB21D9BB7A397EF2 /* ConfiguracionIglesia.swift */; };
+		45DB5FE8F4D9F920D37D53CE /* AccesoMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F31F102B2032653376261C7 /* AccesoMac.swift */; };
 		46F8C3C67542FEC3EFB77AB0 /* BarraLateral.swift in Sources */ = {isa = PBXBuildFile; fileRef = F64F4A82611C45517E1EF240 /* BarraLateral.swift */; };
 		47588819CEB64CC2903FA7BE /* ConfiguracionIglesiaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B6994A9C65EE7ACDE9AAC1 /* ConfiguracionIglesiaViewModel.swift */; };
 		47D1BDA9349E3F1F8DA281F1 /* ReportesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FEB9533A16F1B73ED8B006C /* ReportesView.swift */; };
@@ -303,6 +304,7 @@
 		487432F7F6A68E98F7F4A7BF /* BaseLocal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseLocal.swift; sourceTree = "<group>"; };
 		4BB8A95AD4951F784685174A /* TamioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TamioApp.swift; sourceTree = "<group>"; };
 		4DCC01BB1AC34183D9775FC0 /* RecurrentesRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecurrentesRepository.swift; sourceTree = "<group>"; };
+		4F31F102B2032653376261C7 /* AccesoMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccesoMac.swift; sourceTree = "<group>"; };
 		508379647B16819AEDE8CA2B /* NuevaNotaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NuevaNotaView.swift; sourceTree = "<group>"; };
 		556C631D33CF32ED1B99031A /* Pieces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pieces.swift; sourceTree = "<group>"; };
 		59A3F1E2883B1BF903DAF0E8 /* PDFExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExport.swift; sourceTree = "<group>"; };
@@ -455,6 +457,7 @@
 		10DEB3F4F2297E792FE479F3 /* TamioMac */ = {
 			isa = PBXGroup;
 			children = (
+				4F31F102B2032653376261C7 /* AccesoMac.swift */,
 				FBF82C383E655A34029EFB39 /* BarraEstado.swift */,
 				F64F4A82611C45517E1EF240 /* BarraLateral.swift */,
 				9D05AF324E5F40AB40B774AB /* CapturaRapida.swift */,
@@ -791,6 +794,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				45DB5FE8F4D9F920D37D53CE /* AccesoMac.swift in Sources */,
 				363EB048FCCA79319B208A71 /* ActasRepository.swift in Sources */,
 				9B67D0D1ACA08D0B40AD7418 /* ActasViewModel.swift in Sources */,
 				3023D262BE4C75A340250EA5 /* AgendaRepository.swift in Sources */,
