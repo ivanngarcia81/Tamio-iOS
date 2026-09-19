@@ -532,38 +532,6 @@ struct PuntosDePagina: UIViewRepresentable {
 }
 
 extension View {
-    /// **El filo claro del borde, como el que iOS pinta en los widgets.**
-    ///
-    /// Medido sobre la galería que trajo Iván: cruzando el borde superior de la
-    /// tarjeta verde de Supanator, el fondo (231,231,230) pasa por
-    /// **(192,253,236)** antes de llegar al cuerpo, (135,215,169). Un filo de
-    /// 3-4 px —algo más de 1 pt— bastante más claro que el color de la tarjeta.
-    /// En el borde inferior igual, (138,252,185).
-    ///
-    /// **Y no lo dibuja cada widget: lo pinta el sistema encima de todos.** La
-    /// tarjeta de la Biblia es una FOTO —cielo (75,127,151)— y su borde da
-    /// (182,232,253), el mismo aclarado. Así que dentro de la app no lo pone
-    /// nadie y hay que dibujarlo; es una imitación deliberada, no seguir al
-    /// sistema.
-    ///
-    /// **`strokeBorder` y no `stroke`.** El segundo dibuja a caballo del borde,
-    /// mitad dentro y mitad fuera, y esa mitad de fuera se come medio píxel
-    /// contra la sombra. `strokeBorder` traza por dentro.
-    ///
-    /// No es `.glassEffect`: es un trazo. Por eso no choca con la regla de
-    /// cristal dentro de cristal.
-    func filoDeCristal(radio: CGFloat = 28) -> some View {
-        overlay(
-            RoundedRectangle(cornerRadius: radio, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(colors: [.white.opacity(0.55), .white.opacity(0.25)],
-                                   startPoint: .top, endPoint: .bottom),
-                    lineWidth: 1)
-        )
-    }
-}
-
-extension View {
     /// **La sombra que hace flotar la tarjeta.** Una sola para Reportes y
     /// Cartas, porque las dos pantallas se separaban con cada retoque.
     ///

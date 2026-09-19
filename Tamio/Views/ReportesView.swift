@@ -145,10 +145,10 @@ struct ReportesView: View {
         // atarlo a que los reportes sigan siendo estos dos: de los siete tonos
         // de Cartas, CUATRO piden tinta negra.
         //
-        // **Y el relleno es plano, sin degradado.** Un velo blanco encima
-        // aclara el fondo y tira abajo el contraste que se acaba de medir, y un
-        // velo negro rompe los tonos claros. Lo medido es el color liso; que
-        // sea eso lo que se pinta.
+        // **Y sin degradado encima del material.** Un velo blanco aclara el
+        // fondo y tira abajo el contraste que se acaba de medir, y un velo
+        // negro rompe los tonos claros. Lo medido es el tono liso; que sea eso
+        // lo que se pinta.
         let tinta = Paleta.sobre(tono, esquema)
         return Button { abrir(t) } label: {
         VStack(alignment: .leading, spacing: 16) {
@@ -187,14 +187,18 @@ struct ReportesView: View {
         // vacía en medio. El suelo se queda para que con el texto grande de
         // Accesibilidad no se aplaste.
         .frame(minHeight: 170)
-        .background(tono, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .filoDeCristal()
-        // **Dos sombras, y medidas contra el widget.** La de antes —una sola,
-        // 10 % a radio 15— oscurecía el fondo un 16.9 % justo bajo el borde;
-        // en la galería de widgets que trajo Iván la misma medida da 47.1 % y
-        // tarda unos 60 pt en volver al fondo. Por eso la tarjeta parecía
-        // pegada al fondo y el widget levantado. La corta define el borde y la
-        // larga hace la profundidad; una sola no da las dos cosas.
+        // **Cristal con nuestro tono, igual que Cartas.** Decisión de Iván el
+        // 19-sep, con los dos materiales medidos EN EL iPHONE sobre el mismo
+        // verde: el cristal devuelve el tono al píxel en la P3 —(19,109,67) por
+        // (19,110,68)—, el título queda en 6.37:1 en claro y 7.08 en oscuro, y
+        // en oscuro su filo (+0.321) supera al trazo dibujado (+0.268). En claro
+        // el trazo brillaba el doble (+0.344 contra +0.167); se acepta a cambio
+        // de UN material para las tarjetas de toda la app. La sombra sigue
+        // siendo la nuestra: la del cristal es de un ~19 %.
+        //
+        // Sin `rotation3DEffect`: cristal + giro 3D infla la tarjeta y la
+        // oscurece (probado en Cartas, escrito allí).
+        .glassEffect(.regular.tint(tono), in: .rect(cornerRadius: 28, style: .continuous))
         .sombraFlotante()
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         // **Mantener pulsado enseña la hoja del PDF.** Aquí sí gana a abrir

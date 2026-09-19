@@ -424,7 +424,7 @@ struct CartasView: View {
         // cuerpo sale al píxel del tono, (123,57,236) por (124,58,237). Radio
         // 28, como siempre.
         //
-        // El filo lo pone el material —por eso aquí no va `filoDeCristal`—,
+        // El filo lo pone el material —por eso no lleva trazo dibujado—,
         // más suave que el trazo que había (+36 contra +81 en verde). La sombra
         // sigue siendo la nuestra: la del cristal es de un ~19 %.
         //
