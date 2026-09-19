@@ -258,16 +258,6 @@ struct CartasView: View {
             HStack(spacing: margen * 2) {
                 ForEach(vm.plantillas) { plantilla in
                     tarjetaPlantilla(plantilla, lado: lado)
-                        // **Inclinada hacia atrás, como en la galería de
-                        // widgets.** Lo pidió Iván: allí la tarjeta va angulada
-                        // y con sombra densa, y eso es lo que le da el brillo
-                        // al borde de abajo, que queda más cerca del ojo. De
-                        // frente no se nota. Solo Cartas: Reportes se queda de
-                        // frente, con la sombra densa nada más.
-                        //
-                        // El ángulo se ajustó midiendo el ancho del borde de
-                        // abajo contra el de arriba en la captura, no a ojo.
-                        .rotation3DEffect(.degrees(6), axis: (x: 1, y: 0, z: 0))
                         .id(plantilla.id)
                 }
             }
@@ -285,10 +275,10 @@ struct CartasView: View {
             // 44, sacados de `radius ± y`. Seguía cortando, y Iván lo volvió a
             // ver: un desenfoque gaussiano llega bastante más lejos que su
             // radio. La sombra anterior necesitaba 43.6 pt arriba y 73.8 abajo;
-            // la densa de `sombraFlotante`, con la tarjeta ya inclinada, llega
-            // a **57.7 pt hacia arriba y 102 hacia abajo** (medido sobre la
-            // captura). De ahí 64 y 112: el de abajo con 10 pt de margen,
-            // porque 104 lo dejaba a 2 pt del corte.
+            // la densa de `sombraFlotante` sobre el cristal —que suma la suya—
+            // llega a **64.4 pt hacia arriba y 112.8 hacia abajo** (medido
+            // sobre la captura). De ahí 80 y 128: 16 pt de margen cada uno,
+            // porque 64/112 lo dejaban justo en el corte.
             //
             // El síntoma de que falta sitio es un SALTO SECO al color del
             // fondo en vez de un degradado; con 16/44 saltaba desde
@@ -299,8 +289,8 @@ struct CartasView: View {
             // opaco, `systemGroupedBackground`. Reportes no tiene el problema
             // porque sus tarjetas van en un `VStack` — medido, 75.2 pt de
             // desvanecido completo.
-            .padding(.top, 64)
-            .padding(.bottom, 112)
+            .padding(.top, 80)
+            .padding(.bottom, 128)
         }
         .scrollTargetBehavior(.viewAligned)
         .scrollPosition(id: $plantillaVisible)
@@ -312,8 +302,8 @@ struct CartasView: View {
         // único para lo que sirven. El negativo recorta lo que la vista ocupa
         // sin tocar lo que el `ScrollView` recorta, que sigue siendo su marco
         // con el relleno dentro.
-        .padding(.top, -48)
-        .padding(.bottom, -100)
+        .padding(.top, -64)
+        .padding(.bottom, -116)
         // Una vez aquí y no dieciséis veces, una por tarjeta.
         .sensoryFeedback(.impact, trigger: golpeAlPulsar)
         // **Sin flechas.** Se montaban sobre la tarjeta: medido sobre la
@@ -364,13 +354,14 @@ struct CartasView: View {
         // hasta la semántica para VoiceOver (`accessibilityAddTraits(.isButton)`
         // + `accessibilityAction`). Cuatro cosas que un `Button` da gratis.
         //
-        // **Lo que NO se hace es volverla de cristal**, aunque sea lo primero
-        // que uno piensa en esta pasada: dentro lleva el botón "Redactar" en
-        // `.glassProminent` —cristal dentro de cristal—, vive sobre un fondo
-        // plano que no le daría nada que refractar, y perdería el color de cada
-        // tipo de carta, porque `.glass` no usa el tinte (medido el 16-sep).
-        // Una tarjeta es un CONTENEDOR: que sea una superficie opaca es
-        // correcto.
+        // Durante meses esta tarjeta NO fue de cristal, con tres motivos
+        // escritos: "Redactar" iba en `.glassProminent` (cristal dentro de
+        // cristal), el fondo plano no da nada que refractar, y "`.glass` no
+        // usa el tinte (medido el 16-sep)". El primero ya no aplica —la
+        // cápsula es opaca—, el segundo sigue siendo cierto, y el tercero era
+        // de `.buttonStyle(.glass)`: `glassEffect(.tint)` sí conserva el tono,
+        // medido el 18-sep. Ahora es de cristal por decisión de Iván; ver el
+        // comentario del `glassEffect` más abajo.
         // **La tarjeta ES el color**, como las de Reportes y como los widgets
         // de color de iOS. La tinta la calcula `Paleta.sobre` por luminancia,
         // y aquí eso no es un lujo: de los siete tonos, CUATRO —cian, naranja,
@@ -425,10 +416,24 @@ struct CartasView: View {
         // salió mal: es voraz, y dentro de un `ScrollView` con
         // `fixedSize(vertical:)` pide alto infinito.
         .frame(width: lado, alignment: .leading)
-        .background(tono, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .filoDeCristal()
-        // Dos sombras, las mismas de Reportes: medidas contra el widget, 47.5 %
-        // de caída de luminancia bajo el borde contra su 47.1 %.
+        // **Cristal de verdad, con NUESTRO tono.** Decisión de Iván tras ver
+        // tres experimentos medidos: el cristal sin tinte pierde el color y el
+        // título queda a 1.04:1; con `.tint(.blue)` del sistema conserva el
+        // azul pero el título da 3.57:1 —ningún color de sistema llega a 4.5
+        // contra blanco—; con `.tint(tono)` de nuestra paleta oscurecida el
+        // cuerpo sale al píxel del tono, (123,57,236) por (124,58,237). Radio
+        // 28, como siempre.
+        //
+        // El filo lo pone el material —por eso aquí no va `filoDeCristal`—,
+        // más suave que el trazo que había (+36 contra +81 en verde). La sombra
+        // sigue siendo la nuestra: la del cristal es de un ~19 %.
+        //
+        // **Y sin `rotation3DEffect`, que se probó y hay que dejarlo escrito:**
+        // cristal + giro 3D infla la tarjeta de 329 a más de 375 pt de ancho
+        // —se sale del iPhone—, la monta sobre los puntos y en claro oscurece
+        // el cuerpo a (92,26,204). Cada cosa funciona sola; juntas no. Iván
+        // eligió el material. Reportes se queda opaca por decisión suya.
+        .glassEffect(.regular.tint(tono), in: .rect(cornerRadius: 28, style: .continuous))
         .sombraFlotante()
         }
         // El hundido, ahora en un `ButtonStyle` compartido: la vista deja de

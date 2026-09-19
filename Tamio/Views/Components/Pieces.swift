@@ -574,10 +574,14 @@ extension View {
     /// da el brillo a los bordes. La corta define el borde; la larga hace la
     /// profundidad. Las cifras nuevas se miden después, no se deducen: el
     /// alcance de un desenfoque no sale de `radius + y` (ya falló dos veces).
+    ///
+    /// Segunda vuelta de densidad (0.22 + 0.40), pedida al elegir el cristal
+    /// para Cartas: "sombras más oscuras". Va en las dos pantallas porque es
+    /// la misma pieza; si Reportes quedara pesada, se separa.
     func sombraFlotante() -> some View {
         self
-            .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
-            .shadow(color: .black.opacity(0.30), radius: 34, y: 20)
+            .shadow(color: .black.opacity(0.22), radius: 8, y: 4)
+            .shadow(color: .black.opacity(0.40), radius: 34, y: 20)
     }
 }
 
