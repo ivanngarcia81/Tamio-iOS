@@ -314,13 +314,18 @@ struct BienvenidaView: View {
         // esto, al hacer que la tipografía escalara, en AX1 el pie del selector
         // de idioma —"«Automatic» usa el idioma del sistema"— se quedaba fuera
         // de la página y no había forma de llegar a él.
+        // **El alto de la página, para poder centrar dentro del `ScrollView`.**
+        // Centrar con `Spacer` no funciona aquí: un `ScrollView` propone a su
+        // contenido el alto IDEAL, y el ideal de un `Spacer(minLength: 0)` es
+        // cero. Los dos espaciadores que había colapsaban, y con ellos el
+        // `padding(.top, 0)` del iPad dejaba la baldosa pegada al techo —
+        // justo lo contrario de lo que dice el comentario de abajo. Es el
+        // mismo remedio que ya usa `AccesoView`: se mide la página y se pide
+        // ese alto como mínimo, así el `alignment` sí tiene hueco que repartir
+        // y el desplazamiento sigue apareciendo en cuanto el texto no cabe.
+        GeometryReader { g in
         ScrollView {
         VStack(alignment: .leading, spacing: 0) {
-            // El de arriba solo en pantalla ancha: con uno solo, el de abajo
-            // empuja el bloque contra el techo y el `alignment` del `frame` no
-            // pinta nada. Con los dos, se reparten y el bloque queda centrado.
-            if anchoRegular { Spacer(minLength: 0) }
-
             BaldosaCristal {
                 Image(systemName: d.icono)
                     .font(.escalada(40, relativeTo: .largeTitle))
@@ -342,8 +347,6 @@ struct BienvenidaView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if primera { selectorIdioma.padding(.top, 26) }
-
-            Spacer(minLength: 0)
         }
         // **En el teléfono el bloque arranca a un tercio de la altura, como en
         // la maqueta; en el iPad se centra.** No es un capricho: la maqueta
@@ -360,9 +363,11 @@ struct BienvenidaView: View {
         .padding(.horizontal, 28)
         .frame(maxWidth: 560, alignment: .leading)
         .frame(maxWidth: .infinity)
+        .frame(minHeight: g.size.height, alignment: anchoRegular ? .center : .top)
         }
         .scrollBounceBehavior(.basedOnSize)
         .scrollIndicators(.hidden)
+        }
     }
 
     /// El mismo sitio que en el web: la primera diapositiva.
