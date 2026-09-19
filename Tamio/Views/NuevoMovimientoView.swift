@@ -210,12 +210,38 @@ struct NuevoMovimientoView: View {
             VStack(spacing: 0) {
                 importeView.padding(.top, 8).padding(.bottom, 12)
 
+                // **Al `Form` de esta hoja le faltan 25 pt de hueco de teclado, y se
+                // le dan a mano, FIJOS.** Medido en el iPhone con
+                // `TecladoYHojas/testLosCamposDeAbajoSubenAlTocarlos`: con el
+                // teclado en y=711, el sistema deja la ventana visible del `Form`
+                // en 736 —aporta 220 pt de los 245 del teclado— y al enfocar
+                // las notas las coloca con su borde inferior justo en ese 736:
+                // 25 pt tapados. El sistema SÍ recoloca la fila cuando crece;
+                // lo que tiene mal es el borde. Un `safeAreaInset` se SUMA al
+                // suyo: con 300 pt fijos las notas acabaron en 437. El nombre
+                // del visitante nunca falló (232..254) porque tiene medio
+                // formulario por debajo.
+                //
+                // **Constante y no calculado, y no por pereza.** Se probaron
+                // tres versiones que leían el teclado —`keyboardWillChangeFrame`
+                // con `UIScreen.main.bounds`, `willShow`/`willHide` con un
+                // complemento fijo, y un `ScrollViewReader` con `scrollTo` al
+                // crecer— y las cuatro corridas dieron 693..737 idénticas: el
+                // hueco nunca llegó a aplicarse, o porque el teclado sube al
+                // abrir la hoja antes de que la vista se suscriba, o porque el
+                // `List` no vuelve a leer un inset que cambia tras aparecer.
+                // Solo el valor fijo movió la fila. Con el teclado escondido
+                // son 60 pt de aire al final del formulario, que no se ven sin
+                // desplazar hasta el fondo.
                 Form {
                     seccionDetalle
                     if tipo == .ingreso { seccionAportante }
                     if tipo == .gasto   { seccionBeneficiario }
                     seccionMas
                     if !editando { seccionGuardarOtro }
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    Color.clear.frame(height: 60)
                 }
             }
             // **El segmentado ocupa el lugar del título.** Decía lo mismo que

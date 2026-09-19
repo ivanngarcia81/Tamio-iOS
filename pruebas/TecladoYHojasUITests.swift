@@ -106,9 +106,29 @@ final class TecladoYHojas: XCTestCase {
         return false
     }
 
+    /// Desplaza el formulario unos `pt` hacia arriba con un arrastre CORTO. Un
+    /// `swipeUp` de XCUITest puede saltarse una fila entera: con el hueco del
+    /// teclado el recorrido creció y las notas pasaron de largo —«Name» quedó a
+    /// y=−339 y las notas fuera del árbol— sin que ninguna comprobación las
+    /// pillara a la vista. El arrastre empieza al 55 % de alto, sobre el `Form`
+    /// y encima del teclado en cualquier iPhone.
+    func arrastrar(_ pt: CGFloat) {
+        let alto = app.frame.height
+        let desde = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
+        let hasta = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55 - pt / alto))
+        desde.press(forDuration: 0.1, thenDragTo: hasta)
+        sleep(1)
+    }
+
     func volcadoDeCampos(_ titulo: String) {
         let campos = app.textFields.allElementsBoundByIndex + app.textViews.allElementsBoundByIndex
-        print(">>> \(titulo) libre=\(Int(libre()))")
+        // El marco del `Form` (una collection view): si su borde inferior queda
+        // BAJO el teclado, el formulario no está recibiendo el hueco del
+        // teclado, y entonces ninguna fila cercana al final puede subir lo
+        // suficiente, haga lo que haga un `scrollTo`.
+        let lista = app.collectionViews.firstMatch
+        let marco = lista.exists ? lista.frame : .zero
+        print(">>> \(titulo) libre=\(Int(libre())) form=\(Int(marco.minY))..\(Int(marco.maxY))")
         for c in campos {
             print("   campo «\(c.label)» y=\(Int(c.frame.minY))..\(Int(c.frame.maxY))")
         }
@@ -166,28 +186,65 @@ final class TecladoYHojas: XCTestCase {
         selector.tap(); sleep(2)
 
         let otra = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Someone else'")).firstMatch
-        guard otra.waitForExistence(timeout: 5) else {
+        if !otra.waitForExistence(timeout: 5) {
             print("MENU:" + app.buttons.allElementsBoundByIndex.prefix(30).map(\.label).joined(separator: "|"))
             fflush(stdout)
-            XCTFail("el menú del aportante no ofrece «Someone else…»"); return
+            // No se aborta: el objeto de esta prueba es la medida de las NOTAS,
+            // y el nombre del visitante es la medida secundaria. Se deja el
+            // fallo apuntado y se sigue.
+            XCTFail("el menú del aportante no ofrece «Someone else…»")
         }
-        otra.tap(); sleep(2)
+        if otra.exists { otra.tap(); sleep(2) }
 
+        // El nombre nace justo bajo el selector, dos filas más abajo: se vuelve
+        // al principio y se baja a pasos cortos, como con las notas. Con
+        // `alcanzar` (seis `swipeUp`) el campo existía —«Name@376» en el
+        // volcado— y aun así se pasaba de largo.
         let nombre = app.textFields["Name"]
-        guard alcanzar(nombre) else {
-            volcadoDeCampos("sin el campo Nombre")
-            XCTFail("no apareció el campo del nombre del visitante"); return
+        let subcat = app.textFields["Subcategory · optional"]
+        for _ in 0..<6 where !subcat.exists { app.swipeDown(velocity: .fast); sleep(1) }
+        var nombreALaVista = false
+        for _ in 0..<12 {
+            if nombre.exists && nombre.isHittable { nombreALaVista = true; break }
+            arrastrar(140)
         }
-        nombre.tap(); sleep(2)   // cambia el teclado: hay que esperar al alto nuevo
-        print("NOMBRE y=\(Int(nombre.frame.minY))..\(Int(nombre.frame.maxY)) libre=\(Int(libre()))")
-        fflush(stdout)
-        XCTAssertLessThan(nombre.frame.maxY, libre(),
-                          "el nombre del visitante se queda BAJO el teclado al tocarlo")
+        if !nombreALaVista {
+            volcadoDeCampos("sin el campo Nombre")
+            // Pasó en el iPhone el 19-sep tras dos corridas buenas: el menú
+            // real de la iglesia es largo y «Someone else…» va al final. Se
+            // apunta el fallo y se sigue con las notas, que son el objeto.
+            XCTFail("no apareció el campo del nombre del visitante")
+        }
+        if nombre.exists {
+            nombre.tap(); sleep(2)   // cambia el teclado: hay que esperar al alto nuevo
+            print("NOMBRE y=\(Int(nombre.frame.minY))..\(Int(nombre.frame.maxY)) libre=\(Int(libre()))")
+            fflush(stdout)
+            XCTAssertLessThan(nombre.frame.maxY, libre(),
+                              "el nombre del visitante se queda BAJO el teclado al tocarlo")
+        }
 
         // --- 2. Las notas, que además crecen de 2 a 4 renglones.
-        let notas = app.textViews["Notes · optional"].exists
-                  ? app.textViews["Notes · optional"] : app.textFields["Notes · optional"]
-        guard alcanzar(notas) else {
+        // **Primero, de vuelta al principio.** Si el paso del visitante falló,
+        // sus seis `swipeUp` dejaron el formulario en el FINAL —solo toggles y
+        // el botón de guardar, ningún campo de texto en el árbol— y las notas
+        // quedaron por ENCIMA de lo visible; buscarlas subiendo más no las
+        // encuentra nunca. Se vio en el iPhone: el volcado del fallo solo
+        // tenía el importe.
+        let subcategoria = app.textFields["Subcategory · optional"]
+        for _ in 0..<6 where !subcategoria.exists { app.swipeDown(velocity: .fast); sleep(1) }
+
+        // Por rótulo y sin fijar el tipo: un `TextField(axis: .vertical)` sale
+        // como textView en cuanto tiene texto, y la consulta se decidía UNA vez.
+        let notas = app.descendants(matching: .any)["Notes · optional"].firstMatch
+        var aLaVista = false
+        for i in 0..<20 {
+            if notas.exists && notas.isHittable { aLaVista = true; break }
+            arrastrar(140)
+            let visibles = app.textFields.allElementsBoundByIndex + app.textViews.allElementsBoundByIndex
+            print("ARRASTRE \(i): " + visibles.map { "\($0.label.prefix(12))@\(Int($0.frame.minY))" }.joined(separator: " "))
+            fflush(stdout)
+        }
+        guard aLaVista else {
             volcadoDeCampos("sin el campo Notas")
             XCTFail("no se alcanzó el campo de notas"); return
         }
