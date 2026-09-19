@@ -24,13 +24,13 @@
 --
 --   | caso                                   | antes      | después     |
 --   |----------------------------------------|------------|-------------|
---   | 1 escribir un apunte nuevo             | SI         | SI          |
---   | 2 reescribir un apunte ajeno           | SI  ← hoy  | NO (42501)  |
---   | 3 mudar el apunte a otra iglesia       | NO (42501) | NO (42501)  |
---   | 4 poner la lápida (deleted)            | SI         | SI          |
---   | 5 el upsert idéntico del web           | SI         | SI          |
---   | 6 '' donde había null                  | SI         | SI          |
---   | 7 borrar un apunte                     | SI         | SI ← §4 no lo cierra |
+--   | 1 escribir un apunte nuevo             | SI         | SI                   |
+--   | 2 reescribir un apunte ajeno           | SI  ← hoy  | NO (42501)           |
+--   | 3 mudar el apunte a otra iglesia       | NO (42501) | NO (42501)           |
+--   | 4 poner la lápida (deleted)            | SI         | solo el administrador|
+--   | 5 el upsert idéntico del web           | SI         | SI                   |
+--   | 6 '' donde había null                  | SI         | SI                   |
+--   | 7 borrar un apunte                     | SI         | NO (42501)           |
 --
 -- Las filas 1, 4 y 5 son las que hay que mirar con MÁS cuidado que la 2: son
 -- las que dicen que no se rompió nada. La 1 porque la bitácora la escriben las
@@ -44,9 +44,12 @@
 -- después lo dirá el disparador: mirar la columna `detalle` para ver cuál de
 -- los dos contestó.
 --
--- La 7 es honesta a propósito: el §4 no cierra el borrado. Sigue siendo `SI`
--- después de aplicar, y así tiene que salir hasta que el web decida qué hace
--- con la compactación.
+-- La 4 y la 7 son las que cambiaron el 19-sep, cuando se tomó la decisión que
+-- faltaba: el registro deja de purgarse en los dos clientes, el servidor le
+-- quita el DELETE a `authenticated` (`20260919b`), y la lápida se reserva al
+-- administrador —que es lo que las dos apps ya hacían y el servidor no sabía—.
+-- Si la 4 sale en `SI` para un tesorero, el §4 se quedó a medias: nadie podría
+-- falsear un apunte, pero cualquiera podría esconder el rastro entero.
 
 begin;
 
@@ -170,10 +173,10 @@ begin
         where uid = 'probe-reg-'||u.rol||'-lapida' and church_id = ch;
       get diagnostics n = row_count;
       insert into _res values (u.rol, '4 poner la lapida (deleted)',
-        case when n > 0 then 'SI' else 'NO (0 filas)' end, 'SI',
-        'lo hace Borrar todos los datos'); 
+        case when n > 0 then 'SI' else 'NO (0 filas)' end, case when u.rol = 'administrador' then 'SI' else 'NO (42501)' end,
+        'la Zona de riesgo es del administrador en las dos apps');
     exception when others then
-      insert into _res values (u.rol, '4 poner la lapida (deleted)', 'NO ('||SQLSTATE||')', 'SI',
+      insert into _res values (u.rol, '4 poner la lapida (deleted)', 'NO ('||SQLSTATE||')', case when u.rol = 'administrador' then 'SI' else 'NO (42501)' end,
         left(SQLERRM, 70)); end;
 
     -- 5. EL UPSERT IDÉNTICO DEL WEB. `set x = x` toma el valor VIEJO de la
@@ -213,10 +216,10 @@ begin
         where uid = 'probe-reg-'||u.rol||'-borrar' and church_id = ch;
       get diagnostics n = row_count;
       insert into _res values (u.rol, '7 borrar un apunte',
-        case when n > 0 then 'SI' else 'NO (0 filas)' end, 'SI',
-        'pendiente: depende de la compactacion del web');
+        case when n > 0 then 'SI' else 'NO (0 filas)' end, 'NO (42501)',
+        'cerrado el 19-sep: el web ya no purga registro');
     exception when others then
-      insert into _res values (u.rol, '7 borrar un apunte', 'NO ('||SQLSTATE||')', 'SI',
+      insert into _res values (u.rol, '7 borrar un apunte', 'NO ('||SQLSTATE||')', 'NO (42501)',
         left(SQLERRM, 70)); end;
 
     reset role;

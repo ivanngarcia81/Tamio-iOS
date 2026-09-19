@@ -42,7 +42,7 @@
 --   | quién | qué manda | dónde |
 --   |---|---|---|
 --   | iOS | `ApunteEscritura` con las nueve columnas, en `update` | `MotorSincronizacion.swift:1049` |
---   | web | `upsert` con `uid, church_id`, las seis de datos, `updated_at` y `deleted` | `sync.ts:1359` |
+--   | web | `upsert` con `uid, church_id`, las seis de datos, `updated_at` y `deleted` | `sync.ts`, `sincronizarTablaSimple` |
 --
 -- Si los valores son los mismos —que es lo que pasa en una sincronización
 -- normal, porque un apunte no se edita en ninguna de las dos apps— el
@@ -61,10 +61,25 @@
 --
 -- ── Las dos columnas que SÍ pueden cambiar ─────────────────────────────────
 --
--- `deleted` y `updated_at`. La lápida tiene que pasar: «Borrar todos los
--- datos» del teléfono encola bajas de `registro` y el motor las manda como
--- UPDATE (`BorradoMasivo.swift:39`), y si se rechazaran, `exigir(...)` lanza y
--- la operación se queda reintentando en la cola para siempre.
+-- `deleted` y `updated_at`, **y la lápida solo la pone un administrador**.
+--
+-- Tiene que poder ponerse: «Borrar los registros» del teléfono encola bajas de
+-- `registro` y el motor las manda como UPDATE (`BorradoMasivo.swift:39`,
+-- `IPhoneAjustesView.swift:1785`), igual que `borrarDatosIglesia` en el web
+-- (`db.ts`), y si se rechazaran, `exigir(...)` lanza y la operación se
+-- queda reintentando en la cola para siempre.
+--
+-- Y tiene que ser del administrador, porque **es lo que las dos apps ya dicen
+-- y el servidor no sabía**: la Zona de riesgo está detrás de
+-- `veAjuste(.zona) → rol == .administrador` en iOS (`Permisos.swift:129`) y
+-- detrás de `esAdmin` en el web (`Configuracion.tsx`). Sin esta línea, el
+-- §4 se quedaba a medias: nadie podría falsear un apunte, pero un tesorero
+-- podría esconder el rastro entero llamando a la API.
+--
+-- Se comprobó que no hay ninguna otra vía: `reinicioDeFabrica` es **solo
+-- local** —limpia el SQLite, las carpetas y las preferencias, y no encola
+-- nada—, y el borrado de cuenta va por la Edge Function `borrar-cuenta`, que
+-- corre con `service_role` y está exenta.
 --
 -- Se deja pasar también `deleted` de vuelta a falso. Es el camino de `.crear`,
 -- que es un `upsert`: una fila recreada en local resucita su copia remota. No
@@ -116,6 +131,14 @@ begin
             hint = 'De un apunte ya escrito solo pueden cambiar deleted y updated_at.';
   end if;
 
+  -- La lápida, que es lo único que puede cambiar, es cosa de administradores.
+  if new.deleted is distinct from old.deleted
+     and coalesce(public.mi_rol(), '') <> 'administrador' then
+    raise exception 'Solo un administrador puede dar de baja un apunte del registro'
+      using errcode = '42501',
+            hint = 'Es la Zona de riesgo, que las dos apps ya reservan al administrador.';
+  end if;
+
   return new;
 end
 $fn$;
@@ -144,36 +167,9 @@ create trigger a1_el_registro_solo_crece
 -- Que la primera devuelva «0 filas» sin error NO sería estar cerrado: sería
 -- RLS filtrando por iglesia, que es lo que ya hacía.
 
--- ── Lo que falta: el BORRADO. No se aplica aquí ────────────────────────────
+-- ── El borrado va en la migración de al lado ──────────────────────────────
 --
--- Medido el 19-sep en `~/Documents/Tamio-app/src/sync.ts`:
---
---   * `compactarBase` (:1798) descubre en tiempo real las tablas con `deleted`
---     y `church_id` (:1761) y purga EN LA NUBE las lápidas de más de
---     `DIAS_TOMBSTONE = 90` días (:1822). Su lista no excluye `registro`; iOS
---     sí lo protege (`Compactacion.nuncaSePurga`).
---
---   * **Y el modo de fallo no es el que suponía el documento.** Quitar la
---     política no le da un error al web: un `delete` que RLS descarta afecta a
---     cero filas y contesta 204, así que el `if (error) continue` de :1823 no
---     salta, el web purga igualmente su copia local y en la siguiente bajada
---     la fila vuelve de la nube. No se rompe de forma visible: RESUCITA, y en
---     silencio. Es exactamente el patrón del 7-sep con `iglesias`.
---
--- Por eso la forma buena no es `drop policy` sino acotar el USING a las
--- lápidas. El web solo borra en la nube filas que él ya dio por muertas, así
--- que esto le deja hacer lo mismo que hoy y quita el borrado de un apunte
--- VIVO:
---
---   alter policy registro_delete on public.registro
---     using (church_id = (select public.mi_iglesia()) and deleted);
---
--- Queda un residuo, y conviene escribirlo antes de aplicarlo: una lápida que
--- nunca llegó a la nube deja su copia remota en pie, y esa copia resucita en
--- la siguiente bajada. Hoy no pasa porque el borrado remoto va sin filtro.
---
--- Y el paso que de verdad cierra el §4 no es SQL: es decidir **quién puede
--- poner la lápida**. Hoy «Borrar todos los datos» del teléfono la pone sobre
--- todo el registro, y eso es legítimo y está en la app. Mientras eso siga así,
--- un usuario puede borrar el rastro aunque no pueda reescribirlo. Es decisión
--- de Iván y del otro repo, y es la que este archivo NO toma.
+-- `20260919b_el_registro_no_se_borra.sql`, que se aplica junto con esta. Aquí
+-- se congela el CONTENIDO; allí se cierra el DELETE, que es lo que impide
+-- borrar la fila y volver a insertarla con el mismo `uid` para conseguir lo
+-- mismo en dos pasos. Una sin la otra deja el agujero a medias.

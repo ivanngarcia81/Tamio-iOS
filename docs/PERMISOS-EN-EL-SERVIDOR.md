@@ -543,7 +543,12 @@ bitácora la escribe la app desde las dos áreas —`anotarSuceso` lo llaman
 generar los apuntes de tesorería y no hay rastro que auditar. Lo que hay que
 cerrar es reescribir y borrar. Corregido el 19-sep al escribir el ensayo.
 
-## El §4, escrito y probado · SIN APLICAR · 19-sep-2026
+## El §4, escrito y probado · 19-sep-2026
+
+> **Esto se escribió por la tarde, y esa misma noche se aplicó.** Lo de abajo
+> —«nada tocado en el servidor»— era cierto al escribirlo y ya no lo es: ver
+> «El §4, cerrado» al final del documento. Se deja como estaba porque explica
+> por qué el guarda tiene la forma que tiene.
 
 Dos archivos nuevos y **nada tocado en el servidor**:
 
@@ -573,7 +578,7 @@ función, cero filas `probe-%`, 32 filas como antes.
 **1. El modo de fallo del §5 estaba al revés.** Decía que quitar la política de
 `DELETE` «rompe la compactación del web entera», o sea de forma visible. Es
 peor: es **silenciosa**. Un `delete` que RLS descarta afecta a cero filas y
-contesta 204, así que el `if (error) continue` de `sync.ts:1823` no salta, el
+contesta 204, así que el `if (error) continue` de `compactarBase` no salta, el
 web purga su copia local igualmente, y en la siguiente bajada la fila vuelve de
 la nube. No se rompe: **resucita**. Por eso la forma propuesta ya no es
 `drop policy` sino acotar el USING a las lápidas, que es lo único que el web
@@ -600,3 +605,75 @@ registro, y eso es legítimo y está en la app. Medido hoy: **20 de las 32 filas
 de `registro` ya están con lápida**, así que incluso acotando el DELETE a las
 lápidas, esas veinte las podría borrar cualquiera de la iglesia. Esa decisión
 es de producto y del otro repo, y es la que sigue pendiente.
+
+## El §4, cerrado · 19-sep-2026, noche
+
+**La decisión que bloqueaba esto desde el 10 de septiembre está tomada: el
+registro deja de purgarse.** Ya no hay un chat llevando el web aparte, así que
+se tomó aquí y se hicieron las dos mitades.
+
+El cierre tiene tres piezas, y la tercera no estaba en el plan original:
+
+| pieza | dónde | qué hace |
+|---|---|---|
+| el web deja de purgar `registro` | `Tamio-app` · `sync.ts`, `NUNCA_SE_PURGA` | se alinea con `Compactacion.nuncaSePurga`, que iOS ya tenía |
+| el contenido se congela | `20260919_el_registro_solo_crece.sql` | de un apunte escrito solo cambian `deleted` y `updated_at` |
+| **la lápida es del administrador** | la misma migración | y el DELETE se cierra en `20260919b` |
+
+**La tercera salió de mirar las dos apps, no de la base.** La Zona de riesgo
+—«Borrar los registros», «borrar los datos de la iglesia»— está detrás de
+`veAjuste(.zona) → rol == .administrador` en iOS (`Permisos.swift:129`) y de
+`esAdmin` en el web (`Configuracion.tsx`). El servidor no lo sabía, así
+que sin esa línea el §4 se quedaba a medias: nadie podría falsear un apunte,
+pero un tesorero podría esconder el rastro entero con un `curl`. Comprobado que
+no hay otra vía: `reinicioDeFabrica` es solo local y no encola nada, y
+`borrar-cuenta` va con `service_role`.
+
+**Y sobre el orden, una corrección medida el mismo día.** Este documento —y
+la primera versión de la migración— decían que había que quitarlo del web
+ANTES o el fallo sería silencioso. Medido con las dos formas del cierre, sobre
+una transacción deshecha: **quitar solo la política deja al web sin error y
+con 0 filas** —ahí sí purgaría en local y las filas resucitarían desde la nube—,
+pero **quitando el grant contesta `42501`**, que el web sí ve: salta su
+`if (error) continue` y no purga nada. Como el cierre es por grant, el orden no
+era imprescindible. Quitarlo del web sigue siendo lo correcto —que no lo
+intente, y que las dos apps digan lo mismo— y por eso se hizo primero.
+
+### Lo que está aplicado, y lo que no
+
+| | estado |
+|---|---|
+| `Tamio-app` · `sync.ts` | hecho. `tsc` limpio, `verificar-borrado` y `verificar-sync` en verde |
+| `20260919_el_registro_solo_crece.sql` | **APLICADA**, `20260919221803` en `schema_migrations` |
+| `20260919b_el_registro_no_se_borra.sql` | **PENDIENTE**: `authenticated` conserva el DELETE |
+
+Medido contra el servidor después de aplicar, con
+`supabase/pruebas/registro_solo_crece.sql` y sesión de cada rol: **21 de 24 en
+`ok`**, y los tres `### REVISAR` son exactamente «borrar un apunte», que es lo
+que falta. Lo demás, cerrado y medido:
+
+| | administrador | tesorero | secretaria |
+|---|---|---|---|
+| escribir un apunte nuevo | SÍ | SÍ | SÍ |
+| reescribir uno ya escrito | **NO · 42501** | **NO · 42501** | **NO · 42501** |
+| mudarlo a otra iglesia | **NO · 42501** | **NO · 42501** | **NO · 42501** |
+| poner la lápida | SÍ | **NO · 42501** | **NO · 42501** |
+| el upsert idéntico del web | SÍ | SÍ | SÍ |
+| borrar un apunte | SÍ ← falta | SÍ ← falta | SÍ ← falta |
+
+Las tres filas de «SÍ» no son relleno: son las que dicen que no se rompió nada.
+La bitácora la escriben las dos áreas, el administrador tiene que poder vaciar
+la Zona de riesgo, y el web manda la fila entera en cada sincronización.
+
+### Lo que falta, que son dos líneas
+
+    revoke delete on public.registro from anon, authenticated;
+    drop policy if exists registro_delete on public.registro;
+
+Van en el editor SQL del panel —son sentencias sueltas, sin estado compartido—
+o por MCP. Después, el guion tiene que dar **24 de 24**.
+
+Mientras no estén, el guarda del UPDATE **se puede rodear en dos pasos**:
+borrar la fila y volver a insertarla con el mismo `uid`, porque la política de
+INSERT solo mira la iglesia. Lo que ya no se puede es reescribir un apunte vivo
+ni esconderlo sin ser administrador.
