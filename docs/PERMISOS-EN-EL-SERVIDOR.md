@@ -680,14 +680,64 @@ Nada en el servidor. Un apunte se escribe, no se reescribe, no se muda de
 iglesia, no se borra, y esconderlo es cosa del administrador. Lo que queda es
 de fuera:
 
-- **Fusionar en `main` del web** la rama `arreglos/el-registro-no-se-purga`.
-  Hasta que viaje en un build, la app de escritorio seguirá intentando purgar
-  `registro` en la nube; ya no lo consigue —recibe `42501` y su
-  `if (error) continue` la frena, así que tampoco purga en local— pero es un
-  intento inútil en cada compactación.
+- ~~Fusionar en `main` del web la rama `arreglos/el-registro-no-se-purga`.~~
+  **HECHO** el 19-sep: `main` del web está en `c596982`.
 - **Anotar `20260919b` en `schema_migrations`**, si se quiere el libro completo.
-- **Y el §5 para las demás tablas sigue abierto**: `registro` ya no se borra,
-  pero en las otras veinte un `delete` de verdad sigue siendo posible para
-  quien tenga el rol, y `frenar_borrado_tesorero` solo mira `UPDATE`. Un
-  tesorero sin permiso para dar de baja un movimiento puede eliminar la fila
-  entera. Eso no lo toca nada de hoy.
+- **El §5 para las demás tablas**: escrito y ensayado el mismo día, ver abajo.
+
+## El §5 · escrito y ensayado, falta aplicarlo · 19-sep-2026
+
+`supabase/migrations/20260919c_el_borrado_de_verdad_solo_alcanza_a_las_lapidas.sql`
+y `supabase/pruebas/borrado_de_verdad.sql`. **No aplicada**: el clasificador de
+permisos frenó la escritura en producción, así que la corre Iván.
+
+**El agujero, medido antes de escribir nada.** Las veinte tablas de datos
+tienen política de DELETE y `authenticated` tiene el permiso; desde el 15-sep
+esas políticas miran el rol, pero los dos guardas que existen
+—`frenar_borrado_tesorero` y `frenar_baja_tesorero`— son BEFORE **UPDATE**.
+Frenan la lápida, no el borrado. Corrido el guion antes de aplicar, con sesión
+de cada rol:
+
+| | administrador | tesorero | secretaria |
+|---|---|---|---|
+| borrar un movimiento **vivo** | **SÍ** | **SÍ** | NO · 0 filas |
+| borrar un acta **viva** | **SÍ** | NO · 0 filas | **SÍ** |
+
+Tres «SÍ» que se llevan la fila entera, sin lápida y sin propagarse a los demás
+aparatos.
+
+**El arreglo: un `BEFORE DELETE` que exige la lápida.** Un DELETE solo puede
+alcanzar una fila con `deleted = true`. No quita nada a nadie, y eso está
+buscado en los dos repos, no supuesto: **iOS no borra de verdad jamás** —su
+`eliminar(id:)` es un `update deleted = true`— y el web tiene **un solo**
+borrado remoto, `compactarBase`, que manda los `uid` de filas que él mismo
+seleccionó con `deleted = 1`.
+
+**Por qué un disparador y no acotar la política con `and deleted`.** Porque una
+política que descarta la fila **no avisa**: cero filas y un 204. Es lo que se
+midió al cerrar el §4, y es la diferencia entre un no que se ve y uno que no.
+El disparador contesta `42501`.
+
+**Y las tablas se buscan, no se escriben a mano**: la migración recorre las que
+tienen `deleted` y se planta si no salen 20. Además el guion tiene una fila de
+COBERTURA —toda tabla con lápida tiene que llevar el guarda—, que es lo que
+caza la tabla nueva que nadie acordó proteger. Es la trampa que el web ya
+documenta en `verificar-borrado`.
+
+**El ensayo, hecho.** Aplicando la migración dentro de una transacción que se
+deshace: **16 de 16 en `ok`**, cero `### REVISAR`, y cobertura 0 tablas sin
+guarda. Las dos caras medidas: la fila viva contesta `42501` a quien escribe en
+esa área y «0 filas» a quien no; la fila con lápida se borra, que es la
+compactación. Comprobado después que no quedó nada: cero función, cero
+disparadores, cero filas `probe-%`.
+
+**Lo que este §5 NO es.** No es el permiso de dar de baja. Quién puede poner la
+lápida sigue donde estaba —las políticas por área del 15-sep y los dos
+disparadores de `tesorero_puede_eliminar`—. Esto solo impide que el borrado de
+verdad se use para saltárselos.
+
+**Lo que queda después de esto**, y ya es defensa en profundidad, no agujero:
+`folios_contador`, `iglesias` y `perfiles` tienen el permiso de DELETE sin
+ninguna política, así que un intento contesta **cero filas en silencio**. No se
+tocó a propósito: volverlo ruidoso podría destapar como error algún flujo que
+hoy falla callado, y eso se mira con calma.
