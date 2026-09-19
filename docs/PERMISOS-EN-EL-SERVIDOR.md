@@ -532,4 +532,71 @@ La tabla que hay que rellenar, y que hoy no existe:
 | crear un movimiento | ✅ | ✅ | ❌ |
 | borrar un acta | ✅ | ❌ | ✅ |
 | editar el padrón | ✅ | según plan | ✅ |
-| escribir en el registro | ❌ | ❌ | ❌ |
+| escribir un apunte nuevo | ✅ | ✅ | ✅ |
+| reescribir un apunte ya escrito | ❌ | ❌ | ❌ |
+| borrar un apunte | ❌ | ❌ | ❌ |
+
+**Esa última parte decía «escribir en el registro ❌ ❌ ❌», y estaba mal.** La
+bitácora la escribe la app desde las dos áreas —`anotarSuceso` lo llaman
+`OfflineDepositosRepository`, `ActasRepository`, `CartasRepository` y
+`MembresiaRepository`—, así que un tesorero que no pueda INSERTAR deja de
+generar los apuntes de tesorería y no hay rastro que auditar. Lo que hay que
+cerrar es reescribir y borrar. Corregido el 19-sep al escribir el ensayo.
+
+## El §4, escrito y probado · SIN APLICAR · 19-sep-2026
+
+Dos archivos nuevos y **nada tocado en el servidor**:
+
+| archivo | qué es |
+|---|---|
+| `supabase/migrations/20260919_el_registro_solo_crece.sql` | el disparador `a1_el_registro_solo_crece`: de un apunte ya escrito solo pueden cambiar `deleted` y `updated_at` |
+| `supabase/pruebas/registro_solo_crece.sql` | siete casos por rol, con el control negativo dentro |
+
+**Vuelto a medir antes de escribir una línea**, y el §4 seguía entero:
+`registro_update` y `registro_delete` solo filtran `church_id` y ninguna
+menciona `mi_rol()`; `authenticated` tiene UPDATE sobre las diez columnas y
+DELETE de tabla; y el único disparador de la tabla es `a0_marcar_updated_at`.
+Con sesión de tesorero, en una transacción deshecha: **reescribir un apunte
+ajeno, 1 fila; borrarlo, 1 fila**. Puede editar el apunte que dice que él
+borró un movimiento.
+
+**El ensayo, hecho.** El guion corrido HOY, antes de aplicar nada: 24 filas,
+21 en `ok` y **tres en `### REVISAR`** —«reescribir un apunte ajeno», una por
+rol—, que es exactamente el control negativo que se busca. Después, aplicando
+la migración **dentro de una transacción que se deshace**: **24 de 24 en
+`ok`**, con la lápida, el upsert idéntico del web y el apunte nuevo intactos.
+Comprobado luego contra la base que no quedó nada: cero disparador, cero
+función, cero filas `probe-%`, 32 filas como antes.
+
+### Lo que el ensayo corrigió de este documento
+
+**1. El modo de fallo del §5 estaba al revés.** Decía que quitar la política de
+`DELETE` «rompe la compactación del web entera», o sea de forma visible. Es
+peor: es **silenciosa**. Un `delete` que RLS descarta afecta a cero filas y
+contesta 204, así que el `if (error) continue` de `sync.ts:1823` no salta, el
+web purga su copia local igualmente, y en la siguiente bajada la fila vuelve de
+la nube. No se rompe: **resucita**. Por eso la forma propuesta ya no es
+`drop policy` sino acotar el USING a las lápidas, que es lo único que el web
+borra en la nube:
+
+    alter policy registro_delete on public.registro
+      using (church_id = (select public.mi_iglesia()) and deleted);
+
+**2. La tabla de «Cómo se comprueba» pedía algo que vaciaría la bitácora.**
+Corregido arriba.
+
+### Lo que esto NO cierra
+
+Con el DELETE abierto, el disparador **no impide falsificar**: se borra la fila
+y se vuelve a insertar con el mismo `uid`, porque la política de INSERT solo
+mira la iglesia. Lo que cierra es la reescritura de un apunte **vivo** —el caso
+que ocurre sin querer, el que una sincronización puede provocar sola y el único
+que no deja ni la huella de haber ocurrido—. El resto lo encarece, no lo
+impide.
+
+**Y el paso que de verdad cierra el §4 no es SQL: es quién puede poner la
+lápida.** Hoy «Borrar todos los datos» del teléfono la pone sobre todo el
+registro, y eso es legítimo y está en la app. Medido hoy: **20 de las 32 filas
+de `registro` ya están con lápida**, así que incluso acotando el DELETE a las
+lápidas, esas veinte las podría borrar cualquiera de la iglesia. Esa decisión
+es de producto y del otro repo, y es la que sigue pendiente.
