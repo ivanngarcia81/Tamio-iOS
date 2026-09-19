@@ -645,12 +645,21 @@ intente, y que las dos apps digan lo mismo— y por eso se hizo primero.
 |---|---|
 | `Tamio-app` · `sync.ts` | hecho. `tsc` limpio, `verificar-borrado` y `verificar-sync` en verde |
 | `20260919_el_registro_solo_crece.sql` | **APLICADA**, `20260919221803` en `schema_migrations` |
-| `20260919b_el_registro_no_se_borra.sql` | **PENDIENTE**: `authenticated` conserva el DELETE |
+| `20260919b_el_registro_no_se_borra.sql` | **APLICADA** por Iván desde el panel |
 
-Medido contra el servidor después de aplicar, con
-`supabase/pruebas/registro_solo_crece.sql` y sesión de cada rol: **21 de 24 en
-`ok`**, y los tres `### REVISAR` son exactamente «borrar un apunte», que es lo
-que falta. Lo demás, cerrado y medido:
+**Y una cosa que hay que saber del panel: no apunta la migración.** El efecto
+está —`authenticated` y `anon` se quedaron con `INSERT, SELECT, UPDATE` y
+`registro_delete` ya no existe—, pero `schema_migrations` acaba en
+`20260919221803`, así que el libro no sabe de la segunda. El archivo es
+idempotente (`revoke` + `drop policy if exists`), así que volver a correrlo por
+MCP para que quede anotado no rompe nada. Es lo mismo que pasó con la del
+18-sep, y por eso conviene escribirlo: la base y el libro de migraciones
+pueden discrepar sin que nada avise.
+
+Medido contra el servidor después de aplicar las dos, con
+`supabase/pruebas/registro_solo_crece.sql` y sesión de cada rol: **24 de 24 en
+`ok`**, cero `### REVISAR`. Y comprobado que la prueba no dejó nada: 32 filas,
+20 con lápida, cero `probe-%`.
 
 | | administrador | tesorero | secretaria |
 |---|---|---|---|
@@ -659,21 +668,26 @@ que falta. Lo demás, cerrado y medido:
 | mudarlo a otra iglesia | **NO · 42501** | **NO · 42501** | **NO · 42501** |
 | poner la lápida | SÍ | **NO · 42501** | **NO · 42501** |
 | el upsert idéntico del web | SÍ | SÍ | SÍ |
-| borrar un apunte | SÍ ← falta | SÍ ← falta | SÍ ← falta |
+| borrar un apunte | **NO · 42501** | **NO · 42501** | **NO · 42501** |
 
 Las tres filas de «SÍ» no son relleno: son las que dicen que no se rompió nada.
 La bitácora la escriben las dos áreas, el administrador tiene que poder vaciar
 la Zona de riesgo, y el web manda la fila entera en cada sincronización.
 
-### Lo que falta, que son dos líneas
+### Lo que queda del §4, que ya no es del §4
 
-    revoke delete on public.registro from anon, authenticated;
-    drop policy if exists registro_delete on public.registro;
+Nada en el servidor. Un apunte se escribe, no se reescribe, no se muda de
+iglesia, no se borra, y esconderlo es cosa del administrador. Lo que queda es
+de fuera:
 
-Van en el editor SQL del panel —son sentencias sueltas, sin estado compartido—
-o por MCP. Después, el guion tiene que dar **24 de 24**.
-
-Mientras no estén, el guarda del UPDATE **se puede rodear en dos pasos**:
-borrar la fila y volver a insertarla con el mismo `uid`, porque la política de
-INSERT solo mira la iglesia. Lo que ya no se puede es reescribir un apunte vivo
-ni esconderlo sin ser administrador.
+- **Fusionar en `main` del web** la rama `arreglos/el-registro-no-se-purga`.
+  Hasta que viaje en un build, la app de escritorio seguirá intentando purgar
+  `registro` en la nube; ya no lo consigue —recibe `42501` y su
+  `if (error) continue` la frena, así que tampoco purga en local— pero es un
+  intento inútil en cada compactación.
+- **Anotar `20260919b` en `schema_migrations`**, si se quiere el libro completo.
+- **Y el §5 para las demás tablas sigue abierto**: `registro` ya no se borra,
+  pero en las otras veinte un `delete` de verdad sigue siendo posible para
+  quien tenga el rol, y `frenar_borrado_tesorero` solo mira `UPDATE`. Un
+  tesorero sin permiso para dar de baja un movimiento puede eliminar la fila
+  entera. Eso no lo toca nada de hoy.
