@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 /// **Las ocho secciones de Ajustes, definidas una sola vez.**
 ///

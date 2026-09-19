@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 extension Color {
     /// Inicializador por hex (0xRRGGBB).
@@ -83,20 +82,26 @@ enum Paleta {
     /// blanco o casi negro. Es el mecanismo que faltaba y por el que estos ocho
     /// sitios se quedaron fuera del barrido de `.foregroundStyle(.white)`.
     ///
-    /// **El esquema se pasa a mano y no se lee de `UITraitCollection.current`**:
-    /// dentro de un `body` de SwiftUI ese valor no siempre es el de la vista, y
-    /// resolver con el equivocado devolvería el color del otro tema. Quien lo
-    /// llame tiene `@Environment(\.colorScheme)` a mano.
+    /// **El esquema se pasa a mano y no se lee del entorno global**: dentro de
+    /// un `body` de SwiftUI la apariencia "actual" no siempre es la de la
+    /// vista, y resolver con la equivocada devolvería el color del otro tema.
+    /// Quien lo llame tiene `@Environment(\.colorScheme)` a mano.
+    ///
+    /// **Se resuelve con `Color.resolve(in:)`, que es de SwiftUI y no de
+    /// UIKit.** Antes esto construía un `UITraitCollection` y sacaba los
+    /// canales de un `UIColor`, que era lo único que ataba este archivo —y con
+    /// él toda la paleta— a iOS. El camino nuevo funciona igual en el Mac.
+    ///
+    /// Y de paso desaparece la conversión a luz lineal escrita a mano:
+    /// `Color.Resolved` ya trae los canales en lineal, que es justo lo que pide
+    /// la fórmula de luminancia. Menos sitio donde equivocarse con un exponente.
     static func sobre(_ fondo: Color, _ esquema: ColorScheme) -> Color {
-        let traits = UITraitCollection(userInterfaceStyle: esquema == .dark ? .dark : .light)
-        let ui = UIColor(fondo).resolvedColor(with: traits)
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        guard ui.getRed(&r, green: &g, blue: &b, alpha: &a) else { return .white }
-
-        func lineal(_ v: CGFloat) -> CGFloat {
-            v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
-        }
-        let luz = 0.2126 * lineal(r) + 0.7152 * lineal(g) + 0.0722 * lineal(b)
+        var entorno = EnvironmentValues()
+        entorno.colorScheme = esquema
+        let c = fondo.resolve(in: entorno)
+        let luz = 0.2126 * Double(c.linearRed)
+                + 0.7152 * Double(c.linearGreen)
+                + 0.0722 * Double(c.linearBlue)
         // Contraste contra blanco y contra el casi negro de la paleta.
         let conBlanco = 1.05 / (luz + 0.05)
         let conNegro  = (luz + 0.05) / (0.0106 + 0.05)   // #06210F
@@ -147,7 +152,7 @@ enum Paleta {
     /// misma que la de la fila, así que vive en el mismo sitio y se le pasa el
     /// mismo `columna` que a `filaDeLista`.
     static func sueloLista(columna: Bool) -> Color {
-        columna ? sueloColumna : Color(.systemGroupedBackground)
+        columna ? sueloColumna : .fondoAgrupado
     }
 
     /// **El suelo de la columna maestra del iPad.** Es un rol aparte del de
@@ -199,9 +204,7 @@ enum Paleta {
     /// No valen para texto ni para puntos de agenda. Son el relleno de una
     /// placa, y ese es su único trabajo.
     static func placa(claro: UInt32, oscuro: UInt32) -> Color {
-        Color(UIColor { t in
-            UIColor(Color(hex: t.userInterfaceStyle == .dark ? oscuro : claro))
-        })
+        .dinamico(claro: claro, oscuro: oscuro)
     }
 
     /// Igual, pero en oscuro deja el color DEL SISTEMA tal cual.
@@ -216,10 +219,8 @@ enum Paleta {
     /// En OSCURO no hace falta tocarlos —contra el casi negro los catorce dan
     /// 4.70:1 o más—, así que se deja el del sistema y se gana que la placa
     /// siga a iOS si Apple lo cambia. Solo se sustituye el de claro.
-    static func placa(claro: UInt32, oscuroSistema: UIColor) -> Color {
-        Color(UIColor { t in
-            t.userInterfaceStyle == .dark ? oscuroSistema : UIColor(Color(hex: claro))
-        })
+    static func placa(claro: UInt32, oscuroSistema: ColorPlataforma) -> Color {
+        .dinamico(claro: claro, oscuroSistema: oscuroSistema)
     }
 
     /// Agenda. Claro 5.01:1 · oscuro 5.01:1.
@@ -390,7 +391,7 @@ enum Paleta {
             case .correcto:    return Paleta.brand
             case .pendiente:   return Paleta.aviso
             case .informativo: return Paleta.cian
-            case .terminal:    return Color(.secondaryLabel)
+            case .terminal:    return .etiquetaSecundaria
             }
         }
     }

@@ -1,17 +1,7 @@
+// `Dispositivo` vivía aquí y se mudó a `Plataforma.swift`, que es donde están
+// las tres cosas que cambian según dónde corra la app. Ahora dice "Mac" cuando
+// toca, en vez de jurar que todo se capturó en un iPhone.
 import SwiftUI
-
-/// **De qué aparato se trata**, para el rastro de auditoría. Iba escrito como
-/// "iPad" en los dos sitios que lo escriben, así que capturar en un iPhone
-/// dejaba un rastro que señalaba a otro dispositivo — y un rastro de auditoría
-/// que miente sobre el aparato no sirve para lo que existe.
-enum Dispositivo {
-    static var nombre: String {
-        UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
-    }
-}
-
-import SwiftUI
-import UIKit
 
 /// Convierte una vista SwiftUI en un PDF tamaño carta y devuelve su URL temporal.
 /// Se usa para "Vista previa PDF" y "Compartir" de los reportes. Cuando entre el

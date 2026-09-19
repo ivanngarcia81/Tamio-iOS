@@ -2,7 +2,6 @@ import GRDB
 import Observation
 import Supabase
 import SwiftUI
-import UIKit
 
 /// **El logo de la iglesia: en Storage, cacheado en el aparato.**
 ///
@@ -37,7 +36,7 @@ final class LogoIglesia {
     static let compartido = LogoIglesia()
 
     /// Cargado en memoria porque lo lee el membrete de CADA página de CADA PDF.
-    private(set) var imagen: UIImage?
+    private(set) var imagen: ImagenPlataforma?
 
     /// Mientras sube o baja. La pantalla de Ajustes lo enseña: una imagen que
     /// tarda en aparecer sin decir nada parece que se perdió.
@@ -47,7 +46,7 @@ final class LogoIglesia {
 
     private init() {
         if let url = Self.archivoLocal(), let datos = try? Data(contentsOf: url) {
-            imagen = UIImage(data: datos)
+            imagen = ImagenPlataforma(data: datos)
         }
     }
 
@@ -89,7 +88,7 @@ final class LogoIglesia {
     /// Guarda en disco ANTES de subir. Si la subida falla —el avión, un túnel—
     /// la iglesia se queda con su logo puesto en este aparato y el error se
     /// enseña; al revés se vería un hueco sin explicación.
-    func poner(_ original: UIImage, reemplazando anterior: String = "") async throws -> String {
+    func poner(_ original: ImagenPlataforma, reemplazando anterior: String = "") async throws -> String {
         trabajando = true
         defer { trabajando = false }
 
@@ -192,7 +191,7 @@ final class LogoIglesia {
         trabajando = true
         defer { trabajando = false }
         guard let datos = try? await almacen.descargar(ruta),
-              let bajada = UIImage(data: datos) else { return }
+              let bajada = ImagenPlataforma(data: datos) else { return }
 
         Self.limpiarCarpeta()
         if let dir = Self.carpeta {
@@ -243,20 +242,20 @@ final class LogoIglesia {
     /// Así que se mira si la imagen tiene canal alfa: con transparencia, PNG;
     /// sin ella, JPEG al 90 %, que para la misma imagen baja de megabytes a
     /// unos cientos de kB sin diferencia visible en el papel.
-    static func codificada(_ imagen: UIImage) -> (Data, String, String)? {
-        if tieneTransparencia(imagen), let png = imagen.pngData() {
+    static func codificada(_ imagen: ImagenPlataforma) -> (Data, String, String)? {
+        if tieneTransparencia(imagen), let png = imagen.datosPNG() {
             return (png, "png", "image/png")
         }
-        if let jpeg = imagen.jpegData(compressionQuality: 0.9) {
+        if let jpeg = imagen.datosJPEG(calidad: 0.9) {
             return (jpeg, "jpg", "image/jpeg")
         }
-        return imagen.pngData().map { ($0, "png", "image/png") }
+        return imagen.datosPNG().map { ($0, "png", "image/png") }
     }
 
     /// Alfa de verdad, no "el formato admite alfa": una foto del carrete puede
     /// venir en un contenedor con canal alfa y estar opaca entera.
-    private static func tieneTransparencia(_ imagen: UIImage) -> Bool {
-        guard let cg = imagen.cgImage else { return true }
+    private static func tieneTransparencia(_ imagen: ImagenPlataforma) -> Bool {
+        guard let cg = imagen.cgImagen else { return true }
         switch cg.alphaInfo {
         case .none, .noneSkipFirst, .noneSkipLast: return false
         default: break
@@ -279,21 +278,36 @@ final class LogoIglesia {
         return alfa.contains { $0 < 250 }
     }
 
-    static func preparada(_ imagen: UIImage) -> UIImage {
+    /// **Se dibuja con Core Graphics y no con `UIGraphicsImageRenderer`.**
+    /// Ese es el único de los dos marcos que no existe en el Mac, y era lo
+    /// último que ataba este archivo a UIKit. El resultado es el mismo: un
+    /// mapa de bits del tamaño calculado, a escala 1 y con canal alfa.
+    static func preparada(_ imagen: ImagenPlataforma) -> ImagenPlataforma {
         let lado = max(imagen.size.width, imagen.size.height)
         guard lado > ladoMaximo, lado > 0 else { return imagen }
-        let escala = ladoMaximo / lado
-        let tamano = CGSize(width: imagen.size.width * escala,
-                            height: imagen.size.height * escala)
-        let formato = UIGraphicsImageRendererFormat.default()
-        // La imagen ya está en píxeles del original: pedir la escala de la
-        // pantalla la multiplicaría por tres en el iPad y desharía el
-        // redimensionado que acabamos de calcular.
-        formato.scale = 1
-        formato.opaque = false
-        return UIGraphicsImageRenderer(size: tamano, format: formato).image { _ in
-            imagen.draw(in: CGRect(origin: .zero, size: tamano))
-        }
+        let factor = ladoMaximo / lado
+        // **A escala 1 a propósito.** La imagen ya viene en los píxeles del
+        // original: pedir la escala de la pantalla la multiplicaría por tres en
+        // un iPad —o por dos en un Retina— y desharía el redimensionado que
+        // acabamos de calcular, que es justo lo que este método existe para
+        // hacer: que el logo no viaje en megabytes a cada teléfono.
+        let ancho = Int((imagen.size.width * factor).rounded())
+        let alto  = Int((imagen.size.height * factor).rounded())
+        guard ancho > 0, alto > 0, let cg = imagen.cgImagen else { return imagen }
+
+        // `premultipliedLast` y no un lienzo opaco: **un logo recortado trae
+        // transparencia y hay que conservarla.** Aplanarla aquí rellenaría el
+        // fondo de negro, y el membrete lleva el logo sobre papel blanco.
+        guard let ctx = CGContext(data: nil, width: ancho, height: alto,
+                                  bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpace(name: CGColorSpace.sRGB)
+                                         ?? CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return imagen }
+        ctx.interpolationQuality = .high
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: ancho, height: alto))
+        guard let salida = ctx.makeImage() else { return imagen }
+        return .desde(cg: salida, escala: 1)
     }
 
     struct Fallo: LocalizedError {

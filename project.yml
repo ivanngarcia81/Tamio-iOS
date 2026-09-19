@@ -7,10 +7,38 @@ options:
     # colocaciones de toolbar .title/.subtitle. Todo eso es de 26 y no tiene
     # equivalente en 17/18 que valga la pena mantener por duplicado.
     iOS: "26.0"
+    # **macOS 26 y no 27, aunque solo esté el SDK 27.** Se compila contra el 27
+    # —es el único instalado— y se declara 26 como piso, que es exactamente lo
+    # que hace el target de iOS. El motivo no es técnico sino de quién usa esto:
+    # macOS 27 acaba de salir y las iglesias actualizan tarde y en Macs viejos.
+    # Poner el piso en 27 las deja fuera el primer año entero.
+    #
+    # Y no se pierde nada: Liquid Glass —lo que obliga a iOS 26 arriba— llegó a
+    # macOS en la 26 también, así que el vocabulario visual es el mismo. Si
+    # algún día hace falta algo exclusivo de la 27, entra con `if #available` y
+    # el piso se queda donde está.
+    macOS: "26.0"
   createIntermediateGroups: true
 settings:
   base:
     SWIFT_VERSION: "5.9"
+    # **Firma. Las dos líneas siguientes vivían SOLO en el `.pbxproj`.**
+    #
+    # Se descubrieron comparando los ajustes efectivos del target antes y
+    # después de la primera regeneración, y las dos eran una regresión:
+    #
+    # - `CODE_SIGN_IDENTITY` volvía a `iPhone Developer`, que es el nombre de
+    #   antes de Xcode 11 y justo el que el comentario de `CODE_SIGN_STYLE` de
+    #   abajo dice que se corrigió. Al no estar declarado aquí, xcodegen ponía
+    #   su valor por omisión y deshacía el arreglo.
+    # - `DEVELOPMENT_TEAM` desaparecía entero. Sin equipo no se firma: ni
+    #   archivo, ni TestFlight, ni aparato de verdad.
+    #
+    # Van en la base del PROYECTO y no dentro de un target porque valen para
+    # los dos: `Apple Development` es el nombre de la identidad en iOS y en
+    # macOS, y el equipo es el mismo.
+    CODE_SIGN_IDENTITY: Apple Development
+    DEVELOPMENT_TEAM: 4N9XEU7F4P
     TARGETED_DEVICE_FAMILY: "1,2"   # 1 = iPhone, 2 = iPad → app adaptativa
     # **1.0.0: ficha NUEVA, producto que debuta.** Estuvo un rato en 2.0.0,
     # cuando el plan era reemplazar a la app de Tauri en su misma ficha. Se
@@ -18,6 +46,25 @@ settings:
     # 1.x, y esa gente no va a ver esta ficha.
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
+# **Los paquetes se declaran AQUÍ, y antes no lo estaban.**
+#
+# Vivían solo dentro del `.pbxproj`, como `XCRemoteSwiftPackageReference`. Con
+# este archivo sin la sección `packages`, regenerar el proyecto borraba las dos
+# dependencias y la app dejaba de compilar: `import GRDB` e `import Supabase`
+# fallan en los 30 archivos que los usan. Era una bomba de relojería que se
+# disparaba la primera vez que alguien corriera `xcodegen` en limpio.
+#
+# Las versiones son LAS MISMAS que tenía el `.pbxproj` —`upToNextMajorVersion`
+# desde 2.5.1 y desde 6.29.0—, copiadas literalmente para que regenerar no
+# mueva ninguna dependencia. Lo que estaba resuelto sigue resuelto.
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    majorVersion: 2.5.1
+  GRDB:
+    url: https://github.com/groue/GRDB.swift
+    majorVersion: 6.29.0
+
 targets:
   Tamio:
     type: application
@@ -71,6 +118,14 @@ targets:
         # Manual` y nombrar un perfil concreto en el proyecto, que es lo que se
         # hace en un servidor de integración y no lo que hace falta aquí.
         CODE_SIGN_STYLE: Automatic
+        # **Repetido aquí aunque ya esté en la base del proyecto, y hace falta.**
+        #
+        # xcodegen le mete a todo target de aplicación de iOS un
+        # `CODE_SIGN_IDENTITY = iPhone Developer` de serie, y ese valor —por ser
+        # del target— gana al de la base. Declararlo aquí es lo único que
+        # deshace el ajuste por omisión. Comprobado: sin esta línea, el
+        # comparador de ajustes efectivos lo delata en cada regeneración.
+        CODE_SIGN_IDENTITY: Apple Development
         GENERATE_INFOPLIST_FILE: YES
         # Se MEZCLA con el plist generado. Solo lleva `CFBundleLocalizations`,
         # que no tiene ajuste `INFOPLIST_KEY_` y no hay otra forma de poner.
@@ -114,3 +169,88 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    dependencies:
+      - package: Supabase
+        product: Supabase
+      - package: GRDB
+        product: GRDB
+
+  # **La app de Mac. Comparte el motor, NO las pantallas.**
+  #
+  # Entran `Models`, `Data`, `ViewModels` y `Support`: 23.000 líneas donde vive
+  # el dinero —los repositorios, la sincronización, GRDB, Supabase, los
+  # cálculos— y que no saben en qué aparato corren. Esa capa se comparte
+  # LITERALMENTE, sin copiar ni un archivo, porque es justo la que no se puede
+  # permitir que diverja: un redondeo distinto entre el iPhone y el Mac de la
+  # misma iglesia es un libro que no cuadra.
+  #
+  # **`Views` NO entra**, y es a propósito. Las vistas de iOS son un maestro-
+  # detalle de iPad y un `TabView` de iPhone; la maqueta de Mac es otra cosa
+  # —barra de menús, tabla con columnas ordenables, inspector, ventana de
+  # captura rápida—. Reutilizar `MovimientosView` aquí sería pelearse con el
+  # diseño en vez de implementarlo. Las pantallas de Mac viven en `TamioMac/` y
+  # se apoyan en los MISMOS ViewModels.
+  TamioMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: Tamio/Models
+      - path: Tamio/Data
+      - path: Tamio/ViewModels
+      - path: Tamio/Support
+        excludes:
+          # Rescata el gesto de "volver" de la pila de navegación de UIKit. En
+          # Mac no hay ese gesto ni esa pila: el archivo entero sobra.
+          - "NavHeader.swift"
+      - path: Tamio/Assets.xcassets
+      - path: Tamio/en.lproj
+      - path: Tamio/es.lproj
+      - path: TamioMac
+    settings:
+      base:
+        # **El MISMO id que iOS, a propósito: es una Compra Universal.**
+        #
+        # Apple exige que la app de Mac lleve el id de la de iOS para que quien
+        # compre una tenga la otra. Aquí no hay nada publicado todavía, así que
+        # la decisión es reversible; queda escrito para que se decida a
+        # sabiendas y no por omisión. Si se prefieren fichas separadas, esto
+        # pasa a `church.tamio.mac` y deja de ser Compra Universal.
+        PRODUCT_BUNDLE_IDENTIFIER: church.tamio.native
+        # La app se llama Tamio. `TamioMac` es el nombre del target, no del
+        # producto: sin esto el .app sale llamándose "TamioMac".
+        PRODUCT_NAME: Tamio
+        CODE_SIGN_STYLE: Automatic
+        # **Caja de arena, obligatoria en la Mac App Store.**
+        #
+        # Se declara SOLO en el archivo de derechos y no con el ajuste
+        # `ENABLE_APP_SANDBOX`: desde Xcode 16 ese ajuste genera su propio
+        # archivo de derechos y entra en conflicto con uno puesto a mano. Una
+        # sola fuente, que es el archivo.
+        CODE_SIGN_ENTITLEMENTS: Config/TamioMac.entitlements
+        GENERATE_INFOPLIST_FILE: YES
+        # El mismo plist que iOS: lo único que lleva es `CFBundleLocalizations`,
+        # que no tiene ajuste `INFOPLIST_KEY_` y hay que poner a mano.
+        INFOPLIST_FILE: Config/Info.plist
+        # La misma declaración legal que en iOS, y por el mismo motivo: lo que
+        # se cifra son los respaldos, con CryptoKit de Apple. La firma Iván.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        # En inglés, que es la región de desarrollo. El español vive en
+        # `Tamio/es.lproj/InfoPlist.strings`, que este target también compila.
+        #
+        # **No va `NSFaceIDUsageDescription`**: en Mac el desbloqueo es Touch ID
+        # a través de `LocalAuthentication`, que no pide cadena de uso. La
+        # política que usa `BloqueoBiometrico` es `deviceOwnerAuthentication`,
+        # así que en un Mac sin Touch ID cae a la contraseña y nadie se queda
+        # fuera de sus propios libros.
+        INFOPLIST_KEY_NSCameraUsageDescription: "To photograph the bank receipt when recording a deposit."
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "To attach a photo of the bank receipt to a deposit."
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        # Categoría de la ficha: finanzas, igual que la de iOS.
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.finance
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    dependencies:
+      - package: Supabase
+        product: Supabase
+      - package: GRDB
+        product: GRDB

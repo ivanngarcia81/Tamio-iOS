@@ -1,6 +1,5 @@
 import Observation
 import SwiftUI
-import UIKit
 
 /// **Las firmas del tesorero y del pastor, guardadas SOLO en este aparato.**
 ///
@@ -44,7 +43,7 @@ final class FirmasLocales {
     /// Las imágenes ya cargadas. Se guardan en memoria porque las lee el bloque
     /// de firmas de CADA página de CADA PDF, y volver al disco cada vez para el
     /// mismo archivo no tiene sentido.
-    private(set) var imagenes: [Firmante: UIImage] = [:]
+    private(set) var imagenes: [Firmante: ImagenPlataforma] = [:]
 
     private init() {
         for f in Firmante.allCases { imagenes[f] = Self.leer(f) }
@@ -69,9 +68,9 @@ final class FirmasLocales {
         carpeta?.appendingPathComponent(f.archivo)
     }
 
-    private static func leer(_ f: Firmante) -> UIImage? {
+    private static func leer(_ f: Firmante) -> ImagenPlataforma? {
         guard let url = url(f), let datos = try? Data(contentsOf: url) else { return nil }
-        return UIImage(data: datos)
+        return ImagenPlataforma(data: datos)
     }
 
     // MARK: - Guardar y borrar
@@ -83,15 +82,15 @@ final class FirmasLocales {
         for f in Firmante.allCases { imagenes[f] = Self.leer(f) }
     }
 
-    func imagen(_ f: Firmante) -> UIImage? { imagenes[f] }
+    func imagen(_ f: Firmante) -> ImagenPlataforma? { imagenes[f] }
     func tiene(_ f: Firmante) -> Bool { imagenes[f] != nil }
 
     /// Guarda en PNG y no en JPEG, a diferencia de los recibos: **el PNG
     /// conserva la transparencia**. Una firma en JPEG llega con el fondo
     /// relleno de blanco, y encima de la raya del documento eso es un
     /// rectángulo blanco tapando la línea.
-    func guardar(_ imagen: UIImage, para f: Firmante) throws {
-        guard let datos = imagen.pngData(), let url = Self.url(f) else {
+    func guardar(_ imagen: ImagenPlataforma, para f: Firmante) throws {
+        guard let datos = imagen.datosPNG(), let url = Self.url(f) else {
             throw NSError(domain: "FirmasLocales", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: L.t("No se pudo preparar la firma.",
                                                "The signature could not be prepared."),
@@ -113,15 +112,15 @@ final class FirmasLocales {
     /// Sin esto, una rúbrica pequeña hecha en una esquina del lienzo sale como
     /// una imagen enorme casi vacía, y al meterla en el hueco del PDF —que se
     /// ajusta al alto disponible— la firma se ve diminuta en medio de la nada.
-    static func recortada(_ imagen: UIImage, margen: CGFloat = 12) -> UIImage {
-        guard let cg = imagen.cgImage else { return imagen }
-        let escala = imagen.scale
+    static func recortada(_ imagen: ImagenPlataforma, margen: CGFloat = 12) -> ImagenPlataforma {
+        guard let cg = imagen.cgImagen else { return imagen }
+        let escala = imagen.escala
         guard let recorte = contenido(cg) else { return imagen }
 
         let conMargen = recorte.insetBy(dx: -margen * escala, dy: -margen * escala)
             .intersection(CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
         guard let cortada = cg.cropping(to: conMargen) else { return imagen }
-        return UIImage(cgImage: cortada, scale: escala, orientation: imagen.imageOrientation)
+        return .desde(cg: cortada, comoEn: imagen)
     }
 
     /// El rectángulo que ocupan los píxeles no transparentes. `nil` si está
@@ -162,8 +161,8 @@ final class FirmasLocales {
     /// sombra y el trazo. Se pasa a escala de grises y lo claro se vuelve
     /// transparente, con el resto conservando su intensidad, así que un trazo
     /// suave sigue siendo suave en vez de convertirse en un borrón negro.
-    static func sinFondo(_ imagen: UIImage) -> UIImage {
-        guard let cg = imagen.cgImage else { return imagen }
+    static func sinFondo(_ imagen: ImagenPlataforma) -> ImagenPlataforma {
+        guard let cg = imagen.cgImagen else { return imagen }
         let ancho = cg.width, alto = cg.height
         var gris = [UInt8](repeating: 0, count: ancho * alto)
         guard let ctxGris = CGContext(data: &gris, width: ancho, height: alto,
@@ -189,7 +188,7 @@ final class FirmasLocales {
               let salida = ctxColor.makeImage() else {
             return imagen
         }
-        return recortada(UIImage(cgImage: salida, scale: imagen.scale, orientation: .up))
+        return recortada(.desde(cg: salida, escala: imagen.escala))
     }
 }
 

@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 
 /// **Dónde vive el recibo del banco mientras no ha subido.**
 ///
@@ -51,8 +50,8 @@ enum RecibosLocales {
     /// una calidad alta pero no máxima: un recibo es texto sobre papel blanco y
     /// a 0.85 se lee igual ocupando la mitad, que en el estacionamiento del
     /// banco es la diferencia entre subir y no subir.
-    static func guardar(imagen: UIImage) throws -> String {
-        guard let datos = imagen.jpegData(compressionQuality: 0.85) else {
+    static func guardar(imagen: ImagenPlataforma) throws -> String {
+        guard let datos = imagen.datosJPEG(calidad: 0.85) else {
             throw NSError(domain: "RecibosLocales", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: L.t("No se pudo preparar la imagen.",
                                                "The image could not be prepared."),

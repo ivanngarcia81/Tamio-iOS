@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Caja de arena. Obligatoria para la Mac App Store. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+
+	<!-- Salida a la red: Supabase. La app no acepta conexiones entrantes,
+	     así que NO va `network.server`. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<!-- Los archivos que el usuario elige en un diálogo: importar el CSV de
+	     aportantes, guardar un PDF de reporte, restaurar un respaldo. Es el
+	     permiso mínimo que cubre esos tres caminos: la app no puede leer nada
+	     que la persona no haya señalado. -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+
+	<!-- Impresión: los reportes y las actas salen en papel. -->
+	<key>com.apple.security.print</key>
+	<true/>
+</dict>
+</plist>

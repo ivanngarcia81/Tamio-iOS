@@ -790,7 +790,7 @@ enum TipoEvento: CaseIterable {
         case .carta:
             return Color(hex: 0x06B6D4)
         case .tarea, .fechaLimite, .otro:
-            return Color(.secondaryLabel)
+            return .etiquetaSecundaria
         }
     }
 

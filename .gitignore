@@ -4,6 +4,9 @@
 xcuserdata/
 DerivedData/
 *.hmap
+# Lo que vuelca `xcodebuild` cuando se le pasa `-target` en vez de `-scheme`:
+# sin esquema no usa DerivedData y escribe aquí, dentro del repo.
+build/
 *.ipa
 *.dSYM.zip
 *.dSYM
