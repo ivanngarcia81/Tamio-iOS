@@ -19,6 +19,17 @@ enum FichaInspector {
     case aportante(Aportante, anio: Int)
     case miembro(Miembro)
     case corte(Corte)
+    /// Para las pantallas que no eligen una fila sino que resumen lo que hay
+    /// delante: Inicio, Cartas, Informes y Servicios. El handoff les da a las
+    /// cuatro su propio contenido de inspector.
+    case resumen(Resumen)
+
+    struct Resumen {
+        let antetitulo: String
+        let titulo: String
+        let subtitulo: String
+        let campos: [(String, String)]
+    }
 }
 
 struct InspectorTamio: View {
@@ -35,6 +46,7 @@ struct InspectorTamio: View {
                 case .aportante(let a, let anio): fichaAportante(a, anio: anio)
                 case .miembro(let m):    fichaMiembro(m)
                 case .corte(let c):      fichaCorte(c)
+                case .resumen(let r):    fichaResumen(r)
                 case .nada:              vacio
                 }
             }
@@ -443,6 +455,23 @@ struct InspectorTamio: View {
             .background(.quaternary.opacity(0.4),
                         in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .padding(.top, 8)
+        }
+    }
+
+    // MARK: - Un resumen de pantalla
+
+    @ViewBuilder
+    private func fichaResumen(_ r: FichaInspector.Resumen) -> some View {
+        encabezado(r.antetitulo, r.titulo, r.subtitulo)
+        if !r.campos.isEmpty {
+            VStack(spacing: 0) {
+                ForEach(Array(r.campos.enumerated()), id: \.offset) { i, c in
+                    campo(c.0, c.1, ultimo: i == r.campos.count - 1)
+                }
+            }
+            .background(.quaternary.opacity(0.4),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.top, 14)
         }
     }
 

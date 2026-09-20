@@ -54,15 +54,16 @@ struct VentanaPrincipal: View {
             .navigationSubtitle(subtitulo)
             .toolbar { barraDeHerramientas }
         }
-        // **En las pantallas de documento no hay inspector, y no es un
-        // olvido.** El detalle de una carta es la carta, y el de un informe es
-        // el informe: ya ocupan la mitad derecha de la ventana. Un tercer
-        // panel al lado dejaría la hoja en una rendija donde no se puede leer
-        // lo único que se ha venido a leer.
-        .inspector(isPresented: Binding(
-            get: { estado.inspectorAbierto && !estado.seccion.esDeDocumento },
-            set: { estado.inspectorAbierto = $0 }
-        )) {
+        // **El inspector está en TODAS las pantallas.**
+        //
+        // Estuvo apagado en las de documento —Inicio, Cartas, Informes,
+        // Servicios— por decisión propia: la hoja ya ocupa la derecha y un
+        // tercer panel la estrecha. El handoff dice lo contrario, y con razón:
+        // nunca lo apaga, le da CONTENIDO distinto en cada pantalla —tiene
+        // entrada explícita para `memreports`, `services` y `home`— y deja que
+        // sea quien mira, con ⌘I, el que decida si le estorba. Apagarlo por él
+        // era decidir en su nombre.
+        .inspector(isPresented: $estado.inspectorAbierto) {
             InspectorTamio(seccion: estado.seccion, ficha: ficha)
         }
         .searchable(text: bindingFiltro, placement: .toolbar,
@@ -134,9 +135,78 @@ struct VentanaPrincipal: View {
             guard selRegistro.count == 1, let id = selRegistro.first,
                   let a = registro.todos.first(where: { $0.id == id }) else { return .nada }
             return .apunte(a)
-        // Servicios ya enseña su ficha entera a la derecha: no hay inspector.
         case .servicios:
-            return .nada
+            guard let s = servicios.lista.first(where: { $0.id == selServicios })
+                    ?? servicios.lista.first else { return .nada }
+            return .resumen(.init(
+                antetitulo: L.t("CULTO", "SERVICE"),
+                titulo: s.titulo,
+                subtitulo: s.fechaLegible,
+                campos: [
+                    (L.t("Asistencia", "Attendance"),
+                     s.contraPadron.map { "\(Int($0.pct * 100))%" } ?? "—"),
+                    (L.t("Presentes", "Present"),
+                     s.contraPadron.map {
+                        L.t("\($0.presentes) de \($0.total) en el padrón",
+                            "\($0.presentes) of \($0.total) on the roster")
+                     } ?? (s.totalAsistencia == 0 ? "—" : "\(s.totalAsistencia)")),
+                    (L.t("Dirige", "Leads"), s.dirige.isEmpty ? "—" : s.dirige),
+                    (L.t("Predica", "Preaches"), s.predica.isEmpty ? "—" : s.predica),
+                    (L.t("Mensaje", "Message"),
+                     s.tituloMensaje.isEmpty ? "—" : s.tituloMensaje),
+                    (L.t("Texto", "Text"), s.textoBiblico.isEmpty ? "—" : s.textoBiblico),
+                ]))
+
+        case .informes:
+            let r = informes.resumen
+            return .resumen(.init(
+                antetitulo: L.t("INFORME DE MEMBRESÍA", "MEMBERSHIP REPORT"),
+                titulo: L.t("\(r.totalMiembros) personas", "\(r.totalMiembros) people"),
+                subtitulo: r.periodo,
+                campos: [
+                    (L.t("Nuevos", "New"), "\(informes.cuenta(.nuevos))"),
+                    (L.t("Expediente incompleto", "Incomplete records"),
+                     "\(r.expedienteIncompleto)"),
+                    (L.t("Con ausencias", "With absences"),
+                     "\(informes.cuenta(.ausencias))"),
+                ]))
+
+        case .cartas:
+            guard let c = cartas.emitidas.first(where: { $0.id == selCarta }) else {
+                let n = cartas.emitidas.count
+                return .resumen(.init(
+                    antetitulo: L.t("CARTAS", "LETTERS"),
+                    titulo: n == 1 ? L.t("1 carta", "1 letter")
+                                   : L.t("\(n) cartas", "\(n) letters"),
+                    subtitulo: L.t("Elige una para verla impresa",
+                                   "Pick one to see it printed"),
+                    campos: []))
+            }
+            return .resumen(.init(
+                antetitulo: L.t("CARTA", "LETTER"),
+                titulo: c.tipo.titulo,
+                subtitulo: "\(c.folio) · \(Fechas.diaLegible(c.fechaEmision))",
+                campos: [
+                    (L.t("Destinatario", "Recipient"),
+                     c.destinatarioNombre.isEmpty ? "—" : c.destinatarioNombre),
+                    (L.t("Estado", "Status"), c.estado.capitalized),
+                    (L.t("Lugar", "Place"),
+                     c.lugarEmision.isEmpty ? "—" : c.lugarEmision),
+                ]))
+
+        case .inicio:
+            guard let d = inicio.data else { return .nada }
+            return .resumen(.init(
+                antetitulo: L.t("PERIODO", "PERIOD"),
+                titulo: Money.fmt(d.saldoCaja),
+                subtitulo: L.t("en caja hoy", "cash on hand today"),
+                campos: [
+                    (L.t("Ingresos", "Income"), Money.fmt(d.ingresos)),
+                    (L.t("Gastos", "Expenses"), Money.fmt(d.gastos)),
+                    (L.t("Balance", "Balance"), Money.fmt(d.balance)),
+                    (L.t("Sin depositar", "Not deposited"), "\(d.sinDepositarCount)"),
+                    (L.t("Por revisar", "To review"), "\(d.pendientes)"),
+                ]))
         case .miembros:
             guard selAportantes.count == 1, let id = selAportantes.first,
                   let a = aportantes.items.first(where: { $0.id == id }) else { return .nada }
