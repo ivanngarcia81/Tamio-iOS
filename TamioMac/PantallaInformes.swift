@@ -30,7 +30,7 @@ struct PantallaInformes: View {
             .padding(.top, 16)
             .padding(.bottom, 30)
         }
-        .background(Color.fondoAgrupado)
+        .background(Color.suelo)
         .task { await vm.cargarPadron() }
     }
 
@@ -86,8 +86,7 @@ struct PantallaInformes: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
-            .background(Color.tarjeta,
-                        in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .tarjetaMac(14)
 
             HStack(alignment: .top, spacing: 12) {
                 panel(L.t("POR ESTADO", "BY STATUS")) {
@@ -268,8 +267,7 @@ struct PantallaInformes: View {
                                             in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                         }
                         .padding(.horizontal, 13).padding(.vertical, 9)
-                        .background(Color.tarjeta,
-                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .tarjetaMac(10)
                     }
                 }
             }
@@ -397,8 +395,7 @@ struct PantallaInformes: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color.tarjeta,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .tarjetaMac(14)
     }
 
     private func panel<C: View>(_ titulo: String, @ViewBuilder c: () -> C) -> some View {
@@ -410,8 +407,7 @@ struct PantallaInformes: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color.tarjeta,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .tarjetaMac(14)
     }
 
     private var vacio: some View {

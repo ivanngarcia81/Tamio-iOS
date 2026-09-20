@@ -100,7 +100,7 @@ struct PantallaCartas: View {
                 HojaCarta(carta: c)
                     .padding(28)
             }
-            .background(Color.fondoAgrupado)
+            .background(Color.suelo)
         } else {
             ContentUnavailableView {
                 Label(L.t("Ninguna carta elegida", "No letter selected"),
@@ -109,7 +109,7 @@ struct PantallaCartas: View {
                 Text(L.t("Elige una de la lista para verla como saldrá impresa.",
                          "Pick one from the list to see it as it will be printed."))
             }
-            .background(Color.fondoAgrupado)
+            .background(Color.suelo)
         }
     }
 }

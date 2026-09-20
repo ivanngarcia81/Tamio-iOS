@@ -28,7 +28,7 @@ struct PantallaConfiguracion: View {
                 .padding(24)
             }
             .frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.fondoAgrupado)
+            .background(Color.suelo)
         }
     }
 
@@ -136,8 +136,7 @@ struct PantallaConfiguracion: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
-        .background(Color.tarjeta,
-                    in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .tarjetaMac(18)
     }
 
     // MARK: - El contenido de cada sección
@@ -377,8 +376,7 @@ struct Grupo<C: View>: View {
                     .padding(.horizontal, 8)
             }
             VStack(spacing: 0) { contenido() }
-                .background(Color.tarjeta,
-                            in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .tarjetaMac(18)
         }
     }
 }

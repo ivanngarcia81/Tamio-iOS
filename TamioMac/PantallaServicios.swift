@@ -93,7 +93,7 @@ struct PantallaServicios: View {
                 }
                 .padding(22)
             }
-            .background(Color.fondoAgrupado)
+            .background(Color.suelo)
         } else {
             ContentUnavailableView {
                 Label(L.t("Ningún culto elegido", "No service selected"), systemImage: "book")
@@ -101,7 +101,7 @@ struct PantallaServicios: View {
                 Text(L.t("Elige uno de la lista para ver su ficha.",
                          "Pick one from the list to see its details."))
             }
-            .background(Color.fondoAgrupado)
+            .background(Color.suelo)
         }
     }
 
@@ -135,8 +135,7 @@ struct PantallaServicios: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color.tarjeta,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .tarjetaMac(14)
     }
 
     private func quien(_ rotulo: String, _ nombre: String) -> some View {
@@ -198,8 +197,7 @@ struct PantallaServicios: View {
             }
         }
         .padding(16)
-        .background(Color.tarjeta,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .tarjetaMac(14)
     }
 
     private func roster(_ s: Servicio) -> some View {
@@ -327,8 +325,7 @@ struct PantallaServicios: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color.tarjeta,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .tarjetaMac(14)
     }
 
     private func nada(_ t: String) -> some View {

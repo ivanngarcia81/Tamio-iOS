@@ -29,7 +29,7 @@ struct PantallaActas: View {
                 .padding(20)
             }
         }
-        .background(Color.fondoAgrupado)
+        .background(Color.suelo)
     }
 
     private func tarjeta(_ a: Acta) -> some View {

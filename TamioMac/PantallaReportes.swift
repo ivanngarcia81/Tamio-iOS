@@ -70,10 +70,10 @@ struct PantallaReportes: View {
                 .frame(maxHeight: .infinity)
             } else if verHoja {
                 ScrollView { hoja.padding(28) }
-                    .background(Color.fondoAgrupado)
+                    .background(Color.suelo)
             } else {
                 ScrollView { resumen.padding(22) }
-                    .background(Color.fondoAgrupado)
+                    .background(Color.suelo)
             }
         }
     }
@@ -223,8 +223,7 @@ struct PantallaReportes: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color.tarjeta,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .tarjetaMac(14)
     }
 
     // MARK: - Mensual
@@ -435,7 +434,6 @@ struct PantallaReportes: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color.tarjeta,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .tarjetaMac(14)
     }
 }

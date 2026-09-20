@@ -180,22 +180,6 @@ extension Color {
         #endif
     }
 
-    /// **El blanco de una tarjeta.** La pareja de `fondoAgrupado`: una va
-    /// encima de la otra y entre las dos hacen la jerarquía.
-    ///
-    /// En macOS es `controlBackgroundColor` —blanco en claro, gris oscuro en
-    /// oscuro— y en iOS el secundario agrupado. **No vale
-    /// `.background.secondary` de SwiftUI**, que fue lo que se usó primero:
-    /// en modo claro pinta GRIS, así que las tarjetas salían más oscuras que
-    /// el fondo de la ventana y la jerarquía quedaba del revés.
-    static var tarjeta: Color {
-        #if canImport(UIKit)
-        return Color(UIColor.secondarySystemGroupedBackground)
-        #else
-        return Color(NSColor.controlBackgroundColor)
-        #endif
-    }
-
     /// El gris de debajo de una lista agrupada: lo que se ve ENTRE las
     /// tarjetas y por eso no puede ser blanco.
     ///

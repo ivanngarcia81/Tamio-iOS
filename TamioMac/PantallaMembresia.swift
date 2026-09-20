@@ -43,7 +43,7 @@ struct PantallaMembresia: View {
             .padding(.top, 16)
             .padding(.bottom, 28)
         }
-        .background(Color.fondoAgrupado)
+        .background(Color.suelo)
     }
 
     // MARK: - Cabecera
@@ -98,8 +98,7 @@ struct PantallaMembresia: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(Color.tarjeta,
-                            in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .tarjetaMac(11)
             }
         }
         .padding(.top, 16)
@@ -336,8 +335,7 @@ struct PantallaMembresia: View {
                     }
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.tarjeta,
-                                in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    .tarjetaMac(13)
                 }
             }
             .frame(maxWidth: 900, alignment: .leading)
@@ -359,8 +357,7 @@ struct PantallaMembresia: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color.tarjeta,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .tarjetaMac(14)
     }
 
     private func panel<C: View>(_ titulo: String, @ViewBuilder c: () -> C) -> some View {
@@ -373,8 +370,7 @@ struct PantallaMembresia: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color.tarjeta,
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .tarjetaMac(14)
     }
 
     private var sinDatos: some View {

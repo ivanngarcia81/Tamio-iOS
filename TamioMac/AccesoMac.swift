@@ -34,7 +34,7 @@ struct AccesoMac: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.fondoAgrupado)
+        .background(Color.suelo)
         .sheet(isPresented: $recuperando) {
             RecuperarContrasenaMac(sesion: sesion, correoInicial: correo)
         }
