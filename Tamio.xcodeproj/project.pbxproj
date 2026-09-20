@@ -291,7 +291,7 @@
 		15A5130CEB89DC504039D507 /* Revision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Revision.swift; sourceTree = "<group>"; };
 		18B65D57D2D2B817B8EFC946 /* CategoriasRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasRepository.swift; sourceTree = "<group>"; };
 		191D71C3F91671921E790653 /* SuperficiesMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperficiesMac.swift; sourceTree = "<group>"; };
-		1AD7AC08B4DD324D9C830368 /* en.lproj */ = {isa = PBXFileReference; path = en.lproj; sourceTree = "<group>"; };
+		1AD7AC08B4DD324D9C830368 /* en.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = en.lproj; sourceTree = "<group>"; };
 		1B9AEE04A26612BD5F8E8EFD /* TablaRegistro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TablaRegistro.swift; sourceTree = "<group>"; };
 		1D443B706E3EBB5CFB3C93C9 /* HojaDeInforme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HojaDeInforme.swift; sourceTree = "<group>"; };
 		1E31171D90F95C88B95D2E62 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
@@ -360,8 +360,8 @@
 		7EDCE7AC66911A04C5443F1E /* PantallaBloqueo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantallaBloqueo.swift; sourceTree = "<group>"; };
 		804F0337A286564156D330E9 /* MembresiaRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembresiaRepository.swift; sourceTree = "<group>"; };
 		804F8F6B50873C1579D13583 /* Plataforma.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Plataforma.swift; sourceTree = "<group>"; };
-		818B21C99EC7E6847E7B8CA1 /* TamioMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TamioMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		81FAB6F7146708D41314D79A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		818B21C99EC7E6847E7B8CA1 /* TamioMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = TamioMac.app; path = Tamio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		81FAB6F7146708D41314D79A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		822BA467128B920E69AAA992 /* ModoRevision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModoRevision.swift; sourceTree = "<group>"; };
 		843AA28C65202374FDDF0E75 /* ReportesRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportesRepository.swift; sourceTree = "<group>"; };
 		84DDEB329C229626C72FFB67 /* ServiciosViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiciosViewModel.swift; sourceTree = "<group>"; };
@@ -391,7 +391,7 @@
 		A8DCB9347E5541C6677D9486 /* MonthlyBarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlyBarChart.swift; sourceTree = "<group>"; };
 		AA7CFADC63CC7AD008CA04F8 /* Compactacion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Compactacion.swift; sourceTree = "<group>"; };
 		B49002AFC6F8C9B6BA595852 /* RevisarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevisarViewModel.swift; sourceTree = "<group>"; };
-		B70AC1D56C28E613BA62E4E0 /* es.lproj */ = {isa = PBXFileReference; path = es.lproj; sourceTree = "<group>"; };
+		B70AC1D56C28E613BA62E4E0 /* es.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = es.lproj; sourceTree = "<group>"; };
 		BC2EA353B9B96816B248DC3C /* CategoriaCustom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriaCustom.swift; sourceTree = "<group>"; };
 		BC33051936AF83903AD7CA7D /* ReportePDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportePDF.swift; sourceTree = "<group>"; };
 		BC9C5BDBBC490C54F3BC0B35 /* ImportarAportesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportarAportesView.swift; sourceTree = "<group>"; };
@@ -799,7 +799,7 @@
 			mainGroup = 3B3CC432189BA6C0914DF9D8;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				462300A5552C0B3BB977A7EB /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				462300A5552C0B3BB977A7EB /* XCRemoteSwiftPackageReference "GRDB" */,
 				E9C5ACCCD0C577AB057F33AA /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -1379,7 +1379,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		462300A5552C0B3BB977A7EB /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+		462300A5552C0B3BB977A7EB /* XCRemoteSwiftPackageReference "GRDB" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -1400,7 +1400,7 @@
 /* Begin XCSwiftPackageProductDependency section */
 		2BB28A62CA4AA45355191A04 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 462300A5552C0B3BB977A7EB /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			package = 462300A5552C0B3BB977A7EB /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
 		};
 		7BDDC31CDE4323947D59D290 /* Supabase */ = {
@@ -1415,7 +1415,7 @@
 		};
 		AED868B6BCE7BF227EF67649 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 462300A5552C0B3BB977A7EB /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			package = 462300A5552C0B3BB977A7EB /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */
