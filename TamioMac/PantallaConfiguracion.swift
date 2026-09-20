@@ -136,7 +136,7 @@ struct PantallaConfiguracion: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
@@ -377,7 +377,7 @@ struct Grupo<C: View>: View {
                     .padding(.horizontal, 8)
             }
             VStack(spacing: 0) { contenido() }
-                .background(.background.secondary,
+                .background(Color.tarjeta,
                             in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
     }

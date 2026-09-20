@@ -135,7 +135,7 @@ struct PantallaServicios: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
@@ -198,7 +198,7 @@ struct PantallaServicios: View {
             }
         }
         .padding(16)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
@@ -327,7 +327,7 @@ struct PantallaServicios: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 

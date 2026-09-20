@@ -73,6 +73,7 @@ struct PantallaReportes: View {
                     .background(Color.fondoAgrupado)
             } else {
                 ScrollView { resumen.padding(22) }
+                    .background(Color.fondoAgrupado)
             }
         }
     }
@@ -222,7 +223,7 @@ struct PantallaReportes: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
@@ -434,7 +435,7 @@ struct PantallaReportes: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

@@ -30,6 +30,7 @@ struct PantallaInformes: View {
             .padding(.top, 16)
             .padding(.bottom, 30)
         }
+        .background(Color.fondoAgrupado)
         .task { await vm.cargarPadron() }
     }
 
@@ -85,7 +86,7 @@ struct PantallaInformes: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
-            .background(.background.secondary,
+            .background(Color.tarjeta,
                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             HStack(alignment: .top, spacing: 12) {
@@ -267,7 +268,7 @@ struct PantallaInformes: View {
                                             in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                         }
                         .padding(.horizontal, 13).padding(.vertical, 9)
-                        .background(.background.secondary,
+                        .background(Color.tarjeta,
                                     in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
@@ -396,7 +397,7 @@ struct PantallaInformes: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
@@ -409,7 +410,7 @@ struct PantallaInformes: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 

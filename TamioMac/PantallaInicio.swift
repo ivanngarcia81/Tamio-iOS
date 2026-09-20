@@ -32,6 +32,10 @@ struct PantallaInicio: View {
             }
             .padding(26)
         }
+        // **El suelo gris bajo las tarjetas.** Es la otra mitad de la
+        // jerarquía: sin él las tarjetas blancas flotan sobre blanco y no se
+        // distingue dónde acaba una.
+        .background(Color.fondoAgrupado)
         .task { await vm.cargar() }
     }
 
@@ -353,7 +357,7 @@ struct TarjetaKPI: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(15)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
@@ -384,7 +388,7 @@ struct Tarjeta<C: View>: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

@@ -27,6 +27,7 @@ struct PantallaRevisar: View {
             .padding(.horizontal, 26)
             .padding(.vertical, 22)
         }
+        .background(Color.fondoAgrupado)
     }
 
     private var franja: some View {
@@ -122,7 +123,7 @@ struct PantallaRevisar: View {
         }
         .padding(15)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 13, style: .continuous))
     }
 

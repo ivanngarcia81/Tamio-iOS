@@ -43,6 +43,7 @@ struct PantallaMembresia: View {
             .padding(.top, 16)
             .padding(.bottom, 28)
         }
+        .background(Color.fondoAgrupado)
     }
 
     // MARK: - Cabecera
@@ -97,7 +98,7 @@ struct PantallaMembresia: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(.background.secondary,
+                .background(Color.tarjeta,
                             in: RoundedRectangle(cornerRadius: 11, style: .continuous))
             }
         }
@@ -335,7 +336,7 @@ struct PantallaMembresia: View {
                     }
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background.secondary,
+                    .background(Color.tarjeta,
                                 in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                 }
             }
@@ -358,7 +359,7 @@ struct PantallaMembresia: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
@@ -372,7 +373,7 @@ struct PantallaMembresia: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(.background.secondary,
+        .background(Color.tarjeta,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
