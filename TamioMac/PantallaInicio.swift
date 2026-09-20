@@ -75,16 +75,16 @@ struct PantallaInicio: View {
         HStack(spacing: 14) {
             TarjetaKPI(rotulo: L.t("Saldo en caja", "Cash on hand"),
                        valor: Money.fmt(d?.saldoCaja ?? 0),
-                       delta: d?.deltaSaldo,
+                       delta: d?.deltaSaldo, contra: vm.periodoAnteriorLegible,
                        nota: d.map { L.t("\($0.sinDepositarCount) sin depositar",
                                          "\($0.sinDepositarCount) not deposited") })
             TarjetaKPI(rotulo: L.t("Ingresos del periodo", "Period income"),
                        valor: Money.fmt(d?.ingresos ?? 0),
-                       delta: d?.deltaIngresos,
+                       delta: d?.deltaIngresos, contra: vm.periodoAnteriorLegible,
                        nota: d.map { registros($0.registrosIngreso) })
             TarjetaKPI(rotulo: L.t("Gastos del periodo", "Period expenses"),
                        valor: Money.fmt(d?.gastos ?? 0),
-                       delta: d?.deltaGastos,
+                       delta: d?.deltaGastos, contra: vm.periodoAnteriorLegible,
                        deltaAlRevés: true,
                        nota: d.map { registros($0.registrosGasto) })
             TarjetaKPI(rotulo: L.t("Por revisar", "To review"),
@@ -134,12 +134,26 @@ struct PantallaInicio: View {
             if cats.isEmpty {
                 vacio(L.t("Sin ingresos en el periodo", "No income this period"))
             } else {
+                let total = cats.reduce(0) { $0 + $1.monto }
                 Chart(cats) { c in
                     SectorMark(angle: .value("Importe", Double(c.monto) / 100),
                                innerRadius: .ratio(0.62), angularInset: 1.5)
                         .foregroundStyle(Paleta.categoria(Catalogos.clave(deEtiqueta: c.nombre),
                                                           nombre: c.nombre))
                         .cornerRadius(3)
+                }
+                // **El total va DENTRO del agujero**, como en el handoff. Sin
+                // él la dona solo dice cómo se reparte; con él dice además de
+                // cuánto se reparte, que es la mitad de la pregunta.
+                .chartBackground { _ in
+                    VStack(spacing: 0) {
+                        Text(Money.compact(total))
+                            .font(.system(size: 14, weight: .bold))
+                            .monospacedDigit()
+                        Text(vm.periodoLegible)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .frame(height: 140)
                 .padding(.top, 10)
@@ -153,7 +167,11 @@ struct PantallaInicio: View {
                                 .frame(width: 9, height: 9)
                             Text(c.nombre).font(.system(size: 12)).lineLimit(1)
                             Spacer(minLength: 6)
-                            Text(Money.fmt(c.monto))
+                            // **Porcentaje y no importe.** El importe ya está
+                            // en el centro de la dona; repetirlo por categoría
+                            // gasta el renglón en el dato que menos dice. Lo
+                            // que se viene a ver aquí es el REPARTO.
+                            Text(total > 0 ? "\(Int((Double(c.monto) / Double(total) * 100).rounded()))%" : "—")
                                 .font(.system(size: 12))
                                 .monospacedDigit()
                                 .foregroundStyle(.secondary)
@@ -185,11 +203,17 @@ struct PantallaInicio: View {
                                 .background(Paleta.categoria(Catalogos.clave(deEtiqueta: t.categoria),
                                                              nombre: t.categoria),
                                             in: Circle())
+                            // El handoff pone la CATEGORÍA y la persona en el
+                            // renglón de arriba, y el folio con el método
+                            // debajo. Estaba al revés: el nombre arriba solo y
+                            // la categoría abajo, que esconde el folio — el
+                            // dato con el que se busca un movimiento.
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(t.titular)
+                                Text(t.persona.map { "\(t.categoria) · \($0)" } ?? t.categoria)
                                     .font(.system(size: 12.5, weight: .medium))
                                     .lineLimit(1)
-                                Text("\(t.categoria) · \(t.metodo)")
+                                Text(L.t("Folio \(t.folio) · \(t.metodo)",
+                                         "Folio \(t.folio) · \(t.metodo)"))
                                     .font(.system(size: 11.5))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
@@ -239,6 +263,12 @@ struct PantallaInicio: View {
                                     .lineLimit(1)
                             }
                             Spacer(minLength: 0)
+                            // El punto por familia de actividad. Faltaba, y es
+                            // lo que deja distinguir de un vistazo un culto de
+                            // una reunión o de un vencimiento.
+                            Circle()
+                                .fill(Paleta.agenda[min(e.familia, Paleta.agenda.count - 1)])
+                                .frame(width: 8, height: 8)
                         }
                         .padding(.vertical, 9)
                         .overlay(alignment: .top) { Divider() }
@@ -265,12 +295,18 @@ struct TarjetaKPI: View {
     let rotulo: String
     let valor: String
     var delta: Double? = nil
+    /// "vs agosto". El handoff lo escribe y sin ello un "▲ 4,2 %" no dice
+    /// respecto a qué: el mismo número significa cosas distintas comparado
+    /// con el mes pasado o con el año pasado.
+    var contra: String? = nil
     /// **Para Gastos, subir es malo.** Sin esto la tarjeta pintaría en verde
     /// que este mes se gastó un 12 % más, que es exactamente al revés.
     var deltaAlRevés: Bool = false
     var nota: String? = nil
     var enlace: String? = nil
     var accion: (() -> Void)? = nil
+
+    private func flecha(_ d: Double) -> String { d >= 0 ? "▲" : "▼" }
 
     private var tintaDelta: Color {
         guard let delta else { return .secondary }
@@ -295,9 +331,14 @@ struct TarjetaKPI: View {
                 // mes de una iglesia no hay periodo anterior, y un "▲ 0 %"
                 // inventado es peor que no decir nada.
                 if let delta {
-                    Text("\(delta >= 0 ? "▲" : "▼") \(abs(delta * 100), specifier: "%.1f")%")
+                    // Se arma como String y no con `specifier:` dentro del
+                    // literal: eso lo convierte en `LocalizedStringKey`, que no
+                    // se puede concatenar con el " vs agosto" de detrás.
+                    Text(flecha(delta) + " " + String(format: "%.1f", abs(delta * 100)) + "%"
+                         + (contra.map { " \(L.t("vs", "vs")) \($0)" } ?? ""))
                         .fontWeight(.semibold)
                         .foregroundStyle(tintaDelta)
+                        .lineLimit(1)
                 }
             }
             .font(.system(size: 12))

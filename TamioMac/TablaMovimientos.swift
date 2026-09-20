@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// **La tabla de Ingresos y Gastos.**
 ///
@@ -79,6 +80,31 @@ struct TablaMovimientos: View {
             .width(min: 100, ideal: 130, max: 180)
         }
         .tableStyle(.inset(alternatesRowBackgrounds: true))
+        // **El menú contextual del handoff, con lo que de verdad funciona.**
+        //
+        // El diseño lista ocho órdenes: Aprobar ⌘R, Marcar depositado ⇧⌘B,
+        // Devolver a la bandeja, Duplicar ⌘D, Copiar folio ⌘C, Eliminar… y
+        // dos más. Seis de las ocho mueven dinero o estado de revisión y
+        // todavía no están escritas; ponerlas apagadas o, peor, que no hagan
+        // nada, promete lo que no hay. Entran las tres de copiar, que son las
+        // que se pueden cumplir hoy — y son justo las que se usan para cuadrar
+        // contra el talonario sin soltar el teclado.
+        .contextMenu(forSelectionType: Movimiento.ID.self) { ids in
+            if let m = filas.first(where: { ids.contains($0.id) }) {
+                Button(L.t("Copiar folio", "Copy folio")) { copiar(m.folio) }
+                Button(L.t("Copiar concepto", "Copy concept")) {
+                    copiar([m.categoria, quien(m)].filter { !$0.isEmpty }.joined(separator: " · "))
+                }
+                Button(L.t("Copiar importe", "Copy amount")) {
+                    copiar(Money.fmt(m.monto))
+                }
+            }
+        }
+    }
+
+    private func copiar(_ texto: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(texto, forType: .string)
     }
 
     /// Quién está al otro lado: el aportante en un ingreso, el beneficiario en

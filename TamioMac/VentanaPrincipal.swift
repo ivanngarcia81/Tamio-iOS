@@ -358,7 +358,13 @@ struct VentanaPrincipal: View {
         if let vm = vmActual {
             let n = vm.itemsFiltrados.count
             let registros = n == 1 ? L.t("registro", "record") : L.t("registros", "records")
-            return "\(n) \(registros) · \(Money.fmt(vm.total))"
+            let cuenta = "\(n) \(registros) · \(Money.fmt(vm.total))"
+            // **El periodo va DELANTE**, como en el handoff ("September 2026 ·
+            // 14 records · $19,257.15"). Sin él, "14 registros · $19.257,15"
+            // no dice de cuándo, y esta pantalla siempre está encuadrada en un
+            // mes: es el dato que le da sentido a los otros dos.
+            guard let mes = vm.mes else { return cuenta }
+            return "\(mes.formatted(.dateTime.month(.wide).year())) · \(cuenta)"
         }
         if estado.seccion == .registro {
             let n = registro.visibles.count
@@ -401,8 +407,16 @@ struct VentanaPrincipal: View {
             let n = depositos.items.count
             let c = n == 1 ? L.t("corte", "cut") : L.t("cortes", "cuts")
             let pend = depositos.pendientesCount
-            return pend == 0 ? "\(n) \(c)"
-                : L.t("\(n) \(c) · \(pend) en caja", "\(n) \(c) · \(pend) in the cash box")
+            // El handoff encabeza con lo DEPOSITADO ("$58,965.55 banked this
+            // month"), que es la cifra que se busca aquí; lo que sigue en caja
+            // se añade detrás y solo si queda algo.
+            let banco = depositos.items
+                .filter { $0.estado == .depositado }
+                .reduce(0) { $0 + $1.suma }
+            let base = L.t("\(n) \(c) · \(Money.fmt(banco)) en el banco",
+                           "\(n) \(c) · \(Money.fmt(banco)) banked")
+            return pend == 0 ? base
+                : L.t("\(base) · \(pend) en caja", "\(base) · \(pend) in the cash box")
         }
         if estado.seccion == .informes {
             return informes.resumen.periodo
