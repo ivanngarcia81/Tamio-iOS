@@ -25,6 +25,7 @@
 		0E3046EC281CAD0C540C3711 /* CartasRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C42BB2675434F872163377 /* CartasRepository.swift */; };
 		0F2371779EBE085BCB8E4D7D /* PantallaInicio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 998F831DF7AE7D99F260A709 /* PantallaInicio.swift */; };
 		10020C9611C5B380E2F32FF6 /* MembresiaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7D69422E5BAEDE044AC662 /* MembresiaViewModel.swift */; };
+		1157B5575307E5438B1F3296 /* PantallaReportes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D3B6524D0FA6143B4E91B6 /* PantallaReportes.swift */; };
 		11ECC7B14709733952376C7D /* Compactacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7CFADC63CC7AD008CA04F8 /* Compactacion.swift */; };
 		121524EADF7EE86181BF60F7 /* Supabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36DD99D2CAFFF4ECBAD6AC01 /* Supabase.swift */; };
 		127515E07FA461AED9B9AAA2 /* IPhoneSecretariaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FBFB6CE7A24648A6454B21 /* IPhoneSecretariaView.swift */; };
@@ -60,6 +61,7 @@
 		331E4D8A56B6279357AF4246 /* AportantesCatalogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C53E27C6E088CFC1F1AAB3 /* AportantesCatalogo.swift */; };
 		34B75063537741C573563418 /* MotorSincronizacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60865A62E331A5B86A0168B7 /* MotorSincronizacion.swift */; };
 		35E9D82674A426BD48F89D33 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B6B48B85CCE8FEDC6FC092 /* FlowLayout.swift */; };
+		360C894189226B4AAEF990AE /* HojaDeInforme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D443B706E3EBB5CFB3C93C9 /* HojaDeInforme.swift */; };
 		363EB048FCCA79319B208A71 /* ActasRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A31734309B9FBF01979802 /* ActasRepository.swift */; };
 		367FE446C5DF82FA29FDABA8 /* CSVLector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279D1E93E97F733944EFE15B /* CSVLector.swift */; };
 		36E1008FCCD6AD19BEBF7F20 /* ServiciosViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84DDEB329C229626C72FFB67 /* ServiciosViewModel.swift */; };
@@ -287,6 +289,7 @@
 		18B65D57D2D2B817B8EFC946 /* CategoriasRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasRepository.swift; sourceTree = "<group>"; };
 		1AD7AC08B4DD324D9C830368 /* en.lproj */ = {isa = PBXFileReference; path = en.lproj; sourceTree = "<group>"; };
 		1B9AEE04A26612BD5F8E8EFD /* TablaRegistro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TablaRegistro.swift; sourceTree = "<group>"; };
+		1D443B706E3EBB5CFB3C93C9 /* HojaDeInforme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HojaDeInforme.swift; sourceTree = "<group>"; };
 		1E31171D90F95C88B95D2E62 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		1E5D851F21AE3D7F49043807 /* SelectorLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectorLogo.swift; sourceTree = "<group>"; };
 		20DDE9E2E66EF03B27058376 /* OfflineMiembrosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineMiembrosRepository.swift; sourceTree = "<group>"; };
@@ -305,6 +308,7 @@
 		2ED6D258DE1A917D9005E3BC /* Espaciado.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Espaciado.swift; sourceTree = "<group>"; };
 		312E4C816C111860A5D879C2 /* BorradoMasivo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BorradoMasivo.swift; sourceTree = "<group>"; };
 		318D735C25A98F16DC683F15 /* Reporte.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reporte.swift; sourceTree = "<group>"; };
+		31D3B6524D0FA6143B4E91B6 /* PantallaReportes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantallaReportes.swift; sourceTree = "<group>"; };
 		36DD99D2CAFFF4ECBAD6AC01 /* Supabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Supabase.swift; sourceTree = "<group>"; };
 		38C2EDA0E861A039E4FB28FC /* EditarAsuntoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditarAsuntoView.swift; sourceTree = "<group>"; };
 		3924CE61AC4421A3687139E2 /* BloqueoBiometrico.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloqueoBiometrico.swift; sourceTree = "<group>"; };
@@ -485,6 +489,7 @@
 				9D05AF324E5F40AB40B774AB /* CapturaRapida.swift */,
 				0373D9A8A3832B8791E0C108 /* ComandosTamio.swift */,
 				D4CFCD32239F36DA1E740B4B /* EstadoVentana.swift */,
+				1D443B706E3EBB5CFB3C93C9 /* HojaDeInforme.swift */,
 				E9713DD4E1959A5A6820F895 /* InspectorTamio.swift */,
 				917F434C631F46B53A5CBC26 /* PantallaActas.swift */,
 				E643AE487A70C13B59F8EBD7 /* PantallaAgenda.swift */,
@@ -492,6 +497,7 @@
 				21A73C49D02DBB1F64569F11 /* PantallaInformes.swift */,
 				998F831DF7AE7D99F260A709 /* PantallaInicio.swift */,
 				DB62D0482B0D7F3DFB5CD3E9 /* PantallaMembresia.swift */,
+				31D3B6524D0FA6143B4E91B6 /* PantallaReportes.swift */,
 				75DEF7B41964CD19C67E9807 /* PantallaRevisar.swift */,
 				2AA8B8B805F9A026FB942BC4 /* PantallaServicios.swift */,
 				610A5F6071F2275CB2FD1FF0 /* SeccionMac.swift */,
@@ -868,6 +874,7 @@
 				AB301116A5BD6FEF54B7CF66 /* Fechas.swift in Sources */,
 				AB9FA3D8A56B612D7D67C158 /* FirmasLocales.swift in Sources */,
 				35E9D82674A426BD48F89D33 /* FlowLayout.swift in Sources */,
+				360C894189226B4AAEF990AE /* HojaDeInforme.swift in Sources */,
 				61AFAD04C8CA5BAE257D65E8 /* IglesiaFila.swift in Sources */,
 				A0BE366891C2C5A53ECF9AD5 /* ImportadorAportantes.swift in Sources */,
 				9CFFEF702ED625CB9ED16583 /* ImportadorAportes.swift in Sources */,
@@ -901,6 +908,7 @@
 				8C5816EE0F37FF306AA65500 /* PantallaInformes.swift in Sources */,
 				0F2371779EBE085BCB8E4D7D /* PantallaInicio.swift in Sources */,
 				FB529358C26F6530836059A5 /* PantallaMembresia.swift in Sources */,
+				1157B5575307E5438B1F3296 /* PantallaReportes.swift in Sources */,
 				0519C46813703567022556BF /* PantallaRevisar.swift in Sources */,
 				E1F5666E914E34BCA13A0D16 /* PantallaServicios.swift in Sources */,
 				4F6A4B17866B5B9A0D439BA5 /* Permisos.swift in Sources */,

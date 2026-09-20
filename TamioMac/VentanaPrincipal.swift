@@ -29,6 +29,8 @@ struct VentanaPrincipal: View {
     @State private var inicio = DashboardViewModel()
     @State private var actas = ActasViewModel()
     @State private var agenda = AgendaViewModel()
+    @State private var reportes = ReportesViewModel()
+    @State private var reporteEnHoja = false
     @State private var selActa: String?
     @State private var selIngresos: Set<Movimiento.ID> = []
     @State private var selGastos: Set<Movimiento.ID> = []
@@ -116,6 +118,8 @@ struct VentanaPrincipal: View {
             PantallaActas(vm: actas, seleccion: $selActa)
         case .agenda:
             PantallaAgenda(vm: agenda)
+        case .reportes:
+            PantallaReportes(vm: reportes, verHoja: $reporteEnHoja)
         default:
             PantallaPorEscribir(seccion: estado.seccion)
         }
@@ -432,6 +436,9 @@ struct VentanaPrincipal: View {
                            "\(n) \(c) · \(Money.fmt(banco)) banked")
             return pend == 0 ? base
                 : L.t("\(base) · \(pend) en caja", "\(base) · \(pend) in the cash box")
+        }
+        if estado.seccion == .reportes {
+            return reportes.esAnual ? reportes.anioSel : reportes.periodoEtiqueta
         }
         if estado.seccion == .porRevisar {
             let n = registroDeRevisiones.porRevisarCount
