@@ -31,6 +31,7 @@ struct VentanaPrincipal: View {
     @State private var agenda = AgendaViewModel()
     @State private var reportes = ReportesViewModel()
     @State private var reporteEnHoja = false
+    @State private var seccionAjustes: SeccionAjustes = .cuenta
     @State private var selActa: String?
     @State private var selIngresos: Set<Movimiento.ID> = []
     @State private var selGastos: Set<Movimiento.ID> = []
@@ -120,6 +121,8 @@ struct VentanaPrincipal: View {
             PantallaAgenda(vm: agenda)
         case .reportes:
             PantallaReportes(vm: reportes, verHoja: $reporteEnHoja)
+        case .config:
+            PantallaConfiguracion(seccion: $seccionAjustes)
         default:
             PantallaPorEscribir(seccion: estado.seccion)
         }
@@ -212,6 +215,16 @@ struct VentanaPrincipal: View {
                     (L.t("Lugar", "Place"),
                      c.lugarEmision.isEmpty ? "—" : c.lugarEmision),
                 ]))
+
+        case .config:
+            return .resumen(.init(
+                antetitulo: L.t("CONFIGURACIÓN", "SETTINGS"),
+                titulo: seccionAjustes.titulo,
+                // Literal del handoff: "Settings are edited in the panel on
+                // the left".
+                subtitulo: L.t("Se edita en el panel de la izquierda",
+                               "Edited in the panel on the left"),
+                campos: []))
 
         case .inicio:
             guard let d = inicio.data else { return .nada }
@@ -468,7 +481,7 @@ struct VentanaPrincipal: View {
                                          "\(n) \(c) · \(borradores) in draft")
         }
         if estado.seccion == .config {
-            return L.t("Iglesia, accesos y respaldos", "Church, access & backups")
+            return seccionAjustes.titulo
         }
         return ""
     }
