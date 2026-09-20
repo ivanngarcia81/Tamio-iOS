@@ -152,6 +152,7 @@
 		8981C16C303E7782C459B825 /* TablaAportantes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA24FC4711E14705FE6A981 /* TablaAportantes.swift */; };
 		8A5142446B2907DCC6A7E50A /* CSV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999989B306FA1BDEE165F1C2 /* CSV.swift */; };
 		8ADC655133EC618C80BFB7D9 /* SuperficiesMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191D71C3F91671921E790653 /* SuperficiesMac.swift */; };
+		4FBD1A98660C4D70A9D92ED2 /* NuevaActividad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D55E60BC14143398653E289 /* NuevaActividad.swift */; };
 		8B47F2B669DF6FB37A221617 /* ProteccionArchivos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477D4C50E4D3ED9B8E5E67D0 /* ProteccionArchivos.swift */; };
 		8C5816EE0F37FF306AA65500 /* PantallaInformes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21A73C49D02DBB1F64569F11 /* PantallaInformes.swift */; };
 		8D6F5DE559E67066226AD20D /* ExportadorAportantes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99FB5B210A49074A15A4D8C2 /* ExportadorAportantes.swift */; };
@@ -291,6 +292,7 @@
 		15A5130CEB89DC504039D507 /* Revision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Revision.swift; sourceTree = "<group>"; };
 		18B65D57D2D2B817B8EFC946 /* CategoriasRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasRepository.swift; sourceTree = "<group>"; };
 		191D71C3F91671921E790653 /* SuperficiesMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperficiesMac.swift; sourceTree = "<group>"; };
+		9D55E60BC14143398653E289 /* NuevaActividad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NuevaActividad.swift; sourceTree = "<group>"; };
 		1AD7AC08B4DD324D9C830368 /* en.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = en.lproj; sourceTree = "<group>"; };
 		1B9AEE04A26612BD5F8E8EFD /* TablaRegistro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TablaRegistro.swift; sourceTree = "<group>"; };
 		1D443B706E3EBB5CFB3C93C9 /* HojaDeInforme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HojaDeInforme.swift; sourceTree = "<group>"; };
@@ -507,6 +509,7 @@
 				2AA8B8B805F9A026FB942BC4 /* PantallaServicios.swift */,
 				610A5F6071F2275CB2FD1FF0 /* SeccionMac.swift */,
 				191D71C3F91671921E790653 /* SuperficiesMac.swift */,
+				9D55E60BC14143398653E289 /* NuevaActividad.swift */,
 				0CA24FC4711E14705FE6A981 /* TablaAportantes.swift */,
 				A764EA46D8ACF7A5CBC07C79 /* TablaDepositos.swift */,
 				F993A49067D797DD0DF8FB5A /* TablaMovimientos.swift */,
@@ -943,6 +946,7 @@
 				2EB3E496574A63359C67E88F /* Supabase.swift in Sources */,
 				8DFEC31CBFA4B0CCBD6DFF38 /* SupabaseMovimientosRepository.swift in Sources */,
 				8ADC655133EC618C80BFB7D9 /* SuperficiesMac.swift in Sources */,
+				4FBD1A98660C4D70A9D92ED2 /* NuevaActividad.swift in Sources */,
 				8981C16C303E7782C459B825 /* TablaAportantes.swift in Sources */,
 				AEE3C6048F14D956120F458F /* TablaDepositos.swift in Sources */,
 				EEBB95C5424A37685EF6ED7C /* TablaMovimientos.swift in Sources */,

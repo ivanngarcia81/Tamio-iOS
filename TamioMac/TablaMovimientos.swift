@@ -12,6 +12,21 @@ struct TablaMovimientos: View {
     @Environment(EstadoVentana.self) private var estado
     @Binding var seleccion: Set<Movimiento.ID>
 
+    /// **Quién puede borrar, y por qué se pregunta.** El permiso vive en
+    /// Supabase con un disparador que deshace la baja de un tesorero sin él;
+    /// enseñar la orden igualmente haría que la fila desapareciera y volviera
+    /// a la siguiente sincronización sin que nadie supiera por qué. Es la
+    /// misma comprobación que hace `MovimientosView` en iOS.
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    private var puedeEliminar: Bool {
+        Permisos(rol: sesion?.perfil.rol ?? .administrador,
+                 iglesia: ConfiguracionIglesiaViewModel.compartido.config)
+            .puedeEliminarMovimientos
+    }
+
+    /// Lo que espera confirmación. Vacío mientras no se pida nada.
+    @State private var aEliminar: [Movimiento] = []
+
     /// **Por fecha y de la más reciente hacia abajo**, que es como se mira un
     /// libro: lo último que se capturó es lo que se está comprobando.
     @State private var orden = [KeyPathComparator(\Movimiento.fecha, order: .reverse)]
@@ -113,7 +128,61 @@ struct TablaMovimientos: View {
                 Button(L.t("Copiar importe", "Copy amount")) {
                     copiar(Money.fmt(m.monto))
                 }
+                if puedeEliminar {
+                    Divider()
+                    // **Con puntos suspensivos porque pregunta.** La convención
+                    // del Mac, y aquí no es cortesía: borra dinero de un libro.
+                    Button(L.t("Eliminar…", "Delete…"), role: .destructive) {
+                        aEliminar = filas.filter { ids.contains($0.id) }
+                    }
+                }
             }
+        }
+        // **Actúa sobre TODA la selección, no sobre la fila pulsada.** Una
+        // tabla de Mac selecciona muchas y el menú sale de la selección; borrar
+        // solo una de las seis marcadas sería la sorpresa, no lo contrario. Por
+        // eso el aviso dice cuántas y cuánto dinero se lleva.
+        .confirmationDialog(tituloDelBorrado,
+                            isPresented: Binding(get: { !aEliminar.isEmpty },
+                                                 set: { if !$0 { aEliminar = [] } }),
+                            titleVisibility: .visible) {
+            Button(L.t("Eliminar", "Delete"), role: .destructive) { eliminarConfirmados() }
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) { aEliminar = [] }
+        } message: {
+            Text(L.t("Se va del libro de la iglesia y de todos los aparatos. El Registro guarda quién lo hizo.",
+                     "It leaves the church's books and every device. The Log keeps who did it."))
+        }
+    }
+
+    private var tituloDelBorrado: String {
+        guard aEliminar.count != 1 else {
+            let m = aEliminar[0]
+            return L.t("¿Eliminar \(m.categoria) de \(Money.fmt(m.monto))?",
+                       "Delete \(m.categoria) for \(Money.fmt(m.monto))?")
+        }
+        let total = Money.fmt(aEliminar.reduce(0) { $0 + $1.monto })
+        return L.t("¿Eliminar \(aEliminar.count) movimientos, \(total) en total?",
+                   "Delete \(aEliminar.count) entries, \(total) in total?")
+    }
+
+    /// **Uno por uno y por el repositorio**, que es quien hace el borrado
+    /// lógico —`borrado = 1` más el apunte en la cola de salida— y el apunte
+    /// del Registro con copia de lo que decía la fila. Un `DELETE` de verdad no
+    /// se podría sincronizar.
+    private func eliminarConfirmados() {
+        let cuales = aEliminar
+        aEliminar = []
+        Task {
+            for m in cuales {
+                await vm.eliminar(m)
+                if vm.error != nil { break }
+            }
+            seleccion.subtract(Set(cuales.map(\.id)))
+            estado.recargar()
+            // Que el borrado SALGA, por lo mismo que la captura rápida: si la
+            // app no se va al fondo, la vuelta de "volver al frente" no llega y
+            // la baja se quedaría en la cola hasta el próximo arranque.
+            await MotorSincronizacion.compartido.sincronizar()
         }
     }
 

@@ -5,6 +5,8 @@ import SwiftUI
 struct PantallaAgenda: View {
     let vm: AgendaViewModel
 
+    @State private var dandoDeAlta = false
+
     private let dias = [GridItem](repeating: GridItem(.flexible(), spacing: 1), count: 7)
 
     var body: some View {
@@ -12,6 +14,20 @@ struct PantallaAgenda: View {
             cabecera
             ScrollView {
                 rejilla.padding(.horizontal, 26).padding(.bottom, 26)
+            }
+        }
+        .sheet(isPresented: $dandoDeAlta) {
+            NuevaActividad(mesActual: vm.mesActual,
+                           diaInicial: vm.diaSeleccionado,
+                           proximoId: vm.proximoId) { ev in
+                Task {
+                    await vm.añadir(ev)
+                    // Que salga hacia el servidor ya, por lo mismo que la
+                    // captura rápida y el borrado: en el Mac la app no se va al
+                    // fondo, así que la vuelta de "volver al frente" no llega y
+                    // el alta se quedaría en la cola hasta el próximo arranque.
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
             }
         }
     }
@@ -37,6 +53,18 @@ struct PantallaAgenda: View {
                 .buttonStyle(.borderless)
                 .font(.system(size: 12))
             Spacer(minLength: 0)
+            // **Dice a qué día apunta.** El alta nace en el día elegido de la
+            // rejilla, no en hoy, así que el botón tiene que decir cuál es: un
+            // "Nueva actividad" a secas, con el 3 seleccionado y mirando el mes
+            // que viene, no deja adivinar dónde va a caer.
+            Button {
+                dandoDeAlta = true
+            } label: {
+                Label(L.t("Nueva actividad · día \(vm.diaSeleccionado)",
+                          "New activity · day \(vm.diaSeleccionado)"),
+                      systemImage: "plus")
+            }
+            .keyboardShortcut("n", modifiers: .command)
             if vm.pendientesMes > 0 {
                 Text(L.t("\(vm.pendientesMes) sin completar",
                          "\(vm.pendientesMes) not done"))
