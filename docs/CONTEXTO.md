@@ -185,11 +185,63 @@ deliberado: aprobar una revisión, marcar un corte como depositado, emitir una
 carta, exportar un PDF. Todas mueven dinero o padrón y están señaladas en el
 código con su porqué.
 
-La **captura rápida sí guarda** —construida con las mismas reglas que
-`NuevoMovimientoView.armarMovimiento()`: id vacío para que Supabase asigne el
-UID, hora en POSIX, `registradoPor` de la sesión, rastro de auditoría con el
-aparato real—, pero **a 20-sep seguía sin verificarse contra la base**: no había
-ninguna fila nueva.
+La **captura rápida guarda, y el 20-sep quedó verificado contra la base** con
+la app conducida por AppleScript. Dos apuntes de un centavo, mirados en SQLite y
+borrados después: `movimiento` 4 → 6, un apunte `crear` en el `outbox` por cada
+uno, y al relanzar `folioProvisional` pasó a 0 —o sea que el INSERT llegó a
+Supabase—. El borrado se propagó igual y la base volvió a sus 4 filas.
+
+De hacerlo salieron cuatro cosas que no se ven leyendo el código.
+
+### La firma ad hoc caduca la sesión, y el arranque se cuelga sin salida
+
+Cada `build` ad hoc da un **cdhash nuevo**, así que la ACL del llavero deja de
+reconocer a la app y macOS pide la contraseña del llavero `login` para leer
+`supabase.gotrue.swift`. "Always Allow" vale hasta la siguiente compilación.
+
+Lo grave no es el diálogo, es lo que pasa mientras: `SesionSupabase.restaurar()`
+hace `try await supabase.auth.session` **sin plazo**, y esa llamada se queda
+bloqueada dentro de `SecItemCopyMatching`. Como no falla —se bloquea—, el
+`catch` que distingue el fallo de red del "no has entrado" no llega a correr
+nunca, y el `switch` de `TamioMacApp` se queda en `.comprobando` enseñando un
+`ProgressView()` **para siempre**: sin aviso, sin botón y sin pantalla de
+acceso. En el teléfono no se nota porque su llavero no pide confirmación por
+cambio de firma; en el Mac le puede pasar a un usuario con el llavero bloqueado
+o al restaurar de una copia de seguridad.
+
+### En el Mac solo se sincroniza al ARRANCAR
+
+`TamioMacApp` llama a `MotorSincronizacion.sincronizar()` en un sitio: el
+`.task` del arranque. iOS lo llama además **en cada vuelta al frente**
+(`onChange(of: fase)` con `.active`). Medido: un movimiento capturado se quedó
+en el `outbox` con `intentos = 0` durante un minuto entero —ni siquiera se
+intentó— y solo subió al cerrar y abrir la app.
+
+Una ventana de Mac se queda abierta días. Un domingo entero de ofrendas no
+saldría del Mac hasta que alguien lo reinicie.
+
+### El Tab NO pasa por los dos selectores
+
+La ventana promete, con el texto del handoff al pie: *"Tab moves through every
+field. Nothing here needs the mouse"*. Recorrido tecla a tecla, el ciclo real
+es **fecha → nota → importe → beneficiario → fecha**: Categoría y Método, que
+son `Picker`, quedan fuera. Es la navegación por teclado de macOS, apagada de
+serie (`AppleKeyboardUIMode` ni existe en las preferencias de este Mac), así
+que le pasa a cualquiera que no la haya encendido a mano. O la ventana deja de
+prometerlo, o los dos selectores tienen que entrar en el ciclo por su cuenta.
+
+### La ventana no se limpia al cerrarse
+
+`Window` mantiene viva la escena, y `guardar(cerrando: true)` cierra sin
+vaciar. Al reabrirla seguían ahí el importe, el beneficiario, la nota y el
+contador "1 movement saved in this window" —y, lo que de verdad pica, **la
+fecha anterior**—. Reabrir y pulsar ⌘S repite el apunte con la fecha vieja. Lo
+que limpia de verdad es "Guardar y otro", que es el camino que sí se pensó.
+
+Un aparte que no es del Mac: **`Movimiento.auditoria` no se guarda en ningún
+sitio**. No hay columna en `movimiento` ni campo en la subida; solo lo lee
+`MovimientoDetalle`. El rastro que construyen la captura rápida y
+`NuevoMovimientoView` se pierde al guardar, en las dos plataformas.
 
 ### Dos decisiones pendientes de Iván
 
@@ -197,15 +249,27 @@ ninguna fila nueva.
   Universal. Reversible mientras no se publique.
 - **Dónde aterriza `mac-target`.** Salió de `liquid-glass`, no de `main`.
 
-### Lo que se puede automatizar y no se usó
+### Conducir la app por AppleScript: lo que funciona y lo que no
 
-En el Mac de Iván hay simuladores (`xcrun simctl`) y **control completo de las
-apps por AppleScript/System Events**: leer ventanas, menús y campos, y enviar
-pulsaciones. Lo único que falta es el permiso de Grabación de Pantalla.
+Lo de COMPORTAMIENTO y DATOS se verifica sin pedírselo a nadie: hay simuladores
+(`xcrun simctl`), **control de las apps por System Events** y consultas
+directas a la base. Lo VISUAL sí necesita una captura suya —falta el permiso de
+Grabación de Pantalla—, y los tres fallos que encontró él —el selector cortado,
+las filas apretadas y la jerarquía invertida— eran visuales.
 
-O sea que lo de COMPORTAMIENTO y DATOS se puede verificar sin pedírselo a nadie;
-lo VISUAL sí necesita una captura suya. Los tres fallos que encontró él —el
-selector cortado, las filas apretadas y la jerarquía invertida— eran visuales.
+Tres trampas de conducir esta ventana, que costaron una fila mal guardada:
+
+- **`click` sobre un `TextField` de SwiftUI no mueve el foco.** Las tres veces
+  que se "pulsó" otro campo, el texto siguió entrando en el primero. Se navega
+  con `key code 48` (Tab) y punto.
+- **La ventana nueva no es la ventana con foco.** Hay que hacerle `AXRaise` y
+  `set focused to true`; sin eso las pulsaciones se van a la principal.
+- **El `DatePicker` se come dígitos sin avisar.** Un `keystroke "0.01"` que
+  cayó en el campo de fecha puso el día en 01 y guardó un gasto con fecha del 1
+  de septiembre. Nada en la interfaz lo delata, y por AX la fecha **no se puede
+  leer** (`AXDateTimeArea` solo expone un stepper). Antes de creerse un fallo
+  de la app, repetir la captura sin tocar la fecha: la segunda salió con el día
+  correcto, o sea que aquello fue error de manejo y no del código.
 
 ---
 
