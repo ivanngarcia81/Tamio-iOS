@@ -16,9 +16,11 @@ struct VentanaPrincipal: View {
     @State private var ingresos = MovimientosViewModel(tipo: .ingreso)
     @State private var gastos = MovimientosViewModel(tipo: .gasto)
     @State private var registro = RegistroViewModel()
+    @State private var servicios = ServiciosViewModel()
     @State private var selIngresos: Set<Movimiento.ID> = []
     @State private var selGastos: Set<Movimiento.ID> = []
     @State private var selRegistro: Set<Apunte.ID> = []
+    @State private var selServicios: Set<Servicio.ID> = []
     @State private var escribiendoNota = false
 
     var body: some View {
@@ -61,6 +63,8 @@ struct VentanaPrincipal: View {
             TablaMovimientos(vm: gastos, seleccion: $selGastos)
         case .registro:
             TablaRegistro(vm: registro, seleccion: $selRegistro)
+        case .servicios:
+            TablaServicios(vm: servicios, seleccion: $selServicios)
         default:
             PantallaPorEscribir(seccion: estado.seccion)
         }
@@ -70,6 +74,7 @@ struct VentanaPrincipal: View {
         await ingresos.cargar()
         await gastos.cargar()
         await registro.cargar()
+        await servicios.cargar()
     }
 
     // MARK: - Lo elegido
@@ -88,6 +93,10 @@ struct VentanaPrincipal: View {
             guard selRegistro.count == 1, let id = selRegistro.first,
                   let a = registro.todos.first(where: { $0.id == id }) else { return .nada }
             return .apunte(a)
+        case .servicios:
+            guard selServicios.count == 1, let id = selServicios.first,
+                  let s = servicios.lista.first(where: { $0.id == id }) else { return .nada }
+            return .servicio(s)
         default:
             return .nada
         }
@@ -226,6 +235,15 @@ struct VentanaPrincipal: View {
         if estado.seccion == .registro {
             let n = registro.visibles.count
             return n == 1 ? L.t("1 apunte", "1 entry") : L.t("\(n) apuntes", "\(n) entries")
+        }
+        if estado.seccion == .servicios {
+            let n = servicios.lista.count
+            let cultos = n == 1 ? L.t("culto", "service") : L.t("cultos", "services")
+            let sin = servicios.lista.filter { $0.estadoRoster == .sinAsignar }.count
+            // Lo que falta por resolver, solo si falta algo.
+            return sin == 0 ? "\(n) \(cultos)"
+                            : L.t("\(n) \(cultos) · \(sin) sin equipo",
+                                  "\(n) \(cultos) · \(sin) without a team")
         }
         if estado.seccion == .config {
             return L.t("Iglesia, accesos y respaldos", "Church, access & backups")

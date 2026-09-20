@@ -15,6 +15,7 @@ enum FichaInspector {
     case nada
     case movimiento(Movimiento)
     case apunte(Apunte)
+    case servicio(Servicio)
 }
 
 struct InspectorTamio: View {
@@ -27,6 +28,7 @@ struct InspectorTamio: View {
                 switch ficha {
                 case .movimiento(let m): fichaMovimiento(m)
                 case .apunte(let a):     fichaApunte(a)
+                case .servicio(let s):   fichaServicio(s)
                 case .nada:              vacio
                 }
             }
@@ -197,6 +199,149 @@ struct InspectorTamio: View {
         }
     }
 
+    // MARK: - Un servicio
+
+    /// **Aquí es donde el Mac le gana al iPad.** En el teléfono el detalle de
+    /// un culto vive en otra pantalla a la que hay que entrar y de la que hay
+    /// que salir; aquí está al lado de la tabla, y se puede recorrer la lista
+    /// con las flechas viendo la ficha cambiar. Comparar dos domingos deja de
+    /// ser ir y volver.
+    @ViewBuilder
+    private func fichaServicio(_ s: Servicio) -> some View {
+        Text(L.t("CULTO", "SERVICE"))
+            .font(.system(size: 11, weight: .bold))
+            .kerning(0.55)
+            .foregroundStyle(.secondary)
+        Text(s.titulo)
+            .font(.system(size: 19, weight: .bold))
+            .padding(.top, 5)
+        Text(s.fechaLegible)
+            .font(.system(size: 12.5))
+            .foregroundStyle(.secondary)
+            .padding(.top, 2)
+
+        VStack(spacing: 0) {
+            campo(L.t("Dirige", "Led by"), s.dirige.isEmpty ? "—" : s.dirige)
+            campo(L.t("Predica", "Preacher"), s.predica.isEmpty ? "—" : s.predica)
+            campo(L.t("Texto", "Scripture"),
+                  s.textoBiblico.isEmpty ? "—" : s.textoBiblico, ultimo: true)
+        }
+        .background(.quaternary.opacity(0.4),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.top, 14)
+
+        if !s.tituloMensaje.isEmpty {
+            Text(L.t("MENSAJE", "MESSAGE"))
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.55)
+                .foregroundStyle(.secondary)
+                .padding(.top, 18)
+            Text(s.tituloMensaje)
+                .font(.system(size: 14, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 5)
+            if !s.resumenMensaje.isEmpty {
+                Text(s.resumenMensaje)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
+            }
+        }
+
+        // **El desglose, no solo el total.** La tabla enseña la suma porque es
+        // lo que se compara entre domingos; lo que dice si la iglesia está
+        // creciendo o envejeciendo es el reparto, y eso vive aquí.
+        if s.totalAsistencia > 0 {
+            Text(L.t("ASISTENCIA", "ATTENDANCE"))
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.55)
+                .foregroundStyle(.secondary)
+                .padding(.top, 18)
+            VStack(spacing: 0) {
+                campo(L.t("Niños", "Children"), "\(s.ninos)")
+                campo(L.t("Jóvenes", "Youth"), "\(s.jovenes)")
+                campo(L.t("Adultos", "Adults"), "\(s.adultos)")
+                campo(L.t("Total", "Total"), "\(s.totalAsistencia)",
+                      tinta: Paleta.brand, ultimo: true)
+            }
+            .background(.quaternary.opacity(0.4),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.top, 8)
+        }
+
+        if !s.visitantes.isEmpty {
+            Text(L.t("VISITANTES", "VISITORS"))
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.55)
+                .foregroundStyle(.secondary)
+                .padding(.top, 18)
+            ForEach(s.visitantes) { v in
+                HStack(spacing: 8) {
+                    Text(v.nombre).font(.system(size: 12.5))
+                    // Quien viene por primera vez es a quien hay que llamar
+                    // esta semana. Se marca.
+                    if v.primeraVisita {
+                        Text(L.t("Primera visita", "First visit"))
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Paleta.brand)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Paleta.brandFill,
+                                        in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 6)
+            }
+        }
+
+        if !s.puestos.isEmpty {
+            Text(L.t("EQUIPO", "TEAM"))
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.55)
+                .foregroundStyle(.secondary)
+                .padding(.top, 18)
+            VStack(spacing: 0) {
+                ForEach(Array(s.puestos.enumerated()), id: \.element.id) { i, p in
+                    campo(p.etiqueta, p.asignado ? p.nombre : L.t("Sin asignar", "Unassigned"),
+                          tinta: p.asignado ? nil : Paleta.aviso,
+                          ultimo: i == s.puestos.count - 1)
+                }
+            }
+            .background(.quaternary.opacity(0.4),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.top, 8)
+        }
+
+        if !s.orden.isEmpty {
+            Text(L.t("ORDEN DEL CULTO", "ORDER OF SERVICE"))
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.55)
+                .foregroundStyle(.secondary)
+                .padding(.top, 18)
+            ForEach(s.orden.sorted { $0.posicion < $1.posicion }) { p in
+                HStack(alignment: .top, spacing: 10) {
+                    Text(p.hora.isEmpty ? "—" : p.hora)
+                        .font(.system(size: 11))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(p.titulo).font(.system(size: 12, weight: .medium))
+                        if !p.encargado.isEmpty {
+                            Text(p.encargado)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 8)
+            }
+        }
+    }
+
     // MARK: - Sin nada seleccionado
 
     @ViewBuilder
@@ -220,6 +365,7 @@ struct InspectorTamio: View {
         case .reportes:   return L.t("REPORTE", "REPORT")
         case .config:     return L.t("CONFIGURACIÓN", "SETTINGS")
         case .registro:   return L.t("REGISTRO", "LOG")
+        case .servicios:  return L.t("SERVICIOS", "SERVICES")
         default:          return seccion.titulo.uppercased()
         }
     }
@@ -229,7 +375,7 @@ struct InspectorTamio: View {
         case .config:
             return L.t("La configuración se edita en el panel de la izquierda",
                        "Settings are edited in the panel on the left")
-        case .ingresos, .gastos, .registro:
+        case .ingresos, .gastos, .registro, .servicios:
             return L.t("Elige una fila para ver su ficha aquí",
                        "Pick a row to see its details here")
         default:

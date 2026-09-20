@@ -86,6 +86,7 @@
 		4A07A396CC5432FF54D848DF /* DashboardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3258F1AD72FB1E23580B3A1 /* DashboardRepository.swift */; };
 		4A31C240ABC711BD3892FCAC /* BorradoMasivo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 312E4C816C111860A5D879C2 /* BorradoMasivo.swift */; };
 		4A591CC8A57B84819E507C1D /* ModoRevision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 822BA467128B920E69AAA992 /* ModoRevision.swift */; };
+		4D25B229B24B7B5DEC794B1E /* TablaServicios.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BF96375CD4B20F9A9685313 /* TablaServicios.swift */; };
 		4F6A4B17866B5B9A0D439BA5 /* Permisos.swift in Sources */ = {isa = PBXBuildFile; fileRef = D624B7AA19596E66494F18D3 /* Permisos.swift */; };
 		50B03FAD344B396F408A6A07 /* ActasRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2A31734309B9FBF01979802 /* ActasRepository.swift */; };
 		52013069B0B13522B13228B5 /* AportanteFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D0BF3DBFBB849E8591B9D5E /* AportanteFila.swift */; };
@@ -266,6 +267,7 @@
 		05FD8BC1ABEDCA3AA230C7FF /* HojaFirma.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HojaFirma.swift; sourceTree = "<group>"; };
 		06C53E27C6E088CFC1F1AAB3 /* AportantesCatalogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AportantesCatalogo.swift; sourceTree = "<group>"; };
 		0B4E7D4195763D56C308AAB3 /* MovimientoRecurrente.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovimientoRecurrente.swift; sourceTree = "<group>"; };
+		0BF96375CD4B20F9A9685313 /* TablaServicios.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TablaServicios.swift; sourceTree = "<group>"; };
 		0C0ECAB8AB3DDB7471075342 /* Miembro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Miembro.swift; sourceTree = "<group>"; };
 		0E05B2C1157251C9D853544F /* DepositosViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosViewModel.swift; sourceTree = "<group>"; };
 		104BB262263545102AC83A31 /* SeccionAjustes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeccionAjustes.swift; sourceTree = "<group>"; };
@@ -469,6 +471,7 @@
 				610A5F6071F2275CB2FD1FF0 /* SeccionMac.swift */,
 				F993A49067D797DD0DF8FB5A /* TablaMovimientos.swift */,
 				1B9AEE04A26612BD5F8E8EFD /* TablaRegistro.swift */,
+				0BF96375CD4B20F9A9685313 /* TablaServicios.swift */,
 				A61F59FF898533ECBA63E8AC /* TamioMacApp.swift */,
 				BCE413ED846978A63EBC7D2B /* VentanaPrincipal.swift */,
 			);
@@ -891,6 +894,7 @@
 				8DFEC31CBFA4B0CCBD6DFF38 /* SupabaseMovimientosRepository.swift in Sources */,
 				EEBB95C5424A37685EF6ED7C /* TablaMovimientos.swift in Sources */,
 				67423A3549A03EC9BEA866C2 /* TablaRegistro.swift in Sources */,
+				4D25B229B24B7B5DEC794B1E /* TablaServicios.swift in Sources */,
 				B418A7F3ABB4E926D751CBA0 /* TamioMacApp.swift in Sources */,
 				A984E66AF4F6BC5D36DCC4F4 /* VentanaPrincipal.swift in Sources */,
 				D9BED2809973F19E50D3C904 /* VersionApp.swift in Sources */,
