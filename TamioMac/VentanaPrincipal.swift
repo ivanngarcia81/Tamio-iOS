@@ -123,7 +123,7 @@ struct VentanaPrincipal: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .frame(width: 210)
+                .fixedSize()
             }
         }
 
@@ -142,7 +142,19 @@ struct VentanaPrincipal: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .frame(width: 340)
+                // **`fixedSize` y NO un ancho a mano.**
+                //
+                // Estaba en 340 pt, y con cuatro etiquetas más su recuento no
+                // cabían: en una ventana estrecha se leía "Notes (" con el
+                // paréntesis sin cerrar y "All" comido por la izquierda. Un
+                // ancho fijo es una apuesta sobre cuánto ocupa un texto que
+                // cambia con el idioma y con los números — y la pierde.
+                //
+                // Con esto el control pide lo que mide. Si la ventana no da,
+                // macOS manda los elementos que sobran al menú de la doble
+                // flecha, que es lo que hace cualquier barra del sistema:
+                // esconderlos enteros, nunca cortarlos por la mitad.
+                .fixedSize()
             }
         }
 
