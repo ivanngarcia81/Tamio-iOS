@@ -26,13 +26,16 @@ struct VentanaPrincipal: View {
     @State private var selIngresos: Set<Movimiento.ID> = []
     @State private var selGastos: Set<Movimiento.ID> = []
     @State private var selRegistro: Set<Apunte.ID> = []
-    @State private var selServicios: Set<Servicio.ID> = []
+    @State private var selServicios: String?
     /// **Una sola, no un conjunto.** Cartas no es una tabla: a la derecha hay
     /// una hoja, y una hoja solo puede enseñar un documento.
     @State private var selCarta: String?
     @State private var selAportantes: Set<Aportante.ID> = []
     @State private var selDepositos: Set<Corte.ID> = []
-    @State private var selMembresia: Set<Miembro.ID> = []
+    /// Una sola: la lista de Membresía son tarjetas, no una tabla con
+    /// selección múltiple.
+    @State private var selMembresia: String?
+    @State private var subMembresia: PantallaMembresia.SubMembresia = .miembros
     @State private var escribiendoNota = false
 
     var body: some View {
@@ -88,7 +91,7 @@ struct VentanaPrincipal: View {
         case .registro:
             TablaRegistro(vm: registro, seleccion: $selRegistro)
         case .servicios:
-            TablaServicios(vm: servicios, seleccion: $selServicios)
+            PantallaServicios(vm: servicios, seleccion: $selServicios)
         case .cartas:
             PantallaCartas(vm: cartas, seleccion: $selCarta)
         case .informes:
@@ -98,7 +101,7 @@ struct VentanaPrincipal: View {
         case .depositos:
             TablaDepositos(vm: depositos, seleccion: $selDepositos)
         case .membresia:
-            TablaMembresia(vm: membresia, seleccion: $selMembresia)
+            PantallaMembresia(vm: membresia, seleccion: $selMembresia, sub: $subMembresia)
         default:
             PantallaPorEscribir(seccion: estado.seccion)
         }
@@ -131,16 +134,15 @@ struct VentanaPrincipal: View {
             guard selRegistro.count == 1, let id = selRegistro.first,
                   let a = registro.todos.first(where: { $0.id == id }) else { return .nada }
             return .apunte(a)
+        // Servicios ya enseña su ficha entera a la derecha: no hay inspector.
         case .servicios:
-            guard selServicios.count == 1, let id = selServicios.first,
-                  let s = servicios.lista.first(where: { $0.id == id }) else { return .nada }
-            return .servicio(s)
+            return .nada
         case .miembros:
             guard selAportantes.count == 1, let id = selAportantes.first,
                   let a = aportantes.items.first(where: { $0.id == id }) else { return .nada }
             return .aportante(a, anio: aportantes.anio)
         case .membresia:
-            guard selMembresia.count == 1, let id = selMembresia.first,
+            guard let id = selMembresia,
                   let m = membresia.items.first(where: { $0.id == id }) else { return .nada }
             return .miembro(m)
         case .depositos:
@@ -310,9 +312,20 @@ struct VentanaPrincipal: View {
                 : L.t("\(base) · \(atrasados) atrasados", "\(base) · \(atrasados) behind")
         }
         if estado.seccion == .membresia {
+            // **Dos cifras, como en la maqueta** ("248 members · 12
+            // candidates"). La segunda son los que están EN PROCESO de ser
+            // recibidos: es la palabra del repo —`EstadoRegistro.enProceso`—
+            // y no "candidatos", para que el iPad y el Mac no le pongan dos
+            // nombres a lo mismo. Solo sale si hay alguno.
             let n = membresia.itemsFiltrados.count
-            return n == 1 ? L.t("1 miembro", "1 member")
-                          : L.t("\(n) miembros", "\(n) members")
+            let enProceso = membresia.items.filter {
+                !$0.estado.esBaja && $0.estado.registro == .enProceso
+            }.count
+            let base = n == 1 ? L.t("1 miembro", "1 member")
+                              : L.t("\(n) miembros", "\(n) members")
+            return enProceso == 0 ? base
+                : L.t("\(base) · \(enProceso) en proceso",
+                      "\(base) · \(enProceso) in process")
         }
         if estado.seccion == .depositos {
             let n = depositos.items.count

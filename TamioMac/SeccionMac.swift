@@ -21,7 +21,13 @@ import SwiftUI
 enum SeccionMac: String, CaseIterable, Identifiable {
     case inicio
     case ingresos, gastos, miembros, reportes, depositos, porRevisar
-    case membresia, actas, servicios, cartas, informes, agenda
+    // El orden de SECRETARÍA sigue al handoff donde éste manda —Membresía,
+    // Actas, Informes de membresía, Agenda—; Servicios y Cartas, que el
+    // handoff no dibuja, se colocan detrás de Informes.
+    // El orden de SECRETARÍA sigue al handoff: Membresía, Actas, Registro de
+    // servicios, Informes de membresía, Agenda. Cartas, que el handoff no
+    // dibuja, va detrás de Informes.
+    case membresia, actas, servicios, informes, cartas, agenda
     case registro, config
 
     var id: String { rawValue }
@@ -132,7 +138,7 @@ enum SeccionMac: String, CaseIterable, Identifiable {
     var esDeDocumento: Bool {
         // Inicio entra aquí aunque no sea una hoja: es un panorama que ya
         // ocupa el ancho entero, y no hay "una fila elegida" que inspeccionar.
-        self == .cartas || self == .informes || self == .inicio
+        self == .cartas || self == .informes || self == .inicio || self == .servicios
     }
 
     /// Las de un grupo, en orden de declaración.

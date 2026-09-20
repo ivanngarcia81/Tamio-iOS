@@ -1,367 +1,423 @@
 import SwiftUI
+import Charts
 
-/// **Informes de membresía, rediseñada para el Mac.**
+/// **Informes de membresía, según el handoff definitivo.**
 ///
-/// El mismo patrón que Cartas y que Reportes en la maqueta: los informes a la
-/// izquierda, el papel a la derecha. Y por el mismo motivo — un informe existe
-/// para salir impreso o en PDF, así que la pantalla tiene que enseñar la hoja,
-/// no una versión de la hoja adaptada a la pantalla.
+/// La primera versión de esta pantalla se hizo SIN diseño —el handoff anterior
+/// no la dibujaba—, así que se le aplicó el patrón de Reportes: una hoja de
+/// papel a la derecha. El handoff nuevo la especifica y es otra cosa: cuatro
+/// pestañas, selector de periodo, barras y tarjetas que filtran.
 ///
-/// En el iPad los cuatro informes son pestañas y la hoja ocupa todo: elegir
-/// otro es perder de vista el que estabas leyendo. Aquí la lista se queda
-/// puesta y solo cambia el papel.
+/// Encaja con `InformesMembresiaViewModel` sin forzar nada, porque el
+/// ViewModel estaba escrito para exactamente esto: `TarjetaPadron` son las
+/// ocho tarjetas, `resumen` trae los repartos y los traslados, y `alertas` ya
+/// viene con su tipo.
 struct PantallaInformes: View {
     let vm: InformesMembresiaViewModel
 
-    private let informes: [(String, String)] = [
-        (L.t("General", "General"),
-         L.t("Distribuciones, altas y traslados", "Distributions, additions & transfers")),
-        (L.t("Miembros", "Members"),
-         L.t("El padrón del periodo", "The roster for the period")),
-        (L.t("Asistencia", "Attendance"),
-         L.t("Servicios y promedio congregacional", "Services and congregational average")),
-        (L.t("Seguimiento", "Follow-up"),
-         L.t("Alertas pastorales sin revisar", "Unreviewed pastoral alerts")),
-    ]
-
     var body: some View {
-        HSplitView {
-            lista
-                .frame(minWidth: 220, idealWidth: 276, maxWidth: 340)
-            ScrollView {
-                hoja.padding(28)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                cabecera
+                switch vm.informeSeleccionado {
+                case 1:  pestanaMiembros
+                case 2:  pestanaAsistencia
+                case 3:  pestanaSeguimiento
+                default: pestanaGeneral
+                }
             }
-            .frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.fondoAgrupado)
+            .padding(.horizontal, 22)
+            .padding(.top, 16)
+            .padding(.bottom, 30)
         }
         .task { await vm.cargarPadron() }
     }
 
-    // MARK: - Los cuatro
+    // MARK: - Pestañas y periodo
 
-    private var lista: some View {
-        List(selection: Binding(
-            get: { vm.informeSeleccionado },
-            set: { vm.informeSeleccionado = $0 ?? 0 }
-        )) {
-            Section(L.t("INFORMES", "REPORTS")) {
-                ForEach(Array(informes.enumerated()), id: \.offset) { i, inf in
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 8) {
-                            Text(inf.0).font(.system(size: 12.5, weight: .semibold))
-                            Spacer(minLength: 0)
-                            // **El número de alertas va en su fila**, que es
-                            // donde significa algo: "Seguimiento (4)" dice que
-                            // hay cuatro personas esperando una llamada.
-                            if i == 3, vm.alertas.count > 0 {
-                                Text("\(vm.alertas.count)")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(Paleta.aviso)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 1)
-                                    .background(Paleta.aviso.opacity(0.16), in: Capsule())
+    private var cabecera: some View {
+        HStack(spacing: 12) {
+            Picker("", selection: Binding(
+                get: { vm.informeSeleccionado },
+                set: { vm.informeSeleccionado = $0 }
+            )) {
+                Text(L.t("General", "General")).tag(0)
+                Text(L.t("Miembros", "Members")).tag(1)
+                Text(L.t("Asistencia", "Attendance")).tag(2)
+                Text(L.t("Seguimiento", "Follow-up")).tag(3)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+
+            Spacer(minLength: 0)
+
+            // El periodo: los cinco de `PeriodoInforme`, que ya existían.
+            Picker("", selection: Binding(
+                get: { vm.periodoTipo },
+                set: { vm.periodoTipo = $0 }
+            )) {
+                ForEach(PeriodoInforme.allCases, id: \.self) { p in
+                    Text(p.etiqueta).tag(p)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+        }
+    }
+
+    // MARK: - General
+
+    @ViewBuilder
+    private var pestanaGeneral: some View {
+        let r = vm.resumen
+        VStack(alignment: .leading, spacing: 12) {
+            // El total, con su nota.
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(r.totalMiembros)")
+                    .font(.system(size: 32, weight: .bold))
+                    .monospacedDigit()
+                Text(L.t("personas en el padrón · \(r.periodo)",
+                         "people in the registry · \(r.periodo)"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(.background.secondary,
+                        in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            HStack(alignment: .top, spacing: 12) {
+                panel(L.t("POR ESTADO", "BY STATUS")) {
+                    if r.porEstado.isEmpty { vacio } else {
+                        barras(r.porEstado, total: r.totalMiembros, tinta: nil)
+                    }
+                }
+                panel(L.t("POR MINISTERIO", "BY MINISTRY")) {
+                    if r.porMinisterio.isEmpty { vacio } else {
+                        barras(r.porMinisterio,
+                               total: r.porMinisterio.map(\.1).max() ?? 1, tinta: Paleta.cian)
+                    }
+                }
+            }
+
+            HStack(alignment: .top, spacing: 12) {
+                panel(L.t("ALTAS POR MES", "NEW PER MONTH")) {
+                    let altas = r.altasPorMes
+                    if altas.allSatisfy({ $0.altas == 0 }) { vacio } else {
+                        Chart(altas) { a in
+                            BarMark(x: .value("Mes", a.mes), y: .value("Altas", a.altas))
+                                .foregroundStyle(Paleta.brand)
+                                .cornerRadius(3)
+                        }
+                        .frame(height: 130)
+                        .padding(.top, 14)
+                    }
+                }
+                panel(L.t("ESTADO DE EXPEDIENTES", "FILE STATUS")) {
+                    let completos = r.expedienteCompleto
+                    let total = max(1, completos + r.expedienteIncompleto)
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text(L.t("Completos", "Complete")).font(.system(size: 12))
+                            Spacer(minLength: 6)
+                            Text("\(completos)")
+                                .font(.system(size: 12, weight: .semibold)).monospacedDigit()
+                        }
+                        GeometryReader { g in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(.quaternary)
+                                Capsule().fill(Paleta.brand)
+                                    .frame(width: g.size.width * CGFloat(completos) / CGFloat(total))
                             }
                         }
-                        Text(inf.1)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-                    .padding(.vertical, 2)
-                    .tag(i)
-                }
-            }
-        }
-    }
-
-    // MARK: - El papel
-
-    @ViewBuilder
-    private var hoja: some View {
-        HojaInforme(titulo: informes[min(vm.informeSeleccionado, 3)].0,
-                    periodo: vm.resumen.periodo) {
-            switch vm.informeSeleccionado {
-            case 1:  cuerpoMiembros
-            case 2:  cuerpoAsistencia
-            case 3:  cuerpoSeguimiento
-            default: cuerpoGeneral
-            }
-        }
-    }
-
-    // MARK: General
-
-    @ViewBuilder
-    private var cuerpoGeneral: some View {
-        let r = vm.resumen
-        TresCifras(valores: [
-            (L.t("Miembros", "Members"), "\(r.totalMiembros)"),
-            (L.t("Expediente completo", "Complete record"), "\(r.expedienteCompleto)"),
-            (L.t("Incompleto", "Incomplete"), "\(r.expedienteIncompleto)"),
-        ])
-
-        if !r.porEstado.isEmpty {
-            BloqueInforme(L.t("Por estado", "By status")) {
-                ForEach(Array(r.porEstado.enumerated()), id: \.offset) { _, par in
-                    RenglonInforme(par.0, "\(par.1)", total: r.totalMiembros)
-                }
-            }
-        }
-
-        if !r.porMinisterio.isEmpty {
-            BloqueInforme(L.t("Por ministerio", "By ministry")) {
-                ForEach(Array(r.porMinisterio.enumerated()), id: \.offset) { _, par in
-                    RenglonInforme(par.0, "\(par.1)", total: r.totalMiembros)
-                }
-            }
-        }
-
-        if !r.traslados.isEmpty {
-            // **`ForEach` directo y sin `enumerated()`.** `MovimientoTraslado`
-            // ya es `Identifiable`, y envolverlo en `Array(...)` hacía que el
-            // compilador tropezara con el `Array.init` que añade GRDB: el
-            // error hablaba de `Cursor`, que no tiene nada que ver con esta
-            // pantalla. Cuando un tipo ya se identifica solo, pedirle el
-            // índice sobra.
-            BloqueInforme(L.t("Traslados", "Transfers")) {
-                ForEach(r.traslados) { t in
-                    RenglonInforme("\(t.persona) · \(t.iglesia)", t.tipoTraslado)
-                }
-            }
-        }
-    }
-
-    // MARK: Miembros
-
-    @ViewBuilder
-    private var cuerpoMiembros: some View {
-        // Los ocho recortes del padrón, con su cuenta. Los que no tienen a
-        // nadie no se imprimen: un renglón en cero no informa de nada.
-        BloqueInforme(L.t("El padrón, por recorte", "The roster, by slice")) {
-            ForEach(TarjetaPadron.allCases) { t in
-                let n = vm.cuenta(t)
-                if n > 0 {
-                    RenglonInforme(t.etiqueta, "\(n)", total: vm.cuenta(.todos))
-                }
-            }
-        }
-    }
-
-    // MARK: Asistencia
-
-    @ViewBuilder
-    private var cuerpoAsistencia: some View {
-        if let a = vm.asistencia {
-            TresCifras(valores: [
-                (L.t("Servicios", "Services"), "\(a.serviciosPeriodo)"),
-                (L.t("Promedio", "Average"), "\(a.presentesPromedio)"),
-                (L.t("Asistencia", "Attendance"), "\(a.promedioPct)%"),
-            ])
-
-            // **El aviso que evita que el informe parezca roto.** Hubo cultos,
-            // pero si en ninguno se tomó lista cada miembro sale en "—" y esto
-            // se lee como un fallo en vez de como "falta tomar lista".
-            if vm.sinListasTomadas {
-                Text(L.t("Hubo servicios en el periodo, pero no se tomó lista en ninguno.",
-                         "There were services in this period, but attendance was never taken."))
-                    .font(.system(size: 11))
-                    .foregroundStyle(Paleta.aviso)
-                    .padding(.top, 14)
-            }
-
-            if !a.mejorServicio.isEmpty {
-                BloqueInforme(L.t("Mejor servicio", "Best attended")) {
-                    RenglonInforme(a.mejorServicio, "")
-                }
-            }
-        } else {
-            Text(L.t("Todavía no hay datos de asistencia en el periodo.",
-                     "No attendance data for this period yet."))
-                .font(.system(size: 12))
-                .foregroundStyle(Color(red: 0.41, green: 0.41, blue: 0.43))
-                .padding(.top, 20)
-        }
-    }
-
-    // MARK: Seguimiento
-
-    @ViewBuilder
-    private var cuerpoSeguimiento: some View {
-        if vm.alertas.isEmpty {
-            Text(L.t("Nadie necesita seguimiento ahora mismo.",
-                     "Nobody needs follow-up right now."))
-                .font(.system(size: 12))
-                .foregroundStyle(Color(red: 0.41, green: 0.41, blue: 0.43))
-                .padding(.top, 20)
-        } else {
-            BloqueInforme(L.t("Personas por acompañar", "People to follow up with")) {
-                ForEach(vm.alertas) { a in
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 8) {
-                            Text(a.miembro.nombre)
+                        .frame(height: 8)
+                        HStack {
+                            Text(L.t("Incompletos", "Incomplete"))
+                                .font(.system(size: 12)).foregroundStyle(Paleta.aviso)
+                            Spacer(minLength: 6)
+                            Text("\(r.expedienteIncompleto)")
                                 .font(.system(size: 12, weight: .semibold))
-                            Spacer(minLength: 0)
-                            Text(a.tipo.etiqueta)
-                                .font(.system(size: 10, weight: .bold))
+                                .monospacedDigit()
                                 .foregroundStyle(Paleta.aviso)
                         }
-                        Text(a.detalle)
-                            .font(.system(size: 11))
-                            .foregroundStyle(Color(red: 0.41, green: 0.41, blue: 0.43))
                     }
-                    .padding(.vertical, 5)
-                    .overlay(alignment: .bottom) {
-                        Rectangle().fill(Color(white: 0.94)).frame(height: 1)
+                    .padding(.top, 14)
+                }
+                .frame(width: 300)
+            }
+
+            if !r.traslados.isEmpty {
+                panel(L.t("TRASLADOS", "TRANSFERS")) {
+                    VStack(spacing: 0) {
+                        ForEach(r.traslados) { t in
+                            HStack(spacing: 10) {
+                                Text(t.folioLegible)
+                                    .font(.system(size: 11.5)).monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 70, alignment: .leading)
+                                // Entrada en verde, salida en ámbar: quien entra
+                                // suma y quien sale hay que despedirlo bien.
+                                Text(t.tipoTraslado)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(t.sentido == .entrada ? Paleta.brand : Paleta.aviso)
+                                    .frame(width: 70, alignment: .leading)
+                                Text(t.persona).font(.system(size: 12.5, weight: .medium))
+                                Spacer(minLength: 8)
+                                Text(t.iglesia)
+                                    .font(.system(size: 11.5)).foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                Text(t.fecha.isEmpty ? "—" : Fechas.diaLegible(t.fecha))
+                                    .font(.system(size: 11.5)).foregroundStyle(.tertiary)
+                                    .frame(width: 110, alignment: .trailing)
+                            }
+                            .padding(.vertical, 7)
+                            .overlay(alignment: .bottom) { Divider() }
+                        }
+                    }
+                    .padding(.top, 10)
+                }
+            }
+        }
+        .padding(.top, 16)
+    }
+
+    // MARK: - Miembros: las ocho tarjetas que filtran
+
+    @ViewBuilder
+    private var pestanaMiembros: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 4),
+                      spacing: 9) {
+                ForEach(TarjetaPadron.allCases) { t in
+                    let activa = vm.tarjeta == t
+                    Button {
+                        // Volver a pulsar la activa quita el filtro: es lo que
+                        // hace el diseño y evita quedarse encerrado en un
+                        // recorte sin saber cómo salir.
+                        vm.tarjeta = activa ? .todos : t
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\(vm.cuenta(t))")
+                                .font(.system(size: 21, weight: .bold))
+                                .monospacedDigit()
+                                .foregroundStyle(activa ? Paleta.brand : .primary)
+                            Text(t.etiqueta)
+                                .font(.system(size: 11.5))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(activa ? Paleta.brandFill : Color(nsColor: .controlBackgroundColor),
+                                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            // Las dos ramas tienen que ser el MISMO tipo: `.quaternary`
+                            // es un `ShapeStyle`, no un `Color`, así que junto a
+                            // `Paleta.brandStroke` el ternario no compila.
+                            .stroke(activa ? Paleta.brandStroke : Color.secondary.opacity(0.25),
+                                    lineWidth: activa ? 1 : 0.5))
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            // **La frase del handoff, que además es una regla.** Cada tarjeta
+            // cuenta con la MISMA regla con la que filtra la lista —
+            // `TarjetaPadron.incluye(_:año:)`—, nunca leyendo un resumen
+            // aparte. Es lo que evita que el número de arriba y la lista de
+            // abajo se contradigan.
+            Text(vm.tarjeta == .todos
+                 ? L.t("Cada tarjeta filtra la lista de abajo, y su número se cuenta con la misma regla — nunca se lee de un resumen.",
+                       "Every card filters the list below, and its number is counted with the same rule — never read from a summary.")
+                 : L.t("Filtrando por «\(vm.tarjeta.etiqueta)».",
+                       "Filtering by “\(vm.tarjeta.etiqueta)”."))
+                .font(.system(size: 11.5))
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            let lista = vm.miembros.filter { vm.tarjeta.incluye($0, año: vm.añoSeleccionado) }
+            if lista.isEmpty {
+                Text(L.t("No hay nadie en este recorte.", "Nobody in this slice."))
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 10)
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(lista) { m in
+                        HStack(spacing: 12) {
+                            Text(m.iniciales)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Paleta.brand)
+                                .frame(width: 32, height: 32)
+                                .background(Paleta.brandFill, in: Circle())
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(m.nombre).font(.system(size: 13, weight: .semibold))
+                                Text(m.cargoLegible)
+                                    .font(.system(size: 11.5)).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 0)
+                            Text(m.estado.etiqueta)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(m.estado.color)
+                                .padding(.horizontal, 9).padding(.vertical, 2)
+                                .background(m.estado.color.opacity(0.14),
+                                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        }
+                        .padding(.horizontal, 13).padding(.vertical, 9)
+                        .background(.background.secondary,
+                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                 }
             }
         }
+        .padding(.top, 16)
     }
-}
 
-// MARK: - Las piezas del papel
+    // MARK: - Asistencia
 
-/// La hoja, con el membrete de la iglesia. **Blanca también en modo oscuro**:
-/// es una previsualización del papel, y el papel es blanco.
-struct HojaInforme<C: View>: View {
-    let titulo: String
-    let periodo: String
-    @ViewBuilder let cuerpo: () -> C
-    @State private var iglesia = ConfiguracionIglesiaViewModel.compartido
+    @ViewBuilder
+    private var pestanaAsistencia: some View {
+        if let a = vm.asistencia {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    kpi(L.t("Asistencia media", "Average attendance"), "\(a.promedioPct)%", Paleta.brand)
+                    kpi(L.t("Servicios", "Services"), "\(a.serviciosPeriodo)", .primary)
+                    kpi(L.t("Presentes de media", "Average present"), "\(a.presentesPromedio)", .primary)
+                    kpi(L.t("Mejor servicio", "Best service"),
+                        a.mejorServicio.isEmpty ? "—" : a.mejorServicio, Paleta.placaMorado)
+                }
 
-    var body: some View {
+                // El aviso que evita que el informe parezca roto.
+                if vm.sinListasTomadas {
+                    Label(L.t("Hubo servicios en el periodo, pero no se tomó lista en ninguno.",
+                              "There were services this period, but attendance was never taken."),
+                          systemImage: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Paleta.aviso)
+                }
+
+                if !a.meses.isEmpty {
+                    panel(L.t("PRESENTES CONTRA PADRÓN", "PRESENT VS ROSTER")) {
+                        Chart(a.meses) { m in
+                            BarMark(x: .value("Mes", m.mes), y: .value("Presentes", m.presentes))
+                                .foregroundStyle(Paleta.brand)
+                                .cornerRadius(4)
+                        }
+                        .frame(height: 150)
+                        .padding(.top, 14)
+                    }
+                }
+            }
+            .padding(.top, 16)
+        } else {
+            vacio.padding(.top, 30)
+        }
+    }
+
+    // MARK: - Seguimiento: alertas AGRUPADAS POR TIPO
+
+    @ViewBuilder
+    private var pestanaSeguimiento: some View {
+        let porTipo = Dictionary(grouping: vm.alertas, by: \.tipo)
+        if porTipo.isEmpty {
+            Text(L.t("Nadie necesita seguimiento ahora mismo.",
+                     "Nobody needs follow-up right now."))
+                .font(.system(size: 12.5))
+                .foregroundStyle(.secondary)
+                .padding(.top, 30)
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                // **Agrupadas por tipo, como el handoff.** Cinco personas que
+                // llevan tres servicios sin venir son UN problema, no cinco
+                // avisos sueltos: agrupadas se ve el patrón.
+                ForEach(InformesMembresiaViewModel.TipoAlerta.allCases, id: \.self) { tipo in
+                    if let gente = porTipo[tipo], !gente.isEmpty {
+                        panel(tipo.etiqueta.uppercased()) {
+                            VStack(spacing: 0) {
+                                ForEach(gente) { a in
+                                    HStack(spacing: 10) {
+                                        Text(a.miembro.nombre)
+                                            .font(.system(size: 12.5, weight: .medium))
+                                        Spacer(minLength: 8)
+                                        Text(a.detalle)
+                                            .font(.system(size: 11.5))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .padding(.vertical, 7)
+                                    .overlay(alignment: .bottom) { Divider() }
+                                }
+                            }
+                            .padding(.top, 10)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: 900, alignment: .leading)
+            .padding(.top, 16)
+        }
+    }
+
+    // MARK: - Piezas
+
+    private func barras(_ datos: [(String, Int)], total: Int, tinta: Color?) -> some View {
+        VStack(spacing: 9) {
+            ForEach(Array(datos.enumerated()), id: \.offset) { _, d in
+                VStack(spacing: 4) {
+                    HStack {
+                        Text(d.0).font(.system(size: 12)).lineLimit(1)
+                        Spacer(minLength: 6)
+                        Text("\(d.1)")
+                            .font(.system(size: 12, weight: .semibold)).monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    GeometryReader { g in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(.quaternary)
+                            Capsule().fill(tinta ?? Paleta.brand)
+                                .frame(width: g.size.width * CGFloat(d.1) / CGFloat(max(1, total)))
+                        }
+                    }
+                    .frame(height: 7)
+                }
+            }
+        }
+        .padding(.top, 14)
+    }
+
+    private func kpi(_ k: String, _ v: String, _ tinta: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(k).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
+            Text(v)
+                .font(.system(size: 22, weight: .bold)).monospacedDigit()
+                .foregroundStyle(tinta).lineLimit(1).minimumScaleFactor(0.6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(.background.secondary,
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func panel<C: View>(_ titulo: String, @ViewBuilder c: () -> C) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 14) {
-                Text(iglesia.config.iniciales)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 42, height: 42)
-                    .background(Paleta.brand,
-                                in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(iglesia.config.nombre.isEmpty
-                         ? L.t("Tu iglesia", "Your church") : iglesia.config.nombre)
-                        .font(.system(size: 16, weight: .bold))
-                    Text(L.t("Informe de membresía", "Membership report"))
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color(red: 0.41, green: 0.41, blue: 0.43))
-                }
-                Spacer(minLength: 0)
-                Text(Date().formatted(.dateTime.day().month(.abbreviated).year()))
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color(red: 0.41, green: 0.41, blue: 0.43))
-            }
-            .padding(.bottom, 14)
-            .overlay(alignment: .bottom) {
-                Rectangle().fill(Paleta.brand).frame(height: 2)
-            }
-
             Text(titulo)
-                .font(.system(size: 19, weight: .bold))
-                .padding(.top, 26)
-            if !periodo.isEmpty {
-                Text(periodo)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color(red: 0.41, green: 0.41, blue: 0.43))
-                    .padding(.top, 2)
-            }
-
-            cuerpo()
-            Spacer(minLength: 30)
+                .font(.system(size: 11, weight: .bold)).kerning(0.5)
+                .foregroundStyle(.secondary)
+            c()
         }
-        .padding(.horizontal, 52)
-        .padding(.vertical, 48)
-        .frame(width: 612, alignment: .leading)
-        .foregroundStyle(Color(red: 0.11, green: 0.11, blue: 0.12))
-        .background(.white)
-        .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
-    }
-}
-
-/// Las tres cifras de cabecera, como las del estado financiero de la maqueta.
-struct TresCifras: View {
-    let valores: [(String, String)]
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ForEach(Array(valores.enumerated()), id: \.offset) { _, v in
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(v.0)
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color(red: 0.41, green: 0.41, blue: 0.43))
-                    Text(v.1)
-                        .font(.system(size: 17, weight: .bold))
-                        .monospacedDigit()
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(Color(white: 0.96),
-                            in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-            }
-        }
-        .padding(.top, 22)
-    }
-}
-
-struct BloqueInforme<C: View>: View {
-    let titulo: String
-    @ViewBuilder let contenido: () -> C
-    init(_ titulo: String, @ViewBuilder contenido: @escaping () -> C) {
-        self.titulo = titulo
-        self.contenido = contenido
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(.background.secondary,
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(titulo)
-                .font(.system(size: 12.5, weight: .bold))
-                .padding(.top, 26)
-                .padding(.bottom, 4)
-            contenido()
-        }
-    }
-}
-
-/// Un renglón del informe. Con `total`, pinta además la proporción — que es lo
-/// que convierte "18" en información: 18 de 40 no es lo mismo que 18 de 400.
-struct RenglonInforme: View {
-    let rotulo: String
-    let valor: String
-    var total: Int? = nil
-
-    init(_ rotulo: String, _ valor: String, total: Int? = nil) {
-        self.rotulo = rotulo
-        self.valor = valor
-        self.total = total
-    }
-
-    private var fraccion: Double {
-        guard let total, total > 0, let n = Double(valor) else { return 0 }
-        return min(1, n / Double(total))
-    }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Text(rotulo).font(.system(size: 12))
-            Spacer(minLength: 8)
-            if total != nil, fraccion > 0 {
-                GeometryReader { g in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color(white: 0.92))
-                        Capsule().fill(Paleta.brand)
-                            .frame(width: g.size.width * fraccion)
-                    }
-                }
-                .frame(width: 110, height: 5)
-            }
-            Text(valor)
-                .font(.system(size: 12, weight: .semibold))
-                .monospacedDigit()
-                .frame(minWidth: 34, alignment: .trailing)
-        }
-        .padding(.vertical, 5)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Color(white: 0.94)).frame(height: 1)
-        }
+    private var vacio: some View {
+        Text(L.t("Todavía no hay datos para este periodo.",
+                 "No data for this period yet."))
+            .font(.system(size: 12))
+            .foregroundStyle(.tertiary)
+            .padding(.vertical, 26)
     }
 }

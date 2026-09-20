@@ -377,6 +377,7 @@ struct InspectorTamio: View {
         encabezado(L.t("MIEMBRO", "MEMBER"), m.nombre, m.estado.etiqueta)
 
         VStack(spacing: 0) {
+            campo(L.t("Cargo", "Role"), m.cargoLegible)
             campo(L.t("Ministerio", "Ministry"), m.ministerioLegible)
             campo(L.t("Asistencia", "Attendance"),
                   m.asistenciaResumen == nil ? L.t("Sin listas", "No lists")
