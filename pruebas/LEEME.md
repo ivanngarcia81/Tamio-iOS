@@ -32,9 +32,10 @@ las operaciones se quedan en la cola de salida y el motor no se llama.
   Cartas. Abre la pantalla veinte veces y cuenta las que se quedan sin
   plantillas. Sirve de control para cualquier cambio en `CartasViewModel`.
 - **`PlantillaDeRespaldoTests.swift`** — que Cartas nunca se abra sin ninguna
-  plantilla, y que el respaldo no pise las de la iglesia cuando sí han bajado.
-  Es la otra mitad del mismo fallo: el respaldo tapa el síntoma y
-  `MotorSincronizacion` arregla la causa.
+  plantilla, que el respaldo no pise las de la iglesia cuando sí han bajado, y
+  que distinga los dos vacíos: sin cursor de `syncEstado` es "no han bajado
+  todavía" y con cursor es "esta iglesia no tiene". Lo segundo es el caso real
+  del §0.-19.
 - **`PlazoDeSesionTests.swift`** — el plazo de `restaurar()`, compilado suelto
   con `swiftc -parse-as-library`: no necesita la copia de §3. Guarda la versión
   que NO funcionaba —un task group espera a sus hijos y se colgaba igual— para

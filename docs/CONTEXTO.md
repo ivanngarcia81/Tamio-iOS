@@ -5,22 +5,69 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **20 de septiembre de 2026** (§0.-19, la sincronización
-que se cancelaba sola; §0.-18, la app de Mac). Lo anterior: las capturas y la
+Última actualización: **20 de septiembre de 2026** (§0.-19, las plantillas que
+no faltaban; §0.-18, la app de Mac). Lo anterior: las capturas y la
 ficha en §0.-17, lo técnico de la subida en §0.-16, lo de interfaz en §0.-15
 —verificado en el iPhone físico— y la pasada grande sigue siendo la segunda de
 QA del iPhone, del 12 al 14 (§0.-11).
 
 ---
 
-## 0.-19 Un paso caído se llevaba media app · 20 de septiembre
+## 0.-19 La cuenta, no la red · 20 de septiembre
 
 Iván abrió Cartas en su iPhone y el carrusel estaba vacío: **"0 templates · 0
-issued in September"**, con Tesorería llena y "Por revisar" marcando 9. La
-lectura natural es que alguien borró las plantillas en el web. No las borró
-nadie.
+issued in September"**, con Tesorería llena y "Por revisar" marcando 9.
 
-### La causa: veinte `try await` dentro de un solo `do`
+### Lo que era, y se supo copiando la base del teléfono
+
+**El iPhone tenía la sesión de "Revisión App Store"**, rol administrador,
+iglesia `809d3b50…` = «Iglesia de prueba». No la iglesia real. Y
+`docs/demo-revision.sql` siembra ocho tablas —actas, agenda, cortes,
+corte_movimientos, members, servicios, servicio_asistencia, transactions— y
+**plantillas no está entre ellas**. Las plantillas no se borraron ni dejaron
+de bajar: esa cuenta nunca las tuvo.
+
+Las tablas con datos en el teléfono eran exactamente esas ocho. Las otras diez
+—plantilla, carta, registro, traslado, depósito, categorías, recurrentes,
+parentescos, puestos, orden— a cero.
+
+**Cómo se lee la base de un iPhone físico, que es lo que hizo falta:**
+
+```
+xcrun devicectl device copy from --device <UDID> \
+  --domain-type appDataContainer --domain-identifier church.tamio.native \
+  --source "Library/Application Support/tamio.sqlite" --destination ./copia.sqlite
+```
+
+Vale con una build de desarrollo y sin `UIFileSharingEnabled`. El
+`Library/Preferences/church.tamio.native.plist` sale igual, y es el que dice
+`sesion.perfil.nombre` y `sesion.perfil.churchId`: **eso es lo que cerró el
+caso**, y se podía haber mirado en el primer minuto.
+
+### La hipótesis que se llevó medio día, y por qué era falsa
+
+Se dio por causa —y se llegó a escribir en el mensaje de `76a5862` como si
+estuviera probada— que la vuelta de sincronización abortaba en un paso
+anterior. Encajaba con la forma del síntoma: lo de arriba lleno, lo de abajo
+vacío.
+
+**Lo desmiente la propia base.** `asistencia` es el paso 12, posterior a
+plantillas (10), y tenía cursor y 39 filas del mismo día. Con el código de
+entonces, si plantillas hubiera lanzado, asistencia no habría corrido nunca.
+Corrió.
+
+Y el patrón completo se explica sin ningún fallo: cada entidad con datos en el
+servidor tenía cursor, y cada una sin datos no tenía ninguno. Es literalmente
+lo que hace `guard !filas.isEmpty else { return }` —no escribe cursor—, así
+que **"sin cursor y cero filas" no es señal de avería**, es señal de que allá
+no hay nada. Se leyó como avería.
+
+La regla, que es la misma del §0.-17 con las unidades en céntimos: **un
+síntoma que encaja con una hipótesis no la prueba**. Los datos que la habrían
+descartado —el plist de la sesión— estaban a un comando de distancia todo el
+rato.
+
+### Aun así, el `do` de veinte pasos era frágil y se arregló
 
 `MotorSincronizacion.sincronizar()` encadenaba los veinte pasos de la vuelta
 —una subida y diecinueve bajadas— en un único `do`. **El primero que lanzara
@@ -37,7 +84,10 @@ no nombraba nada.
 **Ahora cada paso falla por su cuenta** (`PasoFallido`) y el estado dice QUÉ
 paso se cayó: "Actas no se pudo sincronizar: …". Sin el nombre del paso no hay
 forma de saber qué pantalla va a salir incompleta, que es lo único que importa
-al leer ese mensaje.
+al leer ese mensaje. **Esto no arregló el fallo de Iván** —no había fallo de
+sincronización—, pero el `do` seguía siendo una bomba de relojería, y un
+mensaje sin nombre de paso es justo lo que dejó la hipótesis falsa sin poder
+descartarse.
 
 Tres cosas que se conservan a propósito:
 
@@ -62,9 +112,14 @@ pantalla en blanco y no una degradada.
 Ya existe (`PlantillasConRespaldo`), y **avisa**: un respaldo mudo sería peor
 que el hueco, porque esas plantillas traen el nombre del tipo y nada más
 —sin asunto, sin saludo, sin cuerpo, sin despedida—, así que redactar con una
-da una carta en blanco con pinta de plantilla de la iglesia. El carrusel del
-teléfono y la lista del iPad y el Mac enseñan "Tipos genéricos: las plantillas
-de la iglesia no han bajado todavía".
+da una carta en blanco con pinta de plantilla de la iglesia.
+
+**Y el aviso dice cuál de los dos vacíos es**, que es la lección de arriba
+metida en la app. Nació diciendo siempre "las plantillas de la iglesia no han
+bajado todavía" —mandando a mirar la red— y el primer teléfono en el que se
+vio era el otro caso. Se distinguen con el cursor de `syncEstado`, que ya
+estaba escrito: sin cursor, "no han bajado todavía"; con cursor y cero filas,
+"esta iglesia no tiene plantillas propias", que manda a mirar la cuenta.
 
 `pruebas/PlantillaDeRespaldoTests.swift` cubre el respaldo. **El motor no
 tiene prueba**: `sincronizar()` llama a veinte métodos privados contra

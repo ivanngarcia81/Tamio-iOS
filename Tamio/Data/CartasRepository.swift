@@ -360,12 +360,44 @@ struct Plantilla: Identifiable, Hashable {
 /// elige tiene derecho a saber que no es la que la iglesia escribió en el web.
 struct CatalogoPlantillas {
     var lista: [Plantilla] = []
-    /// `true` cuando son los tipos del `enum` porque la base no tenía ninguna.
-    var deRespaldo = false
+    /// Por qué son los tipos del `enum`, o `nil` si son las de la iglesia.
+    var motivo: MotivoDelRespaldo?
+
+    var deRespaldo: Bool { motivo != nil }
+
+    /// **Vacío y vacío no son lo mismo, y la frase que se enseña cambia.**
+    ///
+    /// Cuando el aviso nació decía siempre "no han bajado todavía", y el
+    /// primer teléfono en el que se vio no era ese caso: la sesión era la de
+    /// "Revisión App Store", cuya iglesia de demo no siembra plantillas
+    /// —`docs/demo-revision.sql` crea ocho tablas y esa no está—. Decirle a
+    /// quien espera una sincronización que espere más es mandarlo a mirar la
+    /// red cuando el problema es la cuenta.
+    ///
+    /// Se distinguen con el cursor de `syncEstado`, que ya estaba escrito: las
+    /// bajadas no lo mueven cuando el servidor no devuelve ni una fila
+    /// (`guard !filas.isEmpty`), así que **sin cursor = no ha bajado nunca** y
+    /// **con cursor y cero filas = allá no hay ninguna**.
+    enum MotivoDelRespaldo {
+        /// La tabla no se ha traído nunca: primera sincronización, o se cayó.
+        case noHanBajado
+        /// Se trajo y el servidor no tenía ninguna para esta iglesia.
+        case laIglesiaNoTiene
+    }
 }
 
 protocol PlantillasRepository {
     func catalogo() async -> CatalogoPlantillas
+
+    /// Si la sincronización ha traído esta tabla alguna vez. Ver
+    /// `CatalogoPlantillas.MotivoDelRespaldo`.
+    func yaSeIntentoBajarlas() async -> Bool
+}
+
+extension PlantillasRepository {
+    /// Una maqueta no tiene base detrás ni cursor que mirar. Contesta que no
+    /// se han intentado, que es lo cierto de ella.
+    func yaSeIntentoBajarlas() async -> Bool { false }
 }
 
 /// La maqueta las deriva del `enum`, que es de donde salían antes: sin sesión
@@ -389,6 +421,14 @@ struct MockPlantillasRepository: PlantillasRepository {
 struct OfflinePlantillasRepository: PlantillasRepository {
 
     private var cola: DatabaseQueue { BaseLocal.compartida.cola }
+
+    /// Hay cursor de `plantilla` en cuanto una bajada trajo al menos una fila.
+    func yaSeIntentoBajarlas() async -> Bool {
+        let cursor = try? await cola.read { db in
+            try String.fetchOne(db, sql: "select cursor from syncEstado where entidad = 'plantilla'")
+        }
+        return (cursor ?? nil) != nil
+    }
 
     func catalogo() async -> CatalogoPlantillas {
         CatalogoPlantillas(lista: (try? await cola.read { db in
@@ -424,9 +464,14 @@ struct PlantillasConRespaldo: PlantillasRepository {
     func catalogo() async -> CatalogoPlantillas {
         let deLaIglesia = await base.catalogo()
         guard deLaIglesia.lista.isEmpty else { return deLaIglesia }
-        return CatalogoPlantillas(lista: await MockPlantillasRepository().catalogo().lista,
-                                  deRespaldo: true)
+        let seIntento = await base.yaSeIntentoBajarlas()
+        return CatalogoPlantillas(
+            lista: await MockPlantillasRepository().catalogo().lista,
+            motivo: seIntento ? .laIglesiaNoTiene : .noHanBajado)
     }
+
+    /// Lo contesta la base, que es la que tiene el cursor.
+    func yaSeIntentoBajarlas() async -> Bool { await base.yaSeIntentoBajarlas() }
 }
 
 /// Maqueta sin sesión, base con ella —y la maqueta de respaldo si la base

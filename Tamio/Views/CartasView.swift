@@ -205,8 +205,8 @@ struct CartasView: View {
                     puntosCarrusel
                     resumenPlantillas
                         .padding(.horizontal, Esp.pantalla)
-                    if vm.plantillasDeRespaldo {
-                        avisoDeRespaldo
+                    if let motivo = vm.motivoDelRespaldo {
+                        avisoDeRespaldo(motivo)
                             .padding(.horizontal, Esp.pantalla)
                     }
                 }
@@ -262,10 +262,21 @@ struct CartasView: View {
     /// Sin el respaldo esto era un carrusel vacío y "0 templates", que se lee
     /// como que la iglesia borró sus plantillas. Sin el aviso sería peor: una
     /// lista de plantillas que parecen suyas y no lo son.
-    private var avisoDeRespaldo: some View {
-        Label(L.t("Tipos genéricos: las plantillas de la iglesia no han bajado todavía",
-                  "Generic types: the church's templates haven't synced yet"),
-              systemImage: "exclamationmark.triangle")
+    ///
+    /// **Y dice CUÁL de los dos vacíos es.** "No han bajado todavía" manda a
+    /// mirar la red; "esta iglesia no tiene" manda a mirar la cuenta. Dar el
+    /// primero cuando el caso es el segundo es mandar a buscar donde no está,
+    /// y eso pasó de verdad: ver `CatalogoPlantillas.MotivoDelRespaldo`.
+    private func avisoDeRespaldo(_ motivo: CatalogoPlantillas.MotivoDelRespaldo) -> some View {
+        let texto = switch motivo {
+        case .noHanBajado:
+            L.t("Tipos genéricos: las plantillas de la iglesia no han bajado todavía",
+                "Generic types: the church's templates haven't synced yet")
+        case .laIglesiaNoTiene:
+            L.t("Tipos genéricos: esta iglesia no tiene plantillas propias",
+                "Generic types: this church has no templates of its own")
+        }
+        return Label(texto, systemImage: "exclamationmark.triangle")
             .font(.caption)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
@@ -636,7 +647,7 @@ struct CartasView: View {
             } footer: {
                 // El mismo aviso que el carrusel del teléfono: el iPad y el
                 // Mac leen la misma tabla y caen en el mismo respaldo.
-                if vm.plantillasDeRespaldo { avisoDeRespaldo }
+                if let motivo = vm.motivoDelRespaldo { avisoDeRespaldo(motivo) }
             }
 
             Section {
