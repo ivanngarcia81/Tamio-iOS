@@ -8,13 +8,16 @@ cada versión— y mezclarlos es como se pierde un párrafo al actualizar.
 
 Redactado el **18 de septiembre de 2026**, para `church.tamio.native` 1.0.0 (1).
 
-> **Antes de pegar nada, dos cosas que caducan.** La primera: las dos URL de
-> abajo **todavía dan 404** —las publica el otro chat, `ACUERDO-CON-EL-WEB.md`
-> §4— y App Store Connect no deja enviar sin ellas. La segunda: el correo.
-> Circulan dos (`ivanngarcia82@gmail.com` en el sitio y en la política viva,
-> `ig07644@gmail.com` en otras copias) y **el de aquí tiene que ser el mismo que
-> el de la política y el de soporte**. Elegir uno y que sea ese en los tres
-> sitios.
+> **Las dos cosas que caducaban, resueltas el 19-sep-2026.** Se dejan escritas
+> porque saber que YA están comprobadas ahorra volver a comprobarlas.
+>
+> - **Las dos URL están vivas.** Daban 404 cuando se redactó esto. Verificadas
+>   con `curl` el 19-sep: `privacidad.html` y `soporte.html` responden 200, y la
+>   política que sirven es la NUEVA —la que cubre las dos apps y declara la
+>   información religiosa como sensible—, no la de julio.
+> - **El correo oficial es `ivanngarcia82@gmail.com`.** Era el que ya usaban el
+>   sitio y la política vivas, así que se eligió ese y no `ig07644@gmail.com`.
+>   Es el que va en App Store Connect.
 
 ---
 
@@ -70,13 +73,19 @@ Todo lo demás en «Ninguno». Las dos que hacen dudar:
 | **URL de soporte** | `https://tamio.church/soporte.html` |
 | **URL de marketing** | `https://tamio.church` |
 
-**La de soporte es obligatoria y hoy no existe.** `/soporte`, `/support`,
-`/contacto` y `/ayuda` dan 404. El borrador está en `docs/soporte-propuesta.html`.
+**Las tres responden 200**, verificado el 19-sep-2026. Se pegan tal cual, con
+el `.html` incluido: `/soporte` a secas sigue dando 404.
 
-**Y la de privacidad, publicada hoy, CONTRADICE a esta app**: la viva es del 29
-de julio y dice *«ni inicio de sesión, no enviamos tu información a ningún
-servidor»*. El reemplazo está en `docs/privacidad-propuesta.html`. Enviar con la
-de hoy es entregarle al revisor la contradicción por escrito.
+**Y la política que sirven es la buena.** Esto importaba de verdad: la que había
+el 18-sep era la de julio, que decía *«ni inicio de sesión, no enviamos tu
+información a ningún servidor»* — enviar con ella era entregarle al revisor la
+contradicción por escrito, porque esta app exige cuenta y guarda en Supabase. La
+viva de hoy pone las dos apps una al lado de la otra («¿Hace falta cuenta?» ·
+*No, no hay inicio de sesión* · **Sí, es obligatoria**) y declara la información
+religiosa como sensible.
+
+Los borradores `docs/privacidad-propuesta.html` y `docs/soporte-propuesta.html`
+ya están publicados; se quedan como referencia de lo que se envió.
 
 ---
 
@@ -247,8 +256,8 @@ mismo autor en la tienda y el revisor lo va a ver. Se escribe en inglés porque
 la revisión es en inglés.
 
     ACCOUNT FOR REVIEW
-    Email:    revision@tamio.church
-    Password: <ponerla al crear la cuenta>
+    Email:    ivanngarcia82+prueba@gmail.com
+    Password: <PONER LA QUE SE ELIGIÓ AL CREAR LA CUENTA>
 
     The app has no sign-up: churches are onboarded by us, so the account above
     is the only way in. It belongs to a sample church with sample data and a
@@ -301,11 +310,35 @@ la revisión es en inglés.
 > pedir un rechazo: no la encuentra donde se le dice, prueba lo de al lado, ve
 > que la cuenta sigue viva, y reporta que la app no deja borrarla.
 
-**La cuenta de revisión no está creada todavía**, y tiene un requisito que es
-fácil saltarse: **un segundo perfil administrador en esa misma iglesia**. Sin
-él, el revisor prueba el borrado —que es exactamente lo que va a hacer— y se
-lleva la demo entera por delante, y hay que rehacerla para la siguiente ronda.
-El porqué está en `docs/APP-STORE.md`.
+### La cuenta de revisión · HECHA el 19-sep-2026
+
+Ya existe, con su iglesia sembrada y comprobada contra las cifras que
+`docs/demo-revision.sql` lleva escritas al lado:
+
+| | |
+|---|---|
+| Correo | `ivanngarcia82+prueba@gmail.com` (confirmada) |
+| Perfil | «Revisión App Store», administrador |
+| Iglesia | «Iglesia Nueva Vida», `809d3b50-810f-433b-a0d2-f3413ca49637` |
+| Contenido | 14 miembros · 34 movimientos · 3 cortes · 2 actas · 3 cultos · 8 actividades |
+| Dinero | ingresos $48,820.00 · gastos $31,520.50 · balance $17,299.50 |
+| **Perfiles** | **2** — el segundo es `ivanngarcia82+revision2@gmail.com`, administrador |
+
+**Lo único que falta escribir aquí es la contraseña**, arriba. No está en el
+repo a propósito.
+
+**Por qué el correo NO es `revision@tamio.church`**, que es lo que decía esta
+nota hasta hoy: esa dirección no existe. Supabase no da buzones —solo guarda el
+correo como identificador— y `tamio.church` no tiene servidor de correo, así
+que nada dirigido ahí se entrega. Con *Auto Confirm User* el revisor entra sin
+recibir nada, pero la app tiene «olvidé mi contraseña»
+(`SesionSupabase.swift:149`), y si lo toca el mensaje se pierde. Un `+alias` de
+Gmail llega a una bandeja de verdad sin configurar nada.
+
+**Y los dos perfiles son el requisito que es fácil saltarse.** Con uno solo, el
+revisor prueba el borrado —que es exactamente lo que va a hacer— y
+`borrar-cuenta` se lleva la demo entera por delante en cascada, y hay que
+rehacerla para la siguiente ronda. El porqué está en `docs/APP-STORE.md`.
 
 ---
 

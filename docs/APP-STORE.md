@@ -209,10 +209,10 @@ necesita el anterior. Lo que **no** está aquí no bloquea el envío.
    `docs/FICHA-APP-STORE.md`; las capturas las genera
    `pruebas/capturas-tienda.sh` y salen en `docs/capturas-tienda/`, fuera del
    repo a propósito.
-4. **Un solo correo.** Circulan dos: `ivanngarcia82@gmail.com` en el sitio y en
-   la política viva, `ig07644@gmail.com` en otras copias. Hay que elegir uno y
-   que sea el mismo en la ficha, en la política y en soporte. **Esto va antes
-   que B y que C**, porque los dos lo necesitan escrito.
+4. ~~**Un solo correo.**~~ **`ivanngarcia82@gmail.com`**, decidido el 19-sep:
+   es el que ya usaban el sitio y la política vivas, así que elegir el otro
+   (`ig07644@gmail.com`) obligaba a tocar dos páginas publicadas para nada. Va
+   así en la ficha, en la política y en soporte.
 
 ### B · La web · lo lleva el otro chat (`ACUERDO-CON-EL-WEB.md` §4)
 
@@ -240,19 +240,24 @@ necesita el anterior. Lo que **no** está aquí no bloquea el envío.
 Las dos usan **`ivanngarcia82@gmail.com`**, que es lo que decide el punto 4: ese
 es el correo oficial y es el que hay que poner también en App Store Connect.
 
-### C · La iglesia del revisor · Supabase y la app, en este orden
+### C · La iglesia del revisor · HECHO el 19-sep-2026
 
-9. **Dar de alta la cuenta** en el panel, con *Auto Confirm User*. El
-   disparador `al_crear_usuario` le crea una iglesia sola: esa es la demo.
-10. **Correr `docs/demo-revision.sql`** con ese `church_id`. **Nunca se ha
-   ejecutado**: está validada contra el esquema, no contra la base. Al acabar,
-   correr su consulta de comprobación y contrastar con las cifras que lleva
-   escritas al lado — si la app enseña $488.20 en vez de $48,820.00, el dinero
-   entró en pesos y no en céntimos.
-11. **Invitar al SEGUNDO administrador** desde la app. Sin él, el revisor prueba
-   el borrado —que es lo que va a hacer— y se lleva la demo entera.
+9. ~~**Dar de alta la cuenta.**~~ `ivanngarcia82+prueba@gmail.com`, confirmada.
+   **No es una dirección de `tamio.church`**, y no puede serlo: el dominio no
+   tiene servidor de correo y Supabase no da buzones, solo guarda el correo como
+   identificador. Un `+alias` de Gmail sí llega a una bandeja de verdad, que
+   hace falta por el «olvidé mi contraseña» de la app.
+10. ~~**Correr `docs/demo-revision.sql`.**~~ Sembrada en
+   `809d3b50-810f-433b-a0d2-f3413ca49637` y **comprobada contra las cifras que
+   el propio archivo lleva escritas al lado**: 14 miembros, 34 movimientos,
+   ingresos $48,820.00 y gastos $31,520.50. O sea que el dinero entró en
+   CÉNTIMOS — si hubiera enseñado $488.20 era el fallo del 18-sep.
+11. ~~**Invitar al SEGUNDO administrador.**~~ `ivanngarcia82+revision2@gmail.com`,
+   administrador. **Perfiles en esa iglesia: 2.** Ese número es el que decide si
+   la demo sobrevive a que el revisor pruebe el borrado.
 12. **Rellenar la contraseña** en la nota al revisor de
-    `docs/FICHA-APP-STORE.md`, que va en blanco.
+    `docs/FICHA-APP-STORE.md`, que va en blanco. **Es lo único que queda del
+    bloque C**, y no está en el repo a propósito.
 
 ### D · App Store Connect · nada de esto se puede hacer antes
 
