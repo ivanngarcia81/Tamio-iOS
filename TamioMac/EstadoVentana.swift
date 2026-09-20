@@ -39,7 +39,10 @@ final class EstadoVentana {
 
     /// La densidad de las filas, del menú Ver. Los tres valores y sus alturas
     /// salen de la maqueta.
-    var densidad: Densidad = .media
+    /// **Cómoda por omisión**, que es la densidad con la que está dibujado el
+    /// handoff. Arrancaba en media y las filas salían más apretadas que el
+    /// diseño.
+    var densidad: Densidad = .comoda
 
     enum Periodo: String, CaseIterable, Identifiable {
         case semana, mes, ano
@@ -83,5 +86,8 @@ final class EstadoVentana {
     func recargar() { recarga += 1 }
 
     func filtro(_ s: SeccionMac) -> String { filtros[s.rawValue] ?? "" }
+
+    /// El alto de fila que toca ahora mismo.
+    var altoDeFila: CGFloat { densidad.altoFila }
     func ponerFiltro(_ texto: String, en s: SeccionMac) { filtros[s.rawValue] = texto }
 }

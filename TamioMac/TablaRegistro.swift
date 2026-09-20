@@ -12,6 +12,7 @@ import SwiftUI
 /// Tesorería de Secretaría. Auditar es cruzar, y cruzar necesita columnas.
 struct TablaRegistro: View {
     let vm: RegistroViewModel
+    @Environment(EstadoVentana.self) private var estado
     @Binding var seleccion: Set<Apunte.ID>
 
     /// Lo más reciente arriba: un registro se lee por el final.
@@ -25,6 +26,7 @@ struct TablaRegistro: View {
             TableColumn(L.t("Cuándo", "When"), value: \.creadoEn) { a in
                 Text(a.creadoEn.formatted(.dateTime.day().month(.abbreviated).hour().minute()))
                     .foregroundStyle(.secondary)
+                    .frame(height: estado.altoDeFila)
             }
             .width(min: 110, ideal: 132, max: 180)
 
@@ -66,7 +68,14 @@ struct TablaRegistro: View {
             }
             .width(min: 120, ideal: 170, max: 260)
         }
-        .tableStyle(.inset(alternatesRowBackgrounds: true))
+        // **Sin rayas alternas, y no es capricho.**
+        //
+        // `alternatesRowBackgrounds` las pinta en TODO el alto de la tabla,
+        // también donde no hay datos: con dos movimientos en pantalla, la
+        // ventana se llenaba de cuarenta renglones rayados vacíos. El handoff
+        // alterna solo las filas que existen y deja el resto limpio, y entre
+        // las dos cosas la que más se parece es no alternar.
+        .tableStyle(.inset)
     }
 }
 

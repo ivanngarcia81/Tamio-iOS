@@ -7,6 +7,7 @@ import SwiftUI
 /// movimientos de un periodo, sacarlos de la caja y llevarlos al banco.
 struct TablaDepositos: View {
     let vm: DepositosViewModel
+    @Environment(EstadoVentana.self) private var estado
     @Binding var seleccion: Set<Corte.ID>
     @State private var orden = [KeyPathComparator(\Corte.registro.fecha, order: .reverse)]
 
@@ -18,6 +19,9 @@ struct TablaDepositos: View {
             TableColumn(L.t("Fecha", "Date"), value: \.registro.fecha) { c in
                 Text(c.registro.fecha.isEmpty ? "—" : Fechas.diaLegible(c.registro.fecha))
                     .foregroundStyle(.secondary)
+                    // El alto de fila se fija en la primera columna: `Table` no
+                    // tiene ajuste propio y la fila mide lo que su celda más alta.
+                    .frame(height: estado.altoDeFila)
             }
             .width(min: 110, ideal: 140, max: 190)
 
@@ -64,7 +68,10 @@ struct TablaDepositos: View {
             }
             .width(min: 110, ideal: 140, max: 190)
         }
-        .tableStyle(.inset(alternatesRowBackgrounds: true))
+        // **Sin rayas alternas.** `alternatesRowBackgrounds` las pinta en
+        // TODO el alto de la tabla, también donde no hay datos: con dos filas
+        // en pantalla la ventana se llenaba de renglones rayados vacíos.
+        .tableStyle(.inset)
     }
 }
 

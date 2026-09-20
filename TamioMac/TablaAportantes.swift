@@ -4,6 +4,7 @@ import SwiftUI
 /// Frecuencia, Último aporte y Acumulado del año.
 struct TablaAportantes: View {
     let vm: MiembrosViewModel
+    @Environment(EstadoVentana.self) private var estado
     @Binding var seleccion: Set<Aportante.ID>
     @State private var orden = [KeyPathComparator(\Aportante.nombre, order: .forward)]
 
@@ -29,6 +30,9 @@ struct TablaAportantes: View {
                                         in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                     }
                 }
+                // El alto de fila se fija en la primera columna: `Table` no
+                // tiene ajuste propio y la fila mide lo que su celda más alta.
+                .frame(height: estado.altoDeFila)
             }
             .width(min: 160, ideal: 260)
 
@@ -61,7 +65,10 @@ struct TablaAportantes: View {
             }
             .width(min: 110, ideal: 140, max: 190)
         }
-        .tableStyle(.inset(alternatesRowBackgrounds: true))
+        // **Sin rayas alternas.** `alternatesRowBackgrounds` las pinta en
+        // TODO el alto de la tabla, también donde no hay datos: con dos filas
+        // en pantalla la ventana se llenaba de renglones rayados vacíos.
+        .tableStyle(.inset)
     }
 }
 

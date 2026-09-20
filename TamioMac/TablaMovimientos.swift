@@ -9,6 +9,7 @@ import AppKit
 /// sale gratis con `Table` y habría que escribirlo entero con una `List`.
 struct TablaMovimientos: View {
     let vm: MovimientosViewModel
+    @Environment(EstadoVentana.self) private var estado
     @Binding var seleccion: Set<Movimiento.ID>
 
     /// **Por fecha y de la más reciente hacia abajo**, que es como se mira un
@@ -23,6 +24,13 @@ struct TablaMovimientos: View {
             TableColumn(L.t("Fecha", "Date"), value: \.fecha) { m in
                 Text(m.fecha.formatted(.dateTime.day().month(.abbreviated)))
                     .foregroundStyle(.secondary)
+                    // **El alto de fila se fija en la PRIMERA columna.**
+                    //
+                    // `Table` no tiene ajuste de alto de fila: la fila mide lo
+                    // que mida su celda más alta, así que basta con dárselo a
+                    // una. Va aquí y no en las seis para no repetir el mismo
+                    // modificador seis veces.
+                    .frame(height: estado.altoDeFila)
             }
             .width(min: 76, ideal: 96, max: 140)
 
@@ -79,7 +87,14 @@ struct TablaMovimientos: View {
             }
             .width(min: 100, ideal: 130, max: 180)
         }
-        .tableStyle(.inset(alternatesRowBackgrounds: true))
+        // **Sin rayas alternas, y no es capricho.**
+        //
+        // `alternatesRowBackgrounds` las pinta en TODO el alto de la tabla,
+        // también donde no hay datos: con dos movimientos en pantalla, la
+        // ventana se llenaba de cuarenta renglones rayados vacíos. El handoff
+        // alterna solo las filas que existen y deja el resto limpio, y entre
+        // las dos cosas la que más se parece es no alternar.
+        .tableStyle(.inset)
         // **El menú contextual del handoff, con lo que de verdad funciona.**
         //
         // El diseño lista ocho órdenes: Aprobar ⌘R, Marcar depositado ⇧⌘B,
