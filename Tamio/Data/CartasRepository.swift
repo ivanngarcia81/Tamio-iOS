@@ -352,17 +352,33 @@ struct Plantilla: Identifiable, Hashable {
     }
 }
 
+/// **Las plantillas y de dónde salieron.**
+///
+/// Lo segundo no es un detalle de implementación: una plantilla de respaldo
+/// trae el nombre de su tipo y NADA más —sin asunto, sin saludo, sin cuerpo y
+/// sin despedida—, así que redactar con ella da una carta en blanco. Quien la
+/// elige tiene derecho a saber que no es la que la iglesia escribió en el web.
+struct CatalogoPlantillas {
+    var lista: [Plantilla] = []
+    /// `true` cuando son los tipos del `enum` porque la base no tenía ninguna.
+    var deRespaldo = false
+}
+
 protocol PlantillasRepository {
-    func lista() async -> [Plantilla]
+    func catalogo() async -> CatalogoPlantillas
 }
 
 /// La maqueta las deriva del `enum`, que es de donde salían antes: sin sesión
 /// no hay base de la que leerlas y la pantalla tiene que enseñar algo.
+///
+/// **No se marcan de respaldo aquí.** En modo revisión son las únicas que hay
+/// y son las que toca enseñar; lo de respaldo lo decide quien cae en ellas
+/// teniendo una base detrás, que es `PlantillasConRespaldo`.
 struct MockPlantillasRepository: PlantillasRepository {
-    func lista() async -> [Plantilla] {
-        TipoPlantilla.allCases.map {
+    func catalogo() async -> CatalogoPlantillas {
+        CatalogoPlantillas(lista: TipoPlantilla.allCases.map {
             Plantilla(id: $0.rawValue, nombre: $0.titulo, tipo: $0)
-        }
+        })
     }
 }
 
@@ -374,8 +390,8 @@ struct OfflinePlantillasRepository: PlantillasRepository {
 
     private var cola: DatabaseQueue { BaseLocal.compartida.cola }
 
-    func lista() async -> [Plantilla] {
-        (try? await cola.read { db in
+    func catalogo() async -> CatalogoPlantillas {
+        CatalogoPlantillas(lista: (try? await cola.read { db in
             try PlantillaFila
                 .filter(Column("borrado") == false && Column("activa") == true)
                 .order(Column("nombre").asc)
@@ -387,15 +403,39 @@ struct OfflinePlantillasRepository: PlantillasRepository {
                               cuerpoHtml: $0.cuerpoHtml, despedida: $0.despedida,
                               predeterminada: $0.predeterminada)
                 }
-        }) ?? []
+        }) ?? [])
     }
 }
 
-/// Maqueta sin sesión, base con ella. **Y maqueta también si la base todavía
-/// no las ha bajado**: una pantalla de cartas sin ninguna plantilla no es
+/// **La base, y la maqueta si la base no tiene ninguna.**
+///
+/// Este respaldo estaba escrito en el comentario de `repositorioPlantillas()`
+/// desde el día que las plantillas dejaron de salir del `enum` y **nunca se
+/// programó**: la función solo miraba si había sesión. Con sesión y la tabla
+/// `plantilla` vacía —porque la sincronización se cayó antes de llegar a
+/// ella—, Cartas se abría con el carrusel en blanco y "0 templates", que se
+/// lee como "la iglesia borró sus plantillas" y no como "no han bajado".
+///
+/// Lo vio Iván en su iPhone. El respaldo tapa el síntoma: la causa era la
+/// vuelta de sincronización, y está en `MotorSincronizacion.PasoFallido`.
+struct PlantillasConRespaldo: PlantillasRepository {
+    let base: PlantillasRepository
+
+    func catalogo() async -> CatalogoPlantillas {
+        let deLaIglesia = await base.catalogo()
+        guard deLaIglesia.lista.isEmpty else { return deLaIglesia }
+        return CatalogoPlantillas(lista: await MockPlantillasRepository().catalogo().lista,
+                                  deRespaldo: true)
+    }
+}
+
+/// Maqueta sin sesión, base con ella —y la maqueta de respaldo si la base
+/// todavía no las ha bajado: una pantalla de cartas sin ninguna plantilla no es
 /// utilizable, y la primera sincronización puede tardar.
 func repositorioPlantillas() -> PlantillasRepository {
-    ModoRevision.sinLogin ? MockPlantillasRepository() : OfflinePlantillasRepository()
+    ModoRevision.sinLogin
+        ? MockPlantillasRepository()
+        : PlantillasConRespaldo(base: OfflinePlantillasRepository())
 }
 
 /// Maqueta sin sesión, base con ella.

@@ -8,6 +8,11 @@ final class CartasViewModel {
     /// tenía las once de verdad: cambiar el texto de una en el web no llegaba
     /// aquí, y cinco de las quince ni existen allá.
     var plantillas: [Plantilla] = []
+    /// **Las de arriba no son las de la iglesia, son los tipos genéricos.**
+    /// Pasa cuando la tabla `plantilla` está vacía; lo decide
+    /// `PlantillasConRespaldo`, y la pantalla tiene que decirlo porque una
+    /// plantilla de respaldo no trae texto que redactar.
+    var plantillasDeRespaldo = false
     var plantillaSeleccionada: TipoPlantilla = .traslado
     var carta = CartaEnEdicion()
     var cargando = false
@@ -37,13 +42,16 @@ final class CartasViewModel {
     /// (2 de 20).
     ///
     /// **Si se añade una tercera lista aquí, va con las otras dos**, después
-    /// del último `await`.
+    /// del último `await`. `plantillasDeRespaldo` ya es la tercera: sale del
+    /// mismo catálogo que `plantillas` y se publica pegada a ella, que es la
+    /// misma regla.
     func cargar() async {
         cargando = true
         let nuevasEmitidas = (try? await repo.emitidas()) ?? []
-        let nuevasPlantillas = await repositorioPlantillas().lista()
+        let catalogo = await repositorioPlantillas().catalogo()
         emitidas = nuevasEmitidas
-        plantillas = nuevasPlantillas
+        plantillas = catalogo.lista
+        plantillasDeRespaldo = catalogo.deRespaldo
         cargando = false
     }
 

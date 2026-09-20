@@ -164,51 +164,67 @@ final class MotorSincronizacion {
         guard estado != .sincronizando, !ModoRevision.sinLogin else { return }
         estado = .sincronizando
         if reintentarLoAtascado { await despertarAtascadas() }
-        do {
-            try await subirPendientes()
-            try await bajarCambios()
-            try await bajarAportantes()
-            // Los parentescos DESPUÉS de las personas: cada fila apunta a dos
-            // fichas por uid, y una relación cuyo otro extremo no ha bajado
-            // se salta entera hasta la vuelta siguiente.
-            try await bajarParentescos()
-            // La asistencia DESPUÉS de los cultos: cada marca apunta a uno por
-            // id, y una lista cuyo culto no ha bajado no se puede colocar.
-            try await bajarCultos()
-            try await bajarAgenda()
-            try await bajarActas()
-            try await bajarCartas()
-            try await bajarRegistro()
-            try await bajarPlantillas()
-            // Después de los miembros: cada traslado apunta a una persona por
-            // uid, igual que los parentescos.
-            try await bajarTraslados()
-            // Las tres hijas del culto, después de él y por la misma razón que
-            // los parentescos van después de las personas.
-            try await bajarAsistencia()
-            try await bajarPuestos()
-            try await bajarOrden()
-            try await bajarIglesia()
-            // Los cortes DESPUÉS de los movimientos: el corte apunta a
-            // movimientos por id, y resolver un puntero a algo que todavía no
-            // ha bajado deja el corte vacío hasta la vuelta siguiente.
-            try await bajarCortes()
-            try await bajarCorteMovimientos()
-            try await bajarDepositos()
-            try await bajarCategorias()
-            // Las definiciones recurrentes, ANTES de que la app las
-            // materialice: si otro aparato creó la renta, este tiene que
-            // conocerla para no volver a registrarla por su cuenta.
-            try await bajarRecurrentes()
-            // Los recibos al final: son archivos, tardan, y ninguna otra cosa
-            // depende de ellos. Que falle la subida de una foto no puede dejar
-            // sin sincronizar el resto.
-            try? await subirRecibosPendientes()
+
+        var fallidos: [PasoFallido] = []
+        /// Un paso de la vuelta. **Si lanza, se anota y se sigue**: ver
+        /// `PasoFallido`.
+        func paso(_ nombre: String, _ cuerpo: () async throws -> Void) async {
+            do { try await cuerpo() } catch { fallidos.append(PasoFallido(nombre: nombre, error: error)) }
+        }
+
+        // Subir va PRIMERO, como siempre. Que falle ya no cancela las bajadas:
+        // ninguna puede pisar un cambio local sin subir, porque todas saltan
+        // las filas con operación en la cola (`avance.saltada()`) y el cursor
+        // no pasa del hueco.
+        await paso(L.t("Subir cambios", "Uploading changes")) { try await self.subirPendientes() }
+        await paso(L.t("Movimientos", "Transactions")) { try await self.bajarCambios() }
+        await paso(L.t("Aportantes", "Members")) { try await self.bajarAportantes() }
+        // Los parentescos DESPUÉS de las personas: cada fila apunta a dos
+        // fichas por uid, y una relación cuyo otro extremo no ha bajado
+        // se salta entera hasta la vuelta siguiente.
+        await paso(L.t("Parentescos", "Relationships")) { try await self.bajarParentescos() }
+        // La asistencia DESPUÉS de los cultos: cada marca apunta a uno por
+        // id, y una lista cuyo culto no ha bajado no se puede colocar.
+        await paso(L.t("Cultos", "Services")) { try await self.bajarCultos() }
+        await paso(L.t("Agenda", "Calendar")) { try await self.bajarAgenda() }
+        await paso(L.t("Actas", "Minutes")) { try await self.bajarActas() }
+        await paso(L.t("Cartas", "Letters")) { try await self.bajarCartas() }
+        await paso(L.t("Registro", "Log")) { try await self.bajarRegistro() }
+        await paso(L.t("Plantillas", "Templates")) { try await self.bajarPlantillas() }
+        // Después de los miembros: cada traslado apunta a una persona por
+        // uid, igual que los parentescos.
+        await paso(L.t("Traslados", "Transfers")) { try await self.bajarTraslados() }
+        // Las tres hijas del culto, después de él y por la misma razón que
+        // los parentescos van después de las personas.
+        await paso(L.t("Asistencia", "Attendance")) { try await self.bajarAsistencia() }
+        await paso(L.t("Puestos", "Service roles")) { try await self.bajarPuestos() }
+        await paso(L.t("Orden del culto", "Service order")) { try await self.bajarOrden() }
+        await paso(L.t("Iglesia", "Church")) { try await self.bajarIglesia() }
+        // Los cortes DESPUÉS de los movimientos: el corte apunta a
+        // movimientos por id, y resolver un puntero a algo que todavía no
+        // ha bajado deja el corte vacío hasta la vuelta siguiente.
+        await paso(L.t("Cortes", "Counts")) { try await self.bajarCortes() }
+        await paso(L.t("Movimientos del corte", "Count transactions")) { try await self.bajarCorteMovimientos() }
+        await paso(L.t("Depósitos", "Deposits")) { try await self.bajarDepositos() }
+        await paso(L.t("Categorías", "Categories")) { try await self.bajarCategorias() }
+        // Las definiciones recurrentes, ANTES de que la app las
+        // materialice: si otro aparato creó la renta, este tiene que
+        // conocerla para no volver a registrarla por su cuenta.
+        await paso(L.t("Recurrentes", "Recurring")) { try await self.bajarRecurrentes() }
+        // Los recibos al final: son archivos, tardan, y ninguna otra cosa
+        // depende de ellos. Que falle la subida de una foto no puede dejar
+        // sin sincronizar el resto.
+        try? await subirRecibosPendientes()
+
+        if fallidos.isEmpty {
             ultimaSincronizacion = Date()
             estado = .reposo
-        } catch {
-            estado = .fallo(error.localizedDescription)
+        } else {
+            // **No se toca `ultimaSincronizacion`.** La vuelta no terminó
+            // entera, y poner la hora de ahora sería decir que sí.
+            estado = .fallo(Self.legible(fallidos))
         }
+
         await recontarPendientes()
         // Terminar sin excepciones no es terminar bien: lo que se rindió sigue
         // ahí, y callarlo es lo que dejaba a la pantalla diciendo que todo
@@ -216,6 +232,51 @@ final class MotorSincronizacion {
         if atascadas > 0, estado == .reposo {
             estado = .fallo(atascadasLegible)
         }
+    }
+
+    /// Un paso de la vuelta que lanzó, con el nombre de lo que traía.
+    ///
+    /// **Los pasos ya no se cancelan entre ellos.** Eran veinte `try await`
+    /// seguidos dentro de un solo `do`: el primero que lanzara se llevaba por
+    /// delante TODOS los de abajo, y el `catch` guardaba un mensaje de
+    /// servidor sin decir de qué paso, así que ni se podía saber cuáles.
+    ///
+    /// El día que se escribió esto, la pantalla de Cartas del iPhone decía
+    /// "0 templates · 0 issued in September" con Tesorería llena y "Por
+    /// revisar" en 9. Cartas y plantillas son los pasos 8 y 10; los
+    /// movimientos, el 2. **Esa forma exacta —lo de arriba bien y lo de abajo
+    /// vacío— es la firma de este `do`**, y con el mensaje de entonces no
+    /// había manera de confirmar qué paso se cayó: por eso `legible` ahora
+    /// nombra el paso.
+    ///
+    /// Y lo mismo les pasaba, calladas, a las diez entidades de detrás:
+    /// traslados, asistencia, puestos, orden, iglesia, cortes, sus
+    /// movimientos, depósitos, categorías y recurrentes.
+    ///
+    /// **El orden se conserva** —las hijas después de sus padres—, que es
+    /// otra cosa: una fila cuyo padre no bajó se salta sola hasta la vuelta
+    /// siguiente, y eso ya estaba resuelto (`AvanceCursor`). Lo que no puede
+    /// ser es que no baje nadie porque uno se cayó.
+    private struct PasoFallido {
+        let nombre: String
+        let error: Error
+    }
+
+    /// Qué se quedó sin bajar, en la frase que se lee en Ajustes. **Dice el
+    /// nombre del paso**: un mensaje de PostgREST suelto no deja saber qué
+    /// pantalla va a salir incompleta, que es lo único que importa aquí.
+    private static func legible(_ fallidos: [PasoFallido]) -> String {
+        let detalle = fallidos[0].error.localizedDescription
+        guard fallidos.count > 1 else {
+            return L.t("\(fallidos[0].nombre) no se pudo sincronizar: \(detalle)",
+                       "\(fallidos[0].nombre) couldn't sync: \(detalle)")
+        }
+        let otros = fallidos.count - 1
+        let resto = otros == 1
+            ? L.t("y 1 parte más", "and 1 more")
+            : L.t("y \(otros) partes más", "and \(otros) more")
+        return L.t("\(fallidos[0].nombre) \(resto) no se pudieron sincronizar: \(detalle)",
+                   "\(fallidos[0].nombre) \(resto) couldn't sync: \(detalle)")
     }
 
     /// El texto que sustituye a la fecha cuando algo se quedó por el camino.

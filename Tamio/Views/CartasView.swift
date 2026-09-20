@@ -205,6 +205,10 @@ struct CartasView: View {
                     puntosCarrusel
                     resumenPlantillas
                         .padding(.horizontal, Esp.pantalla)
+                    if vm.plantillasDeRespaldo {
+                        avisoDeRespaldo
+                            .padding(.horizontal, Esp.pantalla)
+                    }
                 }
                 Spacer(minLength: 12)
             }
@@ -248,6 +252,24 @@ struct CartasView: View {
             .monospacedDigit()
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
+    }
+
+    /// **Estas no son las de la iglesia.** Se enseña cuando la tabla
+    /// `plantilla` está vacía y el carrusel cayó en los tipos del `enum`:
+    /// traen el nombre y nada más, así que redactar con una de ellas da una
+    /// carta en blanco y quien la abre tiene que saberlo ANTES de elegirla.
+    ///
+    /// Sin el respaldo esto era un carrusel vacío y "0 templates", que se lee
+    /// como que la iglesia borró sus plantillas. Sin el aviso sería peor: una
+    /// lista de plantillas que parecen suyas y no lo son.
+    private var avisoDeRespaldo: some View {
+        Label(L.t("Tipos genéricos: las plantillas de la iglesia no han bajado todavía",
+                  "Generic types: the church's templates haven't synced yet"),
+              systemImage: "exclamationmark.triangle")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .labelStyle(.titleAndIcon)
     }
 
     /// El carrusel **abraza su alto**: sin `fixedSize` el `ScrollView` se come
@@ -611,6 +633,10 @@ struct CartasView: View {
             } header: {
                 Text(L.t("Plantillas", "Templates"))
                     .textCase(nil)
+            } footer: {
+                // El mismo aviso que el carrusel del teléfono: el iPad y el
+                // Mac leen la misma tabla y caen en el mismo respaldo.
+                if vm.plantillasDeRespaldo { avisoDeRespaldo }
             }
 
             Section {
@@ -978,7 +1004,7 @@ private struct NuevaCartaSheet: View {
         // los leen.
         .task {
             if padron.isEmpty { padron = await padronParaSelector() }
-            if plantillas.isEmpty { plantillas = await repositorioPlantillas().lista() }
+            if plantillas.isEmpty { plantillas = await repositorioPlantillas().catalogo().lista }
         }
         .hojaFormulario()
     }

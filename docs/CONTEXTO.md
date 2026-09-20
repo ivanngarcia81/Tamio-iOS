@@ -5,10 +5,71 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **20 de septiembre de 2026** (§0.-18, la app de Mac).
-Lo anterior: las capturas y la ficha en §0.-17, lo técnico de la subida en
-§0.-16, lo de interfaz en §0.-15 —verificado en el iPhone físico— y la pasada
-grande sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
+Última actualización: **20 de septiembre de 2026** (§0.-19, la sincronización
+que se cancelaba sola; §0.-18, la app de Mac). Lo anterior: las capturas y la
+ficha en §0.-17, lo técnico de la subida en §0.-16, lo de interfaz en §0.-15
+—verificado en el iPhone físico— y la pasada grande sigue siendo la segunda de
+QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-19 Un paso caído se llevaba media app · 20 de septiembre
+
+Iván abrió Cartas en su iPhone y el carrusel estaba vacío: **"0 templates · 0
+issued in September"**, con Tesorería llena y "Por revisar" marcando 9. La
+lectura natural es que alguien borró las plantillas en el web. No las borró
+nadie.
+
+### La causa: veinte `try await` dentro de un solo `do`
+
+`MotorSincronizacion.sincronizar()` encadenaba los veinte pasos de la vuelta
+—una subida y diecinueve bajadas— en un único `do`. **El primero que lanzara
+se llevaba por delante todos los de abajo**, y el `catch` guardaba el mensaje
+del servidor sin decir de qué paso venía, así que ni se podía saber cuál.
+
+El orden explica exactamente lo que se veía: los movimientos son el paso 2,
+las cartas el 8 y las plantillas el 10. Todo lo que hay del 8 en adelante
+—cartas, plantillas, traslados, asistencia, puestos, orden del culto, iglesia,
+cortes, sus movimientos, depósitos, categorías y recurrentes— llevaba sin
+bajar quién sabe cuánto, en silencio, mientras Ajustes enseñaba un fallo que
+no nombraba nada.
+
+**Ahora cada paso falla por su cuenta** (`PasoFallido`) y el estado dice QUÉ
+paso se cayó: "Actas no se pudo sincronizar: …". Sin el nombre del paso no hay
+forma de saber qué pantalla va a salir incompleta, que es lo único que importa
+al leer ese mensaje.
+
+Tres cosas que se conservan a propósito:
+
+- **El orden.** Las hijas siguen yendo detrás de sus padres. Que una fila cuyo
+  padre no bajó se salte hasta la vuelta siguiente ya estaba resuelto
+  (`AvanceCursor`); lo que no puede ser es que no baje NADIE porque uno cayó.
+- **Subir primero.** Que la subida falle ya no cancela las bajadas, y es
+  seguro: las dieciséis bajadas con escritura saltan las filas que tienen
+  operación en la cola (`avance.saltada()`) y el cursor no pasa del hueco, así
+  que ninguna puede pisar un cambio local sin subir.
+- **`ultimaSincronizacion` no se toca si algo falló.** Poner la hora de ahora
+  sería decir que la vuelta terminó entera.
+
+### Y el respaldo que llevaba dos semanas escrito en un comentario
+
+Desde `515a6c6` las plantillas salen de la tabla `plantilla` y no del `enum`.
+El comentario de `repositorioPlantillas()` decía, desde ese mismo commit,
+"**y maqueta también si la base todavía no las ha bajado**". Nunca se
+programó: la función solo miraba si había sesión. Por eso el síntoma fue una
+pantalla en blanco y no una degradada.
+
+Ya existe (`PlantillasConRespaldo`), y **avisa**: un respaldo mudo sería peor
+que el hueco, porque esas plantillas traen el nombre del tipo y nada más
+—sin asunto, sin saludo, sin cuerpo, sin despedida—, así que redactar con una
+da una carta en blanco con pinta de plantilla de la iglesia. El carrusel del
+teléfono y la lista del iPad y el Mac enseñan "Tipos genéricos: las plantillas
+de la iglesia no han bajado todavía".
+
+`pruebas/PlantillaDeRespaldoTests.swift` cubre el respaldo. **El motor no
+tiene prueba**: `sincronizar()` llama a veinte métodos privados contra
+Supabase y no hay forma de hacer fallar uno sin inyectarlos, que es un
+refactor de otro tamaño. Queda anotado aquí como lo que es.
 
 ---
 

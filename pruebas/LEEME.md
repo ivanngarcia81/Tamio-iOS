@@ -31,6 +31,10 @@ las operaciones se quedan en la cola de salida y el motor no se llama.
 - **`PlantillasDeCartaUITests.swift`** — la prueba del fallo intermitente de
   Cartas. Abre la pantalla veinte veces y cuenta las que se quedan sin
   plantillas. Sirve de control para cualquier cambio en `CartasViewModel`.
+- **`PlantillaDeRespaldoTests.swift`** — que Cartas nunca se abra sin ninguna
+  plantilla, y que el respaldo no pise las de la iglesia cuando sí han bajado.
+  Es la otra mitad del mismo fallo: el respaldo tapa el síntoma y
+  `MotorSincronizacion` arregla la causa.
 - **`contraste.py`** — mide el contraste de un rectángulo de una captura, sin
   dependencias. `python3 pruebas/contraste.py captura.png rect X0 Y0 X1 Y1`.
 
