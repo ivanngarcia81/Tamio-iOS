@@ -125,6 +125,14 @@ enum SeccionMac: String, CaseIterable, Identifiable {
         return self == .config ? "⌘," : ""
     }
 
+    /// **Las que enseñan una hoja en vez de una tabla.**
+    ///
+    /// Cartas e Informes traen el papel a la derecha, y ese papel ES el
+    /// detalle: abrirles además el inspector dejaría la hoja en una rendija.
+    var esDeDocumento: Bool {
+        self == .cartas || self == .informes
+    }
+
     /// Las de un grupo, en orden de declaración.
     static func del(_ grupo: Grupo) -> [SeccionMac] {
         allCases.filter { $0.grupo == grupo }

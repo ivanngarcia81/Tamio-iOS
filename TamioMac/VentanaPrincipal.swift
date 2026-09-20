@@ -17,10 +17,15 @@ struct VentanaPrincipal: View {
     @State private var gastos = MovimientosViewModel(tipo: .gasto)
     @State private var registro = RegistroViewModel()
     @State private var servicios = ServiciosViewModel()
+    @State private var cartas = CartasViewModel()
+    @State private var informes = InformesMembresiaViewModel()
     @State private var selIngresos: Set<Movimiento.ID> = []
     @State private var selGastos: Set<Movimiento.ID> = []
     @State private var selRegistro: Set<Apunte.ID> = []
     @State private var selServicios: Set<Servicio.ID> = []
+    /// **Una sola, no un conjunto.** Cartas no es una tabla: a la derecha hay
+    /// una hoja, y una hoja solo puede enseñar un documento.
+    @State private var selCarta: String?
     @State private var escribiendoNota = false
 
     var body: some View {
@@ -39,7 +44,15 @@ struct VentanaPrincipal: View {
             .navigationSubtitle(subtitulo)
             .toolbar { barraDeHerramientas }
         }
-        .inspector(isPresented: $estado.inspectorAbierto) {
+        // **En las pantallas de documento no hay inspector, y no es un
+        // olvido.** El detalle de una carta es la carta, y el de un informe es
+        // el informe: ya ocupan la mitad derecha de la ventana. Un tercer
+        // panel al lado dejaría la hoja en una rendija donde no se puede leer
+        // lo único que se ha venido a leer.
+        .inspector(isPresented: Binding(
+            get: { estado.inspectorAbierto && !estado.seccion.esDeDocumento },
+            set: { estado.inspectorAbierto = $0 }
+        )) {
             InspectorTamio(seccion: estado.seccion, ficha: ficha)
         }
         .searchable(text: bindingFiltro, placement: .toolbar,
@@ -65,6 +78,10 @@ struct VentanaPrincipal: View {
             TablaRegistro(vm: registro, seleccion: $selRegistro)
         case .servicios:
             TablaServicios(vm: servicios, seleccion: $selServicios)
+        case .cartas:
+            PantallaCartas(vm: cartas, seleccion: $selCarta)
+        case .informes:
+            PantallaInformes(vm: informes)
         default:
             PantallaPorEscribir(seccion: estado.seccion)
         }
@@ -75,6 +92,7 @@ struct VentanaPrincipal: View {
         await gastos.cargar()
         await registro.cargar()
         await servicios.cargar()
+        await cartas.cargar()
     }
 
     // MARK: - Lo elegido
@@ -244,6 +262,17 @@ struct VentanaPrincipal: View {
             return sin == 0 ? "\(n) \(cultos)"
                             : L.t("\(n) \(cultos) · \(sin) sin equipo",
                                   "\(n) \(cultos) · \(sin) without a team")
+        }
+        if estado.seccion == .informes {
+            return informes.resumen.periodo
+        }
+        if estado.seccion == .cartas {
+            let n = cartas.emitidas.count
+            let borradores = cartas.emitidas.filter { $0.estado == "borrador" }.count
+            let c = n == 1 ? L.t("carta", "letter") : L.t("cartas", "letters")
+            return borradores == 0 ? "\(n) \(c)"
+                                   : L.t("\(n) \(c) · \(borradores) en borrador",
+                                         "\(n) \(c) · \(borradores) in draft")
         }
         if estado.seccion == .config {
             return L.t("Iglesia, accesos y respaldos", "Church, access & backups")
