@@ -165,7 +165,30 @@ struct CartasView: View {
             // vecina cae JUSTO fuera de la pantalla y solo asoma mientras se
             // arrastra, que es lo que pide el diseño.
             let margen = max(0, (geo.size.width - lado) / 2)
-            VStack(spacing: 0) {
+            // **Un contenedor vertical para que la barra tenga a qué
+            // engancharse.** El título grande sale un segundo tarde al entrar
+            // —y otra vez al salir y volver—, y esta página no tenía ni un
+            // scroll vertical: su único descendiente desplazable es el
+            // carrusel, que es HORIZONTAL. La barra se enganchaba a él, y al
+            // llegar las tarjetas de golpe —`cargar()` es asíncrono—
+            // recalculaba.
+            //
+            // Es la misma trampa que ya está documentada en
+            // `NavHeader.tironDeRefresco`: el carrusel es el primer contenedor
+            // desplazable que SwiftUI encuentra, y allá se llevó el
+            // `refreshable` de un ancestro. Aquí se lleva el título.
+            //
+            // **No cambia la geometría**: el `VStack` conserva su
+            // `.frame(height: geo.size.height)`, así que el contenido mide
+            // exactamente el hueco y no hay nada que desplazar. El
+            // `scrollBounceBehavior` quita el rebote que un `ScrollView` daría
+            // igualmente con el contenido justo.
+            //
+            // Y de propina arregla la trampa de origen: si algún día alguien
+            // pone `sincronizable()` sobre esta pantalla, el `refreshable` lo
+            // recogerá ESTE contenedor y no el carrusel.
+            ScrollView(.vertical) {
+                VStack(spacing: 0) {
                 Spacer(minLength: 12)
                 // Los puntos van pegados a la tarjeta, no al borde de la
                 // pantalla: numeran el carrusel, así que se leen con él.
@@ -211,8 +234,10 @@ struct CartasView: View {
                     }
                 }
                 Spacer(minLength: 12)
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
             }
-            .frame(width: geo.size.width, height: geo.size.height)
+            .scrollBounceBehavior(.basedOnSize)
         }
         .background(Color(.systemGroupedBackground))
         // La plantilla centrada tiene que existir: las de la iglesia llegan
