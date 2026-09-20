@@ -5,10 +5,146 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **18 de septiembre de 2026** (§0.-17, las capturas, el
-texto de la ficha y la iglesia de demostración). Lo técnico de la subida está
-en §0.-16, lo de interfaz en §0.-15 —verificado en el iPhone físico— y la
-pasada grande sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
+Última actualización: **20 de septiembre de 2026** (§0.-18, la app de Mac).
+Lo anterior: las capturas y la ficha en §0.-17, lo técnico de la subida en
+§0.-16, lo de interfaz en §0.-15 —verificado en el iPhone físico— y la pasada
+grande sigue siendo la segunda de QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-18 Tamio para Mac · 19 y 20 de septiembre
+
+Rama **`mac-target`**, sacada de `liquid-glass` (no de `main`). Target `TamioMac`
+en el mismo proyecto, piso en macOS 26 y compilando contra el SDK 27.
+
+### Comparte el motor, NO las pantallas
+
+Entran `Models`, `Data`, `ViewModels` y `Support`: **23.343 líneas sin copiar un
+archivo**. Es la capa donde vive el dinero y es justo la que no se puede
+permitir que diverja — un redondeo distinto entre el iPad y el Mac de la misma
+iglesia es un libro que no cuadra.
+
+`Views` se queda fuera a propósito. Las de iOS son un maestro-detalle de iPad y
+un `TabView` de teléfono; el Mac es barra de menús, tabla con columnas
+ordenables e inspector. Las pantallas del Mac viven en `TamioMac/` y se apoyan
+en los MISMOS ViewModels.
+
+**Decisión de Iván el 19-sep**: el Mac, el iPad y el iPhone son apps distintas,
+no copias la una de la otra. Se midió traer las vistas del iPad —ninguna de las
+cuatro candidatas usa UIKit y solo `navigationBarTitleDisplayMode` no compila,
+una tarde de trabajo— y se descartó por el resultado, no por el coste: listas
+de iPad dentro de una ventana de Mac, sin columnas ordenables. Dos idiomas
+visuales en la misma app.
+
+### Lo que estaba roto y no lo sabíamos
+
+**`project.yml` no declaraba los paquetes.** GRDB y Supabase vivían solo dentro
+del `.pbxproj`, así que el primer `xcodegen` en limpio los borraba y la app de
+iOS dejaba de compilar. Ahora están declarados con las mismas versiones que
+tenía el `.pbxproj`.
+
+Y al regenerar aparecieron **dos regresiones más**, vistas comparando
+`-showBuildSettings` del target iOS antes y después:
+
+- `CODE_SIGN_IDENTITY` volvía a `iPhone Developer`. xcodegen se lo mete de serie
+  a todo target de aplicación de iOS, y ese valor —por ser del target— gana al
+  de la base del proyecto. **Hay que declararlo DENTRO del target.**
+- `DEVELOPMENT_TEAM` desaparecía entero. Sin equipo no se firma nada.
+
+Sin ese comparador se habrían descubierto el día de subir una versión.
+
+### El port: seis archivos y ninguna lógica duplicada
+
+`Support/Plataforma.swift` concentra lo único que difiere: los alias
+`ImagenPlataforma`/`ColorPlataforma`, cuatro operaciones sobre imágenes, los
+colores que cambian con la apariencia y `Dispositivo.nombre` —que ahora dice
+"Mac" en vez de jurar que todo se capturó en un iPhone—.
+
+`Palette.swift` no duplicó nada: **perdió UIKit del todo**. `Paleta.sobre(_:_:)`
+resuelve con `Color.resolve(in:)`, de SwiftUI, y de paso desaparece la
+conversión a luz lineal escrita a mano porque `Color.Resolved` ya trae los
+canales en lineal.
+
+`LogoIglesia.preparada()` se reescribió en Core Graphics: `UIGraphicsImage-
+Renderer` era lo último exclusivo de UIKit. `NavHeader.swift` se excluye —rescata
+el gesto de "volver" de la pila de UIKit, y aquí no hay ni gesto ni pila—.
+
+### Verificado de verdad, no solo compilado
+
+- La app **arranca dentro de la caja de arena** y GRDB abre su base ahí:
+  `~/Library/Containers/church.tamio.native/…/tamio.sqlite`, con las 22 tablas
+  y las migraciones de `v1_movimientos` a `v26_cargosSinSembrar`.
+- Tras entrar con credenciales reales, la sincronización bajó 4 movimientos,
+  30 aportantes, 2 cortes y la iglesia, y la tabla de Ingresos sumó **$600**.
+- iOS compiló en cada paso. Lo compartido se tocó solo cuando hizo falta y se
+  comprobó en las dos plataformas.
+
+**Para firmar y ver la caja de arena hay que firmar de verdad.** Con
+`CODE_SIGNING_ALLOWED=NO` los derechos ni se aplican, así que la app corre SIN
+sandbox y no se nota. Y con la identidad de desarrollo, `codesign` se queda
+esperando un diálogo del llavero que bloquea la compilación: para verificar sin
+esa interacción vale **firmar AD HOC** (`CODE_SIGN_IDENTITY="-"`), que incrusta
+los derechos igual.
+
+### Tres trampas de macOS 27 que costaron un intento cada una
+
+1. **`.background.secondary` de SwiftUI pinta GRIS en modo claro.** Las tarjetas
+   salían más oscuras que su fondo: la jerarquía del revés.
+2. **`windowBackgroundColor` y `controlBackgroundColor` son el MISMO `#FFFFFF`.**
+   Medido en el aparato. Cambiar uno por otro no cambia nada, y por eso el
+   segundo intento se veía idéntico al primero.
+3. Lo que de verdad separa una tarjeta en claro es **el filo de medio punto y
+   una sombra corta**, no el relleno — el handoff ya lo hacía así y no se vio.
+
+Vive en `TamioMac/SuperficiesMac.swift` con los dos intentos fallidos escritos.
+`Color.tarjeta` llegó a entrar en `Plataforma.swift` y se sacó: es una decisión
+del diseño de Mac, no del motor compartido.
+
+### El handoff, y que ya no habrá más
+
+Llegaron cuatro. El último (`handoff4`) es **la fuente definitiva — Iván
+confirmó que no habrá más**. Trae 13 secciones; la app tiene 15, porque **Cartas
+y traslados** y **Registro** no están dibujadas en ninguno y se rediseñaron por
+indicación suya. Ese diseño propio ya no es provisional.
+
+Dos handoffs cambiaron pantallas ya escritas: **Membresía** pasó de tabla a
+tarjetas con subpestañas, y **Registro de servicios** de tabla a maestro-detalle.
+Las dos se rehicieron.
+
+Del handoff salió además una regla que conviene conservar: *"su número se cuenta
+con la misma regla — nunca se lee de un resumen"*. Las ocho tarjetas de
+`TarjetaPadron` cuentan con `incluye(_:año:)`, la MISMA función con la que
+filtran la lista, así que el número de arriba y la lista de abajo no se pueden
+contradecir.
+
+### Lo que falta: acciones, no pantallas
+
+Las quince secciones tienen pantalla. **No hay botones que no hagan nada**, y es
+deliberado: aprobar una revisión, marcar un corte como depositado, emitir una
+carta, exportar un PDF. Todas mueven dinero o padrón y están señaladas en el
+código con su porqué.
+
+La **captura rápida sí guarda** —construida con las mismas reglas que
+`NuevoMovimientoView.armarMovimiento()`: id vacío para que Supabase asigne el
+UID, hora en POSIX, `registradoPor` de la sesión, rastro de auditoría con el
+aparato real—, pero **a 20-sep seguía sin verificarse contra la base**: no había
+ninguna fila nueva.
+
+### Dos decisiones pendientes de Iván
+
+- **El bundle id** está en `church.tamio.native`, el MISMO que iOS, o sea Compra
+  Universal. Reversible mientras no se publique.
+- **Dónde aterriza `mac-target`.** Salió de `liquid-glass`, no de `main`.
+
+### Lo que se puede automatizar y no se usó
+
+En el Mac de Iván hay simuladores (`xcrun simctl`) y **control completo de las
+apps por AppleScript/System Events**: leer ventanas, menús y campos, y enviar
+pulsaciones. Lo único que falta es el permiso de Grabación de Pantalla.
+
+O sea que lo de COMPORTAMIENTO y DATOS se puede verificar sin pedírselo a nadie;
+lo VISUAL sí necesita una captura suya. Los tres fallos que encontró él —el
+selector cortado, las filas apretadas y la jerarquía invertida— eran visuales.
 
 ---
 

@@ -44,7 +44,10 @@ struct TamioMacApp: App {
         // **Ventana y no hoja.** Se puede dejar abierta mientras se mira la
         // lista de detrás, que es como se captura un domingo de ofrendas.
         Window(L.t("Captura rápida", "Quick capture"), id: CapturaRapida.idVentana) {
-            CapturaRapida()
+            // Se le pasan el estado y la sesión: el primero para avisar a la
+            // ventana de atrás de que relea, la segunda para firmar el rastro
+            // de auditoría con quien de verdad está capturando.
+            CapturaRapida(estado: estado, sesion: sesion)
         }
         .defaultSize(width: 596, height: 520)
         .windowResizability(.contentSize)
