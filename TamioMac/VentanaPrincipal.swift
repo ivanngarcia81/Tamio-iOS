@@ -16,6 +16,10 @@ struct VentanaPrincipal: View {
     @State private var ingresos = MovimientosViewModel(tipo: .ingreso)
     @State private var gastos = MovimientosViewModel(tipo: .gasto)
     @State private var registro = RegistroViewModel()
+    /// **La misma instancia que cuenta el badge de la barra lateral.** Con dos
+    /// `RevisarViewModel` distintos, la barra podría decir 7 y la pantalla
+    /// enseñar 5 sin que nada estuviera roto.
+    @State private var registroDeRevisiones = RevisarViewModel.compartido
     @State private var servicios = ServiciosViewModel()
     @State private var cartas = CartasViewModel()
     @State private var informes = InformesMembresiaViewModel()
@@ -23,6 +27,9 @@ struct VentanaPrincipal: View {
     @State private var depositos = DepositosViewModel()
     @State private var membresia = MembresiaViewModel()
     @State private var inicio = DashboardViewModel()
+    @State private var actas = ActasViewModel()
+    @State private var agenda = AgendaViewModel()
+    @State private var selActa: String?
     @State private var selIngresos: Set<Movimiento.ID> = []
     @State private var selGastos: Set<Movimiento.ID> = []
     @State private var selRegistro: Set<Apunte.ID> = []
@@ -103,6 +110,12 @@ struct VentanaPrincipal: View {
             TablaDepositos(vm: depositos, seleccion: $selDepositos)
         case .membresia:
             PantallaMembresia(vm: membresia, seleccion: $selMembresia, sub: $subMembresia)
+        case .porRevisar:
+            PantallaRevisar(vm: registroDeRevisiones)
+        case .actas:
+            PantallaActas(vm: actas, seleccion: $selActa)
+        case .agenda:
+            PantallaAgenda(vm: agenda)
         default:
             PantallaPorEscribir(seccion: estado.seccion)
         }
@@ -117,6 +130,8 @@ struct VentanaPrincipal: View {
         await aportantes.cargar()
         await depositos.cargar()
         await membresia.cargar()
+        await actas.cargar()
+        await agenda.cargar()
     }
 
     // MARK: - Lo elegido
@@ -417,6 +432,22 @@ struct VentanaPrincipal: View {
                            "\(n) \(c) · \(Money.fmt(banco)) banked")
             return pend == 0 ? base
                 : L.t("\(base) · \(pend) en caja", "\(base) · \(pend) in the cash box")
+        }
+        if estado.seccion == .porRevisar {
+            let n = registroDeRevisiones.porRevisarCount
+            return n == 0 ? L.t("Nada pendiente", "Nothing pending")
+                : (n == 1 ? L.t("1 por revisar", "1 to review")
+                          : L.t("\(n) por revisar", "\(n) to review"))
+        }
+        if estado.seccion == .actas {
+            let n = actas.lista.count
+            let sinFirmar = actas.lista.filter { a in a.firmas.contains { !$0.firmado } }.count
+            let base = n == 1 ? L.t("1 acta", "1 record") : L.t("\(n) actas", "\(n) records")
+            return sinFirmar == 0 ? base
+                : L.t("\(base) · \(sinFirmar) sin firmar", "\(base) · \(sinFirmar) unsigned")
+        }
+        if estado.seccion == .agenda {
+            return agenda.etiquetaMes.capitalized
         }
         if estado.seccion == .informes {
             return informes.resumen.periodo

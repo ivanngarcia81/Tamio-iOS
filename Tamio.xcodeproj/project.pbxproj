@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		033D403AF31A5856C5DA369F /* DocumentoAportanteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6CF31235717D091A9D8F53B /* DocumentoAportanteView.swift */; };
 		0452B0C8BA905BED8D450D3F /* Compactacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7CFADC63CC7AD008CA04F8 /* Compactacion.swift */; };
+		0519C46813703567022556BF /* PantallaRevisar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75DEF7B41964CD19C67E9807 /* PantallaRevisar.swift */; };
 		05747F6824AE2F891D5F7049 /* ReportesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056C5CAF9667F55A2373560E /* ReportesViewModel.swift */; };
 		05AFAF846244380D2032D4ED /* RegistrarDepositoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C40DA9BCC2B26F5274953EF9 /* RegistrarDepositoView.swift */; };
 		07FC5A8CD7131DB8665531DF /* SesionSupabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDDA040EE5E34E65351EF1B /* SesionSupabase.swift */; };
@@ -44,6 +45,7 @@
 		1EC1760A4389D3C2B13B6842 /* Respaldo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ECDEE68FE680B65AC239510 /* Respaldo.swift */; };
 		2043F0A3E4FF853A7EAE47E1 /* MovimientosViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D2AD654DB4C8CBAA4BA7ABA /* MovimientosViewModel.swift */; };
 		210A2ED66E28859D89CDC1BB /* DeltaBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29B0953C6235B09583D046DD /* DeltaBadge.swift */; };
+		2239C86526621ABADE74126B /* PantallaActas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 917F434C631F46B53A5CBC26 /* PantallaActas.swift */; };
 		2351042BE4C05BD16B04C5E0 /* Apunte.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1441F72095DBACEEB7E5C4 /* Apunte.swift */; };
 		257559553E17A21C8D4BF6F6 /* Aportante.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEC7A54D255D9650FB3D8904 /* Aportante.swift */; };
 		296DD7FF0F2C9BB8A5462499 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 81FAB6F7146708D41314D79A /* PrivacyInfo.xcprivacy */; };
@@ -83,6 +85,7 @@
 		46F8C3C67542FEC3EFB77AB0 /* BarraLateral.swift in Sources */ = {isa = PBXBuildFile; fileRef = F64F4A82611C45517E1EF240 /* BarraLateral.swift */; };
 		47588819CEB64CC2903FA7BE /* ConfiguracionIglesiaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68B6994A9C65EE7ACDE9AAC1 /* ConfiguracionIglesiaViewModel.swift */; };
 		47D1BDA9349E3F1F8DA281F1 /* ReportesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FEB9533A16F1B73ED8B006C /* ReportesView.swift */; };
+		4800F9CACF253F685CE7444C /* PantallaAgenda.swift in Sources */ = {isa = PBXBuildFile; fileRef = E643AE487A70C13B59F8EBD7 /* PantallaAgenda.swift */; };
 		4815F5DF2FC40AF1C17968D9 /* SeccionAjustes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104BB262263545102AC83A31 /* SeccionAjustes.swift */; };
 		49A208072F9DDE104ED055CE /* RespaldoCifrado.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26A700EEF11079E0CE7FE989 /* RespaldoCifrado.swift */; };
 		4A07A396CC5432FF54D848DF /* DashboardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3258F1AD72FB1E23580B3A1 /* DashboardRepository.swift */; };
@@ -341,6 +344,7 @@
 		702FA938F4D3C1F9D19815D1 /* NuevoAportanteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NuevoAportanteView.swift; sourceTree = "<group>"; };
 		721483643253B05BA99D2C12 /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
 		751ECE8206F09510C5374557 /* RegistroRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistroRepository.swift; sourceTree = "<group>"; };
+		75DEF7B41964CD19C67E9807 /* PantallaRevisar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantallaRevisar.swift; sourceTree = "<group>"; };
 		78F1A6AA085FD7F5F3231ABC /* MovimientoFila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovimientoFila.swift; sourceTree = "<group>"; };
 		7D0BF3DBFBB849E8591B9D5E /* AportanteFila.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AportanteFila.swift; sourceTree = "<group>"; };
 		7E478666D7AD087B2BD5F242 /* PreferenciasApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenciasApp.swift; sourceTree = "<group>"; };
@@ -359,6 +363,7 @@
 		8FEB9533A16F1B73ED8B006C /* ReportesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportesView.swift; sourceTree = "<group>"; };
 		8FEF0708FABDD5EE67DBD684 /* CartasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartasView.swift; sourceTree = "<group>"; };
 		917183AD1A8D6C17AA495D53 /* AportantePDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AportantePDF.swift; sourceTree = "<group>"; };
+		917F434C631F46B53A5CBC26 /* PantallaActas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantallaActas.swift; sourceTree = "<group>"; };
 		9290262C0C5E4C4758424ED9 /* MovimientoDetalle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovimientoDetalle.swift; sourceTree = "<group>"; };
 		938CB09302A25C32830EE567 /* SupabaseMovimientosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseMovimientosRepository.swift; sourceTree = "<group>"; };
 		95131737CD36368276793476 /* NavHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavHeader.swift; sourceTree = "<group>"; };
@@ -412,6 +417,7 @@
 		E0CC5968BA4CDAFC7360EE01 /* CompartirArchivo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompartirArchivo.swift; sourceTree = "<group>"; };
 		E375CB9B62ABA3F5D9109F79 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		E4488A0F53ECFBC1ABB43370 /* InformesMembresiaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InformesMembresiaViewModel.swift; sourceTree = "<group>"; };
+		E643AE487A70C13B59F8EBD7 /* PantallaAgenda.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantallaAgenda.swift; sourceTree = "<group>"; };
 		E69AAA6385493F1F176F1DB4 /* RecibosLocales.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecibosLocales.swift; sourceTree = "<group>"; };
 		E6CF31235717D091A9D8F53B /* DocumentoAportanteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentoAportanteView.swift; sourceTree = "<group>"; };
 		E9713DD4E1959A5A6820F895 /* InspectorTamio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorTamio.swift; sourceTree = "<group>"; };
@@ -480,10 +486,13 @@
 				0373D9A8A3832B8791E0C108 /* ComandosTamio.swift */,
 				D4CFCD32239F36DA1E740B4B /* EstadoVentana.swift */,
 				E9713DD4E1959A5A6820F895 /* InspectorTamio.swift */,
+				917F434C631F46B53A5CBC26 /* PantallaActas.swift */,
+				E643AE487A70C13B59F8EBD7 /* PantallaAgenda.swift */,
 				3E7E59E0C104D3F193C3DEA3 /* PantallaCartas.swift */,
 				21A73C49D02DBB1F64569F11 /* PantallaInformes.swift */,
 				998F831DF7AE7D99F260A709 /* PantallaInicio.swift */,
 				DB62D0482B0D7F3DFB5CD3E9 /* PantallaMembresia.swift */,
+				75DEF7B41964CD19C67E9807 /* PantallaRevisar.swift */,
 				2AA8B8B805F9A026FB942BC4 /* PantallaServicios.swift */,
 				610A5F6071F2275CB2FD1FF0 /* SeccionMac.swift */,
 				0CA24FC4711E14705FE6A981 /* TablaAportantes.swift */,
@@ -886,10 +895,13 @@
 				298F3401DC447EC09CC8AA9D /* OfflineMovimientosRepository.swift in Sources */,
 				A4EB264BFDFFE8BD35E85337 /* PDFExport.swift in Sources */,
 				73F51DDAA99039892B8563CC /* Palette.swift in Sources */,
+				2239C86526621ABADE74126B /* PantallaActas.swift in Sources */,
+				4800F9CACF253F685CE7444C /* PantallaAgenda.swift in Sources */,
 				0D7735E7A4E5AA1F99B70C5E /* PantallaCartas.swift in Sources */,
 				8C5816EE0F37FF306AA65500 /* PantallaInformes.swift in Sources */,
 				0F2371779EBE085BCB8E4D7D /* PantallaInicio.swift in Sources */,
 				FB529358C26F6530836059A5 /* PantallaMembresia.swift in Sources */,
+				0519C46813703567022556BF /* PantallaRevisar.swift in Sources */,
 				E1F5666E914E34BCA13A0D16 /* PantallaServicios.swift in Sources */,
 				4F6A4B17866B5B9A0D439BA5 /* Permisos.swift in Sources */,
 				1CF0824E2BB998C0510A38CA /* Plataforma.swift in Sources */,
