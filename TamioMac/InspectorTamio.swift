@@ -16,6 +16,9 @@ enum FichaInspector {
     case movimiento(Movimiento)
     case apunte(Apunte)
     case servicio(Servicio)
+    case aportante(Aportante, anio: Int)
+    case miembro(Miembro)
+    case corte(Corte)
 }
 
 struct InspectorTamio: View {
@@ -29,6 +32,9 @@ struct InspectorTamio: View {
                 case .movimiento(let m): fichaMovimiento(m)
                 case .apunte(let a):     fichaApunte(a)
                 case .servicio(let s):   fichaServicio(s)
+                case .aportante(let a, let anio): fichaAportante(a, anio: anio)
+                case .miembro(let m):    fichaMiembro(m)
+                case .corte(let c):      fichaCorte(c)
                 case .nada:              vacio
                 }
             }
@@ -342,6 +348,144 @@ struct InspectorTamio: View {
         }
     }
 
+    // MARK: - Un aportante
+
+    @ViewBuilder
+    private func fichaAportante(_ a: Aportante, anio: Int) -> some View {
+        encabezado(L.t("APORTANTE", "CONTRIBUTOR"), a.nombre, a.estado.etiqueta)
+
+        VStack(spacing: 0) {
+            campo(L.t("Acumulado \(anio)", "\(anio) total"), Money.fmt(a.total(anio: anio)),
+                  tinta: Paleta.brand)
+            campo(L.t("Frecuencia", "Frequency"), a.frecuencia.etiqueta)
+            campo(L.t("Último aporte", "Last gift"),
+                  a.ultimoAporte.map { $0.formatted(.dateTime.day().month(.abbreviated).year()) } ?? "—")
+            campo(L.t("Congrega desde", "Attending since"),
+                  a.congregaDesde.isEmpty ? "—" : a.congregaDesde, ultimo: true)
+        }
+        .background(.quaternary.opacity(0.4),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.top, 14)
+
+        contacto(telefono: a.telefono, correo: a.correo, direccion: a.direccion)
+    }
+
+    // MARK: - Un miembro
+
+    @ViewBuilder
+    private func fichaMiembro(_ m: Miembro) -> some View {
+        encabezado(L.t("MIEMBRO", "MEMBER"), m.nombre, m.estado.etiqueta)
+
+        VStack(spacing: 0) {
+            campo(L.t("Ministerio", "Ministry"), m.ministerioLegible)
+            campo(L.t("Asistencia", "Attendance"),
+                  m.asistenciaResumen == nil ? L.t("Sin listas", "No lists")
+                                             : "\(m.asistenciaPct)%",
+                  tinta: m.asistenciaResumen == nil ? nil : m.tintaDeAsistencia)
+            campo(L.t("Ingreso", "Joined"),
+                  m.fechaIngreso.isEmpty ? "—" : Fechas.diaLegible(m.fechaIngreso))
+            campo(L.t("Bautizado", "Baptized"),
+                  m.bautizadoAgua ? L.t("Sí", "Yes") : L.t("No", "No"), ultimo: true)
+        }
+        .background(.quaternary.opacity(0.4),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.top, 14)
+
+        contacto(telefono: m.telefono, correo: m.correo, direccion: m.direccion)
+    }
+
+    // MARK: - Un corte
+
+    @ViewBuilder
+    private func fichaCorte(_ c: Corte) -> some View {
+        Text(L.t("CORTE", "CUT"))
+            .font(.system(size: 11, weight: .bold))
+            .kerning(0.55)
+            .foregroundStyle(.secondary)
+        Text(Money.fmt(c.suma))
+            .font(.system(size: 22, weight: .bold))
+            .monospacedDigit()
+            .padding(.top, 4)
+        Text(c.titulo.isEmpty ? c.registro.cuenta : c.titulo)
+            .font(.system(size: 12.5))
+            .foregroundStyle(.secondary)
+            .padding(.top, 2)
+
+        VStack(spacing: 0) {
+            campo(L.t("Cuenta", "Account"),
+                  c.registro.cuenta.isEmpty ? "—" : c.registro.cuenta)
+            campo(L.t("Fecha", "Date"),
+                  c.registro.fecha.isEmpty ? "—" : Fechas.diaLegible(c.registro.fecha))
+            campo(L.t("Folios", "Folios"), c.rangoDeFolios)
+            campo(L.t("Movimientos", "Items"), "\(c.cuantosMovimientos)")
+            campo(L.t("Estado", "Status"), c.pastilla.0, tinta: c.pastilla.1, ultimo: true)
+        }
+        .background(.quaternary.opacity(0.4),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.top, 14)
+
+        // **Lo que hay dentro del corte, movimiento a movimiento.** Es lo que
+        // se cuadra contra el talonario, y en el iPad hay que entrar a otra
+        // pantalla para verlo.
+        if !c.movimientos.isEmpty {
+            Text(L.t("LO QUE LLEVA", "WHAT IT HOLDS"))
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.55)
+                .foregroundStyle(.secondary)
+                .padding(.top, 18)
+            VStack(spacing: 0) {
+                ForEach(Array(c.movimientos.enumerated()), id: \.element.id) { i, m in
+                    campo("\(m.folio) · \(m.categoria)", Money.fmt(m.monto),
+                          ultimo: i == c.movimientos.count - 1)
+                }
+            }
+            .background(.quaternary.opacity(0.4),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.top, 8)
+        }
+    }
+
+    // MARK: - Piezas compartidas
+
+    @ViewBuilder
+    private func encabezado(_ antetitulo: String, _ nombre: String, _ estado: String) -> some View {
+        Text(antetitulo)
+            .font(.system(size: 11, weight: .bold))
+            .kerning(0.55)
+            .foregroundStyle(.secondary)
+        Text(nombre)
+            .font(.system(size: 19, weight: .bold))
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, 5)
+        Text(estado)
+            .font(.system(size: 12.5))
+            .foregroundStyle(.secondary)
+            .padding(.top, 2)
+    }
+
+    /// **Solo si hay algo.** Un bloque de contacto con tres guiones ocupa el
+    /// mismo sitio que uno con datos y no dice nada.
+    @ViewBuilder
+    private func contacto(telefono: String, correo: String, direccion: String) -> some View {
+        let hay = ![telefono, correo, direccion]
+            .allSatisfy { $0.trimmingCharacters(in: .whitespaces).isEmpty }
+        if hay {
+            Text(L.t("CONTACTO", "CONTACT"))
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.55)
+                .foregroundStyle(.secondary)
+                .padding(.top, 18)
+            VStack(spacing: 0) {
+                if !telefono.isEmpty { campo(L.t("Teléfono", "Phone"), telefono) }
+                if !correo.isEmpty { campo(L.t("Correo", "Email"), correo) }
+                if !direccion.isEmpty { campo(L.t("Dirección", "Address"), direccion) }
+            }
+            .background(.quaternary.opacity(0.4),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.top, 8)
+        }
+    }
+
     // MARK: - Sin nada seleccionado
 
     @ViewBuilder
@@ -375,7 +519,7 @@ struct InspectorTamio: View {
         case .config:
             return L.t("La configuración se edita en el panel de la izquierda",
                        "Settings are edited in the panel on the left")
-        case .ingresos, .gastos, .registro, .servicios:
+        case .ingresos, .gastos, .registro, .servicios, .miembros, .membresia, .depositos:
             return L.t("Elige una fila para ver su ficha aquí",
                        "Pick a row to see its details here")
         default:

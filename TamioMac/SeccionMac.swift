@@ -130,7 +130,9 @@ enum SeccionMac: String, CaseIterable, Identifiable {
     /// Cartas e Informes traen el papel a la derecha, y ese papel ES el
     /// detalle: abrirles además el inspector dejaría la hoja en una rendija.
     var esDeDocumento: Bool {
-        self == .cartas || self == .informes
+        // Inicio entra aquí aunque no sea una hoja: es un panorama que ya
+        // ocupa el ancho entero, y no hay "una fila elegida" que inspeccionar.
+        self == .cartas || self == .informes || self == .inicio
     }
 
     /// Las de un grupo, en orden de declaración.

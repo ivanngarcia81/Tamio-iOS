@@ -22,6 +22,7 @@
 		0CFC1054F9FE1B93304E7D87 /* MovimientoFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78F1A6AA085FD7F5F3231ABC /* MovimientoFila.swift */; };
 		0D7735E7A4E5AA1F99B70C5E /* PantallaCartas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7E59E0C104D3F193C3DEA3 /* PantallaCartas.swift */; };
 		0E3046EC281CAD0C540C3711 /* CartasRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C42BB2675434F872163377 /* CartasRepository.swift */; };
+		0F2371779EBE085BCB8E4D7D /* PantallaInicio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 998F831DF7AE7D99F260A709 /* PantallaInicio.swift */; };
 		10020C9611C5B380E2F32FF6 /* MembresiaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7D69422E5BAEDE044AC662 /* MembresiaViewModel.swift */; };
 		11ECC7B14709733952376C7D /* Compactacion.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7CFADC63CC7AD008CA04F8 /* Compactacion.swift */; };
 		121524EADF7EE86181BF60F7 /* Supabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36DD99D2CAFFF4ECBAD6AC01 /* Supabase.swift */; };
@@ -100,6 +101,7 @@
 		5823342CD7E2C8ED6BB80344 /* ReportesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056C5CAF9667F55A2373560E /* ReportesViewModel.swift */; };
 		584A223F70A5D1FF1EFD015E /* MembresiaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804F0337A286564156D330E9 /* MembresiaRepository.swift */; };
 		58564576C8EDA6F35B424DF1 /* Money.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB778DD37F98928D94E7E923 /* Money.swift */; };
+		5AC08E970A5C9E93ACDBB04F /* TablaMembresia.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6F20E00F9BEC92CF7B49F2F /* TablaMembresia.swift */; };
 		5C49E0785E3B3219E2047747 /* AportanteDetalle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28FE7FC5CAF1EF805C4A97DA /* AportanteDetalle.swift */; };
 		5D0734C1E80DE9CBA62F116B /* SupabaseMovimientosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 938CB09302A25C32830EE567 /* SupabaseMovimientosRepository.swift */; };
 		5D890BC5234EFA6936CB972B /* Plataforma.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804F8F6B50873C1579D13583 /* Plataforma.swift */; };
@@ -144,6 +146,7 @@
 		87FC0C73B993A57345E42597 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E31171D90F95C88B95D2E62 /* DashboardViewModel.swift */; };
 		88E84879B8C99FB6A26BB751 /* DepositosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DCB4FCF82352801FEAD1E3 /* DepositosView.swift */; };
 		89722058A7F23205CC987EEE /* NuevoAportanteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702FA938F4D3C1F9D19815D1 /* NuevoAportanteView.swift */; };
+		8981C16C303E7782C459B825 /* TablaAportantes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA24FC4711E14705FE6A981 /* TablaAportantes.swift */; };
 		8A5142446B2907DCC6A7E50A /* CSV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999989B306FA1BDEE165F1C2 /* CSV.swift */; };
 		8B47F2B669DF6FB37A221617 /* ProteccionArchivos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477D4C50E4D3ED9B8E5E67D0 /* ProteccionArchivos.swift */; };
 		8C5816EE0F37FF306AA65500 /* PantallaInformes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21A73C49D02DBB1F64569F11 /* PantallaInformes.swift */; };
@@ -191,6 +194,7 @@
 		AE43FC5257199A915CF745B3 /* Pieces.swift in Sources */ = {isa = PBXBuildFile; fileRef = 556C631D33CF32ED1B99031A /* Pieces.swift */; };
 		AE47E6BB26592BFAA9D7AD3F /* MembresiaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7D69422E5BAEDE044AC662 /* MembresiaViewModel.swift */; };
 		AE782394195C9ACF84010139 /* ConfiguracionIglesiaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED2D352ABF4028DA709B359 /* ConfiguracionIglesiaRepository.swift */; };
+		AEE3C6048F14D956120F458F /* TablaDepositos.swift in Sources */ = {isa = PBXBuildFile; fileRef = A764EA46D8ACF7A5CBC07C79 /* TablaDepositos.swift */; };
 		AF05242C7F5B28033879BCE1 /* AmountText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420C5C5EDCD80B3F67EE7C45 /* AmountText.swift */; };
 		AF9821EBAAD0583FED10EF3C /* DepositosViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E05B2C1157251C9D853544F /* DepositosViewModel.swift */; };
 		B0DEDF6C059A18DB1168798D /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 028C35E2E55593ED60D52F4C /* InfoPlist.strings */; };
@@ -271,6 +275,7 @@
 		0B4E7D4195763D56C308AAB3 /* MovimientoRecurrente.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovimientoRecurrente.swift; sourceTree = "<group>"; };
 		0BF96375CD4B20F9A9685313 /* TablaServicios.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TablaServicios.swift; sourceTree = "<group>"; };
 		0C0ECAB8AB3DDB7471075342 /* Miembro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Miembro.swift; sourceTree = "<group>"; };
+		0CA24FC4711E14705FE6A981 /* TablaAportantes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TablaAportantes.swift; sourceTree = "<group>"; };
 		0E05B2C1157251C9D853544F /* DepositosViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositosViewModel.swift; sourceTree = "<group>"; };
 		104BB262263545102AC83A31 /* SeccionAjustes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeccionAjustes.swift; sourceTree = "<group>"; };
 		1283425908338B34926D5B4A /* ServiciosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiciosRepository.swift; sourceTree = "<group>"; };
@@ -359,6 +364,7 @@
 		95131737CD36368276793476 /* NavHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavHeader.swift; sourceTree = "<group>"; };
 		95189A763B933954C2337372 /* MiembrosViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiembrosViewModel.swift; sourceTree = "<group>"; };
 		9631D096821170DB2F6A7C24 /* InformesMembresiaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InformesMembresiaView.swift; sourceTree = "<group>"; };
+		998F831DF7AE7D99F260A709 /* PantallaInicio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantallaInicio.swift; sourceTree = "<group>"; };
 		999989B306FA1BDEE165F1C2 /* CSV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSV.swift; sourceTree = "<group>"; };
 		99FB5B210A49074A15A4D8C2 /* ExportadorAportantes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportadorAportantes.swift; sourceTree = "<group>"; };
 		9C5228803AB5A63490100EDD /* NuevoCorteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NuevoCorteView.swift; sourceTree = "<group>"; };
@@ -368,6 +374,7 @@
 		9DACD9F9945ED7749BE68C28 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		A3BC8FD2ED322D90607AF5ED /* Navegacion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navegacion.swift; sourceTree = "<group>"; };
 		A61F59FF898533ECBA63E8AC /* TamioMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TamioMacApp.swift; sourceTree = "<group>"; };
+		A764EA46D8ACF7A5CBC07C79 /* TablaDepositos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TablaDepositos.swift; sourceTree = "<group>"; };
 		A8DCB9347E5541C6677D9486 /* MonthlyBarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlyBarChart.swift; sourceTree = "<group>"; };
 		AA7CFADC63CC7AD008CA04F8 /* Compactacion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Compactacion.swift; sourceTree = "<group>"; };
 		B49002AFC6F8C9B6BA595852 /* RevisarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevisarViewModel.swift; sourceTree = "<group>"; };
@@ -406,6 +413,7 @@
 		E4488A0F53ECFBC1ABB43370 /* InformesMembresiaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InformesMembresiaViewModel.swift; sourceTree = "<group>"; };
 		E69AAA6385493F1F176F1DB4 /* RecibosLocales.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecibosLocales.swift; sourceTree = "<group>"; };
 		E6CF31235717D091A9D8F53B /* DocumentoAportanteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentoAportanteView.swift; sourceTree = "<group>"; };
+		E6F20E00F9BEC92CF7B49F2F /* TablaMembresia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TablaMembresia.swift; sourceTree = "<group>"; };
 		E9713DD4E1959A5A6820F895 /* InspectorTamio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorTamio.swift; sourceTree = "<group>"; };
 		EA1441F72095DBACEEB7E5C4 /* Apunte.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Apunte.swift; sourceTree = "<group>"; };
 		EB778DD37F98928D94E7E923 /* Money.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Money.swift; sourceTree = "<group>"; };
@@ -474,7 +482,11 @@
 				E9713DD4E1959A5A6820F895 /* InspectorTamio.swift */,
 				3E7E59E0C104D3F193C3DEA3 /* PantallaCartas.swift */,
 				21A73C49D02DBB1F64569F11 /* PantallaInformes.swift */,
+				998F831DF7AE7D99F260A709 /* PantallaInicio.swift */,
 				610A5F6071F2275CB2FD1FF0 /* SeccionMac.swift */,
+				0CA24FC4711E14705FE6A981 /* TablaAportantes.swift */,
+				A764EA46D8ACF7A5CBC07C79 /* TablaDepositos.swift */,
+				E6F20E00F9BEC92CF7B49F2F /* TablaMembresia.swift */,
 				F993A49067D797DD0DF8FB5A /* TablaMovimientos.swift */,
 				1B9AEE04A26612BD5F8E8EFD /* TablaRegistro.swift */,
 				0BF96375CD4B20F9A9685313 /* TablaServicios.swift */,
@@ -876,6 +888,7 @@
 				73F51DDAA99039892B8563CC /* Palette.swift in Sources */,
 				0D7735E7A4E5AA1F99B70C5E /* PantallaCartas.swift in Sources */,
 				8C5816EE0F37FF306AA65500 /* PantallaInformes.swift in Sources */,
+				0F2371779EBE085BCB8E4D7D /* PantallaInicio.swift in Sources */,
 				4F6A4B17866B5B9A0D439BA5 /* Permisos.swift in Sources */,
 				1CF0824E2BB998C0510A38CA /* Plataforma.swift in Sources */,
 				66601EF88A02C227A60BBD07 /* PreferenciasApp.swift in Sources */,
@@ -900,6 +913,9 @@
 				1B39EB3C3C5491C429300153 /* SesionSupabase.swift in Sources */,
 				2EB3E496574A63359C67E88F /* Supabase.swift in Sources */,
 				8DFEC31CBFA4B0CCBD6DFF38 /* SupabaseMovimientosRepository.swift in Sources */,
+				8981C16C303E7782C459B825 /* TablaAportantes.swift in Sources */,
+				AEE3C6048F14D956120F458F /* TablaDepositos.swift in Sources */,
+				5AC08E970A5C9E93ACDBB04F /* TablaMembresia.swift in Sources */,
 				EEBB95C5424A37685EF6ED7C /* TablaMovimientos.swift in Sources */,
 				67423A3549A03EC9BEA866C2 /* TablaRegistro.swift in Sources */,
 				4D25B229B24B7B5DEC794B1E /* TablaServicios.swift in Sources */,

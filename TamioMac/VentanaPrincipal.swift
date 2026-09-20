@@ -19,6 +19,10 @@ struct VentanaPrincipal: View {
     @State private var servicios = ServiciosViewModel()
     @State private var cartas = CartasViewModel()
     @State private var informes = InformesMembresiaViewModel()
+    @State private var aportantes = MiembrosViewModel()
+    @State private var depositos = DepositosViewModel()
+    @State private var membresia = MembresiaViewModel()
+    @State private var inicio = DashboardViewModel()
     @State private var selIngresos: Set<Movimiento.ID> = []
     @State private var selGastos: Set<Movimiento.ID> = []
     @State private var selRegistro: Set<Apunte.ID> = []
@@ -26,6 +30,9 @@ struct VentanaPrincipal: View {
     /// **Una sola, no un conjunto.** Cartas no es una tabla: a la derecha hay
     /// una hoja, y una hoja solo puede enseñar un documento.
     @State private var selCarta: String?
+    @State private var selAportantes: Set<Aportante.ID> = []
+    @State private var selDepositos: Set<Corte.ID> = []
+    @State private var selMembresia: Set<Miembro.ID> = []
     @State private var escribiendoNota = false
 
     var body: some View {
@@ -70,6 +77,10 @@ struct VentanaPrincipal: View {
     @ViewBuilder
     private var contenido: some View {
         switch estado.seccion {
+        case .inicio:
+            PantallaInicio(vm: inicio,
+                           nombre: sesion?.perfil.firma ?? "",
+                           ir: { estado.seccion = $0 })
         case .ingresos:
             TablaMovimientos(vm: ingresos, seleccion: $selIngresos)
         case .gastos:
@@ -82,6 +93,12 @@ struct VentanaPrincipal: View {
             PantallaCartas(vm: cartas, seleccion: $selCarta)
         case .informes:
             PantallaInformes(vm: informes)
+        case .miembros:
+            TablaAportantes(vm: aportantes, seleccion: $selAportantes)
+        case .depositos:
+            TablaDepositos(vm: depositos, seleccion: $selDepositos)
+        case .membresia:
+            TablaMembresia(vm: membresia, seleccion: $selMembresia)
         default:
             PantallaPorEscribir(seccion: estado.seccion)
         }
@@ -93,6 +110,9 @@ struct VentanaPrincipal: View {
         await registro.cargar()
         await servicios.cargar()
         await cartas.cargar()
+        await aportantes.cargar()
+        await depositos.cargar()
+        await membresia.cargar()
     }
 
     // MARK: - Lo elegido
@@ -115,6 +135,18 @@ struct VentanaPrincipal: View {
             guard selServicios.count == 1, let id = selServicios.first,
                   let s = servicios.lista.first(where: { $0.id == id }) else { return .nada }
             return .servicio(s)
+        case .miembros:
+            guard selAportantes.count == 1, let id = selAportantes.first,
+                  let a = aportantes.items.first(where: { $0.id == id }) else { return .nada }
+            return .aportante(a, anio: aportantes.anio)
+        case .membresia:
+            guard selMembresia.count == 1, let id = selMembresia.first,
+                  let m = membresia.items.first(where: { $0.id == id }) else { return .nada }
+            return .miembro(m)
+        case .depositos:
+            guard selDepositos.count == 1, let id = selDepositos.first,
+                  let c = depositos.items.first(where: { $0.id == id }) else { return .nada }
+            return .corte(c)
         default:
             return .nada
         }
@@ -234,6 +266,12 @@ struct VentanaPrincipal: View {
         if let vm = vmActual {
             return Binding(get: { vm.busqueda }, set: { vm.busqueda = $0 })
         }
+        if estado.seccion == .miembros {
+            return Binding(get: { aportantes.busqueda }, set: { aportantes.busqueda = $0 })
+        }
+        if estado.seccion == .membresia {
+            return Binding(get: { membresia.busqueda }, set: { membresia.busqueda = $0 })
+        }
         let s = estado.seccion
         return Binding(get: { estado.filtro(s) }, set: { estado.ponerFiltro($0, en: s) })
     }
@@ -262,6 +300,26 @@ struct VentanaPrincipal: View {
             return sin == 0 ? "\(n) \(cultos)"
                             : L.t("\(n) \(cultos) · \(sin) sin equipo",
                                   "\(n) \(cultos) · \(sin) without a team")
+        }
+        if estado.seccion == .miembros {
+            let n = aportantes.itemsFiltrados.count
+            let atrasados = aportantes.atrasadosCount
+            let p = n == 1 ? L.t("aportante", "contributor") : L.t("aportantes", "contributors")
+            let base = "\(n) \(p) · \(Money.fmt(aportantes.total))"
+            return atrasados == 0 ? base
+                : L.t("\(base) · \(atrasados) atrasados", "\(base) · \(atrasados) behind")
+        }
+        if estado.seccion == .membresia {
+            let n = membresia.itemsFiltrados.count
+            return n == 1 ? L.t("1 miembro", "1 member")
+                          : L.t("\(n) miembros", "\(n) members")
+        }
+        if estado.seccion == .depositos {
+            let n = depositos.items.count
+            let c = n == 1 ? L.t("corte", "cut") : L.t("cortes", "cuts")
+            let pend = depositos.pendientesCount
+            return pend == 0 ? "\(n) \(c)"
+                : L.t("\(n) \(c) · \(pend) en caja", "\(n) \(c) · \(pend) in the cash box")
         }
         if estado.seccion == .informes {
             return informes.resumen.periodo
