@@ -100,9 +100,31 @@ final class SesionSupabase {
             return
         }
         do {
-            let sesion = try await supabase.auth.session
+            // **Con plazo, y no es paranoia: se midió colgado.**
+            //
+            // `auth.session` lee el llavero, y esa lectura se puede quedar
+            // ESPERANDO en vez de fallar —en el Mac, con `SecItemCopyMatching`
+            // bloqueado tras un diálogo de permiso que la app no ve—. Cuando
+            // se bloquea no hay `catch` que valga: el `estado` se queda en
+            // `.comprobando` y `TamioMacApp` enseña un `ProgressView()` para
+            // siempre, sin aviso, sin botón y sin pantalla de acceso. Le pasa
+            // igual a quien tenga el llavero bloqueado o venga de restaurar
+            // una copia de seguridad.
+            //
+            // Con el plazo, lo peor que ocurre es que se pida entrar otra vez,
+            // que es una molestia con salida.
+            let sesion = try await Self.conPlazo(segundos: 12) {
+                try await supabase.auth.session
+            }
             await adoptar(uid: sesion.user.id.uuidString,
                           correo: sesion.user.email ?? "", permitirCache: true)
+        } catch is PlazoAgotado {
+            // No es "no has entrado" ni es la red: es que no se pudo leer la
+            // sesión guardada. Decirlo con esas palabras, porque la salida
+            // —volver a entrar— no se le ocurre a nadie mirando un reloj.
+            self.error = L.t("No se pudo leer la sesión guardada. Entra otra vez.",
+                             "Couldn't read the saved session. Please sign in again.")
+            estado = .sinSesion
         } catch {
             // Sin sesión guardada, o el refresco del token no llegó al
             // servidor. En ninguno de los dos casos hay nada que restaurar,
@@ -111,6 +133,55 @@ final class SesionSupabase {
                 self.error = Self.mensajeSinConexion
             }
             estado = .sinSesion
+        }
+    }
+
+    /// Se agotó el plazo de `conPlazo`. Tipo propio y no un `CancellationError`
+    /// para poder distinguirlo del cierre normal de una tarea.
+    struct PlazoAgotado: Error {}
+
+    /// **Corre `cuerpo` con un tope de tiempo, ABANDONÁNDOLO si se pasa.**
+    ///
+    /// La primera versión de esto era un `withThrowingTaskGroup` que corría el
+    /// cuerpo contra un `Task.sleep` y se quedaba con el que llegara antes. No
+    /// sirve, y el fallo es fino: **un grupo espera a TODOS sus hijos antes de
+    /// propagar el error**. Los cancela, sí, pero una llamada que no atiende la
+    /// cancelación —`SecItemCopyMatching` bloqueado dentro del llavero es
+    /// exactamente eso— no se entera, y el grupo se queda esperándola. O sea
+    /// que el plazo se cumplía y la función se colgaba igual. Medido: la prueba
+    /// se quedó parada sin imprimir nada hasta que se la mató.
+    ///
+    /// Con una continuación y una caja que solo deja entregar una vez, el que
+    /// llega segundo no hace nada y **a la tarea perdida no la espera nadie**.
+    /// Seguirá ahí hasta que el sistema la suelte, y da igual: lo que importa
+    /// es que quien está delante reciba una pantalla con la que pueda hacer
+    /// algo.
+    private static func conPlazo<T: Sendable>(
+        segundos: Double,
+        _ cuerpo: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        let caja = Entrega<T>()
+        return try await withCheckedThrowingContinuation { cont in
+            Task.detached {
+                do { await caja.entregar(cont, .success(try await cuerpo())) }
+                catch { await caja.entregar(cont, .failure(error)) }
+            }
+            Task.detached {
+                try? await Task.sleep(nanoseconds: UInt64(segundos * 1_000_000_000))
+                await caja.entregar(cont, .failure(PlazoAgotado()))
+            }
+        }
+    }
+
+    /// Reanudar una continuación dos veces es un fallo fatal, y aquí hay dos
+    /// tareas compitiendo por reanudarla. El actor serializa y la bandera deja
+    /// pasar solo a la primera.
+    private actor Entrega<T: Sendable> {
+        private var entregado = false
+        func entregar(_ cont: CheckedContinuation<T, Error>, _ r: Result<T, Error>) {
+            guard !entregado else { return }
+            entregado = true
+            cont.resume(with: r)
         }
     }
 

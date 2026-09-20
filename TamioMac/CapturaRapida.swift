@@ -170,8 +170,29 @@ struct CapturaRapida: View {
             }
 
             HStack(spacing: 9) {
-                Text(L.t("El tabulador recorre todas las casillas.",
-                         "Tab moves through every field."))
+                // **Dice lo que de verdad hace, y no lo que pedía el
+                // handoff.** Su frase era "Tab moves through every field.
+                // Nothing here needs the mouse", y es falsa en un Mac recién
+                // estrenado: con la navegación por teclado del sistema apagada
+                // —que es como viene—, el tabulador SE SALTA los `Picker`.
+                // Medido tecla a tecla: importe → quien → fecha → nota →
+                // importe, con Categoría y Método fuera del ciclo.
+                //
+                // Se intentaron dos salidas y ninguna sirve, así que no se
+                // vuelven a intentar:
+                //
+                //  1. Escribir `AppleKeyboardUIMode` en el dominio de la app.
+                //     El valor QUEDA escrito —`defaults read` lo devuelve— y
+                //     AppKit lo ignora: lee el global, y ese no se le toca a
+                //     nadie desde aquí.
+                //  2. `.focusable()` en los dos `Picker`. Peor: el foco se
+                //     quedaba clavado en el importe y el tabulador dejaba de
+                //     mover NADA.
+                //
+                // Queda prometer lo cierto y decir dónde se enciende el resto.
+                Text(L.t("El tabulador recorre las casillas de texto. Para que llegue también a los selectores, enciende la navegación por teclado en Ajustes del Sistema › Teclado.",
+                         "Tab moves through the text fields. To reach the pickers too, turn on keyboard navigation in System Settings › Keyboard."))
+                    .fixedSize(horizontal: false, vertical: true)
                     .font(.system(size: 11.5))
                     .foregroundStyle(.tertiary)
                 Spacer(minLength: 0)
@@ -189,7 +210,21 @@ struct CapturaRapida: View {
         }
         .padding(18)
         .frame(width: 596)
+        // **Cada vez que la ventana aparece, no solo la primera.**
+        //
+        // `Window` no destruye la escena al cerrarla, así que el `@State`
+        // sobrevive: sin este vaciado, la ventana se reabría con el importe,
+        // la persona, la nota y la FECHA del apunte anterior. Cubre también
+        // las salidas por "Cancelar" y por el botón rojo, que no pasan por
+        // `guardar`.
         .task {
+            importe = ""
+            quien = ""
+            nota = ""
+            // La fecha de hoy, no la del día en que se abrió por última vez.
+            fecha = Date()
+            guardadas = 0
+            fallo = nil
             await categorias.cargar()
             await aportantes.cargar()
             alCambiarDeTipo()
@@ -294,7 +329,26 @@ struct CapturaRapida: View {
             // Que la ventana de atrás relea: la creación escribe en la base y
             // las tablas ya cargadas no se enteran solas.
             estado.recargar()
+            // **Y que salga hacia el servidor ya.**
+            //
+            // Capturando un domingo entero la app no se va al fondo ni una
+            // vez, así que la vuelta de "volver al frente" no llega nunca y el
+            // apunte se quedaría esperando al próximo arranque. El motor se
+            // protege solo de las llamadas encimadas (`estado !=
+            // .sincronizando`), así que no hay que contarlas aquí.
+            Task { await MotorSincronizacion.compartido.sincronizar() }
             if cerrando {
+                // **Se cierra limpia.** `Window` mantiene viva la escena, así
+                // que sin esto al reabrirla seguían ahí el importe, la persona
+                // y la nota del apunte anterior —y, lo que de verdad pica, su
+                // FECHA—: reabrir y pulsar ⌘S repetía el movimiento con la
+                // fecha de otro día. Lo que se conserva es lo mismo que
+                // conserva "Guardar y otro", que es lo que se repite.
+                importe = ""
+                quien = ""
+                nota = ""
+                fecha = Date()
+                guardadas = 0
                 cerrar()
             } else {
                 // **Se conserva el tipo, la categoría, el método y la fecha**,

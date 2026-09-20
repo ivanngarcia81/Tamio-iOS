@@ -90,6 +90,22 @@ struct TamioMacApp: App {
                     // que alguien cambia de sección y vuelve.
                     estado.recargar()
                 }
+                // **Y otra vez cada vez que la app vuelve al frente.**
+                //
+                // Esto existía en iOS (`onChange(of: fase)` con `.active`) y
+                // aquí no. Con una sola vuelta, la del arranque, lo capturado
+                // se quedaba en el `outbox` hasta que alguien cerrara y
+                // abriera la app —medido: `intentos = 0`, o sea que ni se
+                // intentaba—. Una ventana de Mac se queda abierta días, así
+                // que eso es un domingo entero de ofrendas sin salir de aquí.
+                .task {
+                    let vueltas = NotificationCenter.default.notifications(
+                        named: NSApplication.didBecomeActiveNotification)
+                    for await _ in vueltas {
+                        await MotorSincronizacion.compartido.sincronizar()
+                        estado.recargar()
+                    }
+                }
         }
     }
 }

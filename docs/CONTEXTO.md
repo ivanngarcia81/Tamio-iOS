@@ -243,6 +243,53 @@ sitio**. No hay columna en `movimiento` ni campo en la subida; solo lo lee
 `MovimientoDetalle`. El rastro que construyen la captura rápida y
 `NuevoMovimientoView` se pierde al guardar, en las dos plataformas.
 
+### Los cuatro, arreglados el mismo día — y uno no se pudo
+
+**El plazo de `restaurar()`.** `auth.session` corre ahora con 12 segundos de
+tope y, si no vuelve, la app cae en la pantalla de acceso diciendo "No se pudo
+leer la sesión guardada. Entra otra vez". Visto en la app: con el diálogo del
+llavero todavía bloqueando, salió la pantalla de acceso con ese texto donde
+antes había un reloj eterno.
+
+**Y el primer intento de ese plazo estaba MAL**, que es lo que más vale la pena
+recordar: era un `withThrowingTaskGroup` corriendo el cuerpo contra un
+`Task.sleep`. **Un grupo espera a TODOS sus hijos antes de propagar el error.**
+Los cancela, pero una llamada bloqueada dentro del llavero no atiende la
+cancelación, así que el plazo se cumplía y la función se colgaba igual. La
+prueba se quedó parada sin imprimir nada hasta que se la mató. Lo que sirve es
+una continuación con una caja que solo deja entregar una vez: al que se pasa de
+plazo **no lo espera nadie**. Queda en `pruebas/PlazoDeSesionTests.swift`, que
+se compila suelto con `swiftc -parse-as-library` y no necesita la copia de §3.
+
+**La sincronización.** Dos disparos nuevos: al volver la app al frente
+(`NSApplication.didBecomeActiveNotification`, que es la pareja del `.active` de
+iOS) y **justo después de guardar una captura rápida** —capturando un domingo
+entero la app no se va al fondo ni una vez, así que el primero no llegaría—.
+Medido: el apunte subió solo, `outbox` a 0 y `folioProvisional` a 0 sin relanzar
+nada; antes se quedaba con `intentos = 0`.
+
+**La ventana que no se limpiaba.** Se vacía al aparecer —lo que cubre también
+"Cancelar" y el botón rojo, que no pasan por `guardar`— y al guardar cerrando.
+La fecha vuelve a ser la de hoy. Comprobado reabriéndola después de guardar:
+casillas vacías, contador a cero, folio nuevo.
+
+**El tabulador NO se pudo arreglar.** Se intentaron dos cosas y las dos se
+midieron fallidas, así que no se vuelven a intentar:
+
+1. Escribir `AppleKeyboardUIMode` en el dominio de la app. El valor **queda
+   escrito** —`defaults read church.tamio.native` devuelve 2— y AppKit lo
+   ignora: lee el dominio global, y ese no se le toca a nadie desde aquí.
+2. `.focusable()` en los dos `Picker`. Salió **peor**: el foco se quedaba
+   clavado en el importe y el tabulador dejaba de mover nada.
+
+Lo que sí se arregló es la promesa. El pie decía "el tabulador recorre todas las
+casillas"; ahora dice lo cierto y dónde se enciende el resto (Ajustes del
+Sistema › Teclado). Los dos intentos están escritos en el código, al lado del
+texto.
+
+Sin tocar: **`Movimiento.auditoria` sigue sin guardarse en ningún sitio**. Es de
+las dos plataformas y no es del Mac, así que no entra aquí.
+
 ### Dos decisiones pendientes de Iván
 
 - **El bundle id** está en `church.tamio.native`, el MISMO que iOS, o sea Compra

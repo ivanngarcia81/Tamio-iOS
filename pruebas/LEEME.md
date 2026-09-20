@@ -35,6 +35,10 @@ las operaciones se quedan en la cola de salida y el motor no se llama.
   plantilla, y que el respaldo no pise las de la iglesia cuando sí han bajado.
   Es la otra mitad del mismo fallo: el respaldo tapa el síntoma y
   `MotorSincronizacion` arregla la causa.
+- **`PlazoDeSesionTests.swift`** — el plazo de `restaurar()`, compilado suelto
+  con `swiftc -parse-as-library`: no necesita la copia de §3. Guarda la versión
+  que NO funcionaba —un task group espera a sus hijos y se colgaba igual— para
+  que nadie la vuelva a escribir.
 - **`contraste.py`** — mide el contraste de un rectángulo de una captura, sin
   dependencias. `python3 pruebas/contraste.py captura.png rect X0 Y0 X1 Y1`.
 
