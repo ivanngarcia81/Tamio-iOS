@@ -1,0 +1,94 @@
+-- Un apunte del registro no se borra. Ni uno, ni todos.
+--
+-- Es la otra mitad de `20260919_el_registro_solo_crece.sql`, y se aplica con
+-- ella. Aquella congela el CONTENIDO de un apunte; esta cierra el DELETE. Por
+-- separado no sirven de mucho: con el borrado abierto, falsificar un apunte es
+-- borrarlo y volver a insertarlo con el mismo `uid` —la política de INSERT
+-- solo mira la iglesia—, así que el guarda del UPDATE se rodea en dos pasos.
+--
+-- ── La decisión que faltaba, tomada el 19-sep-2026 ─────────────────────────
+--
+-- El documento dejaba esto bloqueado desde el 10-sep esperando que el web
+-- decidiera qué hacía con la compactación. Decidido: **el registro deja de
+-- purgarse en los dos clientes.** iOS ya lo protegía
+-- (`Compactacion.nuncaSePurga`); el web se alineó hoy con `NUNCA_SE_PURGA` en
+-- `sync.ts`, y sus dos comprobaciones (`verificar-borrado`, `verificar-sync`)
+-- siguen en verde.
+--
+-- **Y el orden importa, aunque menos de lo que este documento llegó a decir.**
+-- Medido hoy, con las dos formas del cierre, sobre una transacción deshecha:
+--
+--   | cierre | lo que recibe el web |
+--   |---|---|
+--   | solo `drop policy` (queda el grant) | **sin error, 0 filas** |
+--   | además `revoke delete` | **42501 · permission denied** |
+--
+-- O sea que la forma silenciosa es la de la política, no la del grant. Con la
+-- política sola, el `if (error) continue` de `compactarBase` no salta, el web
+-- purga su copia LOCAL igualmente y en la siguiente bajada las filas vuelven
+-- de la nube: no se rompe, RESUCITA. Con el grant quitado el web ve el 42501,
+-- salta el `continue` y no purga nada, que es el fallo bueno.
+--
+-- El §5 de `docs/PERMISOS-EN-EL-SERVIDOR.md` decía que quitar la política
+-- «rompe la compactación entera», o sea de forma visible; es al revés. Y esta
+-- misma migración llegó a decir que el orden era imprescindible: con el cierre
+-- por grant no lo es, y se corrigió después de medirlo. Quitarlo del web sigue
+-- siendo lo correcto —que no lo intente— y por eso se hizo primero.
+--
+-- ── Por qué el grant y no la política ──────────────────────────────────────
+--
+-- Quitar solo `registro_delete` dejaría el borrado prohibido **en silencio**:
+-- un `delete` que RLS descarta contesta 204 y cero filas, que es justo lo que
+-- este repo lleva desde el 7-sep aprendiendo a no hacer. Sin el grant, el
+-- servidor contesta `42501` y se ve desde la app y desde `curl`. Es la misma
+-- forma del arreglo de `perfiles` del 18-sep: la capa que toca es el
+-- privilegio, no la política.
+--
+-- Se quita además la política, que ya no manda a nadie: dejarla escrita diría
+-- que el borrado está contemplado cuando no lo está.
+--
+-- ── A quién no le quita nada ───────────────────────────────────────────────
+--
+-- | quién | qué hacía con el DELETE | después |
+-- |---|---|---|
+-- | iOS | nada: da de baja con `deleted` y nunca purga `registro` | igual |
+-- | web | purgaba las lápidas de más de 90 días en la nube | ya no lo intenta |
+-- | Edge Function `borrar-cuenta` | borra la iglesia entera | va con `service_role`, exenta |
+--
+-- Y la fila con lápida no se pierde: sigue en el servidor con su contenido
+-- congelado, fuera de la vista de las dos apps —que filtran `deleted`— y
+-- disponible para quien audite con `service_role`. Que una bitácora se pueda
+-- esconder y no destruir es exactamente lo que se busca.
+--
+-- `anon` también lo pierde. Hoy no podía pasar la política —sin sesión
+-- `auth.uid()` es null—, pero no tiene por qué tener el grant.
+
+revoke delete on public.registro from anon, authenticated;
+
+drop policy if exists registro_delete on public.registro;
+
+-- ── Cómo se comprueba ──────────────────────────────────────────────────────
+--
+-- Con `supabase/pruebas/registro_solo_crece.sql`: el caso «7 borrar un apunte»
+-- tiene que pasar de `SI` a `NO (42501)` para los tres roles.
+--
+-- Y a mano, con sesión de cualquiera:
+--
+--   delete from registro where uid = '…';   -- 42501: permission denied
+--
+-- Que devuelva «0 filas» sin error NO sería estar cerrado: sería RLS
+-- filtrando, que es lo que ya hacía con las filas de otra iglesia.
+--
+-- **Ojo con volver a abrirlo sin querer.** Un `grant all on all tables in
+-- schema public to authenticated` —que es lo que se escribe cuando se añade
+-- una tabla con prisa— devuelve el DELETE a esta también, y nada avisa. Si
+-- algún día hace falta, el guion de pruebas lo caza.
+--
+-- ── Cómo se deshace ────────────────────────────────────────────────────────
+--
+--   grant delete on public.registro to authenticated;
+--   create policy registro_delete on public.registro for delete
+--     using (church_id = (select public.mi_iglesia()));
+--
+-- Y habría que devolver `registro` a la purga del web, o el desbloqueo no
+-- sirve de nada.

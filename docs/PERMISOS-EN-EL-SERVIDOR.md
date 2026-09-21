@@ -532,4 +532,218 @@ La tabla que hay que rellenar, y que hoy no existe:
 | crear un movimiento | ✅ | ✅ | ❌ |
 | borrar un acta | ✅ | ❌ | ✅ |
 | editar el padrón | ✅ | según plan | ✅ |
-| escribir en el registro | ❌ | ❌ | ❌ |
+| escribir un apunte nuevo | ✅ | ✅ | ✅ |
+| reescribir un apunte ya escrito | ❌ | ❌ | ❌ |
+| borrar un apunte | ❌ | ❌ | ❌ |
+
+**Esa última parte decía «escribir en el registro ❌ ❌ ❌», y estaba mal.** La
+bitácora la escribe la app desde las dos áreas —`anotarSuceso` lo llaman
+`OfflineDepositosRepository`, `ActasRepository`, `CartasRepository` y
+`MembresiaRepository`—, así que un tesorero que no pueda INSERTAR deja de
+generar los apuntes de tesorería y no hay rastro que auditar. Lo que hay que
+cerrar es reescribir y borrar. Corregido el 19-sep al escribir el ensayo.
+
+## El §4, escrito y probado · 19-sep-2026
+
+> **Esto se escribió por la tarde, y esa misma noche se aplicó.** Lo de abajo
+> —«nada tocado en el servidor»— era cierto al escribirlo y ya no lo es: ver
+> «El §4, cerrado» al final del documento. Se deja como estaba porque explica
+> por qué el guarda tiene la forma que tiene.
+
+Dos archivos nuevos y **nada tocado en el servidor**:
+
+| archivo | qué es |
+|---|---|
+| `supabase/migrations/20260919_el_registro_solo_crece.sql` | el disparador `a1_el_registro_solo_crece`: de un apunte ya escrito solo pueden cambiar `deleted` y `updated_at` |
+| `supabase/pruebas/registro_solo_crece.sql` | siete casos por rol, con el control negativo dentro |
+
+**Vuelto a medir antes de escribir una línea**, y el §4 seguía entero:
+`registro_update` y `registro_delete` solo filtran `church_id` y ninguna
+menciona `mi_rol()`; `authenticated` tiene UPDATE sobre las diez columnas y
+DELETE de tabla; y el único disparador de la tabla es `a0_marcar_updated_at`.
+Con sesión de tesorero, en una transacción deshecha: **reescribir un apunte
+ajeno, 1 fila; borrarlo, 1 fila**. Puede editar el apunte que dice que él
+borró un movimiento.
+
+**El ensayo, hecho.** El guion corrido HOY, antes de aplicar nada: 24 filas,
+21 en `ok` y **tres en `### REVISAR`** —«reescribir un apunte ajeno», una por
+rol—, que es exactamente el control negativo que se busca. Después, aplicando
+la migración **dentro de una transacción que se deshace**: **24 de 24 en
+`ok`**, con la lápida, el upsert idéntico del web y el apunte nuevo intactos.
+Comprobado luego contra la base que no quedó nada: cero disparador, cero
+función, cero filas `probe-%`, 32 filas como antes.
+
+### Lo que el ensayo corrigió de este documento
+
+**1. El modo de fallo del §5 estaba al revés.** Decía que quitar la política de
+`DELETE` «rompe la compactación del web entera», o sea de forma visible. Es
+peor: es **silenciosa**. Un `delete` que RLS descarta afecta a cero filas y
+contesta 204, así que el `if (error) continue` de `compactarBase` no salta, el
+web purga su copia local igualmente, y en la siguiente bajada la fila vuelve de
+la nube. No se rompe: **resucita**. Por eso la forma propuesta ya no es
+`drop policy` sino acotar el USING a las lápidas, que es lo único que el web
+borra en la nube:
+
+    alter policy registro_delete on public.registro
+      using (church_id = (select public.mi_iglesia()) and deleted);
+
+**2. La tabla de «Cómo se comprueba» pedía algo que vaciaría la bitácora.**
+Corregido arriba.
+
+### Lo que esto NO cierra
+
+Con el DELETE abierto, el disparador **no impide falsificar**: se borra la fila
+y se vuelve a insertar con el mismo `uid`, porque la política de INSERT solo
+mira la iglesia. Lo que cierra es la reescritura de un apunte **vivo** —el caso
+que ocurre sin querer, el que una sincronización puede provocar sola y el único
+que no deja ni la huella de haber ocurrido—. El resto lo encarece, no lo
+impide.
+
+**Y el paso que de verdad cierra el §4 no es SQL: es quién puede poner la
+lápida.** Hoy «Borrar todos los datos» del teléfono la pone sobre todo el
+registro, y eso es legítimo y está en la app. Medido hoy: **20 de las 32 filas
+de `registro` ya están con lápida**, así que incluso acotando el DELETE a las
+lápidas, esas veinte las podría borrar cualquiera de la iglesia. Esa decisión
+es de producto y del otro repo, y es la que sigue pendiente.
+
+## El §4, cerrado · 19-sep-2026, noche
+
+**La decisión que bloqueaba esto desde el 10 de septiembre está tomada: el
+registro deja de purgarse.** Ya no hay un chat llevando el web aparte, así que
+se tomó aquí y se hicieron las dos mitades.
+
+El cierre tiene tres piezas, y la tercera no estaba en el plan original:
+
+| pieza | dónde | qué hace |
+|---|---|---|
+| el web deja de purgar `registro` | `Tamio-app` · `sync.ts`, `NUNCA_SE_PURGA` | se alinea con `Compactacion.nuncaSePurga`, que iOS ya tenía |
+| el contenido se congela | `20260919_el_registro_solo_crece.sql` | de un apunte escrito solo cambian `deleted` y `updated_at` |
+| **la lápida es del administrador** | la misma migración | y el DELETE se cierra en `20260919b` |
+
+**La tercera salió de mirar las dos apps, no de la base.** La Zona de riesgo
+—«Borrar los registros», «borrar los datos de la iglesia»— está detrás de
+`veAjuste(.zona) → rol == .administrador` en iOS (`Permisos.swift:129`) y de
+`esAdmin` en el web (`Configuracion.tsx`). El servidor no lo sabía, así
+que sin esa línea el §4 se quedaba a medias: nadie podría falsear un apunte,
+pero un tesorero podría esconder el rastro entero con un `curl`. Comprobado que
+no hay otra vía: `reinicioDeFabrica` es solo local y no encola nada, y
+`borrar-cuenta` va con `service_role`.
+
+**Y sobre el orden, una corrección medida el mismo día.** Este documento —y
+la primera versión de la migración— decían que había que quitarlo del web
+ANTES o el fallo sería silencioso. Medido con las dos formas del cierre, sobre
+una transacción deshecha: **quitar solo la política deja al web sin error y
+con 0 filas** —ahí sí purgaría en local y las filas resucitarían desde la nube—,
+pero **quitando el grant contesta `42501`**, que el web sí ve: salta su
+`if (error) continue` y no purga nada. Como el cierre es por grant, el orden no
+era imprescindible. Quitarlo del web sigue siendo lo correcto —que no lo
+intente, y que las dos apps digan lo mismo— y por eso se hizo primero.
+
+### Lo que está aplicado, y lo que no
+
+| | estado |
+|---|---|
+| `Tamio-app` · `sync.ts` | hecho. `tsc` limpio, `verificar-borrado` y `verificar-sync` en verde |
+| `20260919_el_registro_solo_crece.sql` | **APLICADA**, `20260919221803` en `schema_migrations` |
+| `20260919b_el_registro_no_se_borra.sql` | **APLICADA** por Iván desde el panel |
+
+**Y una cosa que hay que saber del panel: no apunta la migración.** El efecto
+está —`authenticated` y `anon` se quedaron con `INSERT, SELECT, UPDATE` y
+`registro_delete` ya no existe—, pero `schema_migrations` acaba en
+`20260919221803`, así que el libro no sabe de la segunda. El archivo es
+idempotente (`revoke` + `drop policy if exists`), así que volver a correrlo por
+MCP para que quede anotado no rompe nada. Es lo mismo que pasó con la del
+18-sep, y por eso conviene escribirlo: la base y el libro de migraciones
+pueden discrepar sin que nada avise.
+
+Medido contra el servidor después de aplicar las dos, con
+`supabase/pruebas/registro_solo_crece.sql` y sesión de cada rol: **24 de 24 en
+`ok`**, cero `### REVISAR`. Y comprobado que la prueba no dejó nada: 32 filas,
+20 con lápida, cero `probe-%`.
+
+| | administrador | tesorero | secretaria |
+|---|---|---|---|
+| escribir un apunte nuevo | SÍ | SÍ | SÍ |
+| reescribir uno ya escrito | **NO · 42501** | **NO · 42501** | **NO · 42501** |
+| mudarlo a otra iglesia | **NO · 42501** | **NO · 42501** | **NO · 42501** |
+| poner la lápida | SÍ | **NO · 42501** | **NO · 42501** |
+| el upsert idéntico del web | SÍ | SÍ | SÍ |
+| borrar un apunte | **NO · 42501** | **NO · 42501** | **NO · 42501** |
+
+Las tres filas de «SÍ» no son relleno: son las que dicen que no se rompió nada.
+La bitácora la escriben las dos áreas, el administrador tiene que poder vaciar
+la Zona de riesgo, y el web manda la fila entera en cada sincronización.
+
+### Lo que queda del §4, que ya no es del §4
+
+Nada en el servidor. Un apunte se escribe, no se reescribe, no se muda de
+iglesia, no se borra, y esconderlo es cosa del administrador. Lo que queda es
+de fuera:
+
+- ~~Fusionar en `main` del web la rama `arreglos/el-registro-no-se-purga`.~~
+  **HECHO** el 19-sep: `main` del web está en `c596982`.
+- **Anotar `20260919b` en `schema_migrations`**, si se quiere el libro completo.
+- **El §5 para las demás tablas**: escrito y ensayado el mismo día, ver abajo.
+
+## El §5 · APLICADO · 19-sep-2026
+
+`supabase/migrations/20260919c_el_borrado_de_verdad_solo_alcanza_a_las_lapidas.sql`
+y `supabase/pruebas/borrado_de_verdad.sql`. **Aplicada por Iván desde el panel**
+—y como la del `registro`, **aplicada sin quedar anotada**: `schema_migrations`
+sigue acabando en `20260919221803`—.
+
+**Comprobado contra la base después de aplicar**: 1 función y **20 disparadores
+sobre las 20 tablas con lápida**, y el guion entero en **17 de 17 `ok`**, cero
+`### REVISAR`, con la cobertura en 0. Sin rastro de la prueba: 115 movimientos,
+7 actas, 32 apuntes, cero filas `probe-%`.
+
+**El agujero, medido antes de escribir nada.** Las veinte tablas de datos
+tienen política de DELETE y `authenticated` tiene el permiso; desde el 15-sep
+esas políticas miran el rol, pero los dos guardas que existen
+—`frenar_borrado_tesorero` y `frenar_baja_tesorero`— son BEFORE **UPDATE**.
+Frenan la lápida, no el borrado. Corrido el guion antes de aplicar, con sesión
+de cada rol:
+
+| | administrador | tesorero | secretaria |
+|---|---|---|---|
+| borrar un movimiento **vivo** | **SÍ** | **SÍ** | NO · 0 filas |
+| borrar un acta **viva** | **SÍ** | NO · 0 filas | **SÍ** |
+
+Tres «SÍ» que se llevan la fila entera, sin lápida y sin propagarse a los demás
+aparatos.
+
+**El arreglo: un `BEFORE DELETE` que exige la lápida.** Un DELETE solo puede
+alcanzar una fila con `deleted = true`. No quita nada a nadie, y eso está
+buscado en los dos repos, no supuesto: **iOS no borra de verdad jamás** —su
+`eliminar(id:)` es un `update deleted = true`— y el web tiene **un solo**
+borrado remoto, `compactarBase`, que manda los `uid` de filas que él mismo
+seleccionó con `deleted = 1`.
+
+**Por qué un disparador y no acotar la política con `and deleted`.** Porque una
+política que descarta la fila **no avisa**: cero filas y un 204. Es lo que se
+midió al cerrar el §4, y es la diferencia entre un no que se ve y uno que no.
+El disparador contesta `42501`.
+
+**Y las tablas se buscan, no se escriben a mano**: la migración recorre las que
+tienen `deleted` y se planta si no salen 20. Además el guion tiene una fila de
+COBERTURA —toda tabla con lápida tiene que llevar el guarda—, que es lo que
+caza la tabla nueva que nadie acordó proteger. Es la trampa que el web ya
+documenta en `verificar-borrado`.
+
+**El ensayo, y después la medida de verdad.** Primero aplicando la migración
+dentro de una transacción que se deshace (16 de 16), y después sobre la base
+con la migración ya puesta: **17 de 17 en `ok`**. Las dos caras medidas: la
+fila viva contesta `42501` a quien escribe en esa área —«Una fila viva de
+"transactions" no se borra: primero se le pone la lápida»— y «0 filas» a quien
+no; la fila con lápida se borra, que es la compactación.
+
+**Lo que este §5 NO es.** No es el permiso de dar de baja. Quién puede poner la
+lápida sigue donde estaba —las políticas por área del 15-sep y los dos
+disparadores de `tesorero_puede_eliminar`—. Esto solo impide que el borrado de
+verdad se use para saltárselos.
+
+**Lo que queda después de esto**, y ya es defensa en profundidad, no agujero:
+`folios_contador`, `iglesias` y `perfiles` tienen el permiso de DELETE sin
+ninguna política, así que un intento contesta **cero filas en silencio**. No se
+tocó a propósito: volverlo ruidoso podría destapar como error algún flujo que
+hoy falla callado, y eso se mira con calma.
