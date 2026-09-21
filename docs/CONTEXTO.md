@@ -5,12 +5,373 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **20 de septiembre de 2026** (§0.-20, las dos primeras
-acciones del Mac; §0.-19, las plantillas que no faltaban; §0.-18, la app de
-Mac). Lo anterior: las capturas y la
+Última actualización: **21 de septiembre de 2026** (§0.-21, el ⌘N contextual,
+la primera hoja de Membresía y el estado traducido; §0.-20, las dos primeras acciones del Mac; §0.-19, las
+plantillas que no faltaban; §0.-18, la app de Mac). Lo anterior: las capturas y la
 ficha en §0.-17, lo técnico de la subida en §0.-16, lo de interfaz en §0.-15
 —verificado en el iPhone físico— y la pasada grande sigue siendo la segunda de
 QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-21 El ⌘N al menú, Membresía escribe, y el estado traducido · 21 de septiembre
+
+§0.-20 dejó dos cosas dichas y sin cerrar: que el alta de una actividad llega a
+la base **no se había visto**, y que el ⌘N tenía que vivir en el menú. Las dos
+se cierran hoy. Y mirar la fila que por fin se pudo leer destapó un tercer
+fallo, que no es del Mac.
+
+### El Acceso a disco completo, y lo que valía
+
+Con el permiso puesto, el contenedor de `church.tamio.native` se lee otra vez y
+vuelve la verificación por datos que §0.-20 daba por perdida. **Es la mitad de
+cómo se comprueba aquí que algo pasó de verdad**: las tres cosas de abajo se
+cerraron leyendo `agenda` y `outbox`, no mirando la pantalla.
+
+### El ⌘N, del botón al menú, y UNA sola orden para las catorce
+
+El atajo estaba declarado en el botón de la cabecera de Agenda, y un
+`keyboardShortcut` de una vista **solo responde con el foco dentro de esa
+vista**: con el foco en la barra lateral la "n" se la comía la selección por
+teclas de la lista. Ahora vive en el menú Archivo, y el disparador es
+`EstadoVentana.pidiendoAlta` por lo mismo que `seccion` —un menú es una escena
+hermana de la ventana y no alcanza el `@State` de una vista—.
+
+**Y es una orden, no una por pantalla.** El primer intento fue "Nueva
+actividad…" con su ⌘N; al llegar la segunda hoja quedó claro que por ese camino
+son catorce elementos de menú con el MISMO atajo, y ahí macOS elige por su
+cuenta. El rótulo lo pone la sección (`SeccionMac.altaTitulo`) y el permiso
+también (`SeccionMac.altaPermitida`): "Nueva actividad…" en Agenda, "Nuevo
+miembro…" en Membresía, apagada donde la pantalla siga siendo de solo lectura.
+**Ahí entra cada hoja que se escriba**, y es un `case` por hoja.
+
+El ⌥⌘N del movimiento no pasa por ahí: es global, porque la captura rápida es
+una ventana suya y funciona desde cualquier sección.
+
+Los botones de cabecera se quedan. El menú hace que el atajo funcione con el
+foco donde sea; el botón es lo que dice, sin abrir nada, que de esta pantalla se
+puede dar de alta —y en Agenda dice además a qué día apunta—.
+
+Comprobado por AppleScript: en Inicio el elemento existe con ⌘N y
+`enabled=false`; en Agenda es "New activity…" y en Membresía "New member…", las
+dos `enabled=true`; y **con el foco en la barra lateral** —clic en su fila, que
+es lo que deja el foco ahí— el ⌘N abre la hoja.
+
+### El alta llega, y sube
+
+`agenda` pasó de 11 filas a 12 y el `outbox` quedó **a 0**, o sea que no solo se
+escribió: la vuelta de `sincronizar()` que dispara la hoja se la llevó al
+servidor. La fila trae `fecha = 2026-09-21` —la fecha entera en clave local, que
+era la regla que costaba una vuelta—, el nombre, `borrado = 0` y
+`actualizadoEn`. Y Escape cierra sin escribir: seguía en 11.
+
+### El `estado` guardaba el rótulo del selector
+
+La fila decía `estado: Scheduled`. Las viejas, `programada`. La columna es del
+web y admite cinco valores —`borrador`, `programada`, `confirmada`,
+`completada`, `cancelada`—, y lo que se guardaba era **el texto traducido del
+`Picker`**: `L.t("Programado", "Scheduled")`. Así que fallaba en los dos
+idiomas, porque en español escribía `"Programado"`, masculino, que tampoco es
+`"programada"`.
+
+**Y no era cosmético.** `AgendaRepository` deriva `completado` de
+`estado == "completada" || estado == "cancelada"`, así que elegir "Completado" o
+"Cancelado" en ese selector no cambiaba nada de lo que la app lee y el evento
+seguía contando en el "N sin completar" de la cabecera
+(`AgendaViewModel.pendientesMes`). Y el dato malo ya había viajado: seis de las
+doce filas de la agenda tenían `Scheduled` en Supabase.
+
+En el Mac el `Picker` lleva ya el rótulo traducido a la vista y el valor del web
+en el `tag`. Verificado por datos y hasta el final: el selector enseña
+"Completed", la fila se guarda `completada`, y la cabecera pasa a decir "4 not
+done" con cinco filas de septiembre y una completada. **El contador cuenta.**
+
+**Sigue abierto en iOS, y es decisión de Iván**: `Tamio/Views/AgendaView.swift`
+tiene la misma lista de rótulos y se dejó como estaba. Hasta que se toque, la
+columna `estado` tendrá las dos formas —lo que escriba el Mac y lo que escriba
+el teléfono— y las filas ya escritas siguen mal; normalizar al leer es lo que
+falta.
+
+### Membresía ya da de alta y editar · la primera de las trece
+
+`NuevoMiembro.swift`, y con ella Secretaría baja de trece hojas que faltan a
+doce. **Alta y edición son la misma hoja**, como en iOS: los mismos cuarenta
+campos y las mismas reglas, y tener dos habría dejado que se separaran. Cambian
+el título y el rótulo del botón.
+
+**Las cuatro sub-páginas de iOS aquí son secciones plegables.** En el teléfono
+se empujan con `NavigationLink` porque no cabe otra cosa; en una hoja de 760
+puntos caben, y el Mac es para ver mucho a la vez. Eso esquiva de paso el fallo
+que esas páginas de iOS documentan largo —una vista empujada dentro de un `Form`
+no se repinta cuando cambia el `@State` del padre, así que el valor viajaba y el
+rótulo se quedaba viejo—: aquí no hay vista empujada y el estado civil se puede
+enlazar directo. Nacen plegadas, con el contador de cuántos campos llevan
+dentro, que es la insignia del enlace de iOS.
+
+**Los catálogos de varios son casillas y no píldoras.** En iOS son chips en
+`FlowLayout` porque once opciones ocupan un teléfono entero. En el Mac la casilla
+de verificación es el control que significa "de estos, los que sean", se lee en
+tres columnas y responde al teclado. Lo que se guarda es idéntico: las claves del
+web más lo que se escriba a mano —verificado: marcar dos deja
+`["intercesion","mantenimiento"]` en la columna, claves y no rótulos, que es
+justo lo que la agenda estaba haciendo mal—.
+
+**Guardar y LUEGO sincronizar, y esto se midió roto primero.** La hoja lanzaba
+`vm.agregarMiembro(nuevo)` y la sincronización a la vez, y `agregarMiembro`
+encola dentro de un `Task` suyo: la vuelta salía **antes** de que la operación
+estuviera en la cola. Medido: `outbox` con `miembro | crear | intentos = 0`, o
+sea que ni se intentó, y la ficha se quedaba sin subir hasta el siguiente
+arranque —que es exactamente lo que la vuelta inmediata existe para evitar en el
+Mac, donde la app no se va al fondo—. `MembresiaViewModel` tiene ahora
+`agregarMiembroEsperando` y `editarMiembroEsperando`; **iOS sigue llamando a las
+de antes, que hacen lo mismo que hacían.**
+
+Verificado en la app y contra la base, no en la pantalla:
+
+- El ⌘N con el foco en la barra lateral abre la hoja; ⌘S con el nombre vacío
+  avisa —"The person's name is missing."— y no guarda; Escape cierra sin
+  escribir.
+- El alta deja la fila con nombre, teléfono, `estado = activo` y
+  `miembroDesde = 2026-09-21`, y el `outbox` **a 0**: subió en la misma acción.
+  Sin fecha de nacimiento ni de congregación, que es lo que corresponde con sus
+  interruptores apagados —y no una fecha de hoy inventada—.
+- Doble clic en la tarjeta abre "Edit member" con la ficha cargada, guarda el
+  cambio, no duplica la fila y vuelve a dejar el `outbox` a 0.
+- **Y la fecha no se corrió en el segundo guardado**, que es la trampa que el
+  `init` documenta: tras el alta y la edición, `miembroDesde` sigue siendo el 21.
+- Marcar dentro de una plegable guarda (`bautizadoAgua = 1`,
+  `fechaBautismoAgua` vacío) sin tocar la baja.
+
+Falta de esta sección: editar los parentescos —viven en su tabla y la hoja no los
+toca, igual que en iOS—, `SeguimientoSheet` y los filtros.
+
+### Las tarjetas de Informes no estaban parejas
+
+Iván lo vio en su pantalla y lo marcó: en Informes de membresía, las dos tarjetas
+de cada fila tenían alturas distintas —"Por estado" con una barra al lado de "Por
+ministerio" con tres, y el gráfico de altas al lado de dos cifras—. Eran dos
+`HStack(alignment: .top)` donde cada tarjeta medía lo que medía su contenido.
+
+**El detalle que cuesta una vuelta: el estiramiento va ANTES de `tarjetaMac`.**
+Puesto después, el `frame` envuelve a la tarjeta ya pintada con su fondo: el
+fondo conserva su tamaño y lo único que cambia es que queda CENTRADO en el hueco,
+que se ve peor que el problema original. Antes del fondo, crece el contenido y el
+fondo lo sigue. Y `alignment: .topLeading`, o lo de dentro se va al centro de la
+tarjeta ya crecida.
+
+La otra mitad es el `fixedSize(horizontal: false, vertical: true)` de la fila
+(`filaDePaneles`): sus tarjetas piden alto infinito y dentro de un `ScrollView`
+hay todo el alto del mundo, así que sin él la fila se lo quedaba. Con él la fila
+mide su alto ideal —el de la tarjeta más alta— y las otras se estiran hasta ahí.
+
+**Y esto se verificó con una captura propia**, que es la novedad de instrumento
+del día: `screencapture` ya funciona desde la Terminal. Los fallos visuales
+dejan de necesitar que Iván mande la foto. Al primer disparo macOS 27 saca un
+diálogo aparte —"bypass the system private window picker"— que es suyo y se le
+dejó sin tocar; la captura sale igual.
+
+### Lo medido de accesibilidad, que no se arregló
+
+Conduciendo la app por AppleScript se vio de paso: **los botones compuestos con
+`buttonStyle(.plain)` no dan nombre por la API de accesibilidad**. Las dieciocho
+filas de la barra lateral son `AXButton` sin `AXTitle` ni `AXDescription`, y las
+tarjetas de Membresía igual —hubo que localizarlas por posición y tamaño, no por
+su texto—. La cabecera de la iglesia sí lo tiene, porque lleva
+`accessibilityLabel` a mano (`BarraLateral.swift:60`), así que el remedio ya está
+en el archivo.
+
+**Lo que se midió es la API, no VoiceOver**: VoiceOver puede leer un botón por el
+texto de dentro y esto no prueba que esté mudo. Queda anotado como lo que es —una
+sospecha con medida detrás— y sin tocar.
+
+### Seguimiento: la hoja, y por qué la pestaña salía vacía
+
+`SeguimientoMac.swift` cierra Membresía —alta, edición y seguimiento—, y la
+sección deja de tener nada de solo lectura.
+
+**El historial va ARRIBA del formulario, al revés de lo que pide el hueco.** En
+iOS está debajo y se llega con scroll; aquí caben los dos a la vez, y esconder lo
+ya hecho es justo lo que hace que alguien repita el martes una llamada del lunes.
+Por lo mismo, el botón de la tarjeta dice cuántas acciones lleva esa persona.
+
+**Y no pide `administraPadron`**, a diferencia del alta y la edición: apuntar una
+visita no toca el padrón, y quien acompaña a alguien no siempre es quien lo da de
+alta y de baja.
+
+Verificado contra la base: la nota se guarda
+`{"tipo":"llamada","fecha":"2026-09-21","completado":false,"texto":"…"}` —claves
+del web, fecha en clave de día—, el `outbox` queda a 0, al reabrir sale en el
+historial y Escape no escribe.
+
+#### Y lo que se vio al probarla: `seguimientoRazon` no lo escribía nadie
+
+La pestaña decía **"Nadie necesita seguimiento ahora mismo" siempre**, con
+Informes contando seis expedientes incompletos al lado. La lista es
+`items.filter { $0.seguimientoRazon != nil }` y ese campo **solo lo rellenaban
+los datos de maqueta** de `MembresiaRepository`: funcionaba en la demo y estaba
+vacío con datos de verdad. **En las dos plataformas**, porque las dos filtran por
+el mismo campo.
+
+Mismo patrón que las plantillas de §0.-19: lo que la haría funcionar nunca se
+escribió, y el síntoma es una pantalla en blanco que parece correcta. Los
+ingredientes estaban todos —el repositorio real ya rellenaba `asistenciaResumen`,
+y el expediente lo calcula `Miembro`—; faltaba juntarlos.
+
+`razonDeSeguimiento` lo deriva ahora en el repositorio real, con las tres razones
+y las palabras de la maqueta, que es donde estaban escritas. **El orden es de
+urgencia y solo sale una**: ausencias, luego expediente incompleto, luego nuevo
+del periodo —quien lleva un mes sin venir y además tiene papeles a medias es un
+caso de ausencia, y repetirlo en dos filas se leería como dos personas—. **Quien
+está de baja no sale**: ya no se le hace seguimiento.
+
+Medido después: la pestaña enseña seis personas con la píldora "EXPEDIENTE", que
+es exactamente el "Incomplete 6" de Informes. Nadie sale por ausencias porque
+`rachaSinAsistir` es 0 en todos —no hay listas tomadas—, que es lo correcto.
+
+**Iván pidió arreglarlo en el repositorio compartido**, así que esta vez la
+pestaña se arregla también en el iPhone.
+
+### Actas ya da de alta · la hoja más grande del Mac
+
+`NuevaActa.swift`: veintitantos campos, tres listas de nombres y dos de texto.
+El reparto entre lo desplegado y lo plegable **no lo decide la longitud sino
+cómo se levanta un acta**: el tipo, el título y la fecha se saben antes de
+entrar a la reunión; la asistencia, las mociones y los acuerdos salen durante, y
+muchas veces se escriben después desde unas notas. Quien registra una reunión de
+hace tres semanas no quiere veinte campos abiertos.
+
+**Las cinco listas son un solo tipo.** Nombres, mociones y acuerdos son lo mismo
+—texto con identidad propia—, y el id propio existe porque **dos personas pueden
+llamarse igual** y una lista de `String` no dejaría borrar la correcta. En iOS se
+borra deslizando, que en un Mac no existe: aquí cada fila lleva su aspa, y Return
+también añade, porque escribiendo ocho nombres seguidos ir al botón cada vez
+cuesta más que escribirlos.
+
+Verificado contra la base, y con una vuelta entera por el servidor:
+
+- El acta se guarda y **vuelve con el folio de verdad**: se manda con el
+  provisional `P-4` y la fila queda en `ACTA-2026-006`, que es el que asigna el
+  contador de Supabase. El ciclo completo —guardar, subir, bajar— en una acción.
+- Los dos acuerdos quedan **en orden y con la forma del web**:
+  `[{"responsable":"","texto":"Aprobar el presupuesto…"},{…"Nombrar a la
+  comisión…"}]`. El orden importa: "Acuerdo 1" es el primero que se escribió.
+- `tipo = lideres` —clave, no rótulo—, `fecha` en clave de día, `outbox` a 0.
+
+#### Y el fallo que salió al probarla: desplegar no traía la sección a la vista
+
+Al abrir "Mociones y acuerdos", su contenido quedaba **debajo del borde del
+`ScrollView`**: se veía el rótulo "Acuerdos y decisiones" y nada más, sin
+ninguna señal de que hubiera que bajar. Se vio en una captura, después de que
+tres intentos de escribir ahí acabaran metiendo el texto en otro campo —el
+primero en el título y el segundo en "Presidido por"—, que es exactamente lo que
+le pasaría a quien la use.
+
+Ahora el `DisclosureGroup` lleva la sección a la vista al abrirse, con un retraso
+mínimo **a propósito**: el salto tiene que ocurrir DESPUÉS de que la sección haya
+crecido, porque sobre la altura de antes el destino todavía no está donde va a
+estar. Arreglado igual en `NuevoMiembro`, que tiene el mismo patrón y el mismo
+problema en su última plegable.
+
+**Lo que falta de Actas:** `FirmasSheet` y ver/exportar el PDF.
+
+### El quinto handoff trae las hojas, y las cuatro escritas se rehacen
+
+**Hasta el cuarto handoff no había NINGUNA hoja dibujada.** Las cuatro que se
+escribieron el 21 de septiembre —actividad, miembro, seguimiento y acta—
+inventaron cada una su forma. El quinto las trajo, el sexto añadió Cartas y los
+campos que faltaban en Actas, y el **séptimo cierra la lista entera**
+(`docs/LO-QUE-EL-HANDOFF-NO-TRAE.md` es el inventario que se levantó para
+pedirlos, y ya está casi todo tachado).
+
+La forma común vive en `HojaMac.swift` y es la del handoff medida por medida:
+640 de ancho, cabecera con "Cerrar" en azul, secciones como tarjeta agrupada,
+**filas de 44 con el rótulo a la izquierda en 200 fijos** —no dos columnas—, el
+aviso de lo que falta ARRIBA, y el pie "Esc cierra · ⌘S guarda". Siete tipos de
+fila: texto, selector, fecha, número, interruptor con subtexto, área y fichas.
+
+Dos fallos que salieron al montarla, los dos medidos:
+
+- El **selector no se estiraba** como el `flex:1` del handoff, así que la fila
+  se centraba y su rótulo no se alineaba con los demás.
+- Al mover el pie a la forma común, **la hoja dejó de cerrarse al guardar**: el
+  `dismiss` se quedó en `HojaMac`. La fila llegaba a la base con la hoja todavía
+  delante. Ahora guardar devuelve si guardó, y con eso cierra.
+
+### Los atajos son los del handoff, y el ⌘N inventado se fue
+
+`handoff7` los declara en su manejador de teclado, y mandan ellos:
+
+- **⌥⌘N es "lo nuevo de donde estoy"** y **nunca está apagado**: donde la
+  sección tiene alta propia abre su hoja, y donde no, la captura rápida —igual
+  que su `newForScreen()`—. El rótulo del menú y el del botón de la barra
+  cambian con la sección, que es lo que el diseñador escribió al lado: *"El
+  botón New de la barra sigue a la pantalla, como en una app de Mac."*
+- **⇧⌘M** levanta un acta desde cualquier pantalla. **⌘K** lleva al filtro,
+  además del ⌘F que trae `searchable`. **⌘0** va al Registro.
+- El ⌘N contextual que se había inventado aquí **ya no existe**.
+
+**La carta va con ⇧⌘T y no con el ⇧⌘L del handoff**, que allá está declarado
+dos veces —"New letter…" en Archivo y "Switch appearance" en Ver— y su propio
+teclado lo manda a cambiar el tema: ese atajo no abre una carta ni en la
+maqueta.
+
+### Y dos repositorios que pisaban datos del servidor
+
+Al pedir el handoff campos que la app no escribía, se vio lo que sí hacía.
+
+**`AgendaRepository` borraba en cada guardado**: `tipoPersonalizado` y
+`contacto` se escribían en blanco, y `recurrencia` y `excepciones` con un valor
+fijo —o sea que guardar una actividad **se llevaba por delante la repetición
+entera**—. Además la columna `invitado` se usaba para guardar `notaPie`, así que
+lo que el web escribía como invitado la app lo leía como nota al pie. Y la
+descripción se leía como `lugar · descripcion` y se guardaba tal cual: **cada
+edición volvía a anteponer el lugar** —`Salón · charla` → `Salón · Salón ·
+charla`—, la misma forma que el fallo de las fechas. Ahora `aFila` recibe la
+fila previa y **conserva lo que esta app no edita**, que es el patrón que las
+actas ya usaban.
+
+**`Acta` no llevaba `testigo`.** La columna existe desde siempre y el
+repositorio la conservaba a ciegas, así que el web podía escribirla y la app no.
+El handoff pide los tres firmantes —preside, secretaria y testigo—, y ahora
+viaja. `EstadoActa` pasó a `CaseIterable` para poder ofrecer los siete.
+
+**Lo que se queda sin guardar, y por eso no se pregunta:** la **repetición** de
+una actividad —el JSON de `recurrencia` es del web y aquí no se conocen sus
+claves; escribirlas a ojo sería repetir el fallo del `estado` traducido—, el
+**presupuesto** y la **nota al pie**, que no tienen columna. Preguntar por algo
+que se pierde al guardar es peor que no preguntarlo. **`notaPie` afecta a iOS**:
+lo sigue ofreciendo y desde ahora no se guarda; queda pendiente de decisión.
+
+### Las dos decisiones que llevaban dos días abiertas · cerradas
+
+**El bundle id del Mac se queda en `church.tamio.native`.** Una ficha con las dos
+plataformas. Lo que lo decide es que Tamio **es gratis y sin compra integrada**,
+así que "Compra Universal" no mueve dinero: lo único que cambia es el número de
+fichas, y el proyecto ya está defendiendo un 4.3 por tener dos apps publicadas
+—cuyo remedio expreso es *una sola app*—. El razonamiento largo, en el comentario
+de `project.yml` y en `docs/APP-STORE.md`. **El precio: la ficha declarará macOS,
+así que el Mac no se sube hasta que esté presentable.**
+
+**`liquid-glass` ya está en `main`**, por avance rápido: main llevaba desde el
+19-sep sin los siete commits de seguridad del servidor —el rastro de auditoría,
+los §4 y §5, la cuenta del revisor—, y ninguno es del Mac. Fusionar **no aplica
+nada en Supabase**; uno de esos commits dice de sí mismo "SIN APLICAR".
+
+**`mac-target` sigue viva** hasta que Secretaría esté completa. Le faltan seis
+commits de `liquid-glass` que son SQL de migraciones, pruebas SQL y
+documentación: **ni una línea de Swift, y el merge de prueba da cero
+conflictos**. Se traen cuando toque.
+
+### Lo que quedó en la agenda
+
+En `agenda`, tres filas del 21 de septiembre —`PRUEBA Mac 21-sep · alta desde el
+menu`, `PRUEBA estado canonico` y `PRUEBA completada`—. La primera es la única
+con `estado: Scheduled`, y es la prueba de que el fallo existía. En `aportante`,
+dos —`PRUEBA Miembro Mac` y `PRUEBA Miembro Dos`, éste con teléfono, bautismo en
+agua y dos ministerios—.
+
+Iván dijo que todos sus datos son de prueba y que no pasa nada. Están todas
+subidas a Supabase.
 
 ---
 

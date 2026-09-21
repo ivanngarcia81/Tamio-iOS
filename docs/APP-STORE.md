@@ -168,6 +168,13 @@ para que el tesorero, el pastor y la secretaria trabajen sobre los mismos
 libros con permisos por rol. Eso es lo que desactiva un 4.3; el nombre solo
 puede estorbar.
 
+**Y el id del Mac: el mismo · CERRADO el 21-sep-2026.** Una sola ficha con las
+dos plataformas. "Compra Universal" aquí **no es dinero** —no hay nada que
+comprar en ninguna de las dos—: lo único que cambia es el número de fichas, y una
+tercera debilitaría el encuadre del **4.3** que esta misma sección está
+cuidando, cuyo remedio expreso es *una sola app*. El precio es que la ficha
+declarará macOS, así que el Mac no se sube hasta que esté presentable.
+
 **Lo que se registró en la cuenta de Apple al exportar** (17-sep):
 
 - App ID `4N9XEU7F4P.church.tamio.native`.

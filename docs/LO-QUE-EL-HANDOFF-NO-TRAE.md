@@ -1,0 +1,92 @@
+# Lo que el handoff no trae y la app necesita · 21 de septiembre de 2026
+
+Lista levantada contra `handoff5`, leyendo su HTML y comparándolo con las tablas
+de la base y con lo que ya hace el iPhone. **Todo lo de aquí está verificado**:
+o se buscó en el handoff y no está, o se leyó la columna en `tamio.sqlite`.
+
+No es una queja al diseño: es el inventario de lo que hay que decidir por
+nuestra cuenta, para que no se decida por olvido.
+
+---
+
+## 1. Pantallas que no dibuja
+
+| Pantalla | Estado |
+|---|---|
+| **Cartas y traslados** | Confirmado por Iván: es la que falta. La tabla `carta` tiene 21 columnas —folio, destinatario, asunto, saludo, cuerpo, despedida, firmas, entrega— y ninguna está dibujada. |
+| **Registro (Log)** | No aparece en el `navDef` del handoff, que lista trece filas y no la incluye. La app la tiene en el pie, junto a Configuración. |
+| **Acceso** | El handoff **no dibuja la pantalla de entrar**: no hay "Sign in", ni correo, ni contraseña. La app tiene `AccesoMac`, y es lo primero que ve quien abre. |
+
+## 2. Hojas y acciones que no dibuja
+
+El handoff trae seis hojas —miembro, pariente, culto, asistencia, acta y
+actividad—. Faltan, y todas existen en el iPhone:
+
+- **Editar una ficha.** Solo dibuja "New member". La edición de alguien que ya
+  está —y de un acta, y de un culto— no aparece en ninguna parte.
+- **Firmar un acta.** La lista de actas enseña quién firmó y a quién le falta
+  (`signers`), pero **no hay hoja para firmar**. En Configuración sí hay firmas
+  guardadas del tesorero y del pastor, que es otra cosa.
+- **Ver y exportar el PDF de un acta.**
+- **Registrar una acción de seguimiento.** La pestaña "Follow-up" existe y
+  lista a quién hay que buscar; no hay forma de apuntar que se le buscó.
+- **Exportar el CSV** de informes de membresía.
+- **Nueva carta y su vista previa**, que caen con la pantalla de Cartas.
+- **Elegir idioma.** Configuración tiene la fila "Language · English" con su
+  chevron, pero la pantalla de detrás no está dibujada. La app es bilingüe y
+  el handoff está solo en inglés.
+
+## 3. Campos que la tabla guarda y el handoff no pide
+
+Verificado columna por columna contra `tamio.sqlite`.
+
+**`acta` — la hoja "New minutes entry" no pregunta por siete cosas que la
+tabla tiene:** `titulo`, `lugar`, `preside`, `secretario`, `testigo`, y
+`presentes` / `ausentes` / `invitados` —en su lugar pide un **número** de
+asistentes, que no es ninguna columna—. También tiene `fechaAprobacion` y
+`folioProvisional`, que el handoff no contempla.
+
+**`aportante` — la hoja "New member" no pregunta por:** la **baja**
+(`fechaBaja`, `motivoBaja`), el `idFiscal`, las fechas de los dos bautismos, y
+cuatro de las cinco listas de servicio: pide un selector único de ministerio
+donde la tabla guarda `ministerios`, `cargos`, `instrumentos`, `habilidades` y
+`ministeriosInteres`.
+
+**`agenda` — la hoja "New event" no pregunta por:** `tipoPersonalizado`,
+`invitado`, `contacto` y `recordatorios`.
+
+**`servicio` — la hoja "New service" no pregunta por:** `eventos`. Las
+`participaciones` sí están, pero en la otra hoja, la de asistencia.
+
+## 4. Reglas que el handoff no modela
+
+Esto no son campos: son cosas que la app hace y el diseño no puede saber.
+
+- **Los permisos por rol.** `administraPadron`, `puedeEliminarMovimientos` y el
+  reparto de áreas por rol no existen en el handoff: sus pantallas las ve todo
+  el mundo. En la app esconden botones enteros —el alta y la baja del padrón,
+  `Eliminar…` en Movimientos—.
+- **El folio provisional.** El handoff numera las actas con una serie que no
+  salta (`nextActaFolio`); la app manda un `P-` y **el folio bueno lo asigna
+  Supabase**, que es por lo que no se imprime hasta que vuelve.
+- **La cola de salida y el estado de la sincronización.** Nada del `outbox`, de
+  los intentos, ni del fallo por paso ("Actas no se pudo sincronizar: …").
+- **Que un dato pueda no saberse.** El handoff usa `<input type=date>` vacío; un
+  `DatePicker` siempre tiene valor, así que cada fecha opcional necesita su
+  interruptor o guardaría la de hoy como si fuera cierta.
+- **Los dos vacíos distintos** de §0.-19 —"no ha bajado todavía" contra "esta
+  iglesia no tiene"—, que la app distingue y el handoff enseña siempre con
+  datos.
+
+## 5. Y al revés: lo que el handoff pide y no tiene dónde guardarse
+
+- **"Budget or speaker"** de una actividad. `EventoAgenda.presupuesto` existe en
+  el modelo, **no hay columna en `agenda`** y el repositorio no lo escribe: hoy
+  se perdería al guardar. Es el mismo caso que `Movimiento.auditoria`.
+- **El número de asistentes** de un acta, que el handoff pide como cifra y la
+  tabla guarda como tres listas de nombres. Se puede derivar contándolas.
+- **Los tipos y estados acortados.** El handoff ofrece cuatro tipos de reunión y
+  tres estados de acta; `TipoActa` tiene once y `EstadoActa` siete, que son los
+  del web. Seguir el handoff a ciegas dejaría fuera siete tipos que el web sí
+  usa y escribiría estados que allá no significan nada —el mismo fallo que ya
+  se arregló el 21-sep con el `estado` traducido de la agenda—.
