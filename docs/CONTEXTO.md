@@ -5,11 +5,113 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **20 de septiembre de 2026** (§0.-19, las plantillas que
-no faltaban; §0.-18, la app de Mac). Lo anterior: las capturas y la
+Última actualización: **20 de septiembre de 2026** (§0.-20, las dos primeras
+acciones del Mac; §0.-19, las plantillas que no faltaban; §0.-18, la app de
+Mac). Lo anterior: las capturas y la
 ficha en §0.-17, lo técnico de la subida en §0.-16, lo de interfaz en §0.-15
 —verificado en el iPhone físico— y la pasada grande sigue siendo la segunda de
 QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-20 Las dos primeras acciones del Mac · 20 de septiembre, tarde
+
+La app de Mac tenía **una sola llamada que escribiera**: `vm.crear` de la
+captura rápida. Quince secciones con pantalla y quince de solo lectura. Esta
+tarde salen dos de ahí, y de hacerlo salieron tres cosas de instrumento que
+valen más que el código.
+
+### La firma: nunca más ad hoc
+
+`project.yml` ya declaraba `CODE_SIGN_IDENTITY: Apple Development` y
+`DEVELOPMENT_TEAM: 4N9XEU7F4P`. Se estuvo pisando toda la tarde con
+`CODE_SIGN_IDENTITY="-"` por lo que dice §0.-18 —que con la identidad de
+desarrollo `codesign` se cuelga esperando el llavero—, y **eso ya no pasa**: la
+clave de firma está autorizada y la compilación entra sola.
+
+Lo que sí pasa con ad hoc es que **cada build da un cdhash nuevo**, así que la
+ACL del llavero caduca y macOS pide la contraseña del llavero `login` en CADA
+reinstalación. Se le pidió a Iván tres veces antes de entenderlo. Con la
+identidad de desarrollo el permiso se ata al certificado: comprobado
+reinstalando sin que volviera a preguntar.
+
+**El comando, entonces, es sin ninguna opción de firma:**
+
+```
+xcodebuild -project Tamio.xcodeproj -scheme TamioMac -configuration Debug \
+  -destination 'platform=macOS,arch=arm64' build
+```
+
+### Y el precio: la base de la app ya no se puede leer
+
+Al cambiar de ad hoc a firma de verdad, **macOS recreó el contenedor** de
+`church.tamio.native` y ahora está protegido. `sqlite3` da "authorization
+denied" y hasta `ls` da "Operation not permitted". No se perdió nada —el
+`outbox` estaba a 0 y la app volvió a bajar la iglesia— pero **se perdió la
+verificación por datos**, que es la mitad de cómo se comprueba aquí que algo
+llegó de verdad. Hace falta Acceso a disco completo para la Terminal.
+
+### Eliminar… en Movimientos
+
+Con el permiso de verdad —`Permisos.puedeEliminarMovimientos`, el mismo de
+iOS—: sin él la orden se le enseñaría a un tesorero sin permiso, la fila
+desaparecería y volvería a la siguiente sincronización, porque hay un disparador
+en Supabase que deshace esa baja. Pregunta, y el aviso dice cuántos movimientos
+y cuánto dinero se lleva. Actúa sobre TODA la selección y no sobre la fila
+pulsada, que es lo que espera una tabla de Mac.
+
+Existe porque faltaba y se notó: para limpiar los apuntes de prueba de §0.-18
+hubo que marcarlos `borrado = 1` y encolar el `eliminar` a mano por SQL.
+
+### Nueva actividad · el patrón para las trece que faltan
+
+`NuevaActividad` es la primera pantalla de Secretaría que escribe, así que fija
+el patrón: casillas en dos columnas, foco donde se empieza a teclear, ⌘S,
+Escape, y el aviso **solo al intentar guardar**, no al abrir.
+
+**Hoja y no ventana, al revés que la captura rápida.** Aquella es ventana porque
+se deja abierta mientras se captura un domingo entero; una actividad se da de
+alta de una en una y cuelga del día elegido en la rejilla. Por eso el botón dice
+a qué día apunta: "Nueva actividad · día 14".
+
+Las reglas se fueron a LEER a `NuevoEventoSheet.guardar()` de iOS. Las dos que
+cuestan una vuelta: **la fecha entera en clave local** —guardar el número del
+día haría un evento que vale para el 21 de cualquier mes de cualquier año— y que
+**`responsable` y `responsableId` son EXCLUYENTES**, como en el web.
+
+**Lo que NO se pudo verificar:** que el alta llegue a la base. Sin poder leerla
+ni borrar después, un evento de prueba dejaría basura en la agenda de la
+iglesia. Sí se comprobó en la app: la hoja sale entera, el foco nace en el
+título, ⌘S con el título vacío avisa y no guarda, "todo el día" esconde las dos
+horas, Escape cierra sin escribir y ⌘N la abre.
+
+### Añadir un archivo al proyecto, a mano
+
+`xcodegen` no se puede correr aquí (§2.1), así que un archivo nuevo de
+`TamioMac/` necesita **las CUATRO entradas** del `.pbxproj`: `PBXBuildFile`,
+`PBXFileReference`, el hijo del grupo y la fase `Sources`. Con menos, o no
+compila o ni aparece.
+
+### Lo que falta en Secretaría: trece hojas, ninguna pantalla
+
+Las seis secciones existen y las seis son de solo lectura:
+
+| Sección | Lo que falta (nombre de la hoja en iOS) |
+|---|---|
+| Membresía | `NuevoMiembroSheet`, editar la ficha, `SeguimientoSheet`, filtros |
+| Actas | `NuevaActaSheet`, `FirmasSheet`, ver y exportar el PDF |
+| Registro de servicios | `NuevoServicioSheet`, `AsignarRosterSheet`, `TomarAsistenciaSheet` |
+| Cartas y traslados | `NuevaCartaSheet`, `VistaPreviaSheet` |
+| Informes de membresía | exportar CSV, compartir el texto, filtros |
+| Agenda | hecha |
+
+**No se traen del iPhone**: son hojas modales de teléfono y aquí el criterio es
+el contrario. Los ViewModels ya están compartidos y probados desde iOS, así que
+lo que falta es la pantalla, no la regla.
+
+Y una arista conocida: el **⌘N solo responde con el foco en el contenido**. Con
+el foco en la barra lateral, la "n" se la come la selección por teclas. Lo que
+corresponde es que la orden viva en el menú.
 
 ---
 
