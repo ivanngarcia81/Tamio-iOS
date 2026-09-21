@@ -706,8 +706,6 @@ private struct NuevoEventoSheet: View {
     @State private var descripcion = ""
     @State private var responsable = ""
     @State private var ministerio = ""
-    @State private var presupuesto = ""
-    @State private var notaPie = ""
     @State private var repeticion: String
     @State private var estadoEvento: String
     @State private var esFechaImportante = false
@@ -822,13 +820,25 @@ private struct NuevoEventoSheet: View {
                               text: $ministerio)
                         // Rótulo para VoiceOver: el marcador se va en cuanto hay texto.
                         .accessibilityLabel(L.t("Ministerio / departamento (opcional)", "Ministry / department (optional)"))
-                    TextField(L.t("Presupuesto o ponente (opcional)", "Budget or speaker (optional)"), text: $presupuesto)
-                    // Rótulo largo: como etiqueta a la izquierda se
-                    // recortaba ("Place of issue · opti…"), así que se
-                    // queda de marcador y el nombre va para VoiceOver.
-                    .accessibilityLabel(L.t("Presupuesto o ponente (opcional)", "Budget or speaker (optional)"))
-                    TextField(L.t("Nota al pie (opcional)", "Footnote (optional)"), text: $notaPie)
-                    .accessibilityLabel(L.t("Nota al pie (opcional)", "Footnote (optional)"))
+                    // **Aquí había "Presupuesto o ponente" y "Nota al pie", y
+                    // se quitaron el 21-sep porque NO SE GUARDABAN.**
+                    //
+                    // `agenda` no tiene columna para ninguno de los dos. La
+                    // nota al pie parecía guardarse porque el repositorio la
+                    // metía en la columna `invitado`, que es de otra cosa —un
+                    // orador, una iglesia que visita—; al devolverle a esa
+                    // columna su significado, la nota se quedó sin sitio. El
+                    // presupuesto nunca lo tuvo: se escribía y se perdía al
+                    // cerrar.
+                    //
+                    // Medido antes de quitarlos: **ninguna fila de la iglesia
+                    // tenía nada en `invitado`**, así que no había notas al pie
+                    // guardadas que rescatar.
+                    //
+                    // Un campo que se teclea y se pierde es peor que no
+                    // tenerlo: quien lo rellena cree que quedó escrito. Vuelven
+                    // el día que el web les dé columna, y entonces también al
+                    // Mac, cuya hoja los deja fuera por lo mismo.
                 }
 
                 Section {
@@ -913,8 +923,6 @@ private struct NuevoEventoSheet: View {
             responsable: resp,
             responsableId: delPadron?.id,
             ministerio: ministerio.trimmingCharacters(in: .whitespaces),
-            presupuesto: presupuesto.trimmingCharacters(in: .whitespaces),
-            notaPie: notaPie.trimmingCharacters(in: .whitespaces),
             repeticion: repeticion,
             estadoEvento: estadoEvento,
             esFechaImportante: esFechaImportante,

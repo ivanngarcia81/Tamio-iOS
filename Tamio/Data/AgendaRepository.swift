@@ -165,7 +165,7 @@ struct OfflineAgendaRepository: AgendaRepository {
     func guardar(_ e: EventoAgenda) async throws {
         try await cola.write { db in
             let previa = try EventoAgendaFila.fetchOne(db, key: e.id)
-            try Self.aFila(e, actualizadoEn: previa?.actualizadoEn).save(db)
+            try Self.aFila(e, previa: previa).save(db)
             try Self.encolar(db, id: e.id, operacion: previa == nil ? .crear : .actualizar)
         }
     }
@@ -194,15 +194,22 @@ struct OfflineAgendaRepository: AgendaRepository {
     }
 
     static func aEvento(_ f: EventoAgendaFila, nombres: [String: String] = [:]) -> EventoAgenda {
-        EventoAgenda(
+        // **Los tres de abajo se asignan fuera del `init`, y no por gusto:**
+        // con ellos dentro, el compilador dejaba de poder comprobar la
+        // expresión en un tiempo razonable —son veinte argumentos, la mitad
+        // con ternarios—. Partirlo es lo que pide el propio error.
+        var e = EventoAgenda(
             id: f.id,
             fecha: f.fecha,
             hora: f.diaCompleto ? nil : f.horaInicio,
             titulo: f.nombre,
-            // El web enseña el lugar junto a la descripción en la fila; aquí
-            // el subtítulo es uno solo, así que se juntan con el mismo
-            // separador que usa el resto de la app.
-            descripcion: [f.lugar, f.descripcion].filter { !$0.isEmpty }.joined(separator: " · "),
+            // **La descripción es la descripción, y ya.** Antes se leía como
+            // `lugar · descripcion` y se guardaba tal cual, así que cada vuelta
+            // de editar volvía a anteponer el lugar: `Salón · charla` pasaba a
+            // `Salón · Salón · charla`. Misma forma que el fallo de las fechas
+            // que documentan los `init` de las hojas. El lugar ya viaja en su
+            // propio campo y las vistas lo pintan aparte.
+            descripcion: f.descripcion,
             tipo: f.tipo == "otra" && !f.tipoPersonalizado.isEmpty
                 ? .otro : TipoEvento(clave: f.tipo),
             completado: f.estado == "completada" || f.estado == "cancelada",
@@ -217,19 +224,42 @@ struct OfflineAgendaRepository: AgendaRepository {
             responsable: f.miembroId.flatMap { nombres[$0] } ?? f.responsablePersona,
             responsableId: f.miembroId,
             ministerio: f.responsableMinisterio,
-            notaPie: f.invitado,
             estadoEvento: f.estado,
             esFechaImportante: f.esFechaImportante,
             recordatorios: Self.lista(f.recordatorios))
+        // `notaPie` y `presupuesto` **no tienen columna**: se quedan vacíos al
+        // leer y no se escriben. Ver el comentario de `aFila`.
+        e.tipoPersonalizado = f.tipoPersonalizado
+        e.invitado = f.invitado
+        e.contacto = f.contacto
+        return e
     }
 
-    static func aFila(_ e: EventoAgenda, actualizadoEn: String?) -> EventoAgendaFila {
+    /// **Lo que esta app no edita, se conserva; no se pisa.**
+    ///
+    /// Se escribían en blanco `tipoPersonalizado` y `contacto`, y con un valor
+    /// fijo `recurrencia` y `excepciones`: guardar una actividad desde la app
+    /// **borraba del servidor** el tipo propio, el contacto del invitado, la
+    /// repetición entera y sus excepciones. Ahora los tres primeros los edita
+    /// la hoja del Mac y los otros dos se conservan de la fila previa.
+    ///
+    /// **La repetición se conserva y no se escribe**, aunque el handoff la
+    /// ofrezca: el JSON de `recurrencia` es del web y aquí no se conocen sus
+    /// claves. Escribir "semanal" a ojo sería repetir el fallo del `estado`
+    /// traducido —valores que allá no significan nada—, así que hasta saberlas
+    /// la hoja no la pregunta.
+    ///
+    /// **`notaPie` y `presupuesto` no tienen columna.** `notaPie` viajaba
+    /// ocupando `invitado`, que es de otra cosa; al devolverle su significado
+    /// se quedan los dos sin sitio y no se guardan. Pendiente de columna en el
+    /// web, como `Movimiento.auditoria`.
+    static func aFila(_ e: EventoAgenda, previa: EventoAgendaFila?) -> EventoAgendaFila {
         EventoAgendaFila(
             id: e.id,
             fecha: e.fecha,
             nombre: e.titulo,
             tipo: e.tipo.clave,
-            tipoPersonalizado: "",
+            tipoPersonalizado: e.tipoPersonalizado,
             horaInicio: e.todoDia ? nil : e.hora,
             horaFin: e.todoDia ? nil : e.horaFin,
             diaCompleto: e.todoDia,
@@ -241,18 +271,18 @@ struct OfflineAgendaRepository: AgendaRepository {
             // nombre se queda viejo en cuanto la persona cambie de apellido.
             responsablePersona: e.responsableId == nil ? e.responsable : "",
             responsableMinisterio: e.ministerio,
-            invitado: e.notaPie,
-            contacto: "",
+            invitado: e.invitado,
+            contacto: e.contacto,
             // `completado` manda sobre el estado escrito: si la ficha dice
             // hecha, el estado tiene que decir lo mismo. Y una actividad nueva
             // sin estado nace "programada", como en el web.
             estado: e.completado ? "completada"
                                  : (e.estadoEvento.isEmpty ? "programada" : e.estadoEvento),
-            recurrencia: #"{"tipo":"ninguna"}"#,
-            excepciones: "[]",
+            recurrencia: previa?.recurrencia ?? #"{"tipo":"ninguna"}"#,
+            excepciones: previa?.excepciones ?? "[]",
             recordatorios: Self.json(e.recordatorios),
             esFechaImportante: e.esFechaImportante,
-            actualizadoEn: actualizadoEn,
+            actualizadoEn: previa?.actualizadoEn,
             borrado: false)
     }
 

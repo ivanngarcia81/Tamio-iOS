@@ -41,13 +41,32 @@ final class MembresiaViewModel {
 
     @MainActor
     func agregarMiembro(_ nuevo: Miembro) {
+        Task { await agregarMiembroEsperando(nuevo) }
+    }
+
+    /// **La misma alta, pero se puede esperar.** Existe por el Mac: allí la app
+    /// no se va al fondo, así que la hoja lanza la sincronización en cuanto
+    /// guarda, y con la versión de arriba las dos cosas corrían a la vez —la
+    /// vuelta salía ANTES de que la operación estuviera en la cola, y la ficha
+    /// se quedaba sin subir hasta el próximo arranque—. Medido: `outbox` con
+    /// `miembro | crear | intentos = 0`, o sea que ni se intentó.
+    ///
+    /// iOS sigue llamando a `agregarMiembro`, que hace exactamente lo de antes.
+    @MainActor
+    func agregarMiembroEsperando(_ nuevo: Miembro) async {
         items.insert(nuevo, at: 0)
         seleccionId = nuevo.id
-        Task { try? await repo.guardar(nuevo) }
+        try? await repo.guardar(nuevo)
     }
 
     @MainActor
     func editarMiembro(_ nuevo: Miembro) {
+        Task { await editarMiembroEsperando(nuevo) }
+    }
+
+    /// La misma edición esperable, por lo mismo que el alta.
+    @MainActor
+    func editarMiembroEsperando(_ nuevo: Miembro) async {
         guard let idx = items.firstIndex(where: { $0.id == nuevo.id }) else { return }
         // Los parentescos viven en su tabla y la hoja no los edita: se
         // conservan los que la ficha ya tenía.
@@ -55,19 +74,35 @@ final class MembresiaViewModel {
         editado.familia = items[idx].familia
         items[idx] = editado
         seleccionId = nuevo.id
-        Task { try? await repo.guardar(editado) }
+        try? await repo.guardar(editado)
     }
 
     @MainActor
     func agregarSeguimiento(miembroId: String, nota: SeguimientoNota) {
+        Task { await agregarSeguimientoEsperando(miembroId: miembroId, nota: nota) }
+    }
+
+    /// El mismo registro, esperable, por lo mismo que el alta y la edición: en
+    /// el Mac la hoja sincroniza en cuanto guarda, y lanzarlos a la vez deja la
+    /// vuelta saliendo antes de que la operación esté en la cola.
+    @MainActor
+    func agregarSeguimientoEsperando(miembroId: String, nota: SeguimientoNota) async {
         guard let idx = items.firstIndex(where: { $0.id == miembroId }) else { return }
         items[idx].seguimientoNotas.append(nota)
         let m = items[idx]
-        Task { try? await repo.guardar(m) }
+        try? await repo.guardar(m)
     }
 
     @MainActor
     func agregarPariente(miembroId: String, pariente: Pariente) {
+        Task { await agregarParienteEsperando(miembroId: miembroId, pariente: pariente) }
+    }
+
+    /// El mismo alta, esperable, por lo mismo que las otras: en el Mac la hoja
+    /// sincroniza en cuanto guarda, y lanzarlos a la vez deja la vuelta
+    /// saliendo antes de que la operación esté en la cola.
+    @MainActor
+    func agregarParienteEsperando(miembroId: String, pariente: Pariente) async {
         guard let idx = items.firstIndex(where: { $0.id == miembroId }) else { return }
         items[idx].familia.append(pariente)
         // La misma fila, vista desde la otra ficha si está en la lista.
@@ -76,7 +111,7 @@ final class MembresiaViewModel {
                                                 tipo: Parentescos.inverso[pariente.tipo] ?? pariente.tipo,
                                                 parienteId: miembroId, nombre: items[idx].nombre))
         }
-        Task { try? await repo.agregarPariente(miembroId: miembroId, pariente) }
+        try? await repo.agregarPariente(miembroId: miembroId, pariente)
     }
 
     @MainActor

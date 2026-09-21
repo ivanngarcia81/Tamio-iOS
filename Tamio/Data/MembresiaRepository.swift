@@ -214,9 +214,53 @@ struct OfflineMembresiaRepository: MembresiaRepository {
             try Self.leer(db).map { m in
                 var x = m
                 x.asistenciaResumen = porMiembro[m.id]
+                // **Después de la asistencia, porque depende de ella.**
+                x.seguimientoRazon = Self.razonDeSeguimiento(x)
                 return x
             }
         }
+    }
+
+    /// **Por qué esta persona sale en la pestaña Seguimiento**, o `nil` si no
+    /// sale.
+    ///
+    /// Esto faltaba, y el síntoma era una pantalla que decía "Nadie necesita
+    /// seguimiento ahora mismo" **siempre**: `seguimientoRazon` solo lo
+    /// escribían los datos de maqueta de este mismo archivo, así que la pestaña
+    /// funcionaba en la demo y estaba vacía con datos de verdad. En las dos
+    /// plataformas, porque las dos filtran por este campo.
+    ///
+    /// Los ingredientes ya estaban todos —la asistencia se acaba de poner arriba
+    /// y el expediente lo calcula `Miembro`—; lo único que no existía era
+    /// juntarlos. Las tres razones y sus palabras salen de la maqueta, que es
+    /// donde estaban escritas.
+    ///
+    /// **El orden es de urgencia, y solo sale una**: alguien que lleva un mes
+    /// sin venir Y tiene el expediente a medias es un caso de ausencia, no de
+    /// papeleo. Una lista que repitiera a la misma persona por dos motivos se
+    /// leería como si fueran dos personas.
+    ///
+    /// **Quien está de baja no sale.** Ya no se le hace seguimiento: se fue, y
+    /// su ficha lo dice con fecha y motivo.
+    private static func razonDeSeguimiento(_ m: Miembro) -> String? {
+        guard !m.estado.esBaja else { return nil }
+
+        let racha = m.asistenciaResumen?.rachaSinAsistir ?? 0
+        if racha >= 2 {
+            // El matiz del traslado se añade porque cambia qué hacer con la
+            // llamada: a quien ya pidió su carta no se le busca para que
+            // vuelva, se le acompaña hasta que el expediente se cierre.
+            let traslado = m.trasladoEnCurso != nil
+                ? L.t(" · traslado en curso", " · transfer in progress") : ""
+            return L.t("\(racha) servicios sin asistir", "\(racha) services missed") + traslado
+        }
+        if !m.expedienteCompleto {
+            return L.t("Faltan datos en su expediente", "Their file is missing data")
+        }
+        if m.esNuevo() {
+            return L.t("Nuevo en el periodo", "New in the period")
+        }
+        return nil
     }
 
     private static func leer(_ db: Database) throws -> [Miembro] {

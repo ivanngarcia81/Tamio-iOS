@@ -10,7 +10,10 @@ import SwiftUI
 /// firmar un acta la enseñaba como "Aprobada" al volver a entrar, porque
 /// `firmada` sube como `aprobada` y volvía como `aprobada`. Lo cazó una
 /// prueba, no se vio en pantalla.
-enum EstadoActa: String, Equatable {
+/// `CaseIterable` desde el 21-sep: el selector de estado del Mac ofrece **los
+/// siete**, que son los del web. El handoff los recortaba a tres y eso habría
+/// escrito en la columna estados que allá no significan nada.
+enum EstadoActa: String, Equatable, CaseIterable {
     case borrador, pendienteAprobacion, aprobada, enmendada, archivada, firmada, cerrada
 
     var etiqueta: String {
@@ -135,6 +138,14 @@ struct Acta: Identifiable, Hashable {
     var horaCierre: String? = nil
     var preside: String = ""
     var secretario: String = ""
+    /// **El tercer firmante, y faltaba en el modelo.**
+    ///
+    /// La columna `testigo` existe en `acta` desde siempre y el repositorio la
+    /// conservaba a ciegas —`testigo: previa?.testigo ?? ""`—, o sea que se
+    /// respetaba lo que hubiera escrito el web y **no había forma de ponerlo
+    /// desde la app**. El handoff del Mac pide los tres roles que firman —quien
+    /// preside, quien levanta el acta y el testigo—, así que ahora viaja.
+    var testigo: String = ""
     var presentes: [String] = []
     var ausentes: [String] = []
     var invitados: [String] = []
@@ -699,8 +710,8 @@ struct CartaEnEdicion {
     ///
     /// Las que aquí no se pueden llenar —`numero_documento`, que lo da el
     /// servidor al guardar, `estado_membresia` e `iglesia_procedencia`— se
-    /// dejan fuera a propósito: sin valor, `VariablesCarta.aplicar` las deja a
-    /// la vista, que es lo que el web decidió y lo que avisa de que falta algo.
+    /// quedan fuera. **Desde el 21-sep eso significa que desaparecen del
+    /// texto**, no que se impriman con llaves: ver `VariablesCarta.aplicar`.
     func contextoVariables(_ iglesia: ConfiguracionIglesia) -> [String: String] {
         [
             "iglesia_nombre":    iglesia.nombre,
@@ -879,6 +890,17 @@ struct EventoAgenda: Identifiable {
     var ministerio: String = ""
     var presupuesto: String = ""
     var notaPie: String = ""
+    /// **Los tres que la columna tenía y el modelo no llevaba**, añadidos el
+    /// 21-sep con el handoff del Mac, que los pide por su nombre.
+    ///
+    /// `invitado` y `contacto` son del web —un orador, una iglesia que visita,
+    /// y cómo localizarlo—. Estaban en `agenda` desde el principio y el
+    /// repositorio **usaba la columna `invitado` para guardar `notaPie`**, así
+    /// que lo que el web escribía como invitado la app lo enseñaba como nota al
+    /// pie y viceversa. Ahora cada uno es lo que dice.
+    var tipoPersonalizado: String = ""
+    var invitado: String = ""
+    var contacto: String = ""
     var repeticion: String = ""
     var estadoEvento: String = ""
     var esFechaImportante: Bool = false

@@ -92,6 +92,45 @@ final class CartasViewModel {
     /// vaciaba al volver a entrar, porque `cargar()` preguntaba al repositorio
     /// y allí no había nada.
     @MainActor
+    /// **Guarda un borrador, que no es lo mismo que emitir.**
+    ///
+    /// Lo pide el Mac: su hoja dice "Guardar el borrador" y la nota del handoff
+    /// lo explica —*"A saved draft carries a provisional folio. The definitive
+    /// CAR-2026-… folio is assigned by the server when this Mac syncs."*—. La
+    /// diferencia con `emitirCarta()` es la que hay entre redactar y firmar:
+    ///
+    /// - El folio es **provisional** (`P-n`) y el bueno lo pone el contador del
+    ///   servidor al subir, igual que con las actas.
+    /// - El estado nace `"borrador"` y no `"emitida"`.
+    /// - **Las `{{variables}}` se guardan resueltas igual**, por lo mismo que
+    ///   explica `emitirCarta()`: el web da por hecho que una carta guardada ya
+    ///   no las tiene dentro y las enseña tal cual.
+    func guardarBorrador(_ datos: CartaEnEdicion) async {
+        let ctx = datos.contextoVariables(ConfiguracionIglesiaViewModel.compartido.config)
+        func resuelto(_ t: String) -> String { VariablesCarta.aplicar(t, ctx) }
+        let nueva = CartaEmitida(
+            id: UUID().uuidString,
+            folio: FolioCarta.provisional(seq: emitidas.count + 1),
+            tipo: datos.tipo,
+            fechaEmision: Fechas.claveDia(datos.fechaEmision),
+            lugarEmision: datos.lugarEmision,
+            destinatarioTipo: datos.tipoDestinatario,
+            destinatarioNombre: datos.aportante,
+            destinatarioDireccion: datos.direccionDestinatario,
+            asunto: resuelto(datos.asunto.isEmpty ? datos.tipo.titulo : datos.asunto),
+            saludo: resuelto(datos.saludo),
+            cuerpo: resuelto(datos.cuerpoTexto),
+            despedida: resuelto(datos.cierre),
+            firmas: ([datos.firma] + datos.firmantes)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                .reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } },
+            observaciones: datos.notasInternas,
+            estado: "borrador")
+        try? await repo.guardar(nueva)
+        await cargar()
+    }
+
     func emitirCarta() async {
         guard !carta.aportante.isEmpty else { return }
         // **Se guarda con las `{{variables}}` ya sustituidas, no crudas.**

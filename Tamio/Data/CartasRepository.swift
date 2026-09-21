@@ -302,7 +302,18 @@ enum VariablesCarta {
         "pastor_nombre", "secretaria_nombre", "numero_documento", "fecha_emision",
     ]
 
-    /// Sustituye `{{clave}}` por su valor; deja intacta la que no lo tenga.
+    /// **Sustituye `{{clave}}` por su valor, y por NADA cuando no lo tiene.**
+    ///
+    /// Antes dejaba intacta la que no tuviera valor, copiando al web. El precio
+    /// se vio el 21-sep en una carta de traslado guardada desde el Mac: salía
+    /// impresa *"…ha sido miembro desde {{fecha_membresia}} y solicita su
+    /// traslado. La encomendamos a {{iglesia_destino}}…"*. Una carta con llaves
+    /// dentro no se puede entregar, y el hueco al menos se lee como un hueco.
+    ///
+    /// **Es una diferencia deliberada con el web**, decidida por Iván: allá la
+    /// variable sin valor se queda a la vista para avisar de que falta algo.
+    /// Aquí no se imprime nunca, y el aviso de lo que falta tiene que darlo la
+    /// pantalla antes de emitir — que es lo que queda pendiente.
     static func aplicar(_ texto: String, _ contexto: [String: String]) -> String {
         guard texto.contains("{{") else { return texto }
         // La misma expresión que el web: admite espacios dentro de las llaves.
@@ -312,7 +323,9 @@ enum VariablesCarta {
         // De atrás hacia delante, para que los rangos no se muevan al sustituir.
         for m in re.matches(in: texto, range: NSRange(location: 0, length: ns.length)).reversed() {
             let clave = ns.substring(with: m.range(at: 1))
-            guard let valor = contexto[clave], !valor.isEmpty else { continue }
+            // Sin valor, cadena vacía: lo que no se puede llenar desaparece en
+            // vez de imprimirse con llaves.
+            let valor = contexto[clave] ?? ""
             let r = Range(m.range, in: salida)!
             salida.replaceSubrange(r, with: valor)
         }

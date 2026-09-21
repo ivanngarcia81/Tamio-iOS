@@ -29,9 +29,25 @@ final class ServiciosViewModel {
 
     @MainActor
     func agregarServicio(_ nuevo: Servicio) {
+        Task { await agregarServicioEsperando(nuevo) }
+    }
+
+    /// El mismo alta, esperable, por lo mismo que las otras: en el Mac la hoja
+    /// sincroniza en cuanto guarda, y lanzarlos a la vez deja la vuelta
+    /// saliendo antes de que la operación esté en la cola.
+    @MainActor
+    func agregarServicioEsperando(_ nuevo: Servicio) async {
         lista.insert(nuevo, at: 0)
         seleccionId = nuevo.id
-        Task { try? await repo.guardar(nuevo) }
+        try? await repo.guardar(nuevo)
+    }
+
+    /// Guarda un culto ya modificado —la hoja de asistencia cambia conteos,
+    /// puestos y visitantes a la vez—, en vez de un método por cosa.
+    @MainActor
+    func guardarServicioEsperando(_ s: Servicio) async {
+        if let idx = lista.firstIndex(where: { $0.id == s.id }) { lista[idx] = s }
+        try? await repo.guardar(s)
     }
 
     /// Reemplaza los nombres del roster. `estadoRoster` NO se toca: se deduce
