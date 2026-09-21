@@ -64,6 +64,9 @@ struct PantallaCartas: View {
         vm.emitidas.first { $0.id == seleccion }
     }
 
+    /// El borrador que se está a punto de emitir, mientras se pregunta.
+    @State private var aEmitir: CartaEmitida?
+
     var body: some View {
         VStack(spacing: 0) {
             cabecera
@@ -102,6 +105,67 @@ struct PantallaCartas: View {
                     await MotorSincronizacion.compartido.sincronizar()
                 }
             }
+        }
+        .confirmationDialog(tituloDeEmitir,
+                            isPresented: Binding(get: { aEmitir != nil },
+                                                 set: { if !$0 { aEmitir = nil } }),
+                            titleVisibility: .visible) {
+            Button(L.t("Emitir", "Issue")) { emitirConfirmada() }
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) { aEmitir = nil }
+        } message: {
+            Text(mensajeDeEmitir)
+        }
+    }
+
+    // MARK: - Emitir un borrador
+
+    /// **El aviso nombra los huecos, y por eso pregunta antes de emitir.**
+    ///
+    /// La hoja de redactar avisa de las `{{variables}}` que se van a quedar en
+    /// blanco —ahí es el único momento en que se sabe cuáles eran, porque la
+    /// carta se guarda ya resuelta—. Aquí se mira lo otro: lo que le falta a la
+    /// carta como documento, que sí se ve leyendo la fila.
+    private var faltaEnLaCarta: [String] {
+        guard let c = aEmitir else { return [] }
+        var f: [String] = []
+        if c.destinatarioNombre.trimmingCharacters(in: .whitespaces).isEmpty {
+            f.append(L.t("a quién va dirigida", "who it is addressed to"))
+        }
+        if c.cuerpo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            f.append(L.t("el cuerpo", "the body"))
+        }
+        if c.firmas.isEmpty {
+            f.append(L.t("quién la firma", "who signs it"))
+        }
+        return f
+    }
+
+    private var tituloDeEmitir: String {
+        guard let c = aEmitir else { return "" }
+        return L.t("¿Emitir la carta \(c.folio)?", "Issue letter \(c.folio)?")
+    }
+
+    /// **Dice lo que falta y deja emitir igual.** Quien firma decide: una carta
+    /// sin firmas guardadas se firma a mano encima del papel y sigue valiendo.
+    /// Lo que no puede es firmarse sin que nadie lo haya dicho.
+    private var mensajeDeEmitir: String {
+        let queda = L.t("Queda emitida y se anota en el Registro. El folio definitivo lo asigna el servidor al sincronizar.",
+                        "It becomes issued and is recorded in the Log. The definitive folio is assigned by the server when this Mac syncs.")
+        let huecos = faltaEnLaCarta
+        guard !huecos.isEmpty else { return queda }
+        let lista = huecos.count == 1
+            ? huecos[0]
+            : huecos.dropLast().joined(separator: ", ")
+                + L.t(" y ", " and ") + huecos[huecos.count - 1]
+        return L.t("Le falta \(lista). \(queda)", "It is missing \(lista). \(queda)")
+    }
+
+    private func emitirConfirmada() {
+        guard let c = aEmitir else { return }
+        aEmitir = nil
+        Task {
+            await vm.emitir(c)
+            await MotorSincronizacion.compartido.sincronizar()
         }
     }
 
@@ -319,28 +383,13 @@ struct PantallaCartas: View {
 
     private func pastilla(_ estado: String) -> some View {
         let tinta = tintaDe(estado)
-        return Text(rotuloDe(estado))
+        return Text(CartaEmitida.estadoLegible(estado))
             .font(.system(size: 10, weight: .bold))
             .foregroundStyle(tinta)
             .padding(.horizontal, 6)
             .padding(.vertical, 1)
             .background(tinta.opacity(0.14),
                         in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-    }
-
-    /// **Los estados se leen de un texto libre, así que hay un caso por
-    /// omisión de verdad.** La app web escribe aquí, y en la base de la
-    /// iglesia ya hay un `aprobada` que el comentario del modelo no menciona
-    /// —dice `borrador | emitida | entregada`—. Un `switch` sin salida
-    /// dejaría esa carta sin pastilla; así al menos enseña lo que diga.
-    private func rotuloDe(_ e: String) -> String {
-        switch e {
-        case "borrador":  return L.t("Borrador", "Draft")
-        case "emitida":   return L.t("Emitida", "Issued")
-        case "aprobada":  return L.t("Aprobada", "Approved")
-        case "entregada": return L.t("Entregada", "Delivered")
-        default:          return e.capitalized
-        }
     }
 
     private func tintaDe(_ e: String) -> Color {
@@ -358,8 +407,23 @@ struct PantallaCartas: View {
     private var hoja: some View {
         if let c = elegida {
             ScrollView {
-                HojaCarta(carta: c)
-                    .padding(28)
+                VStack(alignment: .leading, spacing: 16) {
+                    // **La banda va ARRIBA del papel y las notas DEBAJO**, y
+                    // el orden es el que tienen que tener: lo que hay que
+                    // decidir antes de leer, y lo que solo se entiende después
+                    // de haber leído. Las dos al ancho de la hoja para que el
+                    // bloque se lea como una sola columna.
+                    if c.estado == "borrador" {
+                        bandaDeBorrador(c).frame(width: HojaCarta.ancho)
+                    }
+                    HojaCarta(carta: c)
+                    // Una carta sin notas no enseña una tarjeta vacía con un
+                    // rótulo: enseñaría un hueco que parece un fallo.
+                    if !c.observaciones.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        notasInternas(c).frame(width: HojaCarta.ancho)
+                    }
+                }
+                .padding(28)
             }
             .background(Color.suelo)
         } else {
@@ -385,12 +449,11 @@ struct PantallaCartas: View {
                 .font(.system(size: 12))
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
-            Button(L.t("Emitir la carta", "Issue the letter")) {
-                Task {
-                    await vm.emitirCarta()
-                    await MotorSincronizacion.compartido.sincronizar()
-                }
-            }
+            // **Con puntos suspensivos porque pregunta**, la convención del
+            // Mac. Y pregunta siempre, tenga huecos o no: emitir una carta es
+            // firmarla a nombre de la iglesia, y eso ya no se deshace desde
+            // aquí.
+            Button(L.t("Emitir la carta…", "Issue the letter…")) { aEmitir = c }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
@@ -431,8 +494,10 @@ struct HojaCarta: View {
     let carta: CartaEmitida
     @State private var iglesia = ConfiguracionIglesiaViewModel.compartido
 
-    /// Carta en puntos: 8,5" × 72. La misma que usa `PDFExport`.
-    private let ancho: CGFloat = 612
+    /// Carta en puntos: 8,5" × 72. La misma que usa `PDFExport`. **Pública
+    /// porque la banda de borrador y las notas internas se alinean con ella**:
+    /// tenerla dos veces escrita las desalinearía en cuanto una cambiara.
+    static let ancho: CGFloat = 612
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -486,7 +551,7 @@ struct HojaCarta: View {
         }
         .padding(.horizontal, 52)
         .padding(.vertical, 48)
-        .frame(width: ancho, alignment: .leading)
+        .frame(width: Self.ancho, alignment: .leading)
         .foregroundStyle(Color(red: 0.11, green: 0.11, blue: 0.12))
         .background(.white)
         .shadow(color: .black.opacity(0.18), radius: 14, y: 6)

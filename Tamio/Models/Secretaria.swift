@@ -664,6 +664,27 @@ struct CartaEmitida: Identifiable {
         destinatarioNombre.split(separator: " ").prefix(2)
             .compactMap(\.first).map(String.init).joined().uppercased()
     }
+
+    /// **El estado en palabras y traducido**, que no es lo mismo que la clave.
+    /// La columna guarda `borrador`, `emitida`, `aprobada`, `entregada` —del
+    /// web— y enseñarlas con `.capitalized` deja la app en inglés diciendo
+    /// "Borrador" y "Emitida", que es lo que hacía el inspector del Mac.
+    ///
+    /// **El caso por omisión es de verdad.** El web escribe aquí, y en la base
+    /// de su iglesia ya apareció un `aprobada` que el comentario de arriba no
+    /// menciona. Un `switch` sin salida dejaría esa carta sin estado a la
+    /// vista; así al menos enseña lo que diga la columna.
+    var estadoLegible: String { Self.estadoLegible(estado) }
+
+    static func estadoLegible(_ e: String) -> String {
+        switch e {
+        case "borrador":  return L.t("Borrador", "Draft")
+        case "emitida":   return L.t("Emitida", "Issued")
+        case "aprobada":  return L.t("Aprobada", "Approved")
+        case "entregada": return L.t("Entregada", "Delivered")
+        default:          return e.capitalized
+        }
+    }
 }
 
 /// **Nace VACÍA.** Traía cuatro valores de maqueta escritos dentro —"Javier

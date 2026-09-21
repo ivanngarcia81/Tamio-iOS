@@ -85,12 +85,6 @@ final class CartasViewModel {
         }
     }
 
-    /// **Emite la carta entera y la guarda.** Antes construía una fila de
-    /// cuatro campos —id, iniciales, el nombre y el tipo— y la metía en el
-    /// array: el cuerpo, el destinatario, la fecha y el lugar de emisión, el
-    /// asunto, los firmantes y las notas se perdían al emitir. Y la lista se
-    /// vaciaba al volver a entrar, porque `cargar()` preguntaba al repositorio
-    /// y allí no había nada.
     @MainActor
     /// **Guarda un borrador, que no es lo mismo que emitir.**
     ///
@@ -131,6 +125,16 @@ final class CartasViewModel {
         await cargar()
     }
 
+    /// **Emite la carta entera y la guarda.** Antes construía una fila de
+    /// cuatro campos —id, iniciales, el nombre y el tipo— y la metía en el
+    /// array: el cuerpo, el destinatario, la fecha y el lugar de emisión, el
+    /// asunto, los firmantes y las notas se perdían al emitir. Y la lista se
+    /// vaciaba al volver a entrar, porque `cargar()` preguntaba al repositorio
+    /// y allí no había nada.
+    ///
+    /// **Es la de REDACTAR Y EMITIR de una vez**, que es como emite el iPhone:
+    /// nace una carta nueva a partir del formulario. Promover un borrador que
+    /// ya existe es `emitir(_:)`, y son dos cosas distintas.
     func emitirCarta() async {
         guard !carta.aportante.isEmpty else { return }
         // **Se guarda con las `{{variables}}` ya sustituidas, no crudas.**
@@ -177,6 +181,35 @@ final class CartasViewModel {
         carta.aportante = ""
         carta.iglesiaDestino = ""
         carta.miembroDesde = ""
+    }
+
+    /// **Emite un borrador que ya está guardado**, que no es `emitirCarta()`:
+    /// esa redacta una carta nueva desde el formulario y esta firma una que ya
+    /// existe. Lo pide el Mac, donde redactar y emitir son dos momentos —se
+    /// guarda el borrador, se lee el papel al lado, y se emite—.
+    ///
+    /// **Se guarda la MISMA fila**, con el mismo `id`: lo único que cambia es
+    /// el estado. Crear una carta nueva dejaría dos, el borrador y la emitida,
+    /// con el mismo texto y dos folios.
+    ///
+    /// **El folio no se toca.** El que lleva es provisional y el definitivo lo
+    /// asigna el contador del servidor al subir, que es lo que dice la banda de
+    /// la pantalla y la razón por la que no se numera desde el aparato —dos
+    /// aparatos sin sincronizar calculan el mismo número, y así nacieron cuatro
+    /// actas con el mismo folio—.
+    ///
+    /// El rastro en el Registro lo anota el repositorio, no esta función: lo
+    /// hace al ver el paso a `"emitida"`, venga de donde venga.
+    @MainActor
+    func emitir(_ carta: CartaEmitida) async {
+        // Una carta ya emitida no se emite dos veces, y `guardar` lo sabe: solo
+        // anota el suceso en el PASO a emitida. Aquí se para antes, para que el
+        // botón no escriba una fila que no cambia nada.
+        guard carta.estado == "borrador" else { return }
+        var emitida = carta
+        emitida.estado = "emitida"
+        try? await repo.guardar(emitida)
+        await cargar()
     }
 
     // El folio ya no se calcula aquí: lo da el repositorio, que cuenta contra
