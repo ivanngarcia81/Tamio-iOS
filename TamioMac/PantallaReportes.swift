@@ -17,11 +17,25 @@ struct PantallaReportes: View {
     @Binding var verHoja: Bool
 
     var body: some View {
-        HSplitView {
+        // **`HStack` y no `HSplitView`, y es por una medida.**
+        //
+        // El `HSplitView` de macOS no comprime por debajo del tamaño IDEAL de
+        // sus paneles, así que esta pantalla imponía un ancho mínimo de ventana
+        // de más de **2000 puntos** —más que la pantalla de Iván— y la ventana
+        // se quedaba estancada: no se podía achicar ni ajustar. Medido con
+        // `set size` en las quince secciones; las tres que usaban `HSplitView`
+        // —Reportes, Cartas y Registro de servicios— eran las únicas que no
+        // cedían, contra los 964 de una tabla.
+        //
+        // Lo que se pierde es arrastrar el divisor. Lo que se gana es que la
+        // ventana se pueda usar en media pantalla, que es como se trabaja con
+        // dos ventanas al lado.
+        HStack(spacing: 0) {
             listaDeTipos
-                .frame(minWidth: 220, idealWidth: 268, maxWidth: 340)
+                .frame(width: 248)
+            Divider()
             contenido
-                .frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
+                .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
         }
         .task { await vm.cargar() }
     }
@@ -91,7 +105,17 @@ struct PantallaReportes: View {
                 )) {
                     ForEach(vm.anios, id: \.self) { Text($0).tag($0) }
                 }
-                .labelsHidden().fixedSize()
+                .labelsHidden()
+                // **Acotado, no `fixedSize`.**
+                //
+                // Con `fixedSize` el selector pide el ancho de su opción más
+                // larga, y estas opciones son DATOS: los nombres de categoría
+                // que escribe la iglesia. Una categoría larga empujaba el ancho
+                // mínimo de la ventana hasta **2081 puntos** —más que la
+                // pantalla— y entonces la ventana ya no se podía achicar ni
+                // cambiar de tamaño. Medido con `set size` en las quince
+                // secciones: Reportes era la única que no cabía.
+                .frame(maxWidth: 220)
             } else {
                 Picker("", selection: Binding(
                     get: { vm.periodoSel },
@@ -99,7 +123,17 @@ struct PantallaReportes: View {
                 )) {
                     ForEach(vm.periodos) { Text($0.etiqueta).tag($0.clave) }
                 }
-                .labelsHidden().fixedSize()
+                .labelsHidden()
+                // **Acotado, no `fixedSize`.**
+                //
+                // Con `fixedSize` el selector pide el ancho de su opción más
+                // larga, y estas opciones son DATOS: los nombres de categoría
+                // que escribe la iglesia. Una categoría larga empujaba el ancho
+                // mínimo de la ventana hasta **2081 puntos** —más que la
+                // pantalla— y entonces la ventana ya no se podía achicar ni
+                // cambiar de tamaño. Medido con `set size` en las quince
+                // secciones: Reportes era la única que no cabía.
+                .frame(maxWidth: 220)
 
                 Picker("", selection: Binding(
                     get: { vm.categoriaSel ?? "" },
@@ -108,7 +142,17 @@ struct PantallaReportes: View {
                     Text(L.t("Todas las categorías", "All categories")).tag("")
                     ForEach(vm.categorias, id: \.self) { Text($0).tag($0) }
                 }
-                .labelsHidden().fixedSize()
+                .labelsHidden()
+                // **Acotado, no `fixedSize`.**
+                //
+                // Con `fixedSize` el selector pide el ancho de su opción más
+                // larga, y estas opciones son DATOS: los nombres de categoría
+                // que escribe la iglesia. Una categoría larga empujaba el ancho
+                // mínimo de la ventana hasta **2081 puntos** —más que la
+                // pantalla— y entonces la ventana ya no se podía achicar ni
+                // cambiar de tamaño. Medido con `set size` en las quince
+                // secciones: Reportes era la única que no cabía.
+                .frame(maxWidth: 220)
             }
             Spacer(minLength: 0)
             Button(verHoja ? L.t("Resumen en pantalla", "On-screen summary")
@@ -162,6 +206,14 @@ struct PantallaReportes: View {
 
     @ViewBuilder
     private var cifras: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            bandaDePantalla
+            filaDeCifras
+        }
+    }
+
+    @ViewBuilder
+    private var filaDeCifras: some View {
         HStack(spacing: 12) {
             if vm.esAnual, let a = vm.anual {
                 cifra(L.t("Ingresos del año", "Income for the year"),
@@ -203,6 +255,25 @@ struct PantallaReportes: View {
         return bueno ? Paleta.brand : Paleta.negativo
     }
 
+    /// **Lo de pantalla no es lo del papel, y hay que decirlo.**
+    ///
+    /// El handoff pone esta banda sobre las cuatro cifras. Sin ella, quien mira
+    /// el resumen da por hecho que el PDF que va a firmar dice lo mismo, y el
+    /// PDF lleva otra cosa: el estado de cuenta, no las comparativas contra el
+    /// mes pasado.
+    private var bandaDePantalla: some View {
+        HStack(spacing: 8) {
+            Text(L.t("RESUMEN EN PANTALLA", "ON-SCREEN SUMMARY"))
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+            Text(L.t("No se incluye en el PDF", "Not included in the PDF"))
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+        }
+    }
+
     private func cifra(_ k: String, _ v: String, _ barra: Color,
                        _ nota: String?, _ notaTinta: Color?) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -240,7 +311,7 @@ struct PantallaReportes: View {
                 }
             }
             if !e.depositos.isEmpty {
-                panel(L.t("DEPÓSITOS DEL PERIODO", "DEPOSITS THIS PERIOD")) {
+                panel(L.t("DEPÓSITOS DEL PERIODO", "PERIOD DEPOSITS")) {
                     VStack(spacing: 0) {
                         ForEach(e.depositos) { d in
                             HStack(spacing: 10) {

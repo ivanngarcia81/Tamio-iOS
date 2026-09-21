@@ -14,14 +14,55 @@ struct ComandosTamio: Commands {
     @Environment(\.openWindow) private var abrirVentana
     @State private var prefs = PreferenciasApp.compartidas
 
+    /// Abre el alta de la sección donde estemos; donde no hay ninguna, la
+    /// ventana de captura rápida, que es el "nuevo" de Tesorería.
+    private func nuevoDeLaSeccion() {
+        // **El Registro también tiene alta propia, y es una nota.** Lo único
+        // que una persona puede añadir ahí: lo demás lo escribe la app sola.
+        // Su botón de la barra ya lo hacía y el atajo abría la captura rápida,
+        // que es otra cosa — dos caminos para el mismo sitio dando destinos
+        // distintos.
+        if estado.seccion == .registro || estado.seccion.altaTitulo != nil {
+            estado.pidiendoAlta = true
+        } else {
+            abrirVentana(id: CapturaRapida.idVentana)
+        }
+    }
+
     var body: some Commands {
 
         // MARK: Archivo
+        //
+        // Los atajos son los de `handoff7`, que los declara en su manejador de
+        // teclado. **⌥⌘N es "lo nuevo de donde estoy"** y no el movimiento: el
+        // handoff lo manda a `newForScreen()`, que abre la hoja de la sección y
+        // cae en la captura rápida donde no hay ninguna. Por eso el rótulo
+        // cambia y el atajo nunca está apagado.
+        //
+        // El primer intento fue un ⌘N contextual inventado aquí; el handoff ya
+        // lo tenía resuelto con ⌥⌘N, que además es lo que un Mac espera para
+        // "nuevo" cuando ⌘N no está libre.
         CommandGroup(replacing: .newItem) {
-            Button(L.t("Nuevo movimiento…", "New movement…")) {
-                abrirVentana(id: CapturaRapida.idVentana)
+            Button(estado.seccion.altaTituloOMovimiento) { nuevoDeLaSeccion() }
+                .keyboardShortcut("n", modifiers: [.command, .option])
+
+            // **Las dos que el handoff pone como globales**, para poder
+            // levantar un acta o una carta sin salir de donde estás.
+            Button(L.t("Nueva acta…", "New minutes entry…")) {
+                estado.seccion = .actas
+                estado.pidiendoAlta = true
             }
-            .keyboardShortcut("n", modifiers: [.command, .option])
+            .keyboardShortcut("m", modifiers: [.command, .shift])
+
+            // **⇧⌘T y no el ⇧⌘L del handoff.** Allá ⇧⌘L está en dos sitios a la
+            // vez —"New letter…" en Archivo y "Switch appearance" en Ver— y su
+            // propio teclado lo manda a cambiar el tema, así que el atajo de la
+            // carta no funciona ni en la maqueta. ⇧⌘T (transfer) está libre.
+            Button(L.t("Nueva carta…", "New letter…")) {
+                estado.seccion = .cartas
+                estado.pidiendoAlta = true
+            }
+            .keyboardShortcut("t", modifiers: [.command, .shift])
         }
 
         // MARK: Ver

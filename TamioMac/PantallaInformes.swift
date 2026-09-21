@@ -88,13 +88,13 @@ struct PantallaInformes: View {
             .padding(16)
             .tarjetaMac(14)
 
-            HStack(alignment: .top, spacing: 12) {
-                panel(L.t("POR ESTADO", "BY STATUS")) {
+            filaDePaneles {
+                panel(L.t("POR ESTADO", "BY STATUS"), estira: true) {
                     if r.porEstado.isEmpty { vacio } else {
                         barras(r.porEstado, total: r.totalMiembros, tinta: nil)
                     }
                 }
-                panel(L.t("POR MINISTERIO", "BY MINISTRY")) {
+                panel(L.t("POR MINISTERIO", "BY MINISTRY"), estira: true) {
                     if r.porMinisterio.isEmpty { vacio } else {
                         barras(r.porMinisterio,
                                total: r.porMinisterio.map(\.1).max() ?? 1, tinta: Paleta.cian)
@@ -102,8 +102,8 @@ struct PantallaInformes: View {
                 }
             }
 
-            HStack(alignment: .top, spacing: 12) {
-                panel(L.t("ALTAS POR MES", "NEW PER MONTH")) {
+            filaDePaneles {
+                panel(L.t("ALTAS POR MES", "NEW PER MONTH"), estira: true) {
                     let altas = r.altasPorMes
                     if altas.allSatisfy({ $0.altas == 0 }) { vacio } else {
                         Chart(altas) { a in
@@ -115,7 +115,7 @@ struct PantallaInformes: View {
                         .padding(.top, 14)
                     }
                 }
-                panel(L.t("ESTADO DE EXPEDIENTES", "FILE STATUS")) {
+                panel(L.t("ESTADO DE EXPEDIENTES", "FILE STATUS"), estira: true) {
                     let completos = r.expedienteCompleto
                     let total = max(1, completos + r.expedienteIncompleto)
                     VStack(alignment: .leading, spacing: 10) {
@@ -398,16 +398,45 @@ struct PantallaInformes: View {
         .tarjetaMac(14)
     }
 
-    private func panel<C: View>(_ titulo: String, @ViewBuilder c: () -> C) -> some View {
+    /// **`estira` iguala la altura de las tarjetas que van en la misma fila.**
+    ///
+    /// Sin él cada tarjeta mide lo que mide su contenido, y en una fila de dos
+    /// eso se ve torcido en cuanto una tiene más que la otra: "Por estado" con
+    /// una barra al lado de "Por ministerio" con tres, o el gráfico de altas al
+    /// lado de dos cifras. Iván lo vio en su pantalla.
+    ///
+    /// **El estiramiento va ANTES de `tarjetaMac`, y ese es el detalle.** Puesto
+    /// después, el `frame` envuelve a la tarjeta ya pintada: el fondo conserva
+    /// su tamaño y lo único que pasa es que queda CENTRADO en el hueco, que es
+    /// peor que el problema. Antes del fondo, el que crece es el contenido y el
+    /// fondo lo sigue.
+    ///
+    /// Y `alignment: .topLeading` para que lo de dentro siga arriba en vez de
+    /// irse al centro de la tarjeta ya crecida.
+    private func panel<C: View>(_ titulo: String, estira: Bool = false,
+                                @ViewBuilder c: () -> C) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(titulo)
                 .font(.system(size: 11, weight: .bold)).kerning(0.5)
                 .foregroundStyle(.secondary)
             c()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity,
+               maxHeight: estira ? .infinity : nil,
+               alignment: .topLeading)
         .padding(16)
         .tarjetaMac(14)
+    }
+
+    /// Una fila de tarjetas de la misma altura.
+    ///
+    /// El `fixedSize` vertical es la otra mitad de `estira`: sus tarjetas piden
+    /// alto infinito, y sin esto la fila se lo tomaría —dentro de un `ScrollView`
+    /// hay todo el alto del mundo—. Con él la fila mide su alto IDEAL, que es el
+    /// de la tarjeta más alta, y las demás se estiran hasta ahí.
+    private func filaDePaneles<C: View>(@ViewBuilder _ c: () -> C) -> some View {
+        HStack(alignment: .top, spacing: 12) { c() }
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var vacio: some View {

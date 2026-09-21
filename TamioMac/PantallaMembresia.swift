@@ -16,6 +16,33 @@ struct PantallaMembresia: View {
     @Binding var seleccion: String?
     @Binding var sub: SubMembresia
 
+    /// **El testigo del alta no es `@State` de esta vista.** Lo dispara el ⌘N
+    /// del menú Archivo, que es una escena hermana de la ventana y no alcanza el
+    /// estado privado de una vista — ver `EstadoVentana.pidiendoAlta`.
+    @Environment(EstadoVentana.self) private var estado
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+
+    /// **Quién puede dar de alta y de baja en el padrón.** El mismo permiso que
+    /// esconde el `+` en iOS: un tesorero solo entra si la iglesia le abre el
+    /// padrón. Esconde botones; la barrera está en Supabase.
+    private var administraPadron: Bool {
+        Permisos.vigentes(sesion).administraPadron
+    }
+
+    /// La ficha que se está editando. `nil` mientras no se edite ninguna, y es
+    /// aparte del alta porque la hoja es la misma pero el caso no: el alta nace
+    /// vacía y la edición nace de una ficha que ya existe.
+    @State private var aEditar: Miembro?
+
+    /// La persona a la que se le va a registrar una acción de seguimiento.
+    /// Aparte de `aEditar` porque son dos hojas distintas sobre la misma
+    /// persona: una toca su ficha y la otra su historial pastoral.
+    @State private var aSeguir: Miembro?
+
+    /// El alta de un parentesco. Es un `Bool` y no una ficha porque la hoja se
+    /// abre también sin nadie elegido: su título lo dice, como en el handoff.
+    @State private var emparentando = false
+
     enum SubMembresia: String, CaseIterable, Identifiable {
         case miembros, asistencia, seguimiento
         var id: String { rawValue }
@@ -44,6 +71,54 @@ struct PantallaMembresia: View {
             .padding(.bottom, 28)
         }
         .background(Color.suelo)
+        .sheet(isPresented: Binding(
+            get: { estado.pidiendoAlta },
+            set: { estado.pidiendoAlta = $0 }
+        )) {
+            NuevoMiembro(proximoId: vm.proximoId,
+                         puedeDarDeBaja: administraPadron) { nuevo in
+                Task {
+                    // **Guardar y LUEGO sincronizar, en ese orden.** Que salga
+                    // hacia el servidor ya es por lo mismo que la captura
+                    // rápida, el borrado y el alta de la agenda: en el Mac la
+                    // app no se va al fondo, así que la vuelta de "volver al
+                    // frente" no llega y la ficha se quedaría en la cola hasta
+                    // el próximo arranque.
+                    //
+                    // Y se ESPERA al guardado porque lanzarlos a la vez es lo
+                    // que se hizo primero y se midió roto: la vuelta salía antes
+                    // de que la operación estuviera en la cola —`outbox` con
+                    // `miembro | crear | intentos = 0`— y la ficha no subía.
+                    await vm.agregarMiembroEsperando(nuevo)
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
+            }
+        }
+        .sheet(isPresented: $emparentando) {
+            NuevoPariente(anfitrion: vm.items.first { $0.id == seleccion }) { id, pariente in
+                Task {
+                    await vm.agregarParienteEsperando(miembroId: id, pariente: pariente)
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
+            }
+        }
+        .sheet(item: $aSeguir) { persona in
+            SeguimientoMac(miembro: persona) { id, nota in
+                Task {
+                    await vm.agregarSeguimientoEsperando(miembroId: id, nota: nota)
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
+            }
+        }
+        .sheet(item: $aEditar) { ficha in
+            NuevoMiembro(proximoId: ficha.id, miembroExistente: ficha,
+                         puedeDarDeBaja: administraPadron) { editada in
+                Task {
+                    await vm.editarMiembroEsperando(editada)
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
+            }
+        }
     }
 
     // MARK: - Cabecera
@@ -61,6 +136,18 @@ struct PantallaMembresia: View {
                      "\(vm.itemsFiltrados.count) of \(vm.items.count) people"))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
+            // **El botón se queda aunque la orden viva en el menú.** El ⌘N del
+            // menú funciona con el foco donde sea, que es para lo que está; pero
+            // una pantalla de la que se puede dar de alta tiene que decirlo a la
+            // vista, sin que haya que abrir un menú para descubrirlo.
+            if administraPadron {
+                // **"Añadir pariente" va antes que "Nuevo miembro"**, como en
+                // el handoff: es la acción secundaria y queda a su izquierda.
+                Button(L.t("Añadir pariente", "Add relative")) { emparentando = true }
+                Button { estado.pidiendoAlta = true } label: {
+                    Label(L.t("Nuevo miembro", "New member"), systemImage: "plus")
+                }
+            }
         }
     }
 
@@ -214,6 +301,29 @@ struct PantallaMembresia: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // **Doble clic abre la ficha, y el menú contextual lo dice.** En un Mac
+        // el doble clic sobre una fila es "ábrela"; dejarlo solo en el menú
+        // contextual haría que se descubriera por casualidad. Un clic sigue
+        // seleccionando, que es lo que llena el inspector.
+        .simultaneousGesture(TapGesture(count: 2).onEnded {
+            guard administraPadron else { return }
+            seleccion = m.id
+            aEditar = m
+        })
+        .contextMenu {
+            Button(L.t("Editar ficha…", "Edit profile…")) {
+                seleccion = m.id
+                aEditar = m
+            }
+            .disabled(!administraPadron)
+            // **El seguimiento no pide `administraPadron`.** Registrar una
+            // llamada o una visita no toca el padrón: lo hace quien acompaña a
+            // la persona, que no siempre es quien da de alta y de baja.
+            Button(L.t("Registrar seguimiento…", "Log follow-up…")) {
+                seleccion = m.id
+                aSeguir = m
+            }
+        }
     }
 
     private func subtituloDe(_ m: Miembro) -> String {
@@ -324,18 +434,42 @@ struct PantallaMembresia: View {
                                 .font(.system(size: 11.5))
                                 .foregroundStyle(.tertiary)
                         }
-                        Text(porAusencias
-                             ? L.t("Lleva servicios seguidos sin asistir.",
-                                   "Several services in a row without attending.")
-                             : L.t("Faltan datos en su expediente.",
-                                   "Their file is missing data."))
-                            .font(.system(size: 12.5))
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 6)
+                        HStack(alignment: .bottom, spacing: 10) {
+                            Text(porAusencias
+                                 ? L.t("Lleva servicios seguidos sin asistir.",
+                                       "Several services in a row without attending.")
+                                 : L.t("Faltan datos en su expediente.",
+                                       "Their file is missing data."))
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(.secondary)
+                            Spacer(minLength: 0)
+                            // **La lista decía a quién hay que buscar y no dejaba
+                            // apuntar que se le buscó.** Era de solo lectura como
+                            // el resto del Mac, así que la acción se registraba en
+                            // el teléfono o no se registraba.
+                            //
+                            // Y dice cuántas van: quien abre esta pestaña quiere
+                            // saber si alguien ya llamó antes de llamar otra vez.
+                            Button {
+                                aSeguir = m
+                            } label: {
+                                if m.seguimientoNotas.isEmpty {
+                                    Text(L.t("Registrar acción…", "Log action…"))
+                                } else {
+                                    Text(L.t("Registrar acción… · \(m.seguimientoNotas.count)",
+                                             "Log action… · \(m.seguimientoNotas.count)"))
+                                }
+                            }
+                        }
+                        .padding(.top, 6)
                     }
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .tarjetaMac(13)
+                    // Doble clic sobre la tarjeta, por lo mismo que en la lista
+                    // de Miembros: en un Mac es "ábrela".
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(TapGesture(count: 2).onEnded { aSeguir = m })
                 }
             }
             .frame(maxWidth: 900, alignment: .leading)

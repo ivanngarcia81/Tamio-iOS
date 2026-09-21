@@ -15,16 +15,277 @@ struct PantallaCartas: View {
     let vm: CartasViewModel
     @Binding var seleccion: String?
 
+    /// El testigo del alta lo dispara el ⌥⌘N del menú Archivo, que no alcanza
+    /// el estado privado de una vista — ver `EstadoVentana.pidiendoAlta`.
+    @Environment(EstadoVentana.self) private var estado
+
+    /// **Las tres del handoff.** Emitidas es la que se abre: es lo que se
+    /// consulta a diario; las plantillas se miran cuando se va a redactar y los
+    /// traslados cuando alguien pregunta por un expediente.
+    enum SubCartas: String, CaseIterable, Identifiable {
+        case emitidas, plantillas, traslados
+        var id: String { rawValue }
+        var titulo: String {
+            switch self {
+            case .emitidas:   return L.t("Emitidas", "Issued")
+            case .plantillas: return L.t("Plantillas", "Templates")
+            case .traslados:  return L.t("Traslados", "Transfers")
+            }
+        }
+    }
+    @State private var sub: SubCartas = .emitidas
+    @State private var plantillaElegida: String?
+
+    /// Los traslados que enseña la tercera pestaña. Los pone quien tiene el
+    /// padrón —`VentanaPrincipal`—, porque un traslado es un expediente de la
+    /// ficha de alguien y no una carta.
+    let traslados: [TrasladoEnLista]
+
+    /// Una fila de la tabla de traslados, ya en palabras. El modelo guarda el
+    /// estado en clave (`enviado`, `completado`, `cancelado`) y aquí se lee.
+    struct TrasladoEnLista: Identifiable {
+        let id: String
+        let folio: String
+        let persona: String
+        let destino: String
+        let estado: String
+        var enCurso: Bool { estado != "completado" && estado != "cancelado" }
+        var estadoLegible: String {
+            switch estado {
+            case "completado": return L.t("Completado", "Completed")
+            case "cancelado":  return L.t("Cancelado", "Cancelled")
+            case "enviado":    return L.t("Enviado", "Sent")
+            default:           return estado
+            }
+        }
+    }
+
     private var elegida: CartaEmitida? {
         vm.emitidas.first { $0.id == seleccion }
     }
 
     var body: some View {
-        HSplitView {
-            lista
-                .frame(minWidth: 240, idealWidth: 300, maxWidth: 380)
-            hoja
-                .frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
+        VStack(spacing: 0) {
+            cabecera
+            Divider()
+            switch sub {
+            case .emitidas:
+                HStack(spacing: 0) {
+                    lista
+                        .frame(width: 268)
+                    Divider()
+                    hoja
+                        .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
+                }
+            case .plantillas:
+                HStack(spacing: 0) {
+                    listaDePlantillas
+                        .frame(width: 268)
+                    Divider()
+                    panelDePlantilla
+                        .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
+                }
+            case .traslados:
+                tablaDeTraslados
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { estado.pidiendoAlta },
+            set: { estado.pidiendoAlta = $0 }
+        )) {
+            NuevaCarta(vm: vm) { datos in
+                Task {
+                    // Guardar y LUEGO sincronizar, esperando: lanzarlos a la
+                    // vez deja la vuelta saliendo antes de que la operación
+                    // esté en la cola. Medido en Membresía.
+                    await vm.guardarBorrador(datos)
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
+            }
+        }
+    }
+
+    // MARK: - La cabecera
+
+    private var cabecera: some View {
+        HStack(spacing: 12) {
+            Picker("", selection: $sub) {
+                ForEach(SubCartas.allCases) { Text($0.titulo).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            Spacer(minLength: 0)
+            Text(cuenta)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            Button { estado.pidiendoAlta = true } label: {
+                Label(L.t("Nueva carta", "New letter"), systemImage: "plus")
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+    }
+
+    private var cuenta: String {
+        switch sub {
+        case .emitidas:
+            let borradores = vm.emitidas.filter { $0.estado == "borrador" }.count
+            return borradores == 0
+                ? L.t("\(vm.emitidas.count) cartas", "\(vm.emitidas.count) letters")
+                : L.t("\(vm.emitidas.count) cartas · \(borradores) en borrador",
+                      "\(vm.emitidas.count) letters · \(borradores) in draft")
+        case .plantillas:
+            return L.t("\(vm.plantillas.count) plantillas", "\(vm.plantillas.count) templates")
+        case .traslados:
+            return L.t("\(traslados.count) traslados", "\(traslados.count) transfers")
+        }
+    }
+
+    // MARK: - Plantillas
+
+    private var elegidaPlantilla: Plantilla? {
+        vm.plantillas.first { $0.id == plantillaElegida } ?? vm.plantillas.first
+    }
+
+    private var listaDePlantillas: some View {
+        List(vm.plantillas, selection: $plantillaElegida) { p in
+            VStack(alignment: .leading, spacing: 3) {
+                Text(p.nombre).font(.system(size: 12.5, weight: .semibold)).lineLimit(1)
+                Text(p.asunto.isEmpty ? L.t("Sin asunto", "No subject") : p.asunto)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .padding(.vertical, 3)
+            .tag(p.id)
+        }
+    }
+
+    /// **El texto de la plantilla y, al lado, qué se sustituye.**
+    ///
+    /// Las dos columnas del handoff: a la izquierda lo escrito con sus
+    /// `{{llaves}}` y a la derecha las variables que existen y cómo queda ya
+    /// resuelto. Sin el "RESUELTO" no hay forma de saber si una plantilla dice
+    /// lo que uno cree antes de mandarla a alguien.
+    @ViewBuilder
+    private var panelDePlantilla: some View {
+        if let p = elegidaPlantilla {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(p.nombre).font(.system(size: 16, weight: .semibold))
+                        Text(L.t("Asunto · \(p.asunto)", "Subject · \(p.asunto)"))
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    bloqueDeTexto(L.t("TEXTO", "TEXT")) {
+                        Text(p.saludo).font(.system(size: 12.5))
+                        Text(p.cuerpoLlano).font(.system(size: 12.5))
+                        Text(p.despedida).font(.system(size: 12.5))
+                    }
+
+                    bloqueDeTexto(L.t("VARIABLES", "VARIABLES")) {
+                        FlowLayout(spacing: 6) {
+                            ForEach(VariablesCarta.claves, id: \.self) { v in
+                                Text("{{\(v)}}")
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .padding(.horizontal, 8).padding(.vertical, 3)
+                                    .background(.quaternary.opacity(0.5), in: Capsule())
+                            }
+                        }
+                    }
+
+                    bloqueDeTexto(L.t("RESUELTO", "RESOLVED")) {
+                        Text(resuelto(p.cuerpoLlano))
+                            .font(.system(size: 12.5))
+                            .foregroundStyle(.secondary)
+                        Text(L.t("Las variables se sustituyen al emitir la carta, y la carta se guarda ya resuelta — nunca con las llaves dentro.",
+                                 "Variables are replaced when the letter is issued, and the letter is stored resolved — never with the braces still inside."))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Button(L.t("Escribir una carta con esta plantilla",
+                               "Write a letter from this template")) {
+                        estado.pidiendoAlta = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Paleta.brand)
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .background(Color.suelo)
+        } else {
+            ContentUnavailableView {
+                Label(L.t("Sin plantillas", "No templates"), systemImage: "doc.text")
+            } description: {
+                Text(L.t("Las plantillas se escriben en el web y bajan solas.",
+                         "Templates are written in the web app and sync down."))
+            }
+            .background(Color.suelo)
+        }
+    }
+
+    private func resuelto(_ t: String) -> String {
+        VariablesCarta.aplicar(t, CartaEnEdicion()
+            .contextoVariables(ConfiguracionIglesiaViewModel.compartido.config))
+    }
+
+    private func bloqueDeTexto<C: View>(_ titulo: String,
+                                        @ViewBuilder contenido: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(titulo)
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 8) { contenido() }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .tarjetaMac(12)
+        }
+    }
+
+    // MARK: - Traslados
+
+    /// **Salen del padrón, no de las cartas.** Un traslado es un expediente con
+    /// folio que vive en `traslados_salida`; la carta es uno de sus papeles. Por
+    /// eso la lista la trae Membresía y no este ViewModel.
+    private var tablaDeTraslados: some View {
+        Table(traslados) {
+            TableColumn(L.t("FOLIO", "FOLIO")) { t in
+                Text(t.folio).monospacedDigit().frame(height: estado.altoDeFila)
+            }
+            .width(min: 110, ideal: 130)
+            TableColumn(L.t("PERSONA", "PERSON")) { t in Text(t.persona) }
+            TableColumn(L.t("IGLESIA", "CHURCH")) { t in
+                Text(t.destino).foregroundStyle(.secondary)
+            }
+            TableColumn(L.t("ESTADO", "STATUS")) { t in
+                Text(t.estadoLegible)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(t.enCurso ? Paleta.aviso : .secondary)
+                    .padding(.horizontal, 8).padding(.vertical, 2)
+                    .background((t.enCurso ? Paleta.aviso : Color.secondary).opacity(0.14),
+                                in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            }
+            .width(min: 120, ideal: 150)
+        }
+        .tableStyle(.inset)
+        .overlay {
+            if traslados.isEmpty {
+                ContentUnavailableView {
+                    Label(L.t("Ningún traslado", "No transfers"),
+                          systemImage: "arrow.left.arrow.right")
+                } description: {
+                    Text(L.t("Los traslados salen de la ficha de cada miembro.",
+                             "Transfers come from each member's profile."))
+                }
+                .background(Color.suelo)
+            }
         }
     }
 
@@ -111,6 +372,50 @@ struct PantallaCartas: View {
             }
             .background(Color.suelo)
         }
+    }
+    /// **Un borrador se ve y se dice.** Lleva folio provisional, así que no se
+    /// puede imprimir todavía: el definitivo lo pone el servidor al subir. La
+    /// banda lo explica y ofrece el único paso que falta.
+    private func bandaDeBorrador(_ c: CartaEmitida) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "doc.badge.clock")
+                .foregroundStyle(Paleta.aviso)
+            Text(L.t("Borrador con folio \(c.folio) — el definitivo lo asigna el servidor al sincronizar.",
+                     "Draft with folio \(c.folio) — the definitive one is assigned by the server when this Mac syncs."))
+                .font(.system(size: 12))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            Button(L.t("Emitir la carta", "Issue the letter")) {
+                Task {
+                    await vm.emitirCarta()
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .background(Paleta.aviso.opacity(0.12),
+                    in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+    }
+
+    /// Las notas internas van FUERA del papel y lo dicen: son de quien redacta,
+    /// no de quien recibe.
+    private func notasInternas(_ c: CartaEmitida) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(L.t("NOTAS INTERNAS", "INTERNAL NOTES"))
+                .font(.system(size: 11, weight: .bold))
+                .kerning(0.5)
+                .foregroundStyle(.secondary)
+            Text(c.observaciones)
+                .font(.system(size: 12.5))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L.t("No se imprimen en la carta.", "Not printed on the letter."))
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .tarjetaMac(12)
     }
 }
 

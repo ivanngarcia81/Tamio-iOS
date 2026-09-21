@@ -46,7 +46,6 @@ struct VentanaPrincipal: View {
     /// selección múltiple.
     @State private var selMembresia: String?
     @State private var subMembresia: PantallaMembresia.SubMembresia = .miembros
-    @State private var escribiendoNota = false
 
     var body: some View {
         @Bindable var estado = estado
@@ -78,12 +77,20 @@ struct VentanaPrincipal: View {
         }
         .searchable(text: bindingFiltro, placement: .toolbar,
                     prompt: L.t("Filtrar", "Filter"))
+        // **⌘K además del ⌘F que trae `searchable`.** El handoff manda las dos
+        // al mismo sitio —`if (key === 'f' || key === 'k')`— y su barra lateral
+        // dibuja un "Search Tamio ⌘K": quien lo lee ahí espera que funcione
+        // desde cualquier pantalla.
+        .background(AtajoBuscar())
         .task { await cargarTodo() }
         // Cuando la sincronización termina de escribir, releer.
         .onChange(of: estado.recarga) { Task { await cargarTodo() } }
-        .sheet(isPresented: $escribiendoNota) {
-            NuevaNotaMac(vm: registro, autor: sesion?.perfil.firma ?? "")
-        }
+        // **La hoja de nota la presenta `TablaRegistro`**, como cada pantalla
+        // presenta su alta. Estuvo aquí, disparada por un `onChange` que ponía
+        // y quitaba `pidiendoAlta` en el mismo ciclo, y eso dejaba una ventana
+        // huérfana de 280×168 fuera de la pantalla: invisible para quien usa la
+        // app, pero una ventana de más por cada ⌥⌘N. Medido con `count of
+        // windows` antes y después, solo en el Registro.
     }
 
     // MARK: - Contenido
@@ -104,7 +111,15 @@ struct VentanaPrincipal: View {
         case .servicios:
             PantallaServicios(vm: servicios, seleccion: $selServicios)
         case .cartas:
-            PantallaCartas(vm: cartas, seleccion: $selCarta)
+            // Los traslados salen del padrón: son expedientes de una ficha, no
+            // cartas. Se derivan aquí, que es donde están las dos cosas.
+            PantallaCartas(vm: cartas, seleccion: $selCarta,
+                           traslados: membresia.items.compactMap { m in
+                               guard let t = m.trasladoSalida else { return nil }
+                               return PantallaCartas.TrasladoEnLista(
+                                   id: t.folio, folio: t.folio, persona: m.nombre,
+                                   destino: t.iglesiaDestino, estado: t.estado)
+                           })
         case .informes:
             PantallaInformes(vm: informes)
         case .miembros:
@@ -271,6 +286,16 @@ struct VentanaPrincipal: View {
 
     // MARK: - Barra de herramientas
 
+    /// **El rótulo del botón sigue a la pantalla**, como `newLabel()` del
+    /// handoff: "Nuevo miembro", "Nueva acta", "Nueva actividad"… y "Nuevo"
+    /// donde la sección no tiene alta propia. Sin los puntos suspensivos del
+    /// menú: un botón de barra no los lleva.
+    private var rotuloDelBotonNuevo: String {
+        if estado.seccion == .registro { return L.t("Anotar", "Add note") }
+        guard let t = estado.seccion.altaTitulo else { return L.t("Nuevo", "New") }
+        return t.replacingOccurrences(of: "…", with: "")
+    }
+
     @ToolbarContentBuilder
     private var barraDeHerramientas: some ToolbarContent {
         @Bindable var estado = estado
@@ -323,23 +348,24 @@ struct VentanaPrincipal: View {
 
         ToolbarItem(placement: .primaryAction) {
             Button {
-                // **El botón "Nuevo" hace lo de la pantalla en la que estás.**
-                // En el Registro, lo único que una persona puede añadir es una
-                // nota: lo demás lo escribe la app sola y no se toca.
-                if estado.seccion == .registro {
-                    escribiendoNota = true
+                // **El botón "Nuevo" hace lo de la pantalla en la que estás**,
+                // que es lo que dice el handoff con todas las letras: *"El
+                // botón New de la barra sigue a la pantalla, como en una app de
+                // Mac."* En el Registro, lo único que una persona puede añadir
+                // es una nota: lo demás lo escribe la app sola y no se toca.
+                if estado.seccion.altaTitulo != nil {
+                    estado.pidiendoAlta = true
                 } else {
                     abrirVentana(id: CapturaRapida.idVentana)
                 }
             } label: {
-                Label(estado.seccion == .registro ? L.t("Anotar", "Add note")
-                                                  : L.t("Nuevo", "New"),
+                Label(rotuloDelBotonNuevo,
                       systemImage: estado.seccion == .registro ? "square.and.pencil" : "plus")
             }
             // **El atajo NO se declara aquí.** Vive en el menú Archivo, y
             // ponerlo en los dos sitios deja a SwiftUI con dos destinos para
             // el mismo ⌥⌘N.
-            .help(L.t("Nuevo movimiento (⌥⌘N)", "New movement (⌥⌘N)"))
+            .help(L.t("\(rotuloDelBotonNuevo) (⌥⌘N)", "\(rotuloDelBotonNuevo) (⌥⌘N)"))
         }
 
         ToolbarItem(placement: .primaryAction) {
@@ -521,5 +547,25 @@ struct PantallaPorEscribir: View {
                      is available from here.
                      """))
         }
+    }
+}
+
+/// **⌘K lleva el foco al filtro.**
+///
+/// `searchable` registra su ⌘F y no deja añadir un segundo atajo, así que este
+/// va por debajo: un botón sin dibujo que solo existe para llevar el atajo y
+/// que pide el mismo comando de sistema al que responde la lupa de la barra.
+private struct AtajoBuscar: View {
+    var body: some View {
+        Button("") {
+            // El campo de `searchable` responde a `startSearch:`, que es el
+            // mismo mensaje que manda la lupa de la barra. Se pide a la cadena
+            // de respuesta —`to: nil`— para no tener que dar con la vista.
+            NSApp.sendAction(Selector(("startSearch:")), to: nil, from: nil)
+        }
+        .keyboardShortcut("k", modifiers: .command)
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .accessibilityHidden(true)
     }
 }

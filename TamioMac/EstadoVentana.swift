@@ -20,6 +20,23 @@ final class EstadoVentana {
     /// vista. Subiéndolo aquí lo alcanzan los dos.
     var seccion: SeccionMac = .inicio
 
+    /// **El testigo del ⌘N: "la pantalla de delante, abre tu alta".**
+    ///
+    /// Vive aquí por el mismo motivo que `seccion`, y esta vez el motivo es un
+    /// fallo medido: el ⌘N estaba declarado en el botón de la cabecera de
+    /// Agenda, así que **solo respondía con el foco en el contenido**. Con el
+    /// foco en la barra lateral la "n" se la come la selección por teclas de la
+    /// lista, y el atajo no hacía nada —que es peor que no tenerlo, porque se
+    /// aprende y se usa a ciegas—. Un menú es una escena hermana de la ventana
+    /// y no depende de dónde esté el foco; para alcanzarlo desde ahí, el
+    /// disparador tiene que estar fuera de la vista.
+    ///
+    /// **Uno solo para las catorce secciones, y no uno por pantalla.** Solo
+    /// existe la pantalla que se está viendo, así que no hay dos que puedan
+    /// responder a la vez; quién abre qué lo dice `SeccionMac.altaTitulo`. La
+    /// pantalla lo apaga al cerrar su hoja.
+    var pidiendoAlta = false
+
     /// El panel de la derecha. **Empieza abierto**, como en la maqueta: es
     /// donde se lee el detalle de lo seleccionado, y una ventana que arranca
     /// sin él parece que le falta algo.

@@ -16,16 +16,67 @@ struct PantallaServicios: View {
     let vm: ServiciosViewModel
     @Binding var seleccion: String?
 
+    /// El alta la dispara el ⌥⌘N del menú — ver `EstadoVentana.pidiendoAlta`.
+    @Environment(EstadoVentana.self) private var estado
+    /// El culto al que se le está tomando la lista. Aparte del alta porque son
+    /// dos hojas distintas sobre el mismo culto: una lo crea y la otra lo
+    /// rellena con lo que solo se sabe estando allí.
+    @State private var tomandoLista: Servicio?
+
     private var elegido: Servicio? {
         vm.lista.first { $0.id == seleccion } ?? vm.lista.first
     }
 
     var body: some View {
-        HSplitView {
+        // **`HStack` y no `HSplitView`, y es por una medida.**
+        //
+        // El `HSplitView` de macOS no comprime por debajo del tamaño IDEAL de
+        // sus paneles, así que esta pantalla imponía un ancho mínimo de ventana
+        // de más de **2000 puntos** —más que la pantalla de Iván— y la ventana
+        // se quedaba estancada: no se podía achicar ni ajustar. Medido con
+        // `set size` en las quince secciones; las tres que usaban `HSplitView`
+        // —Reportes, Cartas y Registro de servicios— eran las únicas que no
+        // cedían, contra los 964 de una tabla.
+        //
+        // Lo que se pierde es arrastrar el divisor. Lo que se gana es que la
+        // ventana se pueda usar en media pantalla, que es como se trabaja con
+        // dos ventanas al lado.
+        HStack(spacing: 0) {
             lista
-                .frame(minWidth: 240, idealWidth: 300, maxWidth: 380)
+                .frame(width: 268)
+                    Divider()
             detalle
-                .frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
+                .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .sheet(isPresented: Binding(
+            get: { estado.pidiendoAlta },
+            set: { estado.pidiendoAlta = $0 }
+        )) {
+            NuevoCulto(proximoId: vm.proximoId) { nuevo in
+                Task {
+                    await vm.agregarServicioEsperando(nuevo)
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
+            }
+        }
+        .sheet(item: $tomandoLista) { culto in
+            TomarAsistencia(servicio: culto) { actualizado in
+                Task {
+                    await vm.guardarServicioEsperando(actualizado)
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
+            }
+        }
+        .toolbar {
+            // **"Tomar asistencia" cuelga del culto elegido**, no de la
+            // sección: es lo que se le hace a UNO, como el seguimiento de una
+            // persona. Por eso no va en el ⌥⌘N, que crea.
+            ToolbarItem(placement: .automatic) {
+                Button(L.t("Tomar asistencia…", "Take attendance…")) {
+                    tomandoLista = elegido
+                }
+                .disabled(elegido == nil)
+            }
         }
     }
 
@@ -264,7 +315,11 @@ struct PantallaServicios: View {
     private func visitantes(_ s: Servicio) -> some View {
         panel(L.t("VISITANTES", "VISITORS")) {
             if s.visitantes.isEmpty {
-                nada(L.t("Nadie de visita en este culto.", "No visitors at this service."))
+                // Las palabras del handoff: **"nadie NUEVO"**, que es distinto
+                // de "nadie". Un culto sin visitantes anotados no dice que no
+                // viniera nadie de fuera: dice que no se apuntó a nadie.
+                nada(L.t("No se anotó a nadie nuevo en este culto.",
+                         "Nobody new was logged in this service."))
             } else {
                 VStack(spacing: 0) {
                     ForEach(s.visitantes) { v in
@@ -291,8 +346,16 @@ struct PantallaServicios: View {
                         .overlay(alignment: .bottom) { Divider() }
                     }
                 }
-                .padding(.top, 10)
             }
+            // **Lo mismo que dice la hoja al anotarlos**, y aquí importa más:
+            // quien mira la lista puede creer que esas personas ya están en el
+            // padrón, y no lo están.
+            Text(L.t("Un visitante sin ficha se guarda con el culto, no en el padrón. Darlo de alta es otro paso.",
+                     "A visitor without a file is saved with the service, not in the roster. Adding them to the registry is a separate step."))
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 8)
         }
     }
 

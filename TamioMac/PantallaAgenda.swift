@@ -5,7 +5,10 @@ import SwiftUI
 struct PantallaAgenda: View {
     let vm: AgendaViewModel
 
-    @State private var dandoDeAlta = false
+    /// **El testigo de la hoja no es `@State` de esta vista.** Lo dispara la
+    /// orden del menú Archivo, que es una escena hermana de la ventana y no
+    /// alcanza el estado privado de una vista — ver `EstadoVentana`.
+    @Environment(EstadoVentana.self) private var estado
 
     private let dias = [GridItem](repeating: GridItem(.flexible(), spacing: 1), count: 7)
 
@@ -16,7 +19,10 @@ struct PantallaAgenda: View {
                 rejilla.padding(.horizontal, 26).padding(.bottom, 26)
             }
         }
-        .sheet(isPresented: $dandoDeAlta) {
+        .sheet(isPresented: Binding(
+            get: { estado.pidiendoAlta },
+            set: { estado.pidiendoAlta = $0 }
+        )) {
             NuevaActividad(mesActual: vm.mesActual,
                            diaInicial: vm.diaSeleccionado,
                            proximoId: vm.proximoId) { ev in
@@ -58,13 +64,12 @@ struct PantallaAgenda: View {
             // "Nueva actividad" a secas, con el 3 seleccionado y mirando el mes
             // que viene, no deja adivinar dónde va a caer.
             Button {
-                dandoDeAlta = true
+                estado.pidiendoAlta = true
             } label: {
                 Label(L.t("Nueva actividad · día \(vm.diaSeleccionado)",
                           "New activity · day \(vm.diaSeleccionado)"),
                       systemImage: "plus")
             }
-            .keyboardShortcut("n", modifiers: .command)
             if vm.pendientesMes > 0 {
                 Text(L.t("\(vm.pendientesMes) sin completar",
                          "\(vm.pendientesMes) not done"))

@@ -208,13 +208,24 @@ targets:
       - path: TamioMac
     settings:
       base:
-        # **El MISMO id que iOS, a propósito: es una Compra Universal.**
+        # **El MISMO id que iOS · CERRADO el 21-sep-2026. No se toca.**
         #
-        # Apple exige que la app de Mac lleve el id de la de iOS para que quien
-        # compre una tenga la otra. Aquí no hay nada publicado todavía, así que
-        # la decisión es reversible; queda escrito para que se decida a
-        # sabiendas y no por omisión. Si se prefieren fichas separadas, esto
-        # pasa a `church.tamio.mac` y deja de ser Compra Universal.
+        # Una sola ficha en la tienda con las dos plataformas, y no dos fichas.
+        #
+        # Lo de "Compra Universal" aquí **no significa dinero**: Tamio es gratis
+        # y sin compra integrada, apoyada en 3.1.3(c) y (f) (`docs/APP-STORE.md`),
+        # así que no hay nada que comprar en ninguna de las dos. Lo único que
+        # cambia de verdad es el número de fichas.
+        #
+        # **Y por eso se queda.** El proyecto ya está defendiendo un **4.3** por
+        # tener dos apps publicadas —la de Tauri y «Tamio Iglesia»—, y el remedio
+        # que Apple da para el 4.3 es *una sola app*. Una tercera ficha para el
+        # Mac debilitaría justo el encuadre que la ficha y la nota al revisor
+        # están cuidando.
+        #
+        # **Lo que obliga:** la ficha pasará a declarar macOS, así que el Mac no
+        # se sube hasta que esté presentable. Tener el target sin subirlo no
+        # cuesta nada.
         PRODUCT_BUNDLE_IDENTIFIER: church.tamio.native
         # La app se llama Tamio. `TamioMac` es el nombre del target, no del
         # producto: sin esto el .app sale llamándose "TamioMac".

@@ -10,6 +10,11 @@ struct PantallaActas: View {
     let vm: ActasViewModel
     @Binding var seleccion: String?
 
+    /// **El testigo del alta no es `@State` de esta vista.** Lo dispara el ⌘N
+    /// del menú Archivo, que no alcanza el estado privado de una vista — ver
+    /// `EstadoVentana.pidiendoAlta`.
+    @Environment(EstadoVentana.self) private var estado
+
     private let columnas = [GridItem(.adaptive(minimum: 320, maximum: 560), spacing: 13)]
 
     var body: some View {
@@ -23,6 +28,25 @@ struct PantallaActas: View {
                 }
                 .padding(.top, 50)
             } else {
+                // **La cabecera del handoff**: el rótulo del año a la izquierda
+                // y el alta a la derecha con su atajo escrito, que es donde se
+                // aprende. El botón hace lo mismo que el ⇧⌘M del menú.
+                HStack(spacing: 10) {
+                    Text(L.t("REUNIONES DE ESTE AÑO", "MEETINGS THIS YEAR"))
+                        .font(.system(size: 11, weight: .bold))
+                        .kerning(0.5)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    Button { estado.pidiendoAlta = true } label: {
+                        HStack(spacing: 6) {
+                            Text(L.t("Nueva acta", "New minutes entry"))
+                            Text("⇧⌘M").opacity(0.75)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+
                 LazyVGrid(columns: columnas, spacing: 13) {
                     ForEach(vm.lista) { tarjeta($0) }
                 }
@@ -30,6 +54,21 @@ struct PantallaActas: View {
             }
         }
         .background(Color.suelo)
+        .sheet(isPresented: Binding(
+            get: { estado.pidiendoAlta },
+            set: { estado.pidiendoAlta = $0 }
+        )) {
+            NuevaActa(proximoId: vm.proximoId,
+                      proximoNumeroProvisional: vm.lista.count + 1) { acta in
+                Task {
+                    // Guardar y LUEGO sincronizar, en ese orden y esperando:
+                    // lanzarlos a la vez deja la vuelta saliendo antes de que la
+                    // operación esté en la cola. Medido en Membresía.
+                    await vm.agregarActa(acta)
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
+            }
+        }
     }
 
     private func tarjeta(_ a: Acta) -> some View {

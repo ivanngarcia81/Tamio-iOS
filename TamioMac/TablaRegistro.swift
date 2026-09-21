@@ -18,9 +18,36 @@ struct TablaRegistro: View {
     /// Lo más reciente arriba: un registro se lee por el final.
     @State private var orden = [KeyPathComparator(\Apunte.creadoEn, order: .reverse)]
 
+    /// **El alta del Registro es una nota**, y la presenta esta pantalla como
+    /// las demás presentan la suya. Lo único que una persona puede añadir aquí:
+    /// el resto lo escribe la app sola y no se toca.
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+
     private var filas: [Apunte] { vm.visibles.sorted(using: orden) }
 
     var body: some View {
+        // **El `Table` va dentro de un contenedor, y no suelto.**
+        //
+        // Con la hoja de nota colgada directamente del `Table`, abrirla creaba
+        // una ventana de más: un `AXDialog` de 280×168, transparente y vacío,
+        // que se quedaba fuera de la pantalla. Medido con `count of windows`
+        // antes y después; solo pasaba aquí, donde la raíz de la pantalla es un
+        // `Table`. Con el contenedor de por medio, la hoja se presenta sobre
+        // una vista normal y no hay ventana fantasma.
+        VStack(spacing: 0) {
+            tabla
+            Divider()
+            pie
+        }
+        .sheet(isPresented: Binding(
+            get: { estado.pidiendoAlta },
+            set: { estado.pidiendoAlta = $0 }
+        )) {
+            NuevaNotaMac(vm: vm, autor: sesion?.perfil.firma ?? "")
+        }
+    }
+
+    private var tabla: some View {
         Table(filas, selection: $seleccion, sortOrder: $orden) {
 
             TableColumn(L.t("Cuándo", "When"), value: \.creadoEn) { a in
@@ -76,6 +103,54 @@ struct TablaRegistro: View {
         // alterna solo las filas que existen y deja el resto limpio, y entre
         // las dos cosas la que más se parece es no alternar.
         .tableStyle(.inset)
+        // **El vacío dice qué hacer, y el pie por qué esto no se edita.**
+        //
+        // Los dos son del handoff. El vacío del Registro no es "no hay nada":
+        // casi siempre es que el filtro de arriba lo esconde, y decirlo evita
+        // buscar un fallo donde hay un filtro. El pie explica la regla que hace
+        // que esto sirva para auditar.
+        .overlay {
+            if filas.isEmpty { vacio }
+        }
+    }
+
+    private var vacio: some View {
+        VStack(spacing: 5) {
+            Text(L.t("Nada con este filtro", "Nothing with this filter"))
+                .font(.system(size: 13, weight: .semibold))
+            Text(L.t("Cambia el filtro de arriba para ver el resto del registro.",
+                     "Change the filter above to see the rest of the log."))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.suelo)
+    }
+
+    private var pie: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(L.t("El registro guarda copias, no referencias",
+                     "The log keeps copies, not references"))
+                .font(.system(size: 11.5, weight: .semibold))
+            // **Sin `fixedSize`**: con el pie colgado de un `safeAreaInset`
+            // sobre la `Table`, ese modificador hacía que el texto se midiera a
+            // ancho cero y pidiera alto para apilar letra a letra — la ventana
+            // se estiraba a 2574 puntos y dejaba de poder achicarse. Medido con
+            // `set size` antes y después.
+            Text(L.t("Cada apunte conserva el nombre y el folio tal como estaban en ese momento, así que sigue diciendo la verdad aunque la fila a la que se refiere ya no exista. Aquí no se edita ni se borra nada: eso es lo que lo hace un registro.",
+                     "Each entry keeps the name and folio exactly as they were at that moment, so it still tells the truth even if the row it refers to no longer exists. Nothing here is edited or deleted: that is what makes it a log."))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+            Text(L.t("Lo que queda por hacer no vive aquí, sino en Por revisar.",
+                     "What is left to do doesn’t live here, but in To review."))
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.bar)
     }
 }
 
@@ -119,10 +194,18 @@ struct NuevaNotaMac: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            TextEditor(text: $texto)
+            // **`TextField` de varias líneas y no `TextEditor`.**
+            //
+            // Con `TextEditor`, abrir esta hoja creaba una ventana de más —un
+            // `AXDialog` de 280×168, transparente y fuera de la pantalla— que
+            // ninguna otra hoja creaba. Es el único sitio de la app que lo
+            // usaba; las demás escriben párrafos con `TextField(axis:)`, que es
+            // lo que hace `FilaArea`. Medido: con el cambio, `count of windows`
+            // deja de subir.
+            TextField("", text: $texto, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
                 .font(.system(size: 13))
-                .frame(height: 110)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
+                .lineLimit(5...9)
 
             HStack {
                 Spacer()

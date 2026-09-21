@@ -82,6 +82,62 @@ enum SeccionMac: String, CaseIterable, Identifiable {
         }
     }
 
+    /// **El rótulo del ⌘N de esta sección, y `nil` cuando no hay alta.**
+    ///
+    /// La barra de menús tiene UNA sola orden de alta y su nombre cambia con la
+    /// sección: "Nueva actividad…" en Agenda, "Nuevo miembro…" en Membresía.
+    /// **No son trece órdenes con el mismo ⌘N**, que es a donde llevaba el
+    /// primer intento: dos elementos de menú con el mismo atajo dejan a macOS
+    /// eligiendo cuál dispara, y con trece pantallas por escribir eso se vuelve
+    /// una lotería. Una orden contextual también es lo que hace un Mac: ⌘N crea
+    /// "lo nuevo de donde estás".
+    ///
+    /// `nil` apaga la orden, y apagada es lo que corresponde mientras la
+    /// pantalla sea de solo lectura: un atajo que no hace nada se aprende igual
+    /// y falla el día que hay prisa. **Aquí entra cada hoja que se escriba.**
+    ///
+    /// El ⌥⌘N del movimiento no pasa por aquí: es global y funciona en
+    /// cualquier sección, porque la captura rápida es una ventana suya.
+    var altaTitulo: String? {
+        switch self {
+        case .membresia: return L.t("Nuevo miembro…", "New member…")
+        case .actas:     return L.t("Nueva acta…", "New minutes entry…")
+        case .agenda:    return L.t("Nueva actividad…", "New event…")
+        case .cartas:    return L.t("Nueva carta…", "New letter…")
+        case .servicios: return L.t("Nuevo culto…", "New service…")
+        case .registro:  return L.t("Anotar…", "Add note…")
+        default:         return nil
+        }
+    }
+
+    /// **El rótulo del ⌥⌘N, que nunca está apagado.**
+    ///
+    /// Donde la sección tiene alta propia, es la suya; donde no, es un
+    /// movimiento nuevo —la captura rápida—, que es lo que hace el handoff:
+    /// `newForScreen()` cae en `quick` cuando la pantalla no tiene hoja. Así el
+    /// atajo significa siempre lo mismo, "lo nuevo de donde estoy", y no hay
+    /// una tecla que unas veces responde y otras no.
+    var altaTituloOMovimiento: String {
+        altaTitulo ?? L.t("Nuevo movimiento…", "New movement…")
+    }
+
+    /// **Y si a quien ha entrado le toca dar de alta aquí.**
+    ///
+    /// El rótulo de arriba dice qué se crea; esto, quién puede. Van separados
+    /// porque el rótulo es de la sección y el permiso es de la persona, y la
+    /// orden del menú necesita los dos. Membresía es la única con puerta hoy:
+    /// `administraPadron`, el mismo que esconde el `+` en iOS —un tesorero solo
+    /// entra si la iglesia le abre el padrón—.
+    ///
+    /// **Esto esconde la orden; no es la barrera.** La barrera está en Supabase,
+    /// como dice `Permisos`.
+    func altaPermitida(_ p: Permisos) -> Bool {
+        switch self {
+        case .membresia: return p.administraPadron
+        default:         return true
+        }
+    }
+
     /// Los símbolos son los de `Sidebar.swift`, por el mismo motivo que los
     /// rótulos. Todos existen en macOS 26.
     var icono: String {
@@ -118,9 +174,10 @@ enum SeccionMac: String, CaseIterable, Identifiable {
         case .reportes:   return "5"
         case .depositos:  return "6"
         case .porRevisar: return "7"
+        case .registro:   return "0"
         case .membresia:  return "8"
         case .actas:      return "9"
-        case .servicios, .cartas, .informes, .agenda, .registro, .config:
+        case .servicios, .cartas, .informes, .agenda, .config:
             return nil
         }
     }
