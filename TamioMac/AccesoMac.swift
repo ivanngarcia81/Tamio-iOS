@@ -227,3 +227,70 @@ struct RecuperarContrasenaMac: View {
         }
     }
 }
+
+// MARK: - El candado de este Mac
+
+/// **La app tapada, esperando a que la abran.**
+///
+/// Vive aquí y no en un archivo suyo porque es lo mismo que `AccesoMac`: la
+/// pantalla de quien todavía no puede ver las cuentas. La diferencia es cuál de
+/// las dos puertas está cerrada — aquélla es la de la iglesia, en el servidor;
+/// ésta es la de este ordenador.
+///
+/// **Las palabras son las del iPhone**, `PantallaBloqueo`, y a propósito: es el
+/// mismo candado contado a la misma persona, y dos redacciones distintas
+/// envejecen mal. Lo que no se puede compartir es la vista: aquélla vive en
+/// `Tamio/Views`, que el Mac no compila, y pinta con colores de UIKit.
+struct CandadoMac: View {
+    @Bindable var bloqueo: BloqueoBiometrico
+
+    var body: some View {
+        ZStack {
+            // Opaco del todo: un candado que deja leer el saldo por detrás no
+            // es un candado. Va sobre `Color.suelo`, que es el fondo de la app
+            // y sigue al tema elegido.
+            Color.suelo.ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 44, weight: .medium))
+                    .foregroundStyle(Paleta.brand)
+
+                VStack(spacing: 8) {
+                    Text("Tamio").font(.system(size: 22, weight: .bold))
+                    Text(L.t("Las cuentas de la iglesia están bloqueadas.",
+                             "The church's accounts are locked."))
+                        .font(.system(size: 13.5))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                Button {
+                    Task { await bloqueo.abrir() }
+                } label: {
+                    Text(L.t("Desbloquear con \(BloqueoBiometrico.nombreBiometria)",
+                             "Unlock with \(BloqueoBiometrico.nombreBiometria)"))
+                        .font(.system(size: 14, weight: .medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 3)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Paleta.brand)
+                .keyboardShortcut(.defaultAction)
+
+                if let error = bloqueo.error {
+                    Text(error)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(Paleta.negativo)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(40)
+        }
+        // Se pide en cuanto aparece: tener que pulsar un botón para que salga
+        // el diálogo del sistema es un gesto de más en algo que se repite
+        // varias veces al día. El botón se queda para reintentar.
+        .task { await bloqueo.abrir() }
+    }
+}
