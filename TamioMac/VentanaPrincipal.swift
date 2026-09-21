@@ -226,7 +226,11 @@ struct VentanaPrincipal: View {
                 campos: [
                     (L.t("Destinatario", "Recipient"),
                      c.destinatarioNombre.isEmpty ? "—" : c.destinatarioNombre),
-                    (L.t("Estado", "Status"), c.estado.capitalized),
+                    // **Traducido, no `.capitalized`.** La columna guarda la
+                    // clave del web, así que el inspector decía "Emitida" con
+                    // la app entera en inglés — y justo al lado de la pastilla
+                    // de la lista, que sí decía "Issued".
+                    (L.t("Estado", "Status"), c.estadoLegible),
                     (L.t("Lugar", "Place"),
                      c.lugarEmision.isEmpty ? "—" : c.lugarEmision),
                 ]))
