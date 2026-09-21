@@ -40,6 +40,34 @@ struct NuevaCarta: View {
         ("iglesia", L.t("Otra iglesia", "Another church"))
     ]
 
+    /// **Lo que se va a borrar del texto al guardar, con nombre y apellido.**
+    ///
+    /// La carta se guarda con las `{{variables}}` ya sustituidas, y desde el
+    /// 21-sep una que no tiene valor se sustituye por NADA. Eso deja una carta
+    /// que se lee entera —"ha sido miembro desde  y solicita su traslado"— y
+    /// que nadie puede sospechar mirándola: el hueco dejó de verse justo
+    /// cuando dejó de imprimirse. **Aquí es el único sitio donde todavía se
+    /// sabe cuáles eran**, así que aquí se dice.
+    ///
+    /// Se mira lo que de verdad se guarda —asunto, saludo, cuerpo y
+    /// despedida—, los cuatro que `guardarBorrador` resuelve.
+    private var enBlanco: [String] {
+        VariablesCarta.faltantes(
+            en: [datos.asunto, datos.saludo, datos.cuerpoTexto, datos.cierre],
+            contexto: datos.contextoVariables(ConfiguracionIglesiaViewModel.compartido.config))
+    }
+
+    /// Las que se arreglan rellenando un campo de esta hoja o de Configuración.
+    private var enBlancoConCampo: [String] {
+        enBlanco.filter { !VariablesCarta.sinOrigen.contains($0) }
+    }
+
+    /// Las que no. Ver `VariablesCarta.sinOrigen`: no es que falte rellenarlas,
+    /// es que no hay dónde.
+    private var enBlancoSinCampo: [String] {
+        enBlanco.filter { VariablesCarta.sinOrigen.contains($0) }
+    }
+
     private var faltan: [String] {
         var f: [String] = []
         if datos.aportante.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -157,6 +185,24 @@ struct NuevaCarta: View {
             FilaArea(rotulo: L.t("Cuerpo", "Body"), valor: $datos.cuerpoTexto,
                      marcador: "{{miembro_nombre}}", lineas: 5...12)
             FilaTexto(rotulo: L.t("Despedida", "Closing"), valor: $datos.cierre)
+            // **No bloquea: informa.** Una carta a la que le falta la fecha de
+            // membresía se puede querer emitir igual, y decidirlo es de quien
+            // firma. Lo que no puede pasar es que se firme sin saberlo, que es
+            // lo que pasaba desde que el hueco dejó de imprimirse.
+            if !enBlancoConCampo.isEmpty {
+                FilaAviso(texto: enBlancoConCampo.count == 1
+                          ? L.t("Al guardar, \(VariablesCarta.frase(enBlancoConCampo)) se sustituye por nada y el hueco no se verá. Se rellena arriba o en Configuración.",
+                                "When saved, \(VariablesCarta.frase(enBlancoConCampo)) will be replaced by nothing and the gap won't show. Fill it in above or in Settings.")
+                          : L.t("Al guardar, \(VariablesCarta.frase(enBlancoConCampo)) se sustituyen por nada y los huecos no se verán. Se rellenan arriba o en Configuración.",
+                                "When saved, \(VariablesCarta.frase(enBlancoConCampo)) will be replaced by nothing and the gaps won't show. Fill them in above or in Settings."))
+            }
+            if !enBlancoSinCampo.isEmpty {
+                FilaAviso(texto: enBlancoSinCampo.count == 1
+                          ? L.t("No hay de dónde sacar \(VariablesCarta.frase(enBlancoSinCampo)): quítala del cuerpo o escribe el dato a mano.",
+                                "There is nowhere to take \(VariablesCarta.frase(enBlancoSinCampo)) from: remove it from the body or type the value by hand.")
+                          : L.t("No hay de dónde sacar \(VariablesCarta.frase(enBlancoSinCampo)): quítalas del cuerpo o escribe los datos a mano.",
+                                "There is nowhere to take \(VariablesCarta.frase(enBlancoSinCampo)) from: remove them from the body or type the values by hand."))
+            }
         }
     }
 

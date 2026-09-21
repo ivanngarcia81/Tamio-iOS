@@ -639,11 +639,33 @@ struct CartasView: View {
             : L.t("Firmar y enviar", "Sign & send")
     }
     private var firmaAlertMensaje: String {
-        vm.carta.camposCompletos < vm.carta.camposTotales
-            ? L.t("Faltan \(vm.carta.camposTotales - vm.carta.camposCompletos) campo(s) por completar antes de firmar.",
-                  "\(vm.carta.camposTotales - vm.carta.camposCompletos) field(s) must be completed before signing.")
-            : L.t("La carta quedará registrada y se añadirá al historial de emitidas.",
-                  "The letter will be recorded and added to the issued history.")
+        guard vm.carta.camposCompletos == vm.carta.camposTotales else {
+            return L.t("Faltan \(vm.carta.camposTotales - vm.carta.camposCompletos) campo(s) por completar antes de firmar.",
+                       "\(vm.carta.camposTotales - vm.carta.camposCompletos) field(s) must be completed before signing.")
+        }
+        let queda = L.t("La carta quedará registrada y se añadirá al historial de emitidas.",
+                        "The letter will be recorded and added to the issued history.")
+        guard !variablesEnBlanco.isEmpty else { return queda }
+        let cuales = VariablesCarta.frase(variablesEnBlanco)
+        return variablesEnBlanco.count == 1
+            ? L.t("Se emitirá sin \(cuales): la plantilla la nombra y no hay valor, así que desaparece del texto sin dejar hueco. \(queda)",
+                  "It will be issued without \(cuales): the template names it and there is no value, so it vanishes from the text leaving no gap. \(queda)")
+            : L.t("Se emitirá sin \(cuales): la plantilla las nombra y no hay valores, así que desaparecen del texto sin dejar hueco. \(queda)",
+                  "It will be issued without \(cuales): the template names them and there are no values, so they vanish from the text leaving no gap. \(queda)")
+    }
+
+    /// **Las `{{variables}}` que van a salir en blanco.** Los cuatro campos que
+    /// `emitirCarta()` guarda resueltos, medidos con el mismo contexto que ella
+    /// usa —si se midiera con otro, el aviso hablaría de una carta distinta de
+    /// la que se guarda—.
+    ///
+    /// El aviso va aquí, en el último paso antes de firmar, porque después ya
+    /// no se sabe: la carta se guarda con las variables sustituidas y una que
+    /// no tenía valor no deja rastro ninguno. Ver `VariablesCarta.faltantes`.
+    private var variablesEnBlanco: [String] {
+        VariablesCarta.faltantes(
+            en: [vm.carta.asunto, vm.carta.saludo, vm.carta.cuerpoTexto, vm.carta.cierre],
+            contexto: vm.carta.contextoVariables(iglesia))
     }
 
     // MARK: - Lista
@@ -847,7 +869,21 @@ struct CartasView: View {
                 Button(L.t("Aceptar", "OK"), role: .cancel) { }
             } else {
                 Button(L.t("Cancelar", "Cancel"), role: .cancel) { }
-                Button(L.t("Firmar y emitir", "Sign & issue")) { Task { await vm.emitirCarta() } }
+                Button(L.t("Firmar y emitir", "Sign & issue")) {
+                    Task {
+                        // **El cuerpo que se ve es el que se guarda.** La
+                        // previa de arriba dibuja `cuerpoPlantilla`, que cuando
+                        // la carta no trae texto propio cae en el párrafo
+                        // escrito aquí; `emitirCarta` guardaba `cuerpoTexto` a
+                        // secas. Abrir una plantilla GENÉRICA desde la lista
+                        // —las de respaldo de §0.-19 no traen cuerpo— y firmar
+                        // emitía una carta con el cuerpo VACÍO, después de
+                        // haber enseñado el párrafo entero en pantalla. Y en
+                        // este editor no hay campo de cuerpo donde notarlo.
+                        if vm.carta.cuerpoTexto.isEmpty { vm.carta.cuerpoTexto = cuerpoPlantilla }
+                        await vm.emitirCarta()
+                    }
+                }
             }
         } message: {
             Text(firmaAlertMensaje)

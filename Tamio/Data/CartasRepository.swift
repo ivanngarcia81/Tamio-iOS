@@ -273,16 +273,15 @@ struct OfflineCartasRepository: CartasRepository {
 
 // MARK: - Las plantillas
 
-/// Una plantilla de carta, como la guarda el web.
 /// **Las `{{variables}}` de una plantilla, sustituidas.** Reflejo de
 /// `aplicarVariables` y `contextoDe` de `services/cartas/plantillas.ts` del web:
-/// mismas quince claves, misma expresión regular y —lo que más importa— la
-/// misma regla para las que no tienen valor.
+/// mismas quince claves y misma expresión regular.
 ///
-/// **Una variable sin valor se deja A LA VISTA.** No se borra ni se cambia por
-/// un hueco: el web lo decidió así para que quien redacta note qué falta antes
-/// de firmar, y una carta que dice `{{iglesia_destino}}` es menos peligrosa que
-/// una que dice "a la congregación " y se firma igual.
+/// **Donde ya NO es reflejo del web es en la regla de las que no tienen
+/// valor**, y es a propósito: allá la variable se queda a la vista para avisar
+/// de que falta algo; aquí se sustituye por nada —lo decidió Iván el 21-sep— y
+/// el aviso lo da la pantalla con `faltantes`. Las dos mitades de esa decisión
+/// viven juntas aquí para que no se separe una de la otra.
 ///
 /// **Esto no existía.** El cuerpo de una plantilla de la iglesia llega del web
 /// con sus variables dentro, `cuerpoLlano` las conserva a propósito —el editor
@@ -302,6 +301,26 @@ enum VariablesCarta {
         "pastor_nombre", "secretaria_nombre", "numero_documento", "fecha_emision",
     ]
 
+    /// **Las tres que esta app no sabe llenar**, ni aquí ni en el teléfono:
+    /// `CartaEnEdicion.contextoVariables` no las pone. `numero_documento` lo
+    /// asigna el servidor al subir —es el folio bueno—, y las otras dos son
+    /// datos de la ficha que la carta no pregunta.
+    ///
+    /// Se separan de las demás en el aviso porque no se arreglan igual: una
+    /// `fecha_membresia` vacía se rellena en la hoja, y estas tres no tienen
+    /// campo donde rellenarse. O se quitan del cuerpo, o se escribe el dato a
+    /// mano.
+    static let sinOrigen: Set<String> = [
+        "numero_documento", "estado_membresia", "iglesia_procedencia",
+    ]
+
+    /// La misma expresión que el web: admite espacios dentro de las llaves.
+    /// **Una sola para las dos funciones**: si `aplicar` y `faltantes` no leen
+    /// exactamente las mismas llaves, el aviso deja de corresponderse con lo
+    /// que de verdad se va a borrar del texto.
+    private static let expresion =
+        try? NSRegularExpression(pattern: "\\{\\{\\s*([a-z_]+)\\s*\\}\\}")
+
     /// **Sustituye `{{clave}}` por su valor, y por NADA cuando no lo tiene.**
     ///
     /// Antes dejaba intacta la que no tuviera valor, copiando al web. El precio
@@ -316,8 +335,7 @@ enum VariablesCarta {
     /// pantalla antes de emitir — que es lo que queda pendiente.
     static func aplicar(_ texto: String, _ contexto: [String: String]) -> String {
         guard texto.contains("{{") else { return texto }
-        // La misma expresión que el web: admite espacios dentro de las llaves.
-        guard let re = try? NSRegularExpression(pattern: "\\{\\{\\s*([a-z_]+)\\s*\\}\\}") else { return texto }
+        guard let re = expresion else { return texto }
         var salida = texto
         let ns = texto as NSString
         // De atrás hacia delante, para que los rangos no se muevan al sustituir.
@@ -331,8 +349,76 @@ enum VariablesCarta {
         }
         return salida
     }
+
+    /// **Las variables que van a salir en blanco**, en el orden en que
+    /// aparecen en el texto y sin repetir.
+    ///
+    /// Es la otra mitad de `aplicar`, y existe por lo que esa cambió: desde que
+    /// una variable sin valor se sustituye por NADA, el hueco ya no se ve —"ha
+    /// sido miembro desde  y solicita su traslado"— y el único que puede
+    /// avisar es quien enseña la pantalla.
+    ///
+    /// **Y tiene que avisar ANTES de guardar.** Una carta se guarda ya
+    /// resuelta, así que en cuanto se guarda no queda rastro de cuáles eran:
+    /// `CartaEmitida` no tiene dónde apuntarlo y mirar su texto ya no
+    /// distingue un hueco de una frase que se escribió así.
+    ///
+    /// Una clave que el contexto no trae y una que trae vacía cuentan igual,
+    /// porque las dos imprimen nada; `sinOrigen` dice cuáles de ellas no
+    /// tienen campo donde rellenarse.
+    static func faltantes(en textos: [String], contexto: [String: String]) -> [String] {
+        guard let re = expresion else { return [] }
+        var vistas: Set<String> = []
+        var salida: [String] = []
+        for texto in textos where texto.contains("{{") {
+            let ns = texto as NSString
+            for m in re.matches(in: texto, range: NSRange(location: 0, length: ns.length)) {
+                let clave = ns.substring(with: m.range(at: 1))
+                let valor = contexto[clave] ?? ""
+                guard valor.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+                if vistas.insert(clave).inserted { salida.append(clave) }
+            }
+        }
+        return salida
+    }
+
+    /// **Cada variable por su nombre en palabras.** El aviso dice "la fecha de
+    /// membresía" y no `{{fecha_membresia}}`: quien redacta una carta no tiene
+    /// por qué leer llaves. El caso por omisión las enseña crudas antes que
+    /// callarse una que no esté en la lista.
+    static func rotulo(_ clave: String) -> String {
+        switch clave {
+        case "iglesia_nombre":      return L.t("el nombre de la iglesia", "the church name")
+        case "iglesia_direccion":   return L.t("la dirección de la iglesia", "the church address")
+        case "iglesia_telefono":    return L.t("el teléfono de la iglesia", "the church phone")
+        case "iglesia_correo":      return L.t("el correo de la iglesia", "the church email")
+        case "ciudad":              return L.t("la ciudad", "the city")
+        case "fecha_actual":        return L.t("la fecha de hoy", "today's date")
+        case "miembro_nombre":      return L.t("el nombre del miembro", "the member's name")
+        case "fecha_membresia":     return L.t("la fecha de membresía", "the membership date")
+        case "estado_membresia":    return L.t("el estado de membresía", "the membership status")
+        case "iglesia_destino":     return L.t("la iglesia de destino", "the receiving church")
+        case "iglesia_procedencia": return L.t("la iglesia de procedencia", "the sending church")
+        case "pastor_nombre":       return L.t("el nombre del pastor", "the pastor's name")
+        case "secretaria_nombre":   return L.t("el nombre del secretario", "the secretary's name")
+        case "numero_documento":    return L.t("el número de documento", "the document number")
+        case "fecha_emision":       return L.t("la fecha de emisión", "the issue date")
+        default:                    return "{{\(clave)}}"
+        }
+    }
+
+    /// Las de `faltantes` ya escritas en una frase: "la ciudad y el nombre del
+    /// pastor". La coma final es "y"/"and" porque el aviso se lee, no se
+    /// enumera.
+    static func frase(_ claves: [String]) -> String {
+        let nombres = claves.map(rotulo)
+        guard nombres.count > 1 else { return nombres.first ?? "" }
+        return nombres.dropLast().joined(separator: ", ")
+            + L.t(" y ", " and ") + nombres[nombres.count - 1]
+    }
 }
 
+/// Una plantilla de carta, como la guarda el web.
 struct Plantilla: Identifiable, Hashable {
     let id: String
     let nombre: String
