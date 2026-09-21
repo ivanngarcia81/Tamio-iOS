@@ -342,6 +342,40 @@ claves; escribirlas a ojo sería repetir el fallo del `estado` traducido—, el
 que se pierde al guardar es peor que no preguntarlo. **`notaPie` afecta a iOS**:
 lo sigue ofreciendo y desde ahora no se guarda; queda pendiente de decisión.
 
+### Cómo cerró el día · la suite, el merge y lo que queda
+
+**La suite pasó en el iPhone: 243 pruebas, 0 fallos**, una omitida. Se corrió
+antes de tocar `main` a propósito: los seis sitios compartidos que se tocaron ese
+día —los cuatro repositorios, `Secretaria`, tres ViewModels y `AgendaView`— solo
+estaban comprobados por compilación y por el Mac, y `main` es lo que se publica.
+El log deja escrito lo que importaba: *"lo que queda GUARDADO en cada vuelta:
+2026-09-06 → 2026-09-06 → 2026-09-06"*, o sea que la ida y vuelta de fechas no
+corre el día.
+
+**Y las dos ramas quedaron en el mismo commit** (`9f2ab1a`). Primero entraron en
+`mac-target` los seis del servidor que tenía `main`, y después `main` avanzó en
+rápido. La divergencia que iba creciendo ya no existe.
+
+`pruebas/aparato.sh` **reinstala la app en el teléfono** con el bundle id real,
+así que después de una corrida el iPhone se queda con la copia de pruebas.
+
+### Lo que la app todavía no hace, y no es olvido
+
+- **Avisar antes de emitir una carta a la que le faltan datos.** Desde que las
+  variables sin valor se sustituyen por nada, el hueco ya no se ve: el aviso
+  tiene que darlo la pantalla. Es el complemento de esa decisión.
+- **Caber en media pantalla.** Tras quitar los `HSplitView`, ninguna sección
+  baja de **964 puntos** de ancho, e Informes se queda en **1692**. Eso ya no es
+  un fallo sino diseño: las tiras de ocho indicadores y las filas de cuatro
+  tarjetas piden ese ancho, y bajar de ahí es reorganizarlas en dos filas.
+- **Las cinco cosas del handoff que faltan a propósito** están en
+  `AUDITORIA-HANDOFF.md`: dos botones que moverían dinero sin estar escritos, un
+  PDF que no existe y dos datos que están en otro sitio.
+- **`destinatarioTipo` en iOS guarda el rótulo traducido**, como hacía el
+  `estado` de la agenda. Es el mismo fallo en un tercer sitio y sigue abierto.
+  En el Mac se guardan claves, y solo las dos verificadas contra la tabla
+  —`miembro` e `iglesia`—: las de "portador" y "otra persona" no se inventan.
+
 ### Las dos decisiones que llevaban dos días abiertas · cerradas
 
 **El bundle id del Mac se queda en `church.tamio.native`.** Una ficha con las dos
