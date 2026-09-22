@@ -125,13 +125,45 @@ dentro.
 ser el de la tubería: la corrida dio «exit 0» con 74 pruebas rojas. Es la misma
 trampa que el propio guion documenta para `xcodebuild`, una capa más arriba.
 
-### Lo que queda de esa corrida
+### Y la comparación que contesta si alguna era nuestra: no
 
-No se sabe si alguna de esas 74 es una regresión o llevan tiempo rojas: hay que
-correr las clases de teléfono acotadas contra `2555d99` y contra `HEAD`, y las
-del iPad **en su iPad**. Desde el 21-sep se puede: su MacBook Pro tiene
-emparejados el iPhone 17 Pro Max y el iPad Pro, así que el reparto es posible
-por primera vez.
+Se corrieron **las siete clases de interfaz que tocan cartas** —las únicas que
+lo de esta noche podía romper— en el iPhone, dos veces: en `HEAD` y en
+`2555d99`, esta segunda desde un *worktree* aparte. **Mismo resultado exacto**:
+14 fallidas y 2 pasadas, `EXIT=65` las dos, y el `diff` de las dos listas de
+pruebas con error sale **vacío**.
+
+O sea que esas catorce **ya estaban rojas antes** y llevan tiempo así sin que
+nadie mirara. Lo que dicen no es de cartas, es de navegación —*"no se llegó a
+Cartas"* en las veinte vueltas, *"Failed to tap «Membership reports» Button"*—,
+y ahí hay un hilo del que tirar: dentro de `DocumentosPDFUITests`,
+`testElActaTienePDF` pasa y `testLaCartaCompleta…` falla, así que no es que la
+clase entera no navegue.
+
+**Queda por medir** el resto de las clases de teléfono que fallaron (~24) y las
+del iPad **en su iPad**. Desde el 21-sep se puede repartir: su MacBook Pro tiene
+emparejados el iPhone 17 Pro Max y el iPad Pro.
+
+### Comprobar en otra revisión, sin mentirse
+
+Buscando si dos clases existían en `2555d99` nos tragamos el mismo falso negativo
+dos veces, en dos máquinas, y las dos veces el instrumento calló en vez de
+quejarse:
+
+- **`git grep -E` no soporta `\b`.** No da error: devuelve cero. Medido —
+  `git grep -nE "class (ConstanciaIPad|FirmaIPad)\b" 2555d99 -- pruebas` da 0
+  líneas, y el mismo patrón sin `\b` da 2. Se usa `git grep -F`, o mejor
+  `git show <rev>:<fichero>`, que enseña el archivo y no admite discusión.
+- **Y una clase de iPad NO vive necesariamente en un fichero con `IPad` en el
+  nombre.** `ConstanciaIPad` está en `ConstanciaUITests.swift` y `FirmaIPad` en
+  `FirmaUITests.swift`, cada uno con la variante de iPad y la de teléfono
+  dentro. Filtrar los ficheros por el nombre no llega a mirar dentro de esos
+  dos.
+
+Lo dijo mejor la sesión de la MacBook, que cayó en las dos: **dos comprobaciones
+que fallan por el mismo sesgo no son dos comprobaciones.** Es la misma familia
+que el `-only-testing` que no casa y se salta callado, y que el `tail` que se
+come el código de salida.
 
 ---
 
