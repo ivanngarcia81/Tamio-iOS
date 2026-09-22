@@ -19,8 +19,12 @@ Tocar cualquiera de esas carpetas afecta al iPhone, al iPad y al Mac a la vez.
    lo añade al `.pbxproj` SOLO el lead.
 2. Un solo `xcodebuild` a la vez por DerivedData (si no: `database is locked`).
    En equipo compila solo el teammate "verificador", con `-derivedDataPath /tmp/dd-verificador`.
-3. Las pruebas corren contra la base REAL de la iglesia (ModoRevision apagado).
-   No correr suites de interfaz que escriben sin permiso explícito de Iván.
+3. Las pruebas corren contra la iglesia sincronizada (ModoRevision apagado), y
+   esa iglesia es TODA de prueba: escribir en ella no daña a nadie. El cuidado es
+   por repetibilidad: una prueba que deja filas, cambia la moneda o devuelve un
+   asunto hace que la corrida siguiente arranque con otros datos. Las que escriben
+   o buscan filas de maqueta llevan `-modoRevision YES` (solo DEBUG, guarda en
+   memoria). Ver `docs/ROJAS-SEPTIEMBRE.md` §2.
 4. Compilar no es verificar. Di siempre qué se compiló y qué se vio en pantalla.
 5. `git push` solo cuando Iván lo pida, como orden suelta. Nunca encadenado a un commit.
 6. `docs/CONTEXTO.md` lo escribe solo el lead, al final. Los teammates le mandan sus notas.
