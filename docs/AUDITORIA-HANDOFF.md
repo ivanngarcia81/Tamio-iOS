@@ -22,9 +22,30 @@ acta, actividad, carta, culto y asistencia, sobre la forma común `HojaMac`.
 ⌘1…⌘9 y ⌘0. La carta va con ⇧⌘T y no con el ⇧⌘L que el handoff declara dos
 veces.
 
-**Sin diferencias: Inicio, Membresía, Agenda y Configuración.** Y en Tesorería,
-las cuatro tablas —Ingresos, Gastos, Aportantes y Depósitos— coinciden **columna
-por columna y en el mismo orden**.
+**Sin diferencias: Inicio, Membresía y Agenda.** Y en Tesorería, las cuatro
+tablas —Ingresos, Gastos, Aportantes y Depósitos— coinciden **columna por
+columna y en el mismo orden**.
+
+> **Esta pasada se quedó vieja el mismo día que se escribió, y en dos sitios.**
+>
+> Decía también "sin diferencias: … Configuración", y era falso: a esa pantalla
+> le faltaban siete de sus ocho secciones —seguridad, cerrar sesión y borrar la
+> cuenta; el logo; la previa del membrete; las firmas; invitar y sincronizar; el
+> porcentaje de las categorías; y la zona de riesgo entera, que era una nota
+> diciendo que no estaba enchufada—. Se terminaron el 21-sep por la noche.
+>
+> Y la tabla de abajo se midió **antes** de que se escribieran el panel de la
+> carta y el de Reportes, así que cuenta como ausentes rótulos que ya estaban en
+> el código —"Issue the letter", "INTERNAL NOTES", "VARIABLES", "RESOLVED"—.
+> Estaban escritos y **no se dibujaban**, que es otro fallo y no el que la tabla
+> dice: `bandaDeBorrador` y `notasInternas` existían en `PantallaCartas` y no los
+> llamaba nadie.
+>
+> **Volver a medirlo pide más cuidado del que parece.** Buscar el literal del
+> handoff en el código da falsos positivos en cuanto el rótulo no es un literal:
+> "Require Touch ID to open" se escribe con el nombre de la biometría
+> interpolado, y "USD — US dollar" lo compone `Catalogos`. Una pasada nueva
+> tiene que resolver eso antes de publicar una cifra.
 
 ### Lo que falta, medido
 
@@ -58,3 +79,24 @@ que se teclea y se pierde es peor que no tenerlo.
   los recorta en su maqueta y recortarlos de verdad escribiría en la columna
   valores que el servidor no reconoce.
 - **⇧⌘T para la carta**, por el choque de ⇧⌘L.
+
+## Configuración · lo que se dejó fuera a propósito
+
+Terminada contra `handoff7` el 21-sep. Tres cosas del diseño no entraron, y
+ninguna por olvido:
+
+- **"La secretaria puede ver reportes."** El handoff lo dibuja como interruptor
+  y **no hay columna** donde guardarlo: `tesoreroVePadron` y
+  `tesoreroPuedeEliminar` existen, este no. Es el mismo criterio que dejó fuera
+  el presupuesto de una actividad — un interruptor que se pierde al guardar es
+  peor que no tenerlo. Entra cuando el web tenga la columna.
+- **El segundo recuadro "PDF preview"** de Institución. Es la misma previa del
+  membrete que ya está arriba en esa pantalla, dibujada dos veces en la maqueta.
+- **La apariencia como dos filas con palomita.** Aquí es un selector, porque la
+  app tiene tres opciones y el handoff dibuja dos: falta "Automático".
+
+Y una **nota del handoff que se escribió distinta a propósito**: dice que el
+respaldo "va cifrado con la clave de la iglesia", y hoy no es verdad — va
+cifrado solo si se pide, con la contraseña que elija quien lo hace. Las notas se
+copian palabra por palabra cuando explican una regla; esta describe una que la
+app no cumple, y copiarla sería prometer un cifrado que no existe.

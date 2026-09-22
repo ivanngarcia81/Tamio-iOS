@@ -5,12 +5,133 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **21 de septiembre de 2026** (§0.-21, el ⌘N contextual,
+Última actualización: **21 de septiembre de 2026** (§0.-22, el aviso de las
+variables, el candado y Configuración entera; §0.-21, el ⌘N contextual,
 la primera hoja de Membresía y el estado traducido; §0.-20, las dos primeras acciones del Mac; §0.-19, las
 plantillas que no faltaban; §0.-18, la app de Mac). Lo anterior: las capturas y la
 ficha en §0.-17, lo técnico de la subida en §0.-16, lo de interfaz en §0.-15
 —verificado en el iPhone físico— y la pasada grande sigue siendo la segunda de
 QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-22 Lo que la carta no dice, el candado, y Configuración entera · 21 de septiembre, noche
+
+§0.-21 cerró con una lista de tres cosas que la app todavía no hacía. Esta
+noche cae la primera, y de paso Configuración, que era la pantalla con más
+huecos del Mac.
+
+### El aviso de lo que va a salir en blanco
+
+Es el complemento de una decisión suya: desde que **una variable sin valor se
+sustituye por nada**, el hueco dejó de verse. Las dos cartas de su base lo
+enseñan mejor que cualquier explicación: `CAR-2026-0007` se guardó con
+`{{fecha_membresia}}` crudo dentro, y `CAR-2026-0008`, ya con la regla nueva,
+dice *"has been a member of Iglesia de prueba since  and has requested their
+transfer"*. **La segunda se lee entera.** Nadie que la mire puede sospechar que
+le faltan dos datos.
+
+`VariablesCarta.faltantes` dice cuáles van a salir en blanco y `sinOrigen`
+separa las tres que no tienen dónde rellenarse —`numero_documento`,
+`estado_membresia`, `iglesia_procedencia`—. **El aviso va antes de GUARDAR**,
+que es el único momento en que todavía se sabe: la carta se guarda resuelta y
+después no queda rastro. `CartaEmitida` no tiene dónde apuntarlo y mirar su
+texto ya no distingue un hueco de una frase escrita así.
+
+No bloquea, informa. Una carta sin la fecha de membresía se puede querer emitir
+igual, y eso lo decide quien firma; lo que no puede es firmarse sin saberlo.
+
+**`aplicar` y `faltantes` comparten la expresión regular.** Si leyeran llaves
+distintas, el aviso hablaría de una carta distinta de la que se guarda.
+
+### Emitir un borrador, y tres cosas que estaban escritas y no se veían
+
+`bandaDeBorrador` y `notasInternas` existían en `PantallaCartas` desde que se
+trajo el papel al lado, y **no los llamaba nadie**. Por eso la auditoría daba
+por ausentes rótulos cuyo texto estaba en el código: el fallo no era que
+faltaran, era que no se dibujaban.
+
+**Y el botón de emitir llamaba a otra cosa.** `emitirCarta()` redacta una carta
+NUEVA desde el formulario del iPhone; con un borrador elegido se habría dado la
+vuelta en su `guard` o habría dejado dos cartas con el mismo texto y dos folios.
+`emitir(_:)` guarda la MISMA fila con el estado cambiado, y **el folio no se
+toca**: el definitivo lo da el contador del servidor al subir.
+
+Comprobado de punta a punta con `CAR-2026-0008`, con él delante: misma fila
+(`A97E910C-…`), `borrador` → `emitida`, siguen siendo 2 cartas, el `outbox` a 0
+y `actualizadoEn` de vuelta del servidor. El apunte del Registro lo puso el
+repositorio y no la pantalla —*"Letter CAR-2026-0008 issued to Ana Torres"*—,
+que es lo que hace que emitir desde otro sitio deje el mismo rastro.
+
+### El candado de este Mac
+
+El handoff pone un "Require Touch ID to open" en Cuenta. `BloqueoBiometrico` ya
+existía y es de plataforma neutra; lo que no existía era el candado, así que el
+interruptor habría sido un adorno.
+
+**Se echa al bloquearse la pantalla, NO al cambiar de app.** En iOS se echa al
+irse al fondo, y allí eso significa que guardaste el teléfono; en un Mac pasa
+cada vez que miras el correo. Las dos señales que sí valen son
+`screensDidSleep` y `sessionDidResignActive`, y van por el centro de
+notificaciones del `NSWorkspace`, no por el `default`.
+
+**Y sustituye a la app en vez de taparla.** Con un `.overlay`, la barra de
+herramientas seguía a la vista **y respondía**: SwiftUI la sube al marco de la
+ventana y ninguna vista de dentro la cubre. Medido con la app bloqueada —el ⌘N
+y el selector de periodo funcionaban—. La captura rápida es otra escena y lleva
+el suyo.
+
+### Configuración, las ocho secciones
+
+Casi todo lo que faltaba tenía el código detrás ya escrito y compartido: lo que
+faltaba era enchufarlo. Entran la seguridad, cerrar sesión y borrar la cuenta
+—aquí y no en la Zona de riesgo, por la 5.1.1(v) de Apple—, el logo, la previa
+del membrete, las firmas, invitar y sincronizar, el porcentaje de las
+categorías, y la zona de riesgo entera: respaldo con contraseña opcional, los
+dos CSV, compactar, restaurar y borrar los datos de este Mac.
+
+**El porcentaje de las categorías sale de `estadoFinanciero(...).composicion`**,
+que es lo mismo que alimenta la dona de Reportes. Calcularlo aparte sería pedir
+que dos pantallas de la misma app discrepen sobre el mismo mes.
+
+**Firmar en el Mac necesitó lienzo propio** —PencilKit no existe aquí— y dio
+dos trampas que conviene no volver a pisar:
+
+- `FirmasLocales.sinFondo` **es para FOTOS de una firma en papel**: mete la
+  imagen en un contexto de grises sin canal alfa y convierte lo oscuro en tinta.
+  Un dibujo que ya nace transparente sale **un rectángulo negro macizo**. Lo que
+  toca a un dibujo es solo `recortada`, como hace `guardarDibujo` en iOS.
+- Y se guardaba a 1× por dos cosas de AppKit: `lockFocus` **añade su propia
+  representación** a la escala de la pantalla e ignora la que se le puso, y una
+  `NSImage` de 520×200 puntos con bitmap de 1560×600 **se rasteriza a 520×200**
+  al pedirle su `CGImage` —que es lo que hacen `recortada` y `datosPNG`—. En iOS
+  no pasa porque `UIImage.cgImage` es el bitmap de verdad. Dibujando ya escalado:
+  1100×350 con alfa, medido.
+
+### La suite en el aparato, y una trampa que costó dos horas
+
+**`aparato.sh` sin `-only-testing` NO puede pasar en un solo aparato**, y eso no
+estaba escrito en ningún sitio. El paquete `PruebasUIAparato` mezcla pasadas del
+iPad —`AjustesIPadUITests` fuerza apaisado y busca una barra lateral— con las
+del teléfono, así que corrido entero en el iPhone da **106 pasadas y 74
+fallidas** y tarda dos horas. El *"243 pruebas, 0 fallos"* de §0.-21 era el
+paquete de UNIDAD, no la suite entera.
+
+Lo que sí vale y es lo que cubre el código compartido: **`PruebasAparato`, 245
+pasadas y 0 fallidas** en el iPhone, con las 8 nuevas de `VariablesDeCartaTests`
+dentro.
+
+**Y no se pasa el guion por `tail` ni por `grep`.** El código de salida pasa a
+ser el de la tubería: la corrida dio «exit 0» con 74 pruebas rojas. Es la misma
+trampa que el propio guion documenta para `xcodebuild`, una capa más arriba.
+
+### Lo que queda de esa corrida
+
+No se sabe si alguna de esas 74 es una regresión o llevan tiempo rojas: hay que
+correr las clases de teléfono acotadas contra `2555d99` y contra `HEAD`, y las
+del iPad **en su iPad**. Desde el 21-sep se puede: su MacBook Pro tiene
+emparejados el iPhone 17 Pro Max y el iPad Pro, así que el reparto es posible
+por primera vez.
 
 ---
 
