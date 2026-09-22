@@ -62,8 +62,28 @@ struct PantallaConfiguracion: View {
     @State private var errorBorrado: String?
 
     var body: some View {
-        HSplitView {
-            barra.frame(minWidth: 240, idealWidth: 300, maxWidth: 360)
+        // **`HStack` y no `HSplitView`, y es lo que hace que esta pantalla
+        // quepa.**
+        //
+        // El `HSplitView` clavaba la barra de secciones en su `maxWidth: 360`
+        // y **no la comprimía nunca**: ni apretando la ventana ni arrastrando
+        // su separador —probado, el ancho no se movía—. Con la barra de la app
+        // en 220 y el contenido en 521, el mínimo de la ventana se iba a 1101,
+        // y media pantalla de una MacBook de 14" son 900.
+        //
+        // Un `HStack` sí respeta el `minWidth` cuando falta sitio: 220 + 240 +
+        // 420 = 880, y cabe. El precio es el separador arrastrable entre la
+        // barra de secciones y el panel, que en una pantalla de ajustes no
+        // vale lo que cuesta: la lista de secciones no es una columna que uno
+        // quiera ensanchar, y el divisor de la ventana principal sigue ahí.
+        HStack(spacing: 0) {
+            // **Mínimo 300 y no 240.** Con 240 el `HStack` sí comprimía —la
+            // ventana bajaba a 881— pero la barra se RECORTABA: su contenido
+            // natural es más ancho que 240 y SwiftUI lo centra y lo corta por
+            // los dos lados. Se leía "tings" en vez de "Settings" y "AL" en
+            // vez de "GENERAL". Caber rompiendo es peor que no caber.
+            barra.frame(minWidth: 320, idealWidth: 320, maxWidth: 360)
+            Divider()
             ScrollView {
                 VStack(spacing: 24) {
                     cabecera

@@ -415,6 +415,34 @@ Lo que queda para Iván es solo la holgura: no tocar nada —arrastrar las colum
 una vez y macOS lo recuerda—, poner `ideal` igual a `min`, o que el inspector se
 retire solo por debajo de cierto ancho, como hace Mail.
 
+### Configuración: de 1101 a 961, y por qué no baja de ahí
+
+Su `HSplitView` clavaba la barra de secciones en su `maxWidth: 360` y **no la
+comprimía nunca** —ni apretando la ventana ni arrastrando su separador, probado
+con un arrastre de verdad: el ancho no se movía—. Medido sobre la captura a
+1101: barra de la app 220 + barra de secciones **360** + panel 521.
+
+Un `HStack` sí respeta el `minWidth` cuando falta sitio, así que se cambió. Pero
+el mínimo bueno costó tres intentos, y los dos primeros enseñan algo:
+
+| `minWidth` de la barra | Ventana | Resultado |
+|---|---|---|
+| 240 | **881** | ✗ **recortaba**: "tings" por "Settings", "AL" por "GENERAL" |
+| 300 | 941 | ✗ seguía recortando unos píxeles: "ettings", "HURCH" |
+| **320** | **961** | ✓ limpio |
+
+**Caber rompiendo es peor que no caber**, así que el suelo es 961. El ancho
+natural de esa barra está entre 300 y 320: por debajo, SwiftUI la centra y la
+corta por los dos lados en vez de truncar el texto.
+
+**Y con eso Configuración sigue sin caber en los 900 de una MacBook de 14", por
+61 puntos.** Bajarlos ya no es mecánico: pide estrechar la barra de secciones de
+verdad —título más pequeño, filas más apretadas— o que se pliegue por debajo de
+cierto ancho. Eso es diseño y lo decide Iván.
+
+El resto de la app, medido después del cambio: Ingresos 520, Reportes 729,
+Membresía 650. Cero caídas en el recorrido.
+
 ### Una caída, y era del instrumento de medir
 
 Midiendo esto la app se cayó una vez: `EXC_BREAKPOINT` en
