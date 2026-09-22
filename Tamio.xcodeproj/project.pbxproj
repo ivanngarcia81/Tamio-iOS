@@ -141,6 +141,7 @@
 		7B80744577B188C5A6DCBDF1 /* PreferenciasApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E478666D7AD087B2BD5F242 /* PreferenciasApp.swift */; };
 		7C8B0B33369C84E73B92C54D /* SecretariaPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = C47BA26B52E55B712BF550D6 /* SecretariaPDF.swift */; };
 		7CEAFE0759CA941DE2377396 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 12E0985809A88DD8A5848115 /* Assets.xcassets */; };
+		AAAA0003C0DE4F1CA0000003 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = AAAA0001C0DE4F1CA0000001 /* AppIcon.icon */; };
 		7D7CE5C1042FDF27548CDA9C /* CategoriaCustom.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2EA353B9B96816B248DC3C /* CategoriaCustom.swift */; };
 		8114401D93F3BF7213DA18B4 /* DashboardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3258F1AD72FB1E23580B3A1 /* DashboardRepository.swift */; };
 		818AE96AAD66B25A221B46BD /* InspectorTamio.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9713DD4E1959A5A6820F895 /* InspectorTamio.swift */; };
@@ -224,6 +225,7 @@
 		BE05BA901A3B7DB30C4BBC8D /* OfflineDepositosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC569F015276F5D82D6C0438 /* OfflineDepositosRepository.swift */; };
 		BF3447E00DFEBC54A8001306 /* ConfiguracionIglesiaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED2D352ABF4028DA709B359 /* ConfiguracionIglesiaRepository.swift */; };
 		C10D7EC23F4FDFE27435DC81 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 12E0985809A88DD8A5848115 /* Assets.xcassets */; };
+		AAAA0002C0DE4F1CA0000002 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = AAAA0001C0DE4F1CA0000001 /* AppIcon.icon */; };
 		C220C5F2586B03DBAE82DCD2 /* Permisos.swift in Sources */ = {isa = PBXBuildFile; fileRef = D624B7AA19596E66494F18D3 /* Permisos.swift */; };
 		C317B0F66038A628D14A67FA /* ActasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D014F01B5FC4BD495876EBD4 /* ActasView.swift */; };
 		C939626C1FC08A782F5A721A /* RegistroViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67090E139352F07F95F36587 /* RegistroViewModel.swift */; };
@@ -295,6 +297,7 @@
 		104BB262263545102AC83A31 /* SeccionAjustes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeccionAjustes.swift; sourceTree = "<group>"; };
 		1283425908338B34926D5B4A /* ServiciosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiciosRepository.swift; sourceTree = "<group>"; };
 		12E0985809A88DD8A5848115 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AAAA0001C0DE4F1CA0000001 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		1301E5AC9EB6B7EC2D9CD6BD /* CategoriasViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasViewModel.swift; sourceTree = "<group>"; };
 		15A5130CEB89DC504039D507 /* Revision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Revision.swift; sourceTree = "<group>"; };
 		18B65D57D2D2B817B8EFC946 /* CategoriasRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriasRepository.swift; sourceTree = "<group>"; };
@@ -486,6 +489,7 @@
 			isa = PBXGroup;
 			children = (
 				12E0985809A88DD8A5848115 /* Assets.xcassets */,
+				AAAA0001C0DE4F1CA0000001 /* AppIcon.icon */,
 				1AD7AC08B4DD324D9C830368 /* en.lproj */,
 				B70AC1D56C28E613BA62E4E0 /* es.lproj */,
 				81FAB6F7146708D41314D79A /* PrivacyInfo.xcprivacy */,
@@ -843,6 +847,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C10D7EC23F4FDFE27435DC81 /* Assets.xcassets in Resources */,
+				AAAA0002C0DE4F1CA0000002 /* AppIcon.icon in Resources */,
 				B0DEDF6C059A18DB1168798D /* InfoPlist.strings in Resources */,
 				296DD7FF0F2C9BB8A5462499 /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -853,6 +858,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7CEAFE0759CA941DE2377396 /* Assets.xcassets in Resources */,
+				AAAA0003C0DE4F1CA0000003 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
