@@ -320,6 +320,41 @@ la semilla y su roja es otra cosa.
 entera, no recortada. Es lo único de toda esta tanda que mide daño a un
 aportante de verdad.
 
+### Media pantalla: no eran las tiras de indicadores, era el inspector
+
+§0.-21 dejó escrito que «ninguna sección baja de 964 de ancho» y que eso era
+rediseño de las tiras de ocho indicadores. La cifra **es cierta** —comprobada
+pidiéndole a la ventana `set size to {520, 800}` y leyendo lo que macOS deja; el
+alto obedece y el ancho se clava— pero la causa era otra.
+
+Mínimos medidos, con el inspector abierto:
+
+| Inicio | Ingresos · Gastos · Aportantes · Depósitos · Registro | Actas | Por revisar | Membresía | Reportes | **Configuración** |
+|---|---|---|---|---|---|---|
+| 1360 | 964 | 969 | 1027 | 1306 | 1385 | **2101** |
+
+Y con el inspector cerrado (⌘I):
+
+    Ingresos       964 → **520**   (el mínimo declarado, tal cual)
+    Configuración 2101 → **1165**
+
+**El inspector es lo que no cabe.** Está en `VentanaPrincipal.swift:75`, un
+`.inspector(isPresented:)` sin ancho declarado, y en Configuración cuesta 936 pt
+él solo.
+
+Media pantalla de su MacBook Pro de 14" son **900 pt** (1800 × 1169 en puntos).
+Así que:
+
+- **Con el inspector abierto no cabe ninguna sección.** La menor pide 964.
+- **Con el inspector cerrado cabe casi todo**, y con holgura.
+- **Configuración no cabe ni así**: 1165, por su propio `HSplitView` de tres
+  columnas dentro de la barra lateral de la app.
+
+O sea que la pregunta ya no es si cabe, sino qué se ve a 900 pt, y el trabajo no
+es rediseñar las tiras: es decidir qué hace el inspector cuando no hay sitio
+—encogerse, o retirarse solo por debajo de cierto ancho— y qué hace
+Configuración con sus tres columnas.
+
 ### Estado final del iPad · 22-sep
 
 5 verdes, 1 omitida, 4 rojas —2 por datos que no existen y 2 porque el Split
