@@ -256,6 +256,41 @@ no se vuelve verde con nada que arregle nadie. Para comprobarla hace falta esa
 aportante en el padrón, o **una iglesia de usar y tirar sembrada**, que es
 además lo que resolvería que seis pruebas escriban hoy en los libros de verdad.
 
+### Una prueba tiene que dejar el aparato como lo encontró
+
+Lo preguntó Iván, y destapó que el arreglo solo iba a medias: **él no tenía el
+candado activado en Tamio, y las corridas se lo activaron.** Leído del iPad el
+22-sep, `bloqueo.biometrico => true`. El arreglo de `CandadoIPad` evita que
+vuelva a pasar —ya no toca el interruptor— pero **no repara lo que quedó
+encendido**, y nadie lo apagó.
+
+Lo peor es que **las corridas no lo notan**: desde que todas las clases llevan
+`-bloqueo.biometrico` en los argumentos, el dominio de argumentos pisa al
+guardado y el valor persistido es invisible para las pruebas. Lo nota el dueño
+del aparato cuando abre la app.
+
+De ahí la comprobación que faltaba y que a partir de ahora cierra una tanda:
+**releer las preferencias del aparato AL FINAL**, y compararlas con el antes. Es
+la única forma de saber si una corrida dejó el aparato distinto de como lo
+encontró. Vale igual para los datos: la foto de las filas antes de correr algo
+que escriba.
+
+Para apagarlo hay dos caminos. A mano —abrir, desbloquear, Ajustes · Cuenta— o,
+si el aparato no está a mano, lanzar con `-bloqueo.biometrico NO` (así la app no
+arranca bloqueada y se puede navegar) y **tocar el interruptor dos veces**: el
+argumento solo pisa la lectura del `init`, y el `didSet` persiste cada cambio
+posterior, así que el segundo toque deja guardado el `false`.
+
+**Y dos trampas de las herramientas de leerlo**, que van con las del día:
+
+- `plutil -extract "bloqueo.biometrico" raw` **falla**: interpreta el punto como
+  separador de ruta de claves y busca `biometrico` dentro de un diccionario
+  `bloqueo`. Al menos protesta —«No value at that key path»— en vez de contestar
+  `false`, que habría sido el desastre. Se lee con `plutil -p` y mirando la
+  línea, o con `defaults read <plist> <clave>`, que sí entiende el punto.
+- `devicectl device copy from --destination` quiere una **ruta de archivo**, no
+  una carpeta: con carpeta da `CoreDeviceError 7000 · Is a directory`.
+
 ### Estado final del iPad · 22-sep
 
 5 verdes, 1 omitida, 4 rojas —2 por datos que no existen y 2 porque el Split
