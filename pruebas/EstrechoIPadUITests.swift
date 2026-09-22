@@ -22,7 +22,8 @@ final class EstrechoIPad: XCTestCase {
         // que el contenedor del simulador ya lo tenga puesto. Sin él, un
         // contenedor recién estrenado abre la app en la bienvenida y no hay
         // ni sidebar ni pestañas.
-        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+        app.launchArguments += ["-bloqueo.biometrico", "NO",
+                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
         app.launch(); sleep(2)
         XCUIDevice.shared.orientation = .portrait; sleep(2)
@@ -52,9 +53,18 @@ final class EstrechoIPad: XCTestCase {
         app.navigationBars.buttons[titulo].exists
     }
 
-    func testLaFichaSeAbreYSeVuelve() {
+    /// **Se SALTA en un iPad grande, no falla.**
+    ///
+    /// Esta pasada es del iPad mini —es donde la columna del detalle baja de
+    /// 640 pt con la barra lateral fijada, que es lo que dice `LEEME.md`—, y
+    /// en esta casa no hay mini: el iPad Pro de 12,9" da 1192 pt. Con un
+    /// `XCTAssertLessThan` eso es una roja que no se puede apagar con nada, y
+    /// una roja permanente acaba enseñando a ignorar el color. Omitida dice lo
+    /// que de verdad pasa: esta prueba no es para este aparato.
+    func testLaFichaSeAbreYSeVuelve() throws {
+        try XCTSkipUnless(app.frame.width < 1024,
+                          "### esta prueba es del iPad pequeño; aquí la ventana mide \(app.frame.width)")
         XCTAssertTrue(app.buttons["Hide Sidebar"].exists, "### la sidebar tiene que estar fijada")
-        XCTAssertLessThan(app.frame.width, 1024, "### esta prueba es del iPad pequeño")
 
         seccion("Income")
         tocarTexto("Mission offering")

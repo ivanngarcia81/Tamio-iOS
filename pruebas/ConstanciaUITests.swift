@@ -10,7 +10,8 @@ class Constancia: XCTestCase {
     func arrancar() {
         continueAfterFailure = true
         app = XCUIApplication()
-        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+        app.launchArguments += ["-bloqueo.biometrico", "NO",
+                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
         app.launch(); sleep(3)
     }

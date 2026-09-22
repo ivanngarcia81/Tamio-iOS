@@ -140,9 +140,68 @@ y ahí hay un hilo del que tirar: dentro de `DocumentosPDFUITests`,
 `testElActaTienePDF` pasa y `testLaCartaCompleta…` falla, así que no es que la
 clase entera no navegue.
 
-**Queda por medir** el resto de las clases de teléfono que fallaron (~24) y las
-del iPad **en su iPad**. Desde el 21-sep se puede repartir: su MacBook Pro tiene
-emparejados el iPhone 17 Pro Max y el iPad Pro.
+### La cuenta buena, después de medirlo todo
+
+Se corrieron también las otras 24 clases de teléfono. **El total en el iPhone es
+58 rojas** —14 de la tanda de cartas y 44 de esta—, pero la cifra que vale es
+otra:
+
+| | |
+|---|---|
+| Rojas en bruto | 58 |
+| De ellas, **paseos de capturas** sin una sola aserción | **14** |
+| **Rojas de verdad** | **44**, en 26 clases |
+
+Los paseos son `HojasSecretaria` (7), `HojasTesoreria` (6) y `MembresiaTelefono`
+(1). **No son pruebas y contarlas como fallos es un error de categoría**: la
+cabecera de `HojasIPad` dice que cada parada fotografía, vuelca los rótulos y
+avisa de lo que se sale, y que *"eso es lo que hay que mirar en las capturas"*;
+la de `MembresiaTelefono`, que es *"para el diff de píxeles"*. Solo pueden fallar
+si un toque no encuentra su objetivo, y nunca comprueban contenido. Las dos
+primeras son además **clases de iPad** —heredan de `HojasIPad`— corriendo en el
+teléfono.
+
+De las 44 de verdad, **solo 7 tienen demostrado que no son nuestras**: las de la
+tanda de cartas, con su diff vacío. La comparación de las otras 37 contra
+`2555d99` se cortó a las 17 de 55 y **queda pendiente**.
+
+### El iPad: 36 pruebas, 15 que comprueban algo
+
+Corrido en su iPad Pro desde la MacBook, en tres intentos, y **ninguno dio una
+línea base**: el primero con la app sin sesión, el segundo y el tercero con el
+candado echado. El reparto real de esa suite:
+
+| | |
+|---|---|
+| Paseo de capturas | 20 |
+| Imposible en este hardware (`EstrechoIPad`, es del iPad mini) | 1 |
+| **Comprueban algo** | **15** |
+
+De esas 15, hoy se vio pasar **una**. La cobertura real de iPad es bastante más
+fina que lo que sugiere el número 36, y eso no es de hoy: es lo que había.
+
+### Tres arreglos para que un rojo vuelva a significar algo
+
+Los tres salieron de lo anterior y no tocan la app, solo la suite:
+
+- **`CandadoIPad` encendía el candado tocando el interruptor de Ajustes y no lo
+  apagaba.** Es estado persistente DEL APARATO: dejó el iPad bloqueado entre
+  corridas y costó tres seguidas, todas rojas con mensajes convincentes sobre
+  barras laterales que no faltaban. Ahora lo enciende **por argumento de
+  lanzamiento** (`-bloqueo.biometrico YES`), que no se escribe de vuelta, y el
+  ajuste del aparato se queda como estaba. No hace falta limpiar después —que
+  además no se podía: con el candado echado no se navega a Ajustes—.
+- **Las demás clases de iPad llevan `-bloqueo.biometrico NO` en su `setUp`.**
+  Dejaban de depender del orden: hoy `PasadaCristal` salía roja o verde según si
+  alguien había corrido `CandadoIPad` antes.
+- **`EstrechoIPad` se OMITE en un iPad grande en vez de fallar.** Es del mini, y
+  aquí no hay mini. Una roja permanente acaba enseñando a ignorar el color.
+
+El mecanismo del argumento no es una apuesta: `BloqueoBiometrico` lee su clave
+de `UserDefaults` en el `init`, igual que `PreferenciasApp` lee `prefs.idioma` y
+`prefs.bienvenidaVista`, y esas dos llevan pisándose por argumento desde
+siempre. El `didSet` que persiste no dispara en una asignación dentro del
+`init`.
 
 ### Comprobar en otra revisión, sin mentirse
 

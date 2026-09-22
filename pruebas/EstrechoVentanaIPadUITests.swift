@@ -18,7 +18,8 @@ final class EstrechoIPadUITests: XCTestCase {
         continueAfterFailure = true
         XCUIDevice.shared.orientation = .landscapeLeft
         let app = XCUIApplication()
-        app.launchArguments = ["-prefs.bienvenidaVista", "1", "-AppleLanguages", "(en)"]
+        app.launchArguments = ["-prefs.bienvenidaVista", "1", "-AppleLanguages", "(en)",
+                               "-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(3)
 

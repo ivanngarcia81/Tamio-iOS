@@ -19,7 +19,7 @@ final class AjustesIPadUITests: XCTestCase {
         app = XCUIApplication()
         // Un contenedor recién estrenado abre la app en la bienvenida, y
         // entonces la sidebar no existe (§0.-7).
-        app.launchArguments = ["-prefs.bienvenidaVista", "1"]
+        app.launchArguments = ["-prefs.bienvenidaVista", "1", "-bloqueo.biometrico", "NO"]
         app.launch()
     }
 

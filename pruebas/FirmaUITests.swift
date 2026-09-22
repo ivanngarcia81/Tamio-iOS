@@ -17,7 +17,8 @@ final class FirmaIPad: XCTestCase {
         // que el contenedor del simulador ya lo tenga puesto. Sin él, un
         // contenedor recién estrenado abre la app en la bienvenida y no hay
         // ni sidebar ni pestañas.
-        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+        app.launchArguments += ["-bloqueo.biometrico", "NO",
+                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
         app.launch(); sleep(2)
         XCUIDevice.shared.orientation = .landscapeLeft; sleep(3)
@@ -74,7 +75,8 @@ final class FirmaIPhone: XCTestCase {
         // que el contenedor del simulador ya lo tenga puesto. Sin él, un
         // contenedor recién estrenado abre la app en la bienvenida y no hay
         // ni sidebar ni pestañas.
-        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+        app.launchArguments += ["-bloqueo.biometrico", "NO",
+                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
         app.launch(); sleep(3)
         app.tabBars.buttons["Settings"].tap(); sleep(2)

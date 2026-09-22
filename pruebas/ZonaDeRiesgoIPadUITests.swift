@@ -33,7 +33,8 @@ final class ZonaDeRiesgoIPadUITests: XCTestCase {
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()
-        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+        app.launchArguments += ["-bloqueo.biometrico", "NO",
+                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "1"]
         app.launch()
         sleep(3)

@@ -12,8 +12,24 @@ final class CandadoIPad: XCTestCase {
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()
+        // **El candado se enciende POR ARGUMENTO, no tocando Ajustes.**
+        //
+        // `BloqueoBiometrico` lee `activo` una sola vez en su `init`, con
+        // `UserDefaults.standard.bool(forKey:)`, y el dominio de argumentos
+        // pisa al persistido — es el mismo mecanismo con el que estas pruebas
+        // llevan desde siempre poniendo `-prefs.idioma` y
+        // `-prefs.bienvenidaVista`. Y no escribe de vuelta: el `didSet` que
+        // persiste no dispara en una asignación dentro del `init`.
+        //
+        // Antes se encendía tocando el interruptor de Ajustes · Cuenta, y eso
+        // **dejaba el aparato encendido para siempre**: el 22-sep costó tres
+        // corridas del iPad seguidas —todas rojas, con mensajes convincentes
+        // sobre barras laterales que no faltaban— hasta descubrir que la app
+        // estaba bloqueada desde la corrida anterior. Una prueba que cambia el
+        // estado del aparato y no lo deshace envenena a las que vienen detrás.
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
-                                "-prefs.bienvenidaVista", "YES"]
+                                "-prefs.bienvenidaVista", "YES",
+                                "-bloqueo.biometrico", "YES"]
         app.launch(); sleep(3)
         XCUIDevice.shared.orientation = .landscapeLeft; sleep(3)
     }
@@ -31,9 +47,9 @@ final class CandadoIPad: XCTestCase {
         parada(n)
     }
 
-    /// **El candado se queda encendido entre corridas**, así que la prueba
-    /// tiene que servir para las dos entradas: la primera vez hay que
-    /// encenderlo en Ajustes, y a partir de ahí la app ya arranca bloqueada.
+    /// **La app arranca ya bloqueada**, porque el `setUp` lo pide por
+    /// argumento. No hace falta encenderlo en Ajustes ni deshacerlo después:
+    /// el ajuste guardado del aparato se queda como estaba.
     func testElCandadoEnLasDosOrientaciones() {
         let sb = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         func cancelarDialogo() {
@@ -43,21 +59,18 @@ final class CandadoIPad: XCTestCase {
         var bloqueada = sb.buttons["Cancel"].firstMatch.waitForExistence(timeout: 6)
             || app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'locked'")).firstMatch.exists
 
+        // Si no salió a la primera, una vuelta al fondo y de vuelta: el
+        // candado se echa en `alIrseAlFondo()`, no solo al arrancar.
         if !bloqueada {
-            // Encenderlo en Ajustes · Cuenta.
-            let ajustes = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Settings'")).firstMatch
-            if !(ajustes.exists && ajustes.isHittable) {
-                app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'sidebar'")).firstMatch.tap(); sleep(1)
-            }
-            ajustes.tap(); sleep(2)
-            app.buttons["Account"].firstMatch.tap(); sleep(2)
-            let interruptor = app.switches.firstMatch
-            print("### interruptor valor=\(interruptor.value ?? "-")")
-            if interruptor.exists, (interruptor.value as? String) == "0" { interruptor.tap(); sleep(2) }
             XCUIDevice.shared.press(.home); sleep(3)
             app.activate(); sleep(4)
-            bloqueada = true
+            bloqueada = sb.buttons["Cancel"].firstMatch.waitForExistence(timeout: 6)
+                || app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'locked'")).firstMatch.exists
         }
+        // Si ni así se bloqueó, el fallo es de la señal y no de la pantalla.
+        // Decirlo AQUÍ ahorra leer las cinco aserciones de abajo buscando por
+        // qué no aparece nada: todas dirían lo mismo con peores palabras.
+        XCTAssertTrue(bloqueada, "### la app no se bloqueó ni al arrancar ni al volver del fondo")
         cancelarDialogo()
         volcado("B-01-candado-apaisado")
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'locked'")).firstMatch.exists,

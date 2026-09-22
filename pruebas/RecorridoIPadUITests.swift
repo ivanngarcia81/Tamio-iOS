@@ -49,7 +49,7 @@ final class RecorridoIPadUITests: XCTestCase {
         default:         XCUIDevice.shared.orientation = .landscapeLeft
         }
         app = XCUIApplication()
-        var args = ["-prefs.bienvenidaVista", "1"]
+        var args = ["-prefs.bienvenidaVista", "1", "-bloqueo.biometrico", "NO"]
         // El idioma va por argumento de lanzamiento y no tocando el ajuste
         // global del simulador: así una postura no contamina a la siguiente.
         if let idioma = env["IDIOMA"] {

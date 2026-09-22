@@ -10,7 +10,8 @@ final class AccesoIPad: XCTestCase {
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()
-        app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+        app.launchArguments += ["-bloqueo.biometrico", "NO",
+                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
     }
     override func tearDown() { XCUIDevice.shared.orientation = .portrait; sleep(1) }

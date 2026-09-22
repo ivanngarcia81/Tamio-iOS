@@ -29,7 +29,7 @@ final class PasadaCristalIPadUITests: XCTestCase {
         continueAfterFailure = true
         XCUIDevice.shared.orientation = .landscapeLeft
         app = XCUIApplication()
-        app.launchArguments = ["-prefs.bienvenidaVista", "1",
+        app.launchArguments = ["-prefs.bienvenidaVista", "1", "-bloqueo.biometrico", "NO",
                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                "-prefs.tema", tema]
         app.launch()
