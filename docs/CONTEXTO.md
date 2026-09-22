@@ -350,10 +350,45 @@ Así que:
 - **Configuración no cabe ni así**: 1165, por su propio `HSplitView` de tres
   columnas dentro de la barra lateral de la app.
 
-O sea que la pregunta ya no es si cabe, sino qué se ve a 900 pt, y el trabajo no
-es rediseñar las tiras: es decidir qué hace el inspector cuando no hay sitio
-—encogerse, o retirarse solo por debajo de cierto ancho— y qué hace
-Configuración con sus tres columnas.
+**Pero el inspector tampoco era toda la causa.** Las dos columnas laterales
+declaran ancho y las dos **se plantan en su `ideal`, no en su `min`**:
+
+    VentanaPrincipal.swift:55  .navigationSplitViewColumnWidth(min: 220, ideal: 252, max: 320)
+    InspectorTamio.swift:56    .inspectorColumnWidth(min: 260, ideal: 312, max: 420)
+
+Medido sobre la captura de la ventana a 964: barra lateral **252** (su ideal),
+contenido 399 —ya recortado, la tabla scrollea en horizontal—, inspector **313**
+(su ideal). Suman 964 exacto.
+
+Y el `min` **sí se honra**, solo que no se aplica solo. Arrastrando los
+separadores a mano, el mínimo de la ventana baja con ellos:
+
+    barra lateral de 252 a 215  → la ventana pasa de 964 a **932** (los 32 de 252−220)
+    y estrechando el inspector  → **828**, con el inspector ABIERTO
+
+O sea que **lo que falla no es el ancho declarado: es que SwiftUI no comprime
+las columnas cuando la ventana aprieta.** Nacen en su `ideal` y de ahí solo las
+mueve el ratón. Un `min` que nadie aplica se lee en el código, cuadra con lo que
+uno espera y no avisa de que no se está usando.
+
+### La foto final, con media pantalla de su MacBook = 900 pt
+
+| Sección | Columnas por defecto | Columnas al mínimo |
+|---|---|---|
+| Ingresos, Gastos, Aportantes, Depósitos, Registro | 964 | **828** ✓ |
+| Actas · Por revisar · Membresía · Inicio | 969 · 1027 · 1306 · 1360 | — |
+| **Reportes** | 1385 | **1249** ✗ |
+| **Configuración** | 2101 | **1881** ✗ |
+
+Así que §0.-21 acertaba a medias: **Reportes sí necesita rediseño** —sus tiras
+de ocho indicadores y sus filas de cuatro tarjetas—, y Configuración también,
+por su `HSplitView` de tres columnas. Lo que no necesita rediseño es el resto:
+esas caben en cuanto las columnas laterales dejan de ocupar su ideal.
+
+Tres caminos, y los decide Iván: no tocar nada —arrastrar las columnas una vez y
+macOS lo recuerda—, poner `ideal` igual a `min` —arranca compacta y se pierde
+holgura en pantalla grande—, o que el inspector se retire solo por debajo de
+cierto ancho, como hace Mail.
 
 ### Estado final del iPad · 22-sep
 
