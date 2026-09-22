@@ -57,22 +57,41 @@ struct VentanaPrincipal: View {
             VStack(spacing: 0) {
                 contenido
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                BarraEstado(estado: textoEstado)
+                BarraEstado(estado: textoEstado, hayInspector: seccionAlimentaElInspector)
             }
             .navigationTitle(estado.seccion.titulo)
             .navigationSubtitle(subtitulo)
             .toolbar { barraDeHerramientas }
         }
-        // **El inspector está en TODAS las pantallas.**
+        // **El inspector está en todas las pantallas QUE LO ALIMENTAN.**
         //
         // Estuvo apagado en las de documento —Inicio, Cartas, Informes,
-        // Servicios— por decisión propia: la hoja ya ocupa la derecha y un
-        // tercer panel la estrecha. El handoff dice lo contrario, y con razón:
+        // Servicios— por decisión propia, y se encendió con razón: el handoff
         // nunca lo apaga, le da CONTENIDO distinto en cada pantalla —tiene
         // entrada explícita para `memreports`, `services` y `home`— y deja que
-        // sea quien mira, con ⌘I, el que decida si le estorba. Apagarlo por él
-        // era decidir en su nombre.
-        .inspector(isPresented: $estado.inspectorAbierto) {
+        // sea quien mira, con ⌘I, el que decida si le estorba.
+        //
+        // **Pero hay dos donde la app no tiene nada que poner**, y ahí el
+        // argumento se da la vuelta: en Reportes el inspector cae al `default`
+        // del `switch` y enseña *"Nothing selected · This screen does not feed
+        // the inspector yet"*, y en Configuración enseña el título de la
+        // sección y *"Se edita en el panel de la izquierda"*, con cero campos.
+        // Trescientos trece puntos de ventana para decir que no hay nada que
+        // decir.
+        //
+        // **Y son justo las dos que no caben en media pantalla.** Medido el
+        // 22-sep, con las columnas laterales en su mínimo: Reportes pasa de
+        // 1249 a **729** quitándolo, o sea que cabe de sobra en los 900 de una
+        // MacBook de 14"; Configuración baja de 1881 a 1101 y sigue sin caber,
+        // pero eso ya es su `HSplitView` de tres columnas, no esto.
+        //
+        // No se apaga: no se ofrece donde no hay qué inspeccionar. La
+        // preferencia de quien mira se respeta —si lo tenía abierto, al volver
+        // a una pantalla que sí lo alimenta vuelve a salir—.
+        .inspector(isPresented: Binding(
+            get: { estado.inspectorAbierto && seccionAlimentaElInspector },
+            set: { estado.inspectorAbierto = $0 }
+        )) {
             InspectorTamio(seccion: estado.seccion, ficha: ficha)
         }
         .searchable(text: bindingFiltro, placement: .toolbar,
@@ -378,7 +397,26 @@ struct VentanaPrincipal: View {
             } label: {
                 Label(L.t("Inspector", "Inspector"), systemImage: "sidebar.trailing")
             }
-            .help(L.t("Inspector (⌘I)", "Inspector (⌘I)"))
+            // Apagado donde no hay qué inspeccionar. Un botón que se pulsa y no
+            // pasa nada es la misma promesa incumplida que el panel vacío.
+            .disabled(!seccionAlimentaElInspector)
+            .help(seccionAlimentaElInspector
+                  ? L.t("Inspector (⌘I)", "Inspector (⌘I)")
+                  : L.t("Esta pantalla no tiene inspector",
+                        "This screen has no inspector"))
+        }
+    }
+
+    /// **Qué secciones tienen algo que enseñar en el inspector.**
+    ///
+    /// Reportes no aparece siquiera en el `switch` que lo construye —cae al
+    /// `default`, que devuelve `.nada`— y Configuración devuelve un resumen sin
+    /// campos cuyo texto es un cartel señalando a la izquierda. Ver el
+    /// comentario del `.inspector`.
+    private var seccionAlimentaElInspector: Bool {
+        switch estado.seccion {
+        case .reportes, .config: return false
+        default: return true
         }
     }
 

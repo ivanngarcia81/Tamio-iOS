@@ -385,10 +385,54 @@ de ocho indicadores y sus filas de cuatro tarjetas—, y Configuración también
 por su `HSplitView` de tres columnas. Lo que no necesita rediseño es el resto:
 esas caben en cuanto las columnas laterales dejan de ocupar su ideal.
 
-Tres caminos, y los decide Iván: no tocar nada —arrastrar las columnas una vez y
-macOS lo recuerda—, poner `ideal` igual a `min` —arranca compacta y se pierde
-holgura en pantalla grande—, o que el inspector se retire solo por debajo de
-cierto ancho, como hace Mail.
+### Y la razón de fondo: en esas dos el inspector no tiene nada que enseñar
+
+Lo preguntó Iván —«¿cuál es la función del inspector en Reportes y
+Configuración?»— y la respuesta es: ninguna.
+
+- **Reportes no aparece siquiera en el `switch`** que construye el inspector.
+  Cae al `default`, que devuelve `.nada`, y lo que se ve es *"REPORT · Nothing
+  selected · **This screen does not feed the inspector yet**"*.
+- **Configuración** devuelve un resumen **sin campos** cuyo texto es *"Se edita
+  en el panel de la izquierda"* — un literal del handoff convertido aquí en una
+  columna de verdad.
+
+Trescientos trece puntos de ventana, en las dos, para decir que no hay nada que
+decir. Y son exactamente las dos que no caben.
+
+Así que el inspector deja de ofrecerse donde no lo alimenta nadie —ni el panel,
+ni el botón de la barra, ni el atajo anunciado en el pie—. Medido después:
+
+| | antes | después |
+|---|---|---|
+| **Reportes** | 1249 | **729** ✓ cabe en los 900 |
+| Configuración | 1881 | 1101 ✗ sigue sin caber |
+
+**Reportes ya no necesita rediseño**: no eran las tiras de indicadores, era un
+panel vacío. Configuración sí, y es su `HSplitView` de tres columnas.
+
+Lo que queda para Iván es solo la holgura: no tocar nada —arrastrar las columnas
+una vez y macOS lo recuerda—, poner `ideal` igual a `min`, o que el inspector se
+retire solo por debajo de cierto ancho, como hace Mail.
+
+### Una caída, y era del instrumento de medir
+
+Midiendo esto la app se cayó una vez: `EXC_BREAKPOINT` en
+`-[NSWindow _postWindowNeedsUpdateConstraints]`, o sea AppKit reventando en el
+ciclo de restricciones. La secuencia: **forzar la ventana a 520 con
+`set size` de AppleScript —por debajo de su mínimo— y encender el inspector**.
+
+**Un usuario no puede llegar ahí**: arrastrando, macOS clava el mínimo. Solo se
+alcanza saltándoselo por AppleScript, que es justo la técnica con la que se
+midió todo lo de arriba. Comprobado después: 20 cambios de sección encendiendo y
+apagando el inspector, a un tamaño normal, **cero caídas**. Y cambiar de una
+sección estrecha a una que pide más tampoco cae — la ventana se queda estrecha y
+el contenido se recorta.
+
+No se puede descartar del todo que el cambio acerque ese estado artificial, pero
+no se reprodujo en uso normal. **Queda escrito porque el instrumento con el que
+se mide puede romper lo que mide**, y `set size` por debajo del mínimo es
+exactamente eso.
 
 ### Estado final del iPad · 22-sep
 
