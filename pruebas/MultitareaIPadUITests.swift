@@ -26,7 +26,8 @@ final class MultitareaIPad: XCTestCase {
         // que el contenedor del simulador ya lo tenga puesto. Sin él, un
         // contenedor recién estrenado abre la app en la bienvenida y no hay
         // ni sidebar ni pestañas.
-        app.launchArguments += ["-bloqueo.biometrico", "NO",
+        app.launchArguments += ["-modoRevision", "YES",
+                                "-bloqueo.biometrico", "NO",
                                 "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
         app.launch(); sleep(2)

@@ -25,10 +25,33 @@ enum ModoRevision {
     /// Para recorrer pantallas sin credenciales se vuelve a poner en `true`.
     private static let activada = false
 
+    /// **Y también se enciende por argumento de lanzamiento**, sin recompilar:
+    /// `-modoRevision YES`.
+    ///
+    /// Lo pide la suite. Media docena de pruebas de interfaz se escribieron
+    /// contra la semilla de las maquetas —"Ana Lucía Torres Beltrán",
+    /// "Ofrenda misionera", "Building fund"— y el 6-sep, al apagar esta
+    /// bandera, la app pasó a leer la base de verdad y esas pruebas se
+    /// quedaron **sin sus datos**. Llevaban rojas desde entonces sin que nadie
+    /// lo supiera, porque nadie había corrido la suite de interfaz entera
+    /// contra una iglesia real hasta el 22-sep.
+    ///
+    /// Con el argumento, esas pruebas recuperan su entorno: **los `Mock*`, que
+    /// son la iglesia de usar y tirar que ya teníamos escrita**. Y de paso
+    /// dejan de escribir en la contabilidad de verdad — las maquetas guardan
+    /// en memoria.
+    ///
+    /// Se resuelve UNA vez: `sinLogin` lo consultan los repositorios cada vez
+    /// que se construye uno, y no tiene sentido volver a `UserDefaults` en
+    /// cada llamada.
+    private static let porArgumento = UserDefaults.standard.bool(forKey: "modoRevision")
+
     static var sinLogin: Bool {
         #if DEBUG
-        return activada
+        return activada || porArgumento
         #else
+        // En Release no hay manera de encenderlo, ni por argumento: lo que se
+        // publica no puede servir datos de maqueta por una bandera.
         return false
         #endif
     }

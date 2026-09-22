@@ -85,11 +85,21 @@ que se teclea y se pierde es peor que no tenerlo.
 Terminada contra `handoff7` el 21-sep. Tres cosas del diseño no entraron, y
 ninguna por olvido:
 
-- **"La secretaria puede ver reportes."** El handoff lo dibuja como interruptor
-  y **no hay columna** donde guardarlo: `tesoreroVePadron` y
-  `tesoreroPuedeEliminar` existen, este no. Es el mismo criterio que dejó fuera
-  el presupuesto de una actividad — un interruptor que se pierde al guardar es
-  peor que no tenerlo. Entra cuando el web tenga la columna.
+- **"La secretaria puede ver reportes."** No es que falte: **hay que quitarlo
+  del diseño**, y lo decidió Iván el 22-sep. La secretaria ya ve Reportes por
+  naturaleza del rol —`Permisos.ve(_:)` se lo da siempre, con su porqué al
+  lado: necesita las cifras del mes para las actas y para la junta sin poder
+  tocar un movimiento— y la propia nota al pie del handoff, *"Reports only —
+  she still can't touch a movement"*, describe lo que la app ya hace. El
+  diseño dibujó como ajuste algo que es una regla del rol.
+
+  Además no tendría dónde guardarse —`tesoreroVePadron` y
+  `tesoreroPuedeEliminar` son las dos columnas que hay— y sería peor que en
+  otros casos, porque **es un permiso**: los dos que existen los aplica también
+  el servidor, y un interruptor que solo escondiera Reportes en esta app
+  prometería una protección falsa; la secretaria seguiría leyendo las cifras
+  desde el web. Un control de acceso decorativo es peor que ninguno, porque se
+  confía en él.
 - **El segundo recuadro "PDF preview"** de Institución. Es la misma previa del
   membrete que ya está arriba en esa pantalla, dibujada dos veces en la maqueta.
 - **La apariencia como dos filas con palomita.** Aquí es un selector, porque la

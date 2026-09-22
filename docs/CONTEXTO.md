@@ -291,6 +291,35 @@ posterior, así que el segundo toque deja guardado el `false`.
 - `devicectl device copy from --destination` quiere una **ruta de archivo**, no
   una carpeta: con carpeta da `CoreDeviceError 7000 · Is a directory`.
 
+### La iglesia de usar y tirar ya estaba escrita: son los `Mock*`
+
+De dónde salían "Ana Lucía Torres Beltrán" y "Ofrenda misionera": de
+`MiembrosRepository` y `MovimientosRepository`, **las maquetas**. Esas pruebas se
+escribieron cuando `ModoRevision.activada` estaba en `true` y la app servía los
+`Mock*`. **El 6-sep se apagó** —con razón: encendida no se ejercita nada de
+Supabase— y desde entonces la app lee la base de verdad, así que esas pruebas se
+quedaron sin sus datos. Llevaban rojas dieciséis días sin que nadie lo supiera,
+porque nadie había corrido la suite de interfaz entera contra una iglesia real.
+
+`ModoRevision` era una constante de compilación. Ahora también se enciende por
+argumento, **solo en DEBUG**: `-modoRevision YES`. En Release no hay forma de
+encenderlo, que lo que se publica no puede servir maquetas por una bandera.
+
+Con eso, las pruebas que dependen de la semilla recuperan su entorno y **dejan
+de escribir en la contabilidad de verdad**: las maquetas guardan en memoria. Es
+la iglesia de usar y tirar que hacía falta, y no hubo que inventarla.
+
+Lo llevan `ConstanciaIPad`, `ConstanciaIPhone`, `FichaAportante`,
+`FichaAportanteIPhone`, `MultitareaIPad` y `SeleccionAnunciada`.
+`DocumentosPDFUITests` **no**, y es la diferencia que conviene ver: esa TECLEA
+"Ana Lucía Torres" en un campo, no la busca en una lista, así que no depende de
+la semilla y su roja es otra cosa.
+
+**Y con esto se midió por fin la frase de la constancia**, que llevaba desde el
+6-sep sin poder comprobarse: `ConstanciaIPhone testLaFraseSaleEntera` pasa. Sale
+entera, no recortada. Es lo único de toda esta tanda que mide daño a un
+aportante de verdad.
+
 ### Estado final del iPad · 22-sep
 
 5 verdes, 1 omitida, 4 rojas —2 por datos que no existen y 2 porque el Split
