@@ -23,7 +23,7 @@ class Constancia: XCTestCase {
     ///   la mitad en cada caso.
     func comprobarFrase(_ marca: String, minimo: CGFloat) {
         let frase = "This certifies that the person named above made the following voluntary contributions during 2026."
-        let e = app.staticTexts[frase].firstMatch
+        let e = app.rotulo(frase)
         print("MARCA:\(marca)"); fflush(stdout); Thread.sleep(forTimeInterval: 3.0)
         XCTAssertTrue(e.exists, "### la frase de la constancia sale recortada")
         // Recortada mide un renglón; entera, dos o más.
@@ -42,7 +42,7 @@ final class ConstanciaIPad: Constancia {
             app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'sidebar'")).firstMatch.tap(); sleep(1)
         }
         ap.tap(); sleep(2)
-        app.staticTexts["Ana Lucía Torres Beltrán"].firstMatch
+        app.rotulo("Ana Lucía Torres Beltrán")
             .coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap(); sleep(2)
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Documents'")).firstMatch.tap(); sleep(1)
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Annual'")).firstMatch.tap(); sleep(3)
@@ -58,7 +58,7 @@ final class ConstanciaIPhone: Constancia {
         let fila = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Contributors'")).firstMatch
         for _ in 0..<4 where !fila.isHittable { app.swipeUp(velocity: .slow); sleep(1) }
         fila.tap(); sleep(2)
-        app.staticTexts["Ana Lucía Torres Beltrán"].firstMatch
+        app.rotulo("Ana Lucía Torres Beltrán")
             .coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap(); sleep(2)
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Documents'")).firstMatch.tap(); sleep(1)
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Annual'")).firstMatch.tap(); sleep(3)

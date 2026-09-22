@@ -203,6 +203,36 @@ de `UserDefaults` en el `init`, igual que `PreferenciasApp` lee `prefs.idioma` y
 siempre. El `didSet` que persiste no dispara en una asignación dentro del
 `init`.
 
+Con los tres puestos, el iPad dio por fin una corrida limpia: `Unlock with Face
+ID` aparece **cero veces** y `EstrechoIPad` sale **omitida**. De las 10 pruebas
+que corrieron —las 9 que no escriben—, **5 verdes y 4 rojas, ninguna de la
+app**: dos por el desajuste de tipos de abajo y dos porque el Split View no
+prendió y la ventana no se estrechó, que la propia prueba dice
+(*"la ventana no se estrechó: la prueba no medía nada"*).
+
+### El desajuste de tipos de iOS 27, que parece un fallo de la app
+
+**`app.staticTexts["…"]` puede no casar aunque el rótulo esté en pantalla.** El
+registro lo explica solo:
+
+    Automation type mismatch: computed Other from legacy attributes vs
+    StaticText from modern attribute. XC_kAXXCAttributeElementType = UILabel
+
+Es un `UILabel` que XCUITest resuelve como `Other`. El síntoma es de los caros:
+la prueba muere diciendo que no encuentra un nombre que está a la vista. Se
+llevó por delante `ConstanciaIPad`, que ni llegó a comprobar la frase de la
+constancia —lo único de esa tanda que mide daño al usuario—.
+
+La salida es buscar por ETIQUETA y no por tipo: `XCUIApplication.rotulo(_:)`,
+en `pruebas/RotuloPorEtiquetaUITests.swift`. **Ese fichero se llama
+`…UITests.swift` a propósito**: `aparato_yaml.py` reparte por nombre, y lo que
+no acabe así cae en el paquete de unidad, que no enlaza XCUITest y no compila.
+
+**Si en iOS 27 una prueba no encuentra un `staticTexts[…]`, buscar esa nota en
+el log ANTES de diagnosticar la app.** Es la quinta del día que calla o miente:
+el `-only-testing` que no casa, el `git grep -E` con `\b`, el `tail` que se come
+el código de salida, contar aserciones por función, y esta.
+
 ### Comprobar en otra revisión, sin mentirse
 
 Buscando si dos clases existían en `2555d99` nos tragamos el mismo falso negativo

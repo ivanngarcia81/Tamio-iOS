@@ -95,9 +95,12 @@ final class MultitareaIPad: XCTestCase {
     /// La app cambia de forma con la ventana, y el detalle abierto sobrevive.
     func testElDetalleSobreviveAlCambioDeClase() {
         seccion("Income")
-        app.staticTexts["Mission offering"].firstMatch
+        app.rotulo("Mission offering")
             .coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap(); sleep(2)
-        XCTAssertTrue(app.staticTexts["AUDIT TRAIL"].waitForExistence(timeout: 5))
+        // Por etiqueta también: si el nombre de la fila cayó en el desajuste
+        // de tipos de iOS 27, el rótulo de la ficha puede caer igual.
+        XCTAssertTrue(app.rotulo("AUDIT TRAIL").waitForExistence(timeout: 5),
+                      "### tocar la fila no abrió la ficha del movimiento")
         XCTAssertFalse(esCompacta, "### a pantalla completa no puede haber barra de pestañas")
         parada("MT-1-ancha")
 
@@ -150,7 +153,7 @@ final class MultitareaIPad: XCTestCase {
         seccion("Income")
         app.buttons["Filters"].firstMatch.tap(); sleep(2)
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 5), "### no se abrió la hoja de filtros")
-        app.staticTexts["Tithe"].firstMatch
+        app.rotulo("Tithe")
             .coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap(); sleep(1)
         parada("MT-4-filtros-ancha")
 
