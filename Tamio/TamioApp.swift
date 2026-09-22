@@ -144,6 +144,15 @@ struct TamioApp: App {
                     // dependen de los movimientos que acaban de llegar.
                     await CategoriasViewModel.compartido.cargar()
                     await MotorSincronizacion.compartido.sincronizar()
+                    // **Y releerla después de bajar.** La bajada escribe en la
+                    // base, no en `compartido`, y `cargar()` no vuelve a leer:
+                    // sin esto, `decidirConfiguracionInicial()` juzgaba con el
+                    // nombre en blanco de un aparato recién estrenado y le pedía
+                    // configurar otra vez una iglesia ya montada. Y rellenar
+                    // esa hoja subía la ficha de fábrica ENTERA —`subirIglesia`
+                    // manda todas las columnas—, vaciando en el servidor pastor,
+                    // dirección y logo. Ver `docs/ROJAS-SEPTIEMBRE.md` §3.
+                    await ConfiguracionIglesiaViewModel.compartido.recargar()
                     // **Los recurrentes al día, DESPUÉS de sincronizar**, y no
                     // antes: la idempotencia vive en `ultimoMesGenerado`, y esa
                     // marca la puede haber movido otro aparato. Materializando

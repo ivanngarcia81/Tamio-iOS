@@ -85,6 +85,8 @@ Nadie lo había contado. Sale de los recuentos «Executed N tests, with M failur
 - **`MonedaYCero`** es la única clase de 2 pruebas con 1 roja. `testCambiarLaMonedaAEuros` pasó: elige EUR (`:52-58`) y guarda (`:66`), y Ajustes se guarda solo a los 0,8 s (`ConfiguracionIglesiaViewModel.swift:64-72`). Luego exige que no quede ningún «$» (`:103-110`). Que pase implica que **la iglesia quedó en euros**. Las clases que corren después en orden alfabético pudieron correr ya en EUR.
 - **`ContrasteDeCristalUITests` `testH4ToastClaro` y `testH4ToastOscuro`** pasaron, en `HEAD` y en `2555d99`. Cada una pulsa **«Return to treasurer»** sobre el primer asunto de Por revisar (`:138-144`) y no lo deshace. Son dos devoluciones por corrida.
 
+**Contraste, medido el 22-sep por la noche:** un simulador recién sincronizado con la iglesia la trae en **USD** y con **4 movimientos** —Donation, diezmo y dos gastos—, sin el 12,50. En el servidor no está nada de lo de arriba. O la deducción por recuentos falla, o lo que escribió la corrida sigue en la cola sin subir del iPhone. Para cerrarlo hay que leer el `outbox` del iPhone.
+
 La base local que se usó como foto de la iglesia (`tamio-antes.sqlite`) **no sirve para comprobarlo**. La creó la app del Mac el 19-sep, y su último cursor de sincronización es del 21-sep a las 19:03 EDT, antes de la corrida. Hay que leerlo en el iPhone o en Supabase:
 - `iglesias.moneda` y `pastor_nombre`;
 - movimientos de 1250 céntimos del 22-sep;
@@ -93,6 +95,8 @@ La base local que se usó como foto de la iglesia (`tamio-antes.sqlite`) **no si
 **Todo lo de esa iglesia son datos de prueba** (Iván, 22-sep): nada de esto daña a nadie. Pero una suite que cambia la moneda y deja filas y devoluciones detrás **no da el mismo resultado dos veces**, y eso es lo que §0.-22 pedía («una prueba tiene que dejar el aparato como lo encontró»). Para que sean repetibles, tienen que llevar `-modoRevision YES`, que guarda en memoria: ImporteEnPantalla, MonedaYCero, ContrasteDeCristal (H4), RevisarRedibujo, SegundaFirmaSeAlcanza, Presentaciones, LogoUITests, DocumentosPDF y TrasladosYMembrete.
 
 ## 3. El fallo real: el primer arranque juzga con la iglesia de antes de sincronizar
+
+**Arreglado el 22-sep** (`TamioApp.swift`, `TamioMacApp.swift`, `AccesoView.comenzar()`). Medido en el simulador del iPhone 17 Pro Max, con la base local borrada y sin la marca de configurada: el código de antes pide «Welcome to Tamio — Set up your church» con la iglesia ya bajada; con el arreglo entra directo a Inicio. En el Mac solo está compilado, y la defensa de `comenzar()` no se ha ejercitado porque eso obliga a subir la iglesia.
 
 Lo encontró el abogado leyendo DocumentosPDF, y navegacion lo verificó en el código. **No explica ninguna roja y no se ha reproducido.**
 

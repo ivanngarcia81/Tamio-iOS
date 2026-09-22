@@ -1028,10 +1028,15 @@ struct ConfiguracionInicialView: View {
         }
         guardando = true
         error = nil
-        cfg.config.nombre = nombre.trimmingCharacters(in: .whitespaces)
-        cfg.config.ciudad = ciudad.trimmingCharacters(in: .whitespaces)
-        cfg.config.moneda = moneda
         Task {
+            // **Sobre la ficha recién releída, no sobre la de memoria.**
+            // `guardarYa()` sube la iglesia ENTERA; si lo que hay en memoria
+            // es la ficha de fábrica, lo que no se teclea aquí —pastor,
+            // dirección, logo— se vaciaría en el servidor.
+            await cfg.recargar()
+            cfg.config.nombre = nombre.trimmingCharacters(in: .whitespaces)
+            cfg.config.ciudad = ciudad.trimmingCharacters(in: .whitespaces)
+            cfg.config.moneda = moneda
             await cfg.guardarYa()
             PreferenciasApp.iglesiaConfigurada = true
             // Que suba ahora y no en el próximo arranque: es el primer dato de

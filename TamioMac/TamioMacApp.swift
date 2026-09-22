@@ -141,6 +141,12 @@ struct TamioMacApp: App {
                     await ConfiguracionIglesiaViewModel.compartido.cargar()
                     await CategoriasViewModel.compartido.cargar()
                     await MotorSincronizacion.compartido.sincronizar()
+                    // La iglesia, releída después de bajar: `cargar()` de
+                    // arriba no vuelve a leer, y en un Mac recién estrenado se
+                    // quedaba en la ficha de fábrica toda la sesión —y tocar
+                    // un campo en Configuración la subía ENTERA, vaciando en el
+                    // servidor lo que la iglesia ya tenía—.
+                    await ConfiguracionIglesiaViewModel.compartido.recargar()
                     await CategoriasViewModel.compartido.cargar()
                     // **Y ahora se avisa a las pantallas.** La sincronización
                     // escribe en la base por debajo; sin esto, una tabla que
@@ -162,6 +168,9 @@ struct TamioMacApp: App {
                         named: NSApplication.didBecomeActiveNotification)
                     for await _ in vueltas {
                         await MotorSincronizacion.compartido.sincronizar()
+                        // Lo mismo que hace iOS al volver al frente: un permiso
+                        // o un pastor cambiado desde otro aparato se nota aquí.
+                        await ConfiguracionIglesiaViewModel.compartido.recargar()
                         estado.recargar()
                     }
                 }
