@@ -219,9 +219,48 @@ registro lo explica solo:
     StaticText from modern attribute. XC_kAXXCAttributeElementType = UILabel
 
 Es un `UILabel` que XCUITest resuelve como `Other`. El síntoma es de los caros:
-la prueba muere diciendo que no encuentra un nombre que está a la vista. Se
-llevó por delante `ConstanciaIPad`, que ni llegó a comprobar la frase de la
-constancia —lo único de esa tanda que mide daño al usuario—.
+la prueba parece morir diciendo que no encuentra un rótulo que está a la vista.
+
+**Pero no era eso lo que tumbaba a `ConstanciaIPad`, y creerlo costó una
+corrida.** Con `rotulo(_:)` puesto, la nota desapareció del log —de 2 veces a
+0— **y las mismas dos pruebas siguieron rojas**, ahora diciendo
+`Descendants matching type Any -> label == "Ana Lucía Torres Beltrán"` sin
+coincidencias. Buscando sobre CUALQUIER tipo y sin encontrar nada no hay
+discusión: el rótulo no está en pantalla. La causa es la de la sección
+siguiente, los datos.
+
+La nota de Apple dice «**Possibly** caused by runtime issues»: es una pista, no
+un diagnóstico. Se ascendió a certeza porque encajaba con la hipótesis que
+llevaba todo el día acertando —que el instrumento mentía y la app estaba bien—.
+El arreglo se queda igualmente: la trampa existe y algún día morderá de verdad.
+
+### Y la causa de verdad: pruebas escritas contra datos de maqueta
+
+Varias pruebas de interfaz dan por existentes filas que **la iglesia de Iván no
+tiene**. Medido contra su base sincronizada:
+
+| Su iglesia tiene | Las pruebas buscan |
+|---|---|
+| María Hernández, **Ana Torres**, Marcos Rios, John, y cuatro `PRUEBA …` | **«Ana Lucía Torres Beltrán»** |
+| `Donation`, `Supplies`, `alimentos`, `diezmo` | **«Mission offering»**, **«Tithe»**, «Building fund» |
+
+Son de la semilla de maqueta. Contra su iglesia de verdad **no pueden pasar**, y
+no hay arreglo de instrumento que las salve: `ConstanciaIPad`, `FichaAportante`,
+`FichaAportanteIPhone`, `ConstanciaIPhone`, `SeleccionAnunciada` y
+`DocumentosPDFUITests` las nombran.
+
+**Eso deja sin medir la frase de la constancia**, que es lo único de esa tanda
+que mide daño a un aportante de verdad —que la frase no salga recortada en el
+papel que se le entrega—. Es la misma familia que `EstrechoIPad`: una roja que
+no se vuelve verde con nada que arregle nadie. Para comprobarla hace falta esa
+aportante en el padrón, o **una iglesia de usar y tirar sembrada**, que es
+además lo que resolvería que seis pruebas escriban hoy en los libros de verdad.
+
+### Estado final del iPad · 22-sep
+
+5 verdes, 1 omitida, 4 rojas —2 por datos que no existen y 2 porque el Split
+View no estrecha la ventana—, y **cero fallos de app confirmados**. Las 6 que
+escriben datos reales siguen sin correr.
 
 La salida es buscar por ETIQUETA y no por tipo: `XCUIApplication.rotulo(_:)`,
 en `pruebas/RotuloPorEtiquetaUITests.swift`. **Ese fichero se llama
