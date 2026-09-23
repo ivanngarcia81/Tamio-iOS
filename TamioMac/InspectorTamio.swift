@@ -200,7 +200,7 @@ struct InspectorTamio: View {
         // Cuando alguien viene a auditar y la frase no cuadra, esto es lo
         // único que dice qué se guardó de verdad.
         if !a.datos.isEmpty {
-            Text(L.t("LO QUE SE GUARDÓ", "WHAT WAS STORED"))
+            Text(L.t("LO QUE SE GUARDÓ", "WHAT WAS SAVED"))
                 .font(.system(size: 11, weight: .bold))
                 .kerning(0.55)
                 .foregroundStyle(.secondary)

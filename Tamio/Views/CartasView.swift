@@ -1019,13 +1019,19 @@ private struct NuevaCartaSheet: View {
     /// **El padrón de verdad.** Eran cuatro nombres a mano, y emitir una carta
     /// a quien no está en el padrón es emitirla a nadie.
     @State private var padron: [PersonaDelPadron] = []
-    private let tiposDestinatario = [
-        L.t("Miembro registrado", "Registered member"),
-        L.t("Iglesia", "Church"),
-        L.t("Pastor / ministro", "Pastor / minister"),
-        L.t("Institución", "Institution"),
-        L.t("Persona externa", "External person"),
-        L.t("Personalizado", "Custom"),
+    /// **Clave y rótulo, y se guarda la clave.** Antes se guardaba el rótulo
+    /// traducido —"Miembro registrado", "Registered member"— en
+    /// `destinatario_tipo`, donde el web espera una de sus seis claves
+    /// (`CartaEditor.tsx`, `DESTINATARIOS`). Es el mismo fallo que el `estado`
+    /// de la agenda (§0.-21). Las seis son las del web, en su orden y con sus
+    /// rótulos (`i18n/es.ts`, `cartas.destinatarios`).
+    private let tiposDestinatario: [(clave: String, rotulo: String)] = [
+        ("miembro", L.t("Miembro registrado", "Registered member")),
+        ("iglesia", L.t("Iglesia", "Church")),
+        ("pastor", L.t("Pastor / ministro", "Pastor / minister")),
+        ("institucion", L.t("Institución", "Institution")),
+        ("externo", L.t("Persona externa", "External person")),
+        ("personalizado", L.t("Personalizado", "Custom")),
     ]
     private let firmantesOpciones = [
         L.t("Pastor", "Pastor"),
@@ -1042,7 +1048,7 @@ private struct NuevaCartaSheet: View {
     ]
 
     private var esDestinatarioMiembro: Bool {
-        datos.tipoDestinatario == tiposDestinatario.first || datos.tipoDestinatario.isEmpty
+        datos.tipoDestinatario == "miembro" || datos.tipoDestinatario.isEmpty
     }
 
     var body: some View {
@@ -1112,7 +1118,7 @@ private struct NuevaCartaSheet: View {
     private var seccionDestinatario: some View {
         Section(L.t("DESTINATARIO", "RECIPIENT")) {
             Picker(L.t("Tipo de destinatario", "Recipient type"), selection: $datos.tipoDestinatario) {
-                ForEach(tiposDestinatario, id: \.self) { Text($0).tag($0) }
+                ForEach(tiposDestinatario, id: \.clave) { Text($0.rotulo).tag($0.clave) }
             }
             if esDestinatarioMiembro {
                 Picker(L.t("Miembro registrado", "Registered member"),
@@ -1243,7 +1249,7 @@ private struct NuevaCartaSheet: View {
         if datos.saludo.isEmpty { datos.saludo = L.t("A quien corresponda:", "To whom it may concern:") }
         if datos.cierre.isEmpty { datos.cierre = L.t("Atentamente,", "Sincerely,") }
         if datos.estadoCarta.isEmpty { datos.estadoCarta = L.t("Borrador", "Draft") }
-        if datos.tipoDestinatario.isEmpty { datos.tipoDestinatario = tiposDestinatario.first ?? "" }
+        if datos.tipoDestinatario.isEmpty { datos.tipoDestinatario = "miembro" }
         if datos.cuerpoTexto.isEmpty { datos.cuerpoTexto = cuerpoTemplate(datos.tipo) }
     }
 

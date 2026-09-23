@@ -131,9 +131,17 @@ struct Movimiento: Identifiable {
     /// "Cheque 8823" → "8823". El número que pide el banco en la ficha.
     var numeroCheque: String? { Catalogos.numeroDeCheque(metodo) }
 
+    /// **La categoría en la lengua de la app, no la clave guardada.** Desde el
+    /// 13-sep se guarda `diezmo`, no `Tithe`; esto la pintaba tal cual, así que
+    /// con la app en inglés las listas decían «diezmo · Marcos Rios» mientras
+    /// la dona de Inicio y la ficha decían «Tithe». Y al editar un asunto de
+    /// Por revisar —que reescribe la clave— la fila cambiaba de nombre.
+    /// `etiquetaDeCategoria` deja igual lo que no reconoce: una categoría que
+    /// se inventó la iglesia se llama como su dueño la llamó.
     var titular: String {
-        if let persona, !persona.isEmpty { return "\(categoria) · \(persona)" }
-        return categoria
+        let cat = Catalogos.etiquetaDeCategoria(categoria)
+        if let persona, !persona.isEmpty { return "\(cat) · \(persona)" }
+        return cat
     }
     var subtitulo: String { "Folio \(folio) · \(metodo)" }
     var esIngreso: Bool { tipo == .ingreso }

@@ -194,6 +194,9 @@ final class MovimientosViewModel {
             && (!soloPendientes || m.marcadoPendiente)
             && (busqueda.isEmpty
                 || m.titular.localizedCaseInsensitiveContains(busqueda)
+                // Y por lo guardado: quien escribe «diezmo» con la app en
+                // inglés tiene que encontrar sus diezmos aunque se lean «Tithe».
+                || m.categoria.localizedCaseInsensitiveContains(busqueda)
                 || m.folio.contains(busqueda)
                 || (m.nota?.localizedCaseInsensitiveContains(busqueda) ?? false))
         }

@@ -24,20 +24,26 @@ struct NuevaCarta: View {
     @State private var intentoGuardar = false
     @State private var padron: [PersonaDelPadron] = []
 
-    /// **Solo los dos tipos que se han visto en la base.**
+    /// **Las seis claves del web, con la forma del handoff donde la dibuja.**
     ///
     /// El handoff ofrece cuatro —miembro, otra iglesia, portador y otra
-    /// persona—, pero de esa columna solo se conocen con certeza las claves
-    /// `miembro` e `iglesia`, que son las que trae la tabla. Las otras dos no
-    /// se inventan: escribir una clave a ojo en una columna del web es
-    /// exactamente el fallo del `estado` traducido. Entran cuando se sepan.
+    /// persona—, pero los catálogos se toman del web (`CartaEditor.tsx`,
+    /// `DESTINATARIOS`): recortarlos escribe en la columna valores que el
+    /// servidor no reconoce, que es el fallo del `estado` traducido. Los
+    /// rótulos son los del handoff donde los tiene —"Un miembro", "Otra
+    /// iglesia", "Otra persona" = `externo`— y los del web para las demás.
+    /// **"Portador" no tiene clave en el web y no entra**: una clave a ojo en
+    /// una columna del web es justo lo que no se hace.
     ///
-    /// **Y son claves, no rótulos.** `CartasView` de iOS guarda aquí el texto
-    /// traducido del selector —"Miembro registrado", "Registered member"—, que
-    /// es el mismo fallo y sigue abierto allá.
+    /// **Y son claves, no rótulos.** iOS guardaba aquí el texto traducido del
+    /// selector; desde el 22-sep guarda las mismas seis claves.
     private let tiposDestinatario: [(String, String)] = [
         ("miembro", L.t("Un miembro", "A member")),
-        ("iglesia", L.t("Otra iglesia", "Another church"))
+        ("iglesia", L.t("Otra iglesia", "Another church")),
+        ("pastor", L.t("Pastor / ministro", "Pastor / minister")),
+        ("institucion", L.t("Institución", "Institution")),
+        ("externo", L.t("Otra persona", "Another person")),
+        ("personalizado", L.t("Personalizado", "Custom")),
     ]
 
     /// **Lo que se va a borrar del texto al guardar, con nombre y apellido.**
