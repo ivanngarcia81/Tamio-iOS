@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import Charts
 
 /// **Reportes, según el handoff.**
@@ -15,6 +16,10 @@ import Charts
 struct PantallaReportes: View {
     let vm: ReportesViewModel
     @Binding var verHoja: Bool
+    /// La vista de AppKit bajo el botón "Compartir". `NSSharingServicePicker`
+    /// necesita una `NSView` de la que colgar su menú, y SwiftUI no da la del
+    /// botón: se la damos nosotros con un ancla invisible en su fondo.
+    @State private var anclaCompartir = AnclaCompartir()
 
     var body: some View {
         // **`HStack` y no `HSplitView`, y es por una medida.**
@@ -161,10 +166,45 @@ struct PantallaReportes: View {
             }
             .buttonStyle(.bordered)
             .font(.system(size: 12))
+            Button {
+                compartirPDF()
+            } label: {
+                Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.bordered)
+            .font(.system(size: 12))
+            // Sin datos no hay hoja que imprimir: un PDF con el membrete y
+            // nada debajo parecería un reporte de un mes en ceros.
+            .disabled(vm.cargando || vm.sinDatos || (vm.esAnual ? vm.anual == nil : vm.estado == nil))
+            .background(VistaAncla(ancla: anclaCompartir))
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 12)
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    // MARK: - Compartir
+
+    /// **El PDF que se comparte es la misma hoja de "Vista previa PDF".**
+    ///
+    /// No hay un segundo generador: `hoja` es la vista que se enseña al
+    /// pulsar la vista previa, y `PDFExport.render` —el mismo que usa el
+    /// iPhone— la pasa a páginas carta. Así lo que se ve antes de compartir es
+    /// exactamente lo que sale, que es la promesa de la vista previa.
+    ///
+    /// Se genera al pulsar y no antes: el periodo o el año pueden cambiar
+    /// entre que se abre la pantalla y se comparte, y un PDF hecho de
+    /// antemano se quedaría con las cifras viejas.
+    private func compartirPDF() {
+        // La clave del periodo y no el mes escrito, como en el iPhone: el
+        // nombre del archivo ordena bien y no cambia con el idioma.
+        let nombre = vm.esAnual
+            ? "Reporte-anual-\(vm.anioSel)"
+            : "Estado-financiero-\(vm.estado?.periodo.clave ?? vm.periodoSel)"
+        guard let url = PDFExport.render(hoja, nombre: nombre),
+              let vista = anclaCompartir.vista else { return }
+        NSSharingServicePicker(items: [url])
+            .show(relativeTo: vista.bounds, of: vista, preferredEdge: .minY)
     }
 
     // MARK: - El resumen
@@ -223,6 +263,12 @@ struct PantallaReportes: View {
                 cifra(L.t("Balance del año", "Year balance"),
                       Money.fmt(a.balance), Paleta.brand,
                       L.t("ingresos menos gastos", "income less expenses"), nil)
+                // La cuarta cifra del handoff. Va aparte y con su nota porque
+                // un depósito no es un ingreso: es efectivo que pasa de la caja
+                // al banco, y sumarlo de cabeza al balance lo inflaría.
+                cifra(L.t("Depositado", "Deposited"),
+                      Money.fmt(a.depositosTotal), Paleta.placaMorado,
+                      L.t("no suma al balance", "not part of the balance"), nil)
             } else if let e = vm.estado {
                 cifra(L.t("Ingresos del mes", "Income this month"),
                       Money.fmt(e.ingresosMes), Paleta.brand,
@@ -302,6 +348,7 @@ struct PantallaReportes: View {
     @ViewBuilder
     private var cuerpoMensual: some View {
         if let e = vm.estado {
+            if !e.saldoSerie.isEmpty { saldoDelPeriodo(e) }
             HStack(alignment: .top, spacing: 12) {
                 panel(L.t("INGRESOS POR CATEGORÍA", "INCOME BY CATEGORY")) {
                     dona(e.composicion)
@@ -333,11 +380,48 @@ struct PantallaReportes: View {
                                 .font(.system(size: 12.5, weight: .bold)).monospacedDigit()
                         }
                         .padding(.top, 9)
+                        // Sin esta línea, un total depositado mayor que lo
+                        // ingresado en el mes parece un descuadre. No lo es:
+                        // el depósito arrastra efectivo de meses anteriores.
+                        Text(L.t("No suman al saldo: mueven efectivo de la caja al banco.",
+                                 "Not added to the balance: they move cash from the box to the bank."))
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 8)
                     }
                     .padding(.top, 10)
                 }
             }
             if !e.mensual.isEmpty { tablaDeMeses(e.mensual) }
+        }
+    }
+
+    /// **El balance de los últimos meses, en barras.**
+    ///
+    /// Va en su propia fila y no al lado de las dos de categorías: tres
+    /// tarjetas en una fila, en media pantalla, dejaban la dona tan estrecha
+    /// que no se leía su centro. La barra del mes elegido va en el color de la
+    /// marca y las anteriores apagadas, como en el iPhone, para que se vea de
+    /// un vistazo cuál es "este" mes.
+    private func saldoDelPeriodo(_ e: EstadoFinanciero) -> some View {
+        panel(L.t("SALDO DEL PERIODO", "PERIOD BALANCE")) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(Money.fmt(e.balanceNeto))
+                    .font(.system(size: 21, weight: .bold)).monospacedDigit()
+                    .foregroundStyle(e.balanceNeto >= 0 ? Color.primary : Paleta.negativo)
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                Chart(e.saldoSerie) { m in
+                    BarMark(x: .value("Mes", m.mes),
+                            y: .value("Saldo", Double(m.monto) / 100))
+                        .foregroundStyle(m.mes == e.saldoSerie.last?.mes
+                                         ? Paleta.brand : Paleta.brandMuted)
+                        .cornerRadius(3)
+                }
+                .chartYAxis(.hidden)
+                .frame(height: 70)
+            }
+            .padding(.top, 10)
         }
     }
 
@@ -506,5 +590,33 @@ struct PantallaReportes: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .tarjetaMac(14)
+    }
+}
+
+/// Guarda la `NSView` que hay debajo del botón "Compartir" para que
+/// `NSSharingServicePicker` sepa de dónde colgar su menú. Es una clase y no un
+/// valor porque la vista la crea AppKit después de que SwiftUI arme el cuerpo:
+/// el botón lee la referencia cuando se pulsa, no cuando se dibuja.
+private final class AnclaCompartir {
+    weak var vista: NSView?
+}
+
+/// Una `NSView` vacía del tamaño del botón. No pinta nada ni recibe clics
+/// (`hitTest` devuelve nil), así que el botón sigue siendo el que se pulsa.
+private struct VistaAncla: NSViewRepresentable {
+    let ancla: AnclaCompartir
+
+    func makeNSView(context: Context) -> NSView {
+        let v = VistaTransparente()
+        ancla.vista = v
+        return v
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        ancla.vista = nsView
+    }
+
+    private final class VistaTransparente: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
     }
 }
