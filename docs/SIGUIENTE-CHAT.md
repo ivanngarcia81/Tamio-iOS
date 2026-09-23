@@ -108,3 +108,61 @@ sigamos con los tres puntos».
   maqueta?
 - Las notas para el revisor de Apple: la cuenta sale como «Courtesy» y debe explicarse con la
   3.1.3(c) (`docs/APP-STORE.md`).
+
+## «Trae tus datos» · 23-sep, noche
+
+El encargo está en `docs/ENCARGO-TRAE-TUS-DATOS.md`, y el handoff llegó como
+`Artifact_link_no_accesible-handoff.zip` (`Trae tus datos.dc.html`). Iván eligió **P2a** para el
+iPad: dos columnas, como el Mac.
+
+**Hecho en el Mac** (visto con capturas y comprobado en Supabase):
+- **La invitación (M1)** después de la bienvenida. Solo sale si la primera bajada terminó bien, el
+  padrón está vacío y quien entra tiene `administraPadron`. En DEBUG se abre con
+  `-mostrarTraerDatos YES`.
+- **La hoja de importar personas (M2 a M4, M8, M9):**
+  - el resumen en una franja fija arriba;
+  - el filtro por motivo cuando hay más de 10 omitidas;
+  - «Hecho» dentro de la misma hoja;
+  - una barra de progreso mientras importa;
+  - «Nada que importar» cuando no hay filas válidas.
+- **El aviso de archivo que no es CSV o está vacío (M7).**
+- **Donde vive después:** Archivo › Importar personas… ⇧⌘I, el estado vacío de Membresía (M6) y
+  Configuración › Datos.
+- **La plantilla** se descarga y se reconoce entera. Tres de sus columnas no eran alias; ahora sí,
+  con una prueba nueva.
+- **Tres fallos encontrados y arreglados:**
+  - Membresía no se enteraba de la importación;
+  - un PDF se «leía» como CSV de basura;
+  - las columnas de la plantilla que no se reconocían.
+
+**Los aportes, decididos por Iván el 23-sep:** entran como **ingresos ya cerrados**, con un corte
+histórico por importación.
+- El importador del iPhone **no guardaba nada en la app real**: escribía los aportes en la ficha y
+  la base los calcula de los ingresos (`AportanteFila.swift:6`). Ahora
+  `MiembrosViewModel.importarAportes`, compartido, crea un ingreso por aporte: aprobado, con
+  constancia anual y enlazado por `memberUid`.
+- Todos esos ingresos van a un corte «Aportes importados · archivo.csv», ya depositado y sin
+  ficha de depósito. Así no suman al efectivo de hoy ni piden depósito. Hay 5 cortes así en
+  Supabase, con lo que el web ya lo conoce.
+- **Cada aporte toma un folio** del contador del servidor, como cualquier ingreso: la serie de
+  recibos avanza tantos como aportes se importan.
+- La huella de duplicados compara el concepto por su clave del catálogo («Diezmo» = «diezmo» =
+  «Tithe»). Antes, reimportar no reconocía nada.
+- En el Mac: la hoja M5 (el total y su reparto por año en la franja, y la cifra en el botón),
+  Archivo › Importar aportes…, Configuración › Datos, la tarjeta del «Hecho» de personas y las
+  dos plantillas (`guardarAmbas`).
+- Comprobado: 3 aportes de prueba llegaron a Supabase dentro del corte depositado; Inicio siguió
+  en $600 en caja; reimportar dio «3 ya registrados». 22 pruebas de unidad en verde.
+
+**Datos de prueba que quedaron en la iglesia:**
+- las personas «PRUEBA Trae Datos Uno», «Dos», «Tres» y «Cuatro»;
+- 3 ingresos, con folios 17, 18 y 19;
+- el corte «Imported gifts · aportes-prueba.csv».
+
+**Falta:**
+- **El iPhone y el iPad.** «Datos» está en el enum compartido, pero `veAjuste` la esconde fuera del
+  Mac hasta construirla. El importador de aportes del iPhone ya guarda bien, con la hoja vieja.
+- **Sin ver en pantalla:** el estado vacío de Membresía (la iglesia tiene padrón) y el aviso de sin
+  conexión del «Hecho».
+- **El concepto vacío** de un aporte sigue saliendo como «Aporte», que no es categoría del
+  catálogo: se decide cuando haya un archivo real.
