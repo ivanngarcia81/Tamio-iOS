@@ -94,7 +94,12 @@ struct MembresiaView: View {
 
     private var columnas: some View {
         GeometryReader { geo in
-            if geo.size.width >= Esp.anchoMaestroDetalle {
+            // **El padrón vacío ofrece traer la lista** (handoff «Trae tus
+            // datos», I8). Solo en la vista de Miembros: Asistencia y
+            // Seguimiento no tienen a nadie que importar.
+            if vm.cargado && vm.items.isEmpty && subtab == 0 {
+                PadronVacioView(puedeDarDeAlta: administraPadron) { mostrarNuevo = true }
+            } else if geo.size.width >= Esp.anchoMaestroDetalle {
                 HStack(spacing: 0) {
                     listaColumna
                         .frame(width: Esp.columnaMaestra)

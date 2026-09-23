@@ -238,7 +238,7 @@ struct ConfiguracionView: View {
                         .padding(.bottom, 20)
 
                     grupoSidebar(titulo: L.t("GENERAL", "GENERAL"),
-                                 items: visibles([.categorias, .preferencias]))
+                                 items: visibles([.categorias, .datos, .preferencias]))
                 }
                 .padding(.bottom, 12)
             }
@@ -329,7 +329,7 @@ struct ConfiguracionView: View {
         case .tesorero:     SeccionTesorero()
         case .acceso:       SeccionAcceso()
         case .categorias:   SeccionCategorias()
-        case .datos:        EmptyView()   // todavía no en el iPad: ver `veAjuste`
+        case .datos:        SeccionDatos()
         case .preferencias: SeccionPreferencias()
         case .zona:         SeccionZona()
         }
@@ -1480,6 +1480,53 @@ private struct SeccionPreferencias: View {
                     // hiciera, elegir "Muy grande" desbordaría la fila justo en
                     // el mando que sirve para volver atrás.
                     .dynamicTypeSize(.medium)
+                }
+            }
+            .padding(Esp.panel)
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .background(Color(.systemGroupedBackground))
+        .scrollEdgeEffectStyle(.soft, for: .all)
+    }
+}
+
+// MARK: - Datos
+
+/// **La casa fija de «Trae tus datos» en el iPad** (handoff, P5): importar
+/// personas, importar aportes y las plantillas. Los aportes, solo a quien
+/// además ve Tesorería. La del teléfono es `AjustesDatosView`.
+private struct SeccionDatos: View {
+    @Environment(Navegacion.self) private var navegacion
+    @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+
+    var body: some View {
+        let p = Permisos.vigentes(sesion)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                HeroCard(seccion: .datos)
+                GrupoConf(titulo: L.t("DATOS", "DATA"),
+                          nota: L.t("Desde un CSV de Excel, de Google o de otro sistema. Si importas el mismo archivo dos veces, no se duplica nadie. Los aportes, siempre después de las personas.",
+                                    "From a CSV from Excel, Google or another system. Importing the same file twice won’t duplicate anyone. Gifts always go after people.")) {
+                    FilaConf(label: L.t("Importar personas…", "Import people…"), chevron: true) {
+                        navegacion.pidiendoImportar = .personas
+                    }
+                    if p.ve(.tesoreria) {
+                        Divider().padding(.leading, Esp.pantalla)
+                        FilaConf(label: L.t("Importar aportes…", "Import gifts…"), chevron: true) {
+                            navegacion.pidiendoImportar = .aportes
+                        }
+                    }
+                    Divider().padding(.leading, Esp.pantalla)
+                    BotonPlantilla(tipo: .personas, estilo: .fila)
+                        .frame(minHeight: Esp.altoFila)
+                        .padding(.horizontal, Esp.pantalla)
+                    if p.ve(.tesoreria) {
+                        Divider().padding(.leading, Esp.pantalla)
+                        BotonPlantilla(tipo: .aportes, estilo: .fila)
+                            .frame(minHeight: Esp.altoFila)
+                            .padding(.horizontal, Esp.pantalla)
+                    }
                 }
             }
             .padding(Esp.panel)

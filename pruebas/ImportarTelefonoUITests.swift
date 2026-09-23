@@ -75,6 +75,6 @@ final class ImportarTelefono: XCTestCase {
         print("MARCA:\(marca)"); fflush(stdout); Thread.sleep(forTimeInterval: 2)
     }
 
-    func testAportantes() { importar("Import givers", archivo: "givers-template", marca: "IT-01-aportantes") }
+    func testAportantes() { importar("Import people", archivo: "givers-template", marca: "IT-01-aportantes") }
     func testAportes() { importar("Import gifts", archivo: "gifts-template", marca: "IT-02-aportes") }
 }

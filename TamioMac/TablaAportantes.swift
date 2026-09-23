@@ -95,69 +95,13 @@ struct TablaAportantes: View {
 
 // MARK: - Importar personas · handoff «Trae tus datos»
 
-/// **La plantilla que se descarga**: los rótulos de los campos como
-/// encabezados y dos filas de ejemplo, en el idioma de la app. Los rótulos
-/// también son alias en `ImportadorAportantes.campos`, así que al volver con
-/// ella rellena, todas las columnas se reconocen solas.
-enum PlantillaImportar: CaseIterable {
-    case personas, aportes
-
-    var nombreDeArchivo: String {
-        switch self {
-        case .personas: return L.t("Tamio-plantilla-personas.csv", "Tamio-template-people.csv")
-        case .aportes:  return L.t("Tamio-plantilla-aportes.csv", "Tamio-template-gifts.csv")
-        }
-    }
-
-    private var campos: [CSVLector.Campo] {
-        self == .personas ? ImportadorAportantes.campos : ImportadorAportes.campos
-    }
-
-    private var filas: [[String]] {
-        guard self == .personas else {
-            // El nombre tiene que ser el de alguien que ya está en Tamio: los
-            // aportes se apuntan a personas, nunca las crean.
-            let ejemplos: [[String: String]] = [
-                ["fecha": "2024-03-03", "monto": L.esEspanol ? "500,00" : "500.00",
-                 "aportante_nombre": L.t("María Hernández López", "Mary Johnson"),
-                 "concepto": L.t("Diezmo", "Tithe")],
-                ["fecha": "2024-03-10", "monto": L.esEspanol ? "150,00" : "150.00",
-                 "aportante_nombre": L.t("José Ramírez", "James Smith"),
-                 "concepto": L.t("Ofrenda", "Offering")]
-            ]
-            return ejemplos.map { e in campos.map { e[$0.clave] ?? "" } }
-        }
-        // Valores que el importador entiende: el estado por su clave y la
-        // frecuencia por la suya, que solo existe en español.
-        let ejemplos: [[String: String]] = [
-            ["nombre": L.t("María Hernández López", "Mary Johnson"),
-             "estado": L.t("activo", "active"),
-             "rol": L.t("diezmo", "tithe"),
-             "telefono": "844 123 4567",
-             "correo": L.t("maria@ejemplo.com", "mary@example.com"),
-             "direccion": L.t("Calle Juárez 120, Saltillo", "120 Main St, Springfield"),
-             "nacimiento": "1985-04-12",
-             "estado_civil": L.t("Casada", "Married"),
-             "miembro_desde": "2019-03-10",
-             "congrega_desde": "2018-06-01",
-             "frecuencia_aporte": L.esEspanol ? "mensual" : ""],
-            ["nombre": L.t("José Ramírez", "James Smith"),
-             "estado": L.t("activo", "active"),
-             "telefono": "844 765 4321",
-             "miembro_desde": "2022-09-04"]
-        ]
-        return ejemplos.map { e in campos.map { e[$0.clave] ?? "" } }
-    }
-
-    private var temporal: URL? {
-        CSV.archivo(nombre: (nombreDeArchivo as NSString).deletingPathExtension,
-                    encabezados: campos.map(\.rotulo), filas: filas)
-    }
-
+/// La plantilla vive en `ImportadorAportantes.swift`, compartida con iOS;
+/// aquí solo el «Guardar como» del Mac.
+extension PlantillaImportar {
     /// Pregunta dónde guardarla, como cualquier «Guardar como» del Mac.
     @MainActor
     static func guardar(_ p: PlantillaImportar) {
-        guard let temporal = p.temporal else { return }
+        guard let temporal = p.archivoTemporal else { return }
         let panel = NSSavePanel()
         panel.nameFieldStringValue = p.nombreDeArchivo
         panel.allowedContentTypes = [.commaSeparatedText]
@@ -178,7 +122,7 @@ enum PlantillaImportar: CaseIterable {
         panel.message = L.t("Elige dónde guardar las dos plantillas.", "Choose where to save both templates.")
         guard panel.runModal() == .OK, let carpeta = panel.url else { return }
         for p in allCases {
-            guard let temporal = p.temporal else { continue }
+            guard let temporal = p.archivoTemporal else { continue }
             let destino = carpeta.appendingPathComponent(p.nombreDeArchivo)
             try? FileManager.default.removeItem(at: destino)
             try? FileManager.default.copyItem(at: temporal, to: destino)

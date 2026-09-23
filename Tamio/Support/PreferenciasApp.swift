@@ -116,12 +116,13 @@ final class PreferenciasApp {
     private static let claveTamano = "prefs.tamano"
     private static let claveBienvenida = "prefs.bienvenidaVista"
     private static let claveConfigurada = "prefs.iglesiaConfigurada"
+    private static let claveTraerDatos = "prefs.traerDatosOfrecido"
 
     /// Todas las de este aparato, en un sitio. Las usa el reinicio de fábrica:
     /// vaciar el dominio entero de `UserDefaults` se llevaría por delante lo
     /// que guardan las SDK de Apple y de Supabase, y borrar por una lista
     /// escrita en otro archivo es cómo se olvida la siguiente.
-    static var claves: [String] { [claveTema, claveIdioma, claveTamano, claveBienvenida, claveConfigurada] }
+    static var claves: [String] { [claveTema, claveIdioma, claveTamano, claveBienvenida, claveConfigurada, claveTraerDatos] }
 
     private init() {
         let d = UserDefaults.standard
@@ -152,6 +153,15 @@ final class PreferenciasApp {
     /// hace falta por lo mismo: la señal de "iglesia sin configurar" es que se
     /// llame "Mi Iglesia", y una iglesia puede llamarse así de verdad. Sin
     /// esta bandera, a esa se le pediría configurarse en cada arranque.
+    /// **Si ya se ofreció «Trae tus datos» en este aparato.** En iOS la
+    /// bienvenida va antes de la sesión, así que la invitación no puede
+    /// colgar de ella como en el Mac: sale una vez por aparato, después de la
+    /// primera bajada. El reinicio de fábrica la borra.
+    static var traerDatosOfrecido: Bool {
+        get { UserDefaults.standard.bool(forKey: claveTraerDatos) }
+        set { UserDefaults.standard.set(newValue, forKey: claveTraerDatos) }
+    }
+
     static var iglesiaConfigurada: Bool {
         get { UserDefaults.standard.bool(forKey: claveConfigurada) }
         set { UserDefaults.standard.set(newValue, forKey: claveConfigurada) }

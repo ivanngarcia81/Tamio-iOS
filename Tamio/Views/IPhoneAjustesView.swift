@@ -45,6 +45,7 @@ struct IPhoneAjustesView: View {
                 // Las categorías son las de ingresos y gastos: no las ve quien
                 // no entra a Tesorería.
                 if permisos.veAjuste(.categorias) { filaNav(.categorias) }
+                if permisos.veAjuste(.datos) { filaNav(.datos) }
                 filaNav(.preferencias)
             } header: {
                 Text(L.t("General", "General")).textCase(nil)
@@ -178,7 +179,7 @@ struct IPhoneAjustesView: View {
         case .categorias:
             AjustesCategoriasView()
         case .datos:
-            EmptyView()   // todavía no en el iPhone: ver `veAjuste`
+            AjustesDatosView()
         case .preferencias:
             AjustesPreferenciasView()
         case .zona:

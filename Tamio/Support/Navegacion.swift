@@ -19,6 +19,10 @@ final class Navegacion {
     var corteDestacado: String?
     /// Pestaña elegida en el TabView del iPhone.
     var pestana: Pestana = .inicio
+    /// **«Importar personas…» o «Importar aportes…», pedido desde donde sea**:
+    /// la invitación, Ajustes › Datos, Membresía vacía o Aportantes. Lo recoge
+    /// el importador que cuelga de la raíz (`ImportarDatosIOS`) y lo apaga.
+    var pidiendoImportar: PlantillaImportar?
 
     enum Pestana: Hashable {
         case inicio, tesoreria, revisar, secretaria, ajustes

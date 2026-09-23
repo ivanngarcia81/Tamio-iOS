@@ -41,12 +41,13 @@ final class ImportarIPad: HojasIPad {
         }
         guard tocado else { return XCTFail("el CSV no aparece en el selector") }
         sleep(5)
-        let cont = app.buttons["Continue"].firstMatch
-        XCTAssertTrue(cont.waitForExistence(timeout: 6), "el CSV no llegó al mapeo de columnas")
-        XCTAssertTrue(cont.isEnabled, "el mapeo no reconoció las columnas del CSV")
-        cont.tap(); sleep(4)
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Import '")).firstMatch.exists,
-                      "el mapeo no llevó a la previa de importación")
+        // P2a del handoff «Trae tus datos»: en el iPad las columnas y la
+        // previa van en la MISMA hoja, sin «Continue» entre las dos. Que el
+        // botón «Import N» exista y esté activo dice a la vez que el CSV llegó
+        // y que sus columnas se reconocieron.
+        let imp = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Import '")).firstMatch
+        XCTAssertTrue(imp.waitForExistence(timeout: 6), "el CSV no llegó a la hoja de importar")
+        XCTAssertTrue(imp.isEnabled, "la hoja no reconoció las columnas del CSV")
         print("### \(marca) · botones=" + app.buttons.allElementsBoundByIndex.prefix(8)
               .filter { !$0.label.isEmpty }.map(\.label).joined(separator: " | "))
         print("MARCA:\(marca)"); fflush(stdout); Thread.sleep(forTimeInterval: 2)
@@ -54,7 +55,7 @@ final class ImportarIPad: HojasIPad {
     }
 
     func testImportarAportantes() {
-        importar("Import givers", archivo: "givers-template", marca: "I-04-aportantes")
+        importar("Import people", archivo: "givers-template", marca: "I-04-aportantes")
     }
 
     func testImportarAportes() {
@@ -89,9 +90,9 @@ final class ImportarIPad: HojasIPad {
         }
         guard tocado else { return XCTFail("el CSV no aparece en el selector") }
         sleep(5)
-        let cont = app.buttons["Continue"].firstMatch
-        XCTAssertTrue(cont.waitForExistence(timeout: 6), "el CSV no llegó al mapeo")
-        cont.tap(); sleep(4)
+        // Sin «Continue» en el iPad: ver arriba.
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Import '")).firstMatch
+                        .waitForExistence(timeout: 6), "el CSV no llegó a la hoja de importar")
 
         // La previa dice lo que va a escribir. El CSV pone 2026-09-06.
         let previa = app.staticTexts.matching(NSPredicate(

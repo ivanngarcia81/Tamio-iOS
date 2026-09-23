@@ -127,15 +127,9 @@ struct Permisos {
         switch seccion {
         case .categorias: return ve(.tesoreria)
         case .zona:       return rol == .administrador
-        // **Solo en el Mac, por ahora.** Es la casa fija de «Trae tus datos»
-        // en los tres aparatos, pero el iPhone y el iPad todavía no la tienen
-        // construida: enseñarla vacía sería prometer lo que no hay.
-        case .datos:
-            #if os(macOS)
-            return administraPadron
-            #else
-            return false
-            #endif
+        // La casa fija de «Trae tus datos», en los tres aparatos: importar
+        // crea fichas en masa, así que es de quien puede darlas de alta.
+        case .datos:      return administraPadron
         case .cuenta, .iglesia, .institucion, .tesorero, .acceso, .preferencias:
             return true
         }

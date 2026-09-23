@@ -8,19 +8,9 @@ struct MiembrosView: View {
     @State private var abierto: Aportante?
     /// La única hoja de la pantalla. Ver `HojaAportante`.
     @State private var hoja: HojaAportante?
-    /// Cuál de los dos CSV se está eligiendo. Lo borra el cierre que lo usa.
-    @State private var importando: Importacion?
-    /// Abierto o no el selector. Va aparte de `importando` **a propósito**: si
-    /// el propio `isPresented` fuera `importando != nil`, cerrarse el selector
-    /// borraría el cuál antes de que corriera el cierre que lo lee, y "Importar
-    /// aportes" acababa enseñando el mapeo de aportantes.
-    @State private var eligiendo = false
-    /// La hoja que entra **cuando salga la de ahora**. `MapearColumnasView`
-    /// avisa y acto seguido se cierra, y ese cierre pone `hoja` en `nil`: si el
-    /// análisis se asignara ahí mismo, lo borraría el propio cierre y detrás
-    /// del mapeo no aparecería nada.
-    @State private var siguiente: HojaAportante?
-    @State private var errorImportacion: String?
+    /// Importar lo hace el importador de la raíz (`ImportarDatosIOS`): aquí
+    /// solo se pide, como desde Ajustes › Datos o Membresía vacía.
+    @Environment(Navegacion.self) private var navegacion
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
 
@@ -44,25 +34,15 @@ struct MiembrosView: View {
         case nueva
         case editar(Aportante)
         case compartir(URL)
-        case mapear(PorMapear)
-        case revisarAportantes(ImportadorAportantes.Analisis)
-        case revisarAportes(ImportadorAportes.Analisis)
 
         var id: String {
             switch self {
             case .nueva:                    return "n"
             case .editar(let a):            return "e\(a.id)"
             case .compartir(let u):         return "c\(u.absoluteString)"
-            case .mapear(let p):            return "m\(p.id)"
-            case .revisarAportantes(let a): return "ra\(a.id)"
-            case .revisarAportes(let a):    return "rg\(a.id)"
             }
         }
     }
-
-    /// Cuál de los dos CSV se está eligiendo. Un solo `fileImporter`, por lo
-    /// mismo que una sola hoja.
-    private enum Importacion { case aportantes, aportes }
 
     /// **La rama del teléfono.** Mismo criterio que en Ingresos/Gastos: no es
     /// "¿caben lista y detalle?" —eso lo decide el ancho— sino "¿los controles
@@ -74,9 +54,7 @@ struct MiembrosView: View {
     var body: some View {
         pantalla
             .toolbar { barra }
-            .sheet(item: $hoja, onDismiss: {
-                if let s = siguiente { siguiente = nil; hoja = s }
-            }) { item in
+            .sheet(item: $hoja) { item in
                 switch item {
                 case .nueva:
                     NuevoAportanteView(existente: nil) { a in Task { await vm.crear(a) } }
@@ -84,45 +62,7 @@ struct MiembrosView: View {
                     NuevoAportanteView(existente: a) { a in Task { await vm.actualizar(a) } }
                 case .compartir(let url):
                     CompartirArchivo(url: url)
-                case .mapear(let pendiente):
-                    MapearColumnasView(documento: pendiente.documento,
-                                       campos: pendiente.campos) { mapeado in
-                        // El análisis se calcula aquí pero se presenta al
-                        // cerrarse esta hoja: dos hojas a la vez no se apilan.
-                        do {
-                            siguiente = pendiente.esAportantes
-                                ? .revisarAportantes(try ImportadorAportantes.analizar(mapeado, existentes: vm.items))
-                                : .revisarAportes(try ImportadorAportes.analizar(mapeado, existentes: vm.items))
-                        } catch {
-                            errorImportacion = error.localizedDescription
-                        }
-                    }
-                case .revisarAportantes(let a):
-                    ImportarAportantesView(analisis: a) { lista in
-                        Task { await vm.importar(lista) }
-                    }
-                case .revisarAportes(let a):
-                    ImportarAportesView(analisis: a) { porAportante in
-                        Task { await vm.importarAportes(porAportante, autor: sesion?.perfil.firma ?? "") }
-                    }
                 }
-            }
-            .fileImporter(isPresented: $eligiendo,
-                          allowedContentTypes: [.commaSeparatedText, .text, .data],
-                          allowsMultipleSelection: false) { resultado in
-                guard let cual = importando else { return }
-                importando = nil
-                conArchivo(resultado) { url in
-                    hoja = .mapear(PorMapear(documento: try CSVLector.leer(url),
-                                             esAportantes: cual == .aportantes))
-                }
-            }
-            .alert(L.t("No se pudo importar", "Couldn't import"),
-                   isPresented: Binding(get: { errorImportacion != nil },
-                                        set: { if !$0 { errorImportacion = nil } })) {
-                Button(L.t("Entendido", "OK"), role: .cancel) { errorImportacion = nil }
-            } message: {
-                Text(errorImportacion ?? "")
             }
             .task { await vm.cargar() }
             .sincronizable { await vm.cargar() }
@@ -356,19 +296,19 @@ struct MiembrosView: View {
     private var menuArchivo: some View {
         Menu {
             Button {
-                importando = .aportantes; eligiendo = true
+                navegacion.pidiendoImportar = .personas
             } label: {
-                Label(L.t("Importar aportantes…", "Import contributors…"),
+                Label(L.t("Importar personas…", "Import people…"),
                       systemImage: "square.and.arrow.down")
             }
             Button {
-                importando = .aportes; eligiendo = true
+                navegacion.pidiendoImportar = .aportes
             } label: {
                 Label(L.t("Importar aportes…", "Import gifts…"),
                       systemImage: "square.and.arrow.down.on.square")
             }
             Button {
-                if let url = ExportadorAportantes.plantilla() { hoja = .compartir(url) }
+                if let url = PlantillaImportar.personas.archivoTemporal { hoja = .compartir(url) }
             } label: {
                 Label(L.t("Descargar plantilla", "Download template"),
                       systemImage: "doc.badge.plus")
@@ -388,35 +328,6 @@ struct MiembrosView: View {
             Label(L.t("Archivo", "File"), systemImage: "square.and.arrow.up")
         }
         .labelStyle(.iconOnly)
-    }
-
-    /// Un CSV leído esperando a que digan qué columna es cuál.
-    ///
-    /// **Leer no es analizar.** Entre las dos cosas va el paso de mapeo: el
-    /// `fileImporter` abre `MapearColumnasView` con el documento crudo, y solo
-    /// cuando el usuario dice qué columna es cuál se analiza y se enseña el
-    /// resumen. Nada se escribe hasta que se confirma allí. Antes se exigían
-    /// las cabeceras exactas y un Excel cualquiera no entraba.
-    struct PorMapear: Identifiable {
-        let id = UUID()
-        let documento: CSVLector.Documento
-        let esAportantes: Bool
-
-        var campos: [CSVLector.Campo] {
-            esAportantes ? ImportadorAportantes.campos : ImportadorAportes.campos
-        }
-    }
-
-    private func conArchivo(_ resultado: Result<[URL], Error>,
-                            _ accion: (URL) throws -> Void) {
-        switch resultado {
-        case .success(let urls):
-            guard let url = urls.first else { return }
-            do { try accion(url) }
-            catch { errorImportacion = error.localizedDescription }
-        case .failure(let error):
-            errorImportacion = error.localizedDescription
-        }
     }
 
     /// **Capas, no hermanos.** Mismo arreglo que en Ingresos/Gastos: la

@@ -20,6 +20,19 @@ struct TamioApp: App {
     /// Si hay que pedir la configuración inicial de la iglesia. Lo decide
     /// `decidirConfiguracionInicial()`, y solo después de la primera bajada.
     @State private var pedirConfiguracion = false
+    /// «Trae tus datos». Lo decide `ofrecerTraerDatosSiToca()`, después de la
+    /// primera bajada y de la configuración inicial si la hubo.
+    #if DEBUG
+    /// `-mostrarTraerDatos YES` la abre al arrancar, como en el Mac: la
+    /// iglesia de prueba ya tiene padrón y sin esto no se puede mirar.
+    @State private var traerDatos = UserDefaults.standard.bool(forKey: "mostrarTraerDatos")
+    #else
+    @State private var traerDatos = false
+    #endif
+    /// Si al cerrar la invitación hay que abrir el selector de archivo. Se
+    /// pide en el `onDismiss` y no en el botón: el selector no se presenta
+    /// mientras la invitación todavía se está yendo.
+    @State private var importarAlCerrar = false
     @Environment(\.scenePhase) private var fase
 
     /// **Abrir la base ANTES de dibujar nada.**
@@ -80,6 +93,22 @@ struct TamioApp: App {
             baseCaida: BaseLocal.caida != nil)
     }
 
+    /// **«Trae tus datos», una vez por aparato**, con el padrón vacío y ya
+    /// bajado, y solo a quien puede dar de alta personas. Si la bajada falló
+    /// no se ofrece: un padrón vacío por no haber bajado no es un padrón
+    /// vacío, y ofrecer importar ahí invitaría a duplicar a la iglesia entera.
+    @MainActor
+    private func ofrecerTraerDatosSiToca() async {
+        guard !PreferenciasApp.traerDatosOfrecido,
+              !MotorSincronizacion.compartido.haFallado,
+              MotorSincronizacion.compartido.ultimaSincronizacion != nil,
+              Permisos.vigentes(sesion).administraPadron,
+              let todos = try? await repositorioMiembros().lista(filtro: .todos),
+              todos.isEmpty else { return }
+        PreferenciasApp.traerDatosOfrecido = true
+        traerDatos = true
+    }
+
     @ViewBuilder
     private var contenido: some View {
         Group {
@@ -109,6 +138,25 @@ struct TamioApp: App {
                     RootView.avisoBaseCaida
                     RootView.avisoRevision
                     RootView()
+                        // Importar, desde donde se pida: ver `ImportarDatosIOS`.
+                        .modifier(ImportarDatosIOS())
+                }
+                // **La invitación, en su propia vista de fondo.** En iOS dos
+                // presentaciones sobre la misma vista no conviven, y esta ya
+                // lleva la de la configuración inicial.
+                .background {
+                    Color.clear
+                        .fullScreenCover(isPresented: $traerDatos, onDismiss: {
+                            if importarAlCerrar {
+                                importarAlCerrar = false
+                                navegacion.pidiendoImportar = .personas
+                            }
+                        }) {
+                            TraerDatosView(importar: {
+                                importarAlCerrar = true
+                                traerDatos = false
+                            }, despues: { traerDatos = false })
+                        }
                 }
                 .environment(sesion)
                 .environment(navegacion)
@@ -116,7 +164,11 @@ struct TamioApp: App {
                 // Va aquí y no dentro de `RootView` porque tapa la app entera:
                 // una iglesia sin nombre no tiene membrete, así que cualquier
                 // PDF que se emitiera antes saldría sin encabezado.
-                .fullScreenCover(isPresented: $pedirConfiguracion) {
+                .fullScreenCover(isPresented: $pedirConfiguracion, onDismiss: {
+                    // Una iglesia recién configurada es justo la que no tiene
+                    // a nadie: la invitación va detrás.
+                    Task { await ofrecerTraerDatosSiToca() }
+                }) {
                     ConfiguracionInicialView { pedirConfiguracion = false }
                 }
                 // Al entrar y cada vez que la app vuelve al frente: es cuando
@@ -171,6 +223,7 @@ struct TamioApp: App {
                     // pediría al segundo miembro de una iglesia ya montada que
                     // la configurara otra vez, y de paso pisaría su nombre.
                     decidirConfiguracionInicial()
+                    if !pedirConfiguracion { await ofrecerTraerDatosSiToca() }
                     let hecho = await MaterializadorRecurrentes.alDia()
                     // Y una segunda vuelta SOLO si de verdad se generó algo,
                     // para que las rentas nuevas no esperen al próximo arranque
