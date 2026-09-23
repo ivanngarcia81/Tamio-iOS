@@ -193,14 +193,63 @@ struct PantallaMembresia: View {
 
     // MARK: - Miembros
 
+    @ViewBuilder
     private var listaDeMiembros: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            chips.padding(.top, 18)
-            LazyVStack(spacing: 7) {
-                ForEach(vm.itemsFiltrados) { tarjeta($0) }
+        if vm.cargado && vm.items.isEmpty {
+            padronVacio
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                chips.padding(.top, 18)
+                LazyVStack(spacing: 7) {
+                    ForEach(vm.itemsFiltrados) { tarjeta($0) }
+                }
+                .padding(.top, 14)
             }
-            .padding(.top, 14)
         }
+    }
+
+    /// **El padrón vacío ofrece traer la lista** (handoff «Trae tus datos»,
+    /// M6). Es donde busca quien se saltó la invitación: la casa fija es
+    /// Configuración › Datos, pero aquí es donde se nota que falta la gente.
+    /// Los dos botones piden `administraPadron`, como el alta y la importación.
+    private var padronVacio: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "person.2")
+                .font(.system(size: 19))
+                .foregroundStyle(Paleta.brand)
+                .frame(width: 44, height: 44)
+                .background(Paleta.brandFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            Text(L.t("Aún no hay nadie en el padrón", "No one on the roll yet"))
+                .font(.system(size: 17, weight: .bold))
+            Text(L.t("Trae tu lista de un Excel o agrega a las personas una por una.",
+                     "Bring in your list from Excel or add people one by one."))
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 360)
+            if administraPadron {
+                HStack(spacing: 10) {
+                    Button(L.t("Importar una lista…", "Import a list…")) {
+                        estado.pidiendoImportarAportantes = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Paleta.brand)
+                    Button(L.t("Agregar persona", "Add person")) {
+                        estado.pidiendoAlta = true
+                    }
+                }
+                .padding(.top, 6)
+                Button(L.t("Descargar la plantilla", "Download the template")) {
+                    PlantillaImportar.guardar(.personas)
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 12))
+                .foregroundStyle(Paleta.enlace)
+                .padding(.top, 2)
+            }
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
     }
 
     /// Los ocho recortes: Todos, los cuatro del registro, Baja, y los dos que

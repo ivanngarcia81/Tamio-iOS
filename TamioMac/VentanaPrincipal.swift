@@ -102,6 +102,9 @@ struct VentanaPrincipal: View {
         // desde cualquier pantalla.
         .background(AtajoBuscar())
         .task { await cargarTodo() }
+        // Importar personas cuelga de la ventana: lo piden el menú, la
+        // invitación, Membresía vacía y Configuración, estén donde estén.
+        .modifier(ImportarPersonasMac(vm: aportantes))
         // Cuando la sincronización termina de escribir, releer.
         .onChange(of: estado.recarga) { Task { await cargarTodo() } }
         // **La hoja de nota la presenta `TablaRegistro`**, como cada pantalla

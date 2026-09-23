@@ -366,6 +366,175 @@ struct BienvenidaMac: View {
     }
 }
 
+// MARK: - Trae tus datos
+
+/// **«Trae tus datos», la invitación que sigue a la bienvenida** (handoff
+/// «Trae tus datos», M1). Misma forma que `BienvenidaMac` —franja verde, fila
+/// de tarjetas y pie— porque es su segunda página: dos tarjetas en vez de tres
+/// y un pie que dice dónde se encuentra después.
+///
+/// Solo se enseña con el padrón vacío y a quien puede dar de alta personas; lo
+/// decide la raíz (`ofrecerTraerDatosSiToca`). ↩ elige el archivo y Esc lo deja
+/// para después, como dicen las notas del handoff.
+struct TraerDatosMac: View {
+    let importar: () -> Void
+    let descargarPlantilla: () -> Void
+    let despues: () -> Void
+
+    @Environment(\.colorScheme) private var esquema
+
+    private var rellenoMarca: Color { Paleta.brand.opacity(esquema == .dark ? 0.22 : 0.12) }
+    private var fondoTarjetas: Color { esquema == .dark ? Color(white: 0x1E / 255) : .white }
+    private var fondoPie: Color { esquema == .dark ? Color(white: 0x2B / 255) : Color(white: 0xF6 / 255) }
+    /// `--suelo` del handoff: el recuadro de «Sirve un archivo CSV…».
+    private var suelo: Color { esquema == .dark ? Color(white: 0x1C / 255) : Color(red: 0xEA / 255, green: 0xEA / 255, blue: 0xEF / 255) }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            cabecera
+                .frame(maxWidth: .infinity)
+                .background(Paleta.brand)
+            Rectangle().fill(Color.filo.opacity(0.10)).frame(height: 0.5)
+            HStack(spacing: 0) {
+                tarjetaImportar
+                Rectangle().fill(Color.filo.opacity(0.10)).frame(width: 0.5)
+                tarjetaPlantilla
+            }
+            .frame(maxHeight: .infinity)
+            .background(fondoTarjetas)
+            Rectangle().fill(Color.filo.opacity(0.10)).frame(height: 0.5)
+            pie
+        }
+        .ignoresSafeArea()
+        .toolbar(removing: .title)
+        .toolbarBackground(.hidden, for: .windowToolbar)
+    }
+
+    private var cabecera: some View {
+        VStack(spacing: 0) {
+            Image("LogoTamio")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 40, height: 40)
+                .shadow(color: .black.opacity(0.25), radius: 3, y: 2)
+            Text(L.t("Trae a tu gente", "Bring your people"))
+                .font(.system(size: 32, weight: .bold))
+                .tracking(-0.8)
+                .padding(.top, 22)
+            Text(L.t("Si ya tienes a las personas de la iglesia en un Excel, una hoja de Google u otro sistema, pásalas a Tamio de una vez. No se guarda nada hasta que lo revises.",
+                     "If your church’s people are already in Excel, a Google Sheet or another system, bring them into Tamio in one go. Nothing is saved until you review it."))
+                .font(.system(size: 14.5))
+                .lineSpacing(5.5)
+                .foregroundStyle(.white.opacity(0.92))
+                .frame(maxWidth: 560)
+                .padding(.top, 12)
+        }
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .foregroundStyle(.white)
+        .padding(.top, 52)
+        .padding(.bottom, 34)
+        .padding(.horizontal, 54)
+    }
+
+    private func icono(_ nombre: String) -> some View {
+        Image(systemName: nombre)
+            .font(.system(size: 15))
+            .foregroundStyle(Paleta.brand)
+            .frame(width: 30, height: 30)
+            .background(rellenoMarca, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+
+    private var tarjetaImportar: some View {
+        VStack(spacing: 10) {
+            icono("arrow.down")
+            Text(L.t("Importar mi lista de personas", "Import my list of people"))
+                .font(.system(size: 15, weight: .semibold))
+            Text(L.t("Eliges el archivo, dices qué columna es cuál y ves qué va a pasar antes de guardar.",
+                     "Choose the file, say which column is which, and see what will happen before saving."))
+                .font(.system(size: 12.5))
+                .lineSpacing(4)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 320)
+            // La frase del formato: la única que cambia el día que se lea el
+            // .xlsx directamente.
+            Text(L.t("Sirve un archivo CSV. En Excel: Archivo › Guardar como › CSV.",
+                     "Use a CSV file. In Excel: File › Save As › CSV."))
+                .font(.system(size: 12))
+                .lineSpacing(3)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(suelo, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .frame(maxWidth: 320)
+                .padding(.top, 4)
+            Button(action: importar) {
+                HStack(spacing: 8) {
+                    Text(L.t("Elegir archivo…", "Choose file…"))
+                        .font(.system(size: 13.5, weight: .semibold))
+                    Text("↩").opacity(0.75)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 20)
+                .frame(height: 34)
+                .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut(.defaultAction)
+            .padding(.top, 8)
+        }
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.vertical, 30)
+        .padding(.horizontal, 36)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var tarjetaPlantilla: some View {
+        VStack(spacing: 10) {
+            icono("doc.plaintext")
+            Text(L.t("Descargar la plantilla", "Download the template"))
+                .font(.system(size: 15, weight: .semibold))
+            Text(L.t("¿No tienes nada ordenado? Rellena esta hoja con las columnas ya puestas y vuelve.",
+                     "Nothing organized yet? Fill in this sheet with the columns already set, then come back."))
+                .font(.system(size: 12.5))
+                .lineSpacing(4)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 320)
+            Text(PlantillaImportar.personas.nombreDeArchivo)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.tertiary)
+            Button(L.t("Descargar", "Download"), action: descargarPlantilla)
+                .padding(.top, 8)
+        }
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.vertical, 30)
+        .padding(.horizontal, 36)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var pie: some View {
+        HStack(spacing: 12) {
+            Text(L.t("Lo encontrarás después en Configuración › Datos.",
+                     "You’ll find it later in Settings › Data."))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+            Button(L.t("Lo haré después", "I’ll do it later"), action: despues)
+                .buttonStyle(.plain)
+                .font(.system(size: 13))
+                .foregroundStyle(Paleta.enlace)
+                .keyboardShortcut(.cancelAction)
+            Text("esc")
+                .font(.system(size: 11.5))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .background(fondoPie)
+    }
+}
+
 // MARK: - Recuperar la contraseña
 
 /// Los dos pasos del mismo camino que usa el iPhone: Supabase manda un código

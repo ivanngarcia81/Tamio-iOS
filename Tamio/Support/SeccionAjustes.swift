@@ -26,7 +26,7 @@ import SwiftUI
 /// siempre. Son cromo de lista al estilo de los Ajustes de iOS, no color de
 /// marca: el verde de Tamio sigue reservado a lo seleccionado y a las cifras.
 enum SeccionAjustes: String, CaseIterable, Identifiable, Hashable {
-    case cuenta, iglesia, institucion, tesorero, acceso, categorias, preferencias, zona
+    case cuenta, iglesia, institucion, tesorero, acceso, categorias, datos, preferencias, zona
 
     var id: String { rawValue }
 
@@ -38,6 +38,7 @@ enum SeccionAjustes: String, CaseIterable, Identifiable, Hashable {
         case .tesorero:     return L.t("Tesorero y pastor", "Treasurer & pastor")
         case .acceso:       return L.t("Acceso y áreas", "Access & areas")
         case .categorias:   return L.t("Categorías", "Categories")
+        case .datos:        return L.t("Datos", "Data")
         case .preferencias: return L.t("Preferencias", "Preferences")
         case .zona:         return L.t("Zona de riesgo", "Danger zone")
         }
@@ -56,6 +57,8 @@ enum SeccionAjustes: String, CaseIterable, Identifiable, Hashable {
         case .tesorero:     return "signature"
         case .acceso:       return "person.badge.key.fill"
         case .categorias:   return "tag.fill"
+        // Traer datos de fuera: la bandeja con la flecha que entra.
+        case .datos:        return "tray.and.arrow.down.fill"
         // `textformat.size` y no `macwindow`, que además de abstracto dibujaba
         // una ventana de Mac dentro de un iPhone. Dos de los tres ajustes que
         // quedan aquí —idioma y tamaño— son sobre leer.
@@ -90,6 +93,9 @@ enum SeccionAjustes: String, CaseIterable, Identifiable, Hashable {
         case .tesorero:     return Paleta.placa(claro: 0x007993, oscuroSistema: .systemCyan)
         case .acceso:       return Paleta.placa(claro: 0x006FD1, oscuroSistema: .systemBlue)
         case .categorias:   return Paleta.placa(claro: 0xA75C1A, oscuroSistema: .systemOrange)
+        // El gris de Cuenta, ya medido a 5:1: datos no es un área de la
+        // iglesia sino una herramienta, y no pide color propio.
+        case .datos:        return Paleta.placa(claro: 0x6F6F73, oscuroSistema: .systemGray)
         case .preferencias: return Paleta.placa(claro: 0xB62BC9, oscuroSistema: .systemPurple)
         case .zona:         return Paleta.placa(claro: 0xD22E32, oscuroSistema: .systemRed)
         }
@@ -116,6 +122,9 @@ enum SeccionAjustes: String, CaseIterable, Identifiable, Hashable {
         case .categorias:
             return L.t("Las categorías de ingresos y gastos que aparecen en formularios, filtros, reportes y PDFs.",
                        "Income and expense categories shown in forms, filters, reports, and PDFs.")
+        case .datos:
+            return L.t("Traer a las personas de la iglesia desde un Excel u otro sistema, y las plantillas para hacerlo.",
+                       "Bring the church’s people in from Excel or another system, and the templates to do it.")
         case .preferencias:
             return L.t("Apariencia, idioma y tamaño de texto de la aplicación.",
                        "Appearance, language, and text size of the app.")

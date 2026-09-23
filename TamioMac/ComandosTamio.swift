@@ -65,13 +65,22 @@ struct ComandosTamio: Commands {
             .keyboardShortcut("t", modifiers: [.command, .shift])
 
             Divider()
-            // En Archivo, como lo dibuja el handoff. Lleva a Aportantes y abre
-            // allí el selector: el importador vive en la tabla.
-            Button(L.t("Importar aportantes…", "Import contributors…")) {
-                estado.seccion = .miembros
+            // En Archivo, como lo dibuja el handoff «Trae tus datos» (M6). Ya
+            // no cambia de sección: el importador cuelga de la ventana y abre
+            // el selector esté donde esté.
+            Button(L.t("Importar personas…", "Import people…")) {
                 estado.pidiendoImportarAportantes = true
             }
+            .keyboardShortcut("i", modifiers: [.command, .shift])
             .disabled(!Permisos.vigentes(sesion).administraPadron)
+            Button(L.t("Importar aportes…", "Import gifts…")) {
+                estado.pidiendoImportarAportes = true
+            }
+            .disabled(!(Permisos.vigentes(sesion).administraPadron
+                        && Permisos.vigentes(sesion).ve(.tesoreria)))
+            Button(L.t("Descargar las plantillas…", "Download the templates…")) {
+                PlantillaImportar.guardarAmbas()
+            }
         }
 
         // MARK: Ver

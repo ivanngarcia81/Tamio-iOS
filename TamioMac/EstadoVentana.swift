@@ -57,10 +57,31 @@ final class EstadoVentana {
     }
     var plantillaCaptura: PlantillaCaptura?
 
-    /// El testigo de "Importar aportantes…" del menú Archivo, por el mismo
-    /// motivo que `pidiendoAlta`: el menú es una escena hermana y no alcanza
-    /// el estado de la tabla. `TablaAportantes` lo apaga al abrir el selector.
+    /// El testigo de "Importar personas…", por el mismo motivo que
+    /// `pidiendoAlta`: el menú es una escena hermana y no alcanza el estado de
+    /// una vista. Lo encienden el menú, la invitación, el estado vacío de
+    /// Membresía y Configuración › Datos; lo apaga `ImportarPersonasMac` al
+    /// abrir el selector.
     var pidiendoImportarAportantes = false
+    /// Lo mismo para «Importar aportes…».
+    var pidiendoImportarAportes = false
+
+    /// **«Trae tus datos», la invitación que sigue a la bienvenida.**
+    ///
+    /// Dos tiempos, y el primero es solo una promesa: `ofrecerTraerDatos` se
+    /// enciende al cerrar la bienvenida, pero la invitación no sale hasta que
+    /// la primera sincronización termina. Decidirlo antes sería mirar un
+    /// padrón vacío porque aún no ha bajado, y ofrecerle importar a una
+    /// secretaria cuya iglesia ya está montada —el caso que el handoff pide
+    /// expresamente evitar—.
+    var ofrecerTraerDatos = false
+    /// En DEBUG, `-mostrarTraerDatos YES` la abre al arrancar: la iglesia de
+    /// prueba ya tiene padrón y sin esto la invitación no se puede mirar.
+    #if DEBUG
+    var viendoTraerDatos = UserDefaults.standard.bool(forKey: "mostrarTraerDatos")
+    #else
+    var viendoTraerDatos = false
+    #endif
 
     /// El panel de la derecha. **Empieza abierto**, como en la maqueta: es
     /// donde se lee el detalle de lo seleccionado, y una ventana que arranca

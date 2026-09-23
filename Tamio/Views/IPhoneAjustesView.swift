@@ -177,6 +177,8 @@ struct IPhoneAjustesView: View {
             AjustesAccesoView(invEmail: $invEmail, invNom: $invNom)
         case .categorias:
             AjustesCategoriasView()
+        case .datos:
+            EmptyView()   // todavía no en el iPhone: ver `veAjuste`
         case .preferencias:
             AjustesPreferenciasView()
         case .zona:

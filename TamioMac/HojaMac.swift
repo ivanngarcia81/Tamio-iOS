@@ -144,11 +144,15 @@ struct SeccionHoja<C: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(titulo)
-                .font(.system(size: 11, weight: .bold))
-                .kerning(0.5)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
+            // Vacío cuando quien la usa pone el título por su cuenta, con algo
+            // entre él y la tarjeta (el filtro por motivo de la importación).
+            if !titulo.isEmpty {
+                Text(titulo)
+                    .font(.system(size: 11, weight: .bold))
+                    .kerning(0.5)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 4)
+            }
 
             VStack(spacing: 0) { filas() }
                 .background(Color.tarjeta)

@@ -48,12 +48,30 @@ struct TamioMacApp: App {
                     // delante: vuelta a abrir desde Ayuda lleva el nombre de
                     // quien entró, y eso no se enseña con el Mac bloqueado.
                     BienvenidaMac(sesion: sesion) {
+                        // Solo la primera vez del aparato: vuelta a abrir
+                        // desde Ayuda, la bienvenida no vuelve a ofrecer nada.
+                        if !PreferenciasApp.bienvenidaVista { estado.ofrecerTraerDatos = true }
                         PreferenciasApp.bienvenidaVista = true
                         withAnimation(.easeOut(duration: 0.2)) {
                             estado.viendoBienvenida = false
                         }
                     }
                     .frame(minWidth: 880, minHeight: 640)
+                    .transition(.opacity)
+                } else if estado.viendoTraerDatos {
+                    // **«Trae tus datos», con la misma forma que la
+                    // bienvenida** y en su mismo sitio: sustituye a la ventana
+                    // en vez de flotar encima, como en el handoff (M1).
+                    TraerDatosMac(
+                        importar: {
+                            estado.viendoTraerDatos = false
+                            estado.pidiendoImportarAportantes = true
+                        },
+                        descargarPlantilla: { PlantillaImportar.guardar(.personas) },
+                        despues: {
+                            withAnimation(.easeOut(duration: 0.2)) { estado.viendoTraerDatos = false }
+                        })
+                    .frame(minWidth: 880, minHeight: 600)
                     .transition(.opacity)
                 } else {
                     contenido
@@ -167,6 +185,7 @@ struct TamioMacApp: App {
                     // que había antes —en un Mac recién estrenado, nada— hasta
                     // que alguien cambia de sección y vuelve.
                     estado.recargar()
+                    await ofrecerTraerDatosSiToca()
                 }
                 // **Y otra vez cada vez que la app vuelve al frente.**
                 //
@@ -188,5 +207,24 @@ struct TamioMacApp: App {
                     }
                 }
         }
+    }
+
+    /// **La invitación solo con el padrón VACÍO y ya bajado**, y solo a quien
+    /// puede dar de alta personas (`administraPadron`: administrador y
+    /// secretaria, y el tesorero en el plan solo Tesorería). Se mira después
+    /// de la primera sincronización, que es cuando «vacío» significa vacío.
+    /// Si la bajada falló —sin conexión en el primer arranque—, no se ofrece:
+    /// un padrón vacío por no haber bajado no es un padrón vacío, y mejor no
+    /// invitar que invitar a duplicar a toda la iglesia.
+    @MainActor
+    private func ofrecerTraerDatosSiToca() async {
+        guard estado.ofrecerTraerDatos else { return }
+        estado.ofrecerTraerDatos = false
+        guard !MotorSincronizacion.compartido.haFallado,
+              MotorSincronizacion.compartido.ultimaSincronizacion != nil,
+              Permisos.vigentes(sesion).administraPadron,
+              let todos = try? await repositorioMiembros().lista(filtro: .todos),
+              todos.isEmpty else { return }
+        withAnimation(.easeOut(duration: 0.2)) { estado.viendoTraerDatos = true }
     }
 }

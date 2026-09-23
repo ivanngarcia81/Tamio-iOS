@@ -329,6 +329,7 @@ struct ConfiguracionView: View {
         case .tesorero:     SeccionTesorero()
         case .acceso:       SeccionAcceso()
         case .categorias:   SeccionCategorias()
+        case .datos:        EmptyView()   // todavía no en el iPad: ver `veAjuste`
         case .preferencias: SeccionPreferencias()
         case .zona:         SeccionZona()
         }

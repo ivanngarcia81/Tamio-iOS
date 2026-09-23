@@ -20,6 +20,7 @@ struct PantallaConfiguracion: View {
     @State private var prefs = PreferenciasApp.compartidas
     @State private var categorias = CategoriasViewModel.compartido
     @Environment(SesionSupabase.self) private var sesion: SesionSupabase?
+    @Environment(EstadoVentana.self) private var estado
 
     /// **Observable, así que leerlo en el `body` basta para que la pantalla se
     /// entere.** Es el mismo motor que mira la barra de estado; aquí se
@@ -145,7 +146,8 @@ struct PantallaConfiguracion: View {
                         .padding(.bottom, 20)
                     grupo(L.t("IGLESIA", "CHURCH"),
                           [.iglesia, .institucion, .tesorero, .acceso])
-                    grupo(L.t("GENERAL", "GENERAL"), [.categorias, .preferencias])
+                    grupo(L.t("GENERAL", "GENERAL"),
+                          [.categorias, .datos, .preferencias].filter { Permisos.vigentes(sesion).veAjuste($0) })
                 }
                 .padding(.bottom, 12)
             }
@@ -247,6 +249,7 @@ struct PantallaConfiguracion: View {
         case .tesorero:     seccionTesorero
         case .acceso:       seccionAcceso
         case .categorias:   seccionCategorias
+        case .datos:        seccionDatos
         case .preferencias: seccionPreferencias
         case .zona:         seccionZona
         }
@@ -803,6 +806,31 @@ struct PantallaConfiguracion: View {
         }
         Nota(L.t("Tamio sigue la apariencia que elijas aquí, no la del sistema: las tesoreras trabajan a menudo en un salón iluminado con la pantalla oscura.",
                  "Tamio follows the appearance you pick here, not the system one — treasurers often work in a lit hall with a dark screen."))
+    }
+
+    // MARK: Datos
+
+    /// **La casa fija de «Trae tus datos»** (handoff, P5 y M6): importar
+    /// personas, importar aportes y las dos plantillas. Los aportes, solo a
+    /// quien además ve Tesorería: son dinero.
+    @ViewBuilder
+    private var seccionDatos: some View {
+        let p = Permisos.vigentes(sesion)
+        Grupo(titulo: L.t("DATOS", "DATA")) {
+            FilaBoton(L.t("Importar personas…", "Import people…")) {
+                estado.pidiendoImportarAportantes = true
+            }
+            if p.ve(.tesoreria) {
+                FilaBoton(L.t("Importar aportes…", "Import gifts…")) {
+                    estado.pidiendoImportarAportes = true
+                }
+            }
+            FilaBoton(L.t("Descargar las plantillas", "Download the templates"), ultimo: true) {
+                PlantillaImportar.guardarAmbas()
+            }
+        }
+        Nota(L.t("Desde un CSV de Excel, de Google o de otro sistema. Si importas el mismo archivo dos veces, no se duplica nadie. Los aportes, siempre después de las personas.",
+                 "From a CSV from Excel, Google or another system. Importing the same file twice won’t duplicate anyone. Gifts always go after people."))
     }
 
     // MARK: Zona de riesgo
