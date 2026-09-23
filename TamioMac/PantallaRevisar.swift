@@ -28,19 +28,24 @@ struct PantallaRevisar: View {
             .padding(.vertical, 22)
         }
         .background(Color.suelo)
+        .overlay(alignment: .bottom) { aviso }
+        .animation(.snappy, value: vm.toast?.id)
     }
 
     private var franja: some View {
         HStack(spacing: 10) {
             Image(systemName: "exclamationmark.circle.fill")
                 .foregroundStyle(Paleta.aviso)
-            Text(L.t("\(vm.porRevisarCount) cosas esperan una decisión.",
-                     "\(vm.porRevisarCount) items need a decision."))
+            Text(vm.porRevisarCount == 1
+                 ? L.t("1 cosa espera una decisión.", "1 item needs a decision.")
+                 : L.t("\(vm.porRevisarCount) cosas esperan una decisión.",
+                       "\(vm.porRevisarCount) items need a decision."))
                 .font(.system(size: 12.5, weight: .semibold))
             Text(resumenDeTipos)
                 .font(.system(size: 12.5))
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
+            aprobarLoSeguro
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 11)
@@ -109,21 +114,105 @@ struct PantallaRevisar: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 6)
 
-            if !r.detalleLista.isEmpty {
-                Text(r.detalleLista)
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, 8)
+            // **Los botones, y a su derecha de dónde viene**, como en el
+            // handoff. Entran solo Aprobar y Devolver, que son los que el
+            // iPhone ya usa sobre el mismo repositorio. "Pedir datos" no existe
+            // en ningún sitio —ni aquí ni en el web—, y "Editar", "Ir al corte"
+            // y "Restaurar" abren otras pantallas que el Mac aún no enlaza: un
+            // botón que no hace nada promete una decisión que no se toma.
+            // Decidido por Iván el 23-sep.
+            let botones = r.acciones.filter { $0.kind == .aprobar || $0.kind == .devolver }
+            if !botones.isEmpty || !r.detalleLista.isEmpty {
+                HStack(spacing: 8) {
+                    ForEach(botones) { ac in
+                        if ac.kind == .aprobar {
+                            Button(ac.label) { resolver(r, ac.kind) }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Paleta.brand)
+                        } else {
+                            Button(ac.label) { resolver(r, ac.kind) }
+                                .buttonStyle(.bordered)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                    if !r.detalleLista.isEmpty {
+                        Text(r.detalleLista)
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .controlSize(.small)
+                .padding(.top, 12)
             }
-
-            // **Sin botones todavía.** El handoff pone aquí Aprobar, Devolver
-            // y Pedir datos. Las tres mueven el estado de revisión de un
-            // apunte de dinero y aún no están escritas: un botón que no hace
-            // nada, aquí, promete una decisión que no se toma.
         }
         .padding(15)
         .frame(maxWidth: .infinity, alignment: .leading)
         .tarjetaMac(13)
+    }
+
+    // MARK: - Acciones
+
+    /// **"Aprobar todo lo seguro", y lo seguro es solo el visto bueno.** Un
+    /// duplicado probable o un gasto sin comprobante piden mirar ESE
+    /// movimiento; aprobarlos en bloque es justo lo que su bandera evita. Por
+    /// eso el botón desaparece cuando no hay ninguno, en vez de apagarse: en
+    /// el iPhone, apagado, prometía una acción que no podía hacer.
+    @ViewBuilder
+    private var aprobarLoSeguro: some View {
+        if vm.aprobablesCount > 0 {
+            Button(L.t("Aprobar todo lo seguro", "Approve all safe")) {
+                Task {
+                    await vm.aprobarTodo()
+                    await MotorSincronizacion.compartido.sincronizar()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Paleta.brand)
+            .controlSize(.small)
+            .help(L.t("Aprueba los \(vm.aprobablesCount) que solo esperan visto bueno. Los demás se deciden uno a uno.",
+                      "Approves the \(vm.aprobablesCount) that only await approval. The rest are decided one by one."))
+        }
+    }
+
+    /// **Se sube en cuanto se decide.** En el Mac no hay "volver al frente"
+    /// que dispare la sincronización, y sin esto el visto bueno se quedaba en
+    /// la cola hasta el próximo arranque, igual que le pasaba a Membresía.
+    private func resolver(_ r: Revision, _ kind: AccionKind) {
+        Task {
+            await vm.resolver(r, kind: kind)
+            await MotorSincronizacion.compartido.sincronizar()
+        }
+    }
+
+    /// El aviso de lo que se acaba de hacer, con Deshacer: aprobar dinero con
+    /// un clic de más no puede ser irreversible.
+    @ViewBuilder
+    private var aviso: some View {
+        if let t = vm.toast {
+            HStack(spacing: 14) {
+                Text(t.mensaje)
+                    .font(.system(size: 12.5))
+                    .lineLimit(2)
+                Button(L.t("Deshacer", "Undo")) {
+                    Task {
+                        await vm.deshacer()
+                        await MotorSincronizacion.compartido.sincronizar()
+                    }
+                }
+                .buttonStyle(.link)
+                .font(.system(size: 12.5, weight: .semibold))
+            }
+            .padding(.horizontal, 16).padding(.vertical, 10)
+            .background(.regularMaterial, in: Capsule())
+            .overlay(Capsule().stroke(Color.primary.opacity(0.08), lineWidth: 1))
+            .padding(.bottom, 18)
+            .frame(maxWidth: 560)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .task(id: t.id) {
+                try? await Task.sleep(for: .seconds(5))
+                if vm.toast?.id == t.id { vm.toast = nil }
+            }
+        }
     }
 
     private var vacio: some View {

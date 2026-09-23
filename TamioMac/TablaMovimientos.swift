@@ -122,6 +122,23 @@ struct TablaMovimientos: View {
         // contra el talonario sin soltar el teclado— y Duplicar, que no mueve
         // nada: solo rellena la captura rápida, y guardar sigue siendo ⌘S.
         .contextMenu(forSelectionType: Movimiento.ID.self) { ids in
+            // **Aprobar ⌘R, solo si hay algo que aprobar.** Pasa por la misma
+            // bandeja que Por revisar —el asunto de visto bueno del
+            // movimiento—, así que aprueba igual, deja el mismo Deshacer y el
+            // contador de la barra lateral baja a la vez. "Marcar depositado"
+            // y "Devolver a la bandeja" no entran: el primero no existe en
+            // ninguna plataforma y el segundo no se sabe si es devolver al
+            // tesorero o volver a pendiente. Decidido por Iván el 23-sep.
+            let aprobables = filas.filter { ids.contains($0.id) && $0.estadoRevision == .pendiente }
+            if !aprobables.isEmpty {
+                Button(aprobables.count == 1
+                       ? L.t("Aprobar", "Approve")
+                       : L.t("Aprobar \(aprobables.count)", "Approve \(aprobables.count)")) {
+                    aprobar(aprobables)
+                }
+                .keyboardShortcut("r", modifiers: .command)
+                Divider()
+            }
             if let m = filas.first(where: { ids.contains($0.id) }) {
                 // Solo con UNA fila: la captura rápida es de un apunte, y
                 // duplicar seis a la vez tendría que elegir cuál sin decirlo.
@@ -160,6 +177,13 @@ struct TablaMovimientos: View {
             .opacity(0)
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
+            // El ⌘R, por lo mismo que el ⌘D.
+            Button(L.t("Aprobar", "Approve")) { aprobar(seleccionPendiente) }
+                .keyboardShortcut("r", modifiers: .command)
+                .disabled(seleccionPendiente.isEmpty)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
         }
         // **Actúa sobre TODA la selección, no sobre la fila pulsada.** Una
         // tabla de Mac selecciona muchas y el menú sale de la selección; borrar
@@ -174,6 +198,27 @@ struct TablaMovimientos: View {
         } message: {
             Text(L.t("Se va del libro de la iglesia y de todos los aparatos. El Registro guarda quién lo hizo.",
                      "It leaves the church's books and every device. The Log keeps who did it."))
+        }
+    }
+
+    private var seleccionPendiente: [Movimiento] {
+        filas.filter { seleccion.contains($0.id) && $0.estadoRevision == .pendiente }
+    }
+
+    /// Por la bandeja y no escribiendo el estado a mano: el id del asunto es
+    /// `tx-<id>-vistoBueno` (`CalculadoraRevisiones.base`), y `resolver` es lo
+    /// que ya usan Por revisar y el iPhone.
+    private func aprobar(_ movs: [Movimiento]) {
+        Task {
+            let bandeja = RevisarViewModel.compartido
+            await bandeja.cargar()
+            for m in movs {
+                if let r = bandeja.todos.first(where: { $0.id == "tx-\(m.id)-\(RevisionTipo.vistoBueno.rawValue)" }) {
+                    await bandeja.resolver(r, kind: .aprobar)
+                }
+            }
+            await vm.cargar()
+            await MotorSincronizacion.compartido.sincronizar()
         }
     }
 
