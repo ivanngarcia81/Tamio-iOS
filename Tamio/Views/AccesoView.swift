@@ -198,6 +198,29 @@ struct BotonMarcaCristal: ButtonStyle {
     }
 }
 
+/// **Los dos botones del pie de la bienvenida, en cristal de verdad.**
+///
+/// Iban pintados (`BotonMarca` y `BotonMarcaCristal`, que siguen en la puerta
+/// de acceso). Iván los pidió de Liquid Glass el 23-sep, después de ver el
+/// carril de idiomas: sobre este verde el cristal sale verde menta y SE VE IGUAL
+/// en el iPhone y en el iPad —medido en los dos simuladores—, así que la letra
+/// va en verde hondo, que en blanco sobre menta no se lee. El principal lleva el
+/// cristal teñido de blanco para seguir siendo el que se pulsa.
+struct BotonBienvenidaCristal: ButtonStyle {
+    var principal = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.escalada(18, weight: principal ? .semibold : .medium, relativeTo: .headline))
+            .foregroundStyle(Marca.verdeHondo)
+            .frame(maxWidth: .infinity, minHeight: 56)
+            .contentShape(.capsule)
+            .glassEffect(principal ? .regular.tint(.white.opacity(0.85)).interactive()
+                                   : .regular.interactive(),
+                         in: .capsule)
+    }
+}
+
 // MARK: - Bienvenida
 
 /// **Lo primero que ve alguien que abre Tamio, antes de las credenciales.**
@@ -382,35 +405,53 @@ struct BienvenidaView: View {
     /// El carril SÍ es de cristal, y las tres cápsulas van dentro: elegida en
     /// blanco con letra verde, las otras dos transparentes con letra blanca.
     private var selectorIdioma: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 4) {
+        // Centrado bajo el texto, pedido por Iván el 23-sep: compacto y a la
+        // izquierda parecía una etiqueta suelta del párrafo.
+        VStack(alignment: .center, spacing: 10) {
+            // **Compacto, a lo ancho de su texto.** Iba de lado a lado con
+            // cápsulas de 40 pt y pesaba tanto como "Siguiente": se leía como
+            // el paso que había que dar, cuando es una salida para quien no
+            // entiende el idioma. Iván pidió los botones más pequeños el
+            // 23-sep; se quedan en 32 pt de alto, que se siguen pulsando.
+            HStack(spacing: 2) {
                 ForEach(PreferenciasApp.Idioma.allCases, id: \.self) { idioma in
                     let elegido = prefs.idioma == idioma
                     Button(idioma.etiqueta) { prefs.idioma = idioma }
-                        .font(.escalada(15, weight: .semibold, relativeTo: .subheadline))
-                        // Tres cápsulas de ancho igual: con la letra grande
-                        // "Automatic" no cabía y salía "Automa…". Recortar el
+                        .font(.escalada(13, weight: .semibold, relativeTo: .footnote))
+                        // Con la letra grande no se recorta: recortar el
                         // nombre de un idioma es peor que encogerlo.
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
-                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 32)
                         .background(elegido ? AnyShapeStyle(.white)
                                             : AnyShapeStyle(.clear),
-                                    in: .rect(cornerRadius: 18))
+                                    in: .capsule)
                         .foregroundStyle(elegido ? AnyShapeStyle(Marca.verdeHondo)
-                                                 : AnyShapeStyle(.white.opacity(0.9)))
+                                                 : AnyShapeStyle(Marca.verdeHondo))
+                        .contentShape(.capsule)
                 }
             }
             .buttonStyle(.plain)
-            .padding(4)
-            .vidrioMarca(radio: 22, alta: 0.22, baja: 0.12, sombra: false)
+            .padding(3)
+            // **Cristal de verdad, y la única pieza de la puerta que lo lleva.**
+            // El resto usa `vidrioMarca` porque el cristal de iOS 26 salía
+            // distinto en el iPhone y en el iPad; este carril, más pequeño, se
+            // midió el 23-sep en los dos simuladores (iPhone 18 Pro, iPad Pro
+            // 13") y sale igual: verde menta claro. Por eso las no elegidas
+            // van en verde hondo y no en blanco: blanco sobre menta daba
+            // 1.95:1 y no se leía; en verde da 4.0:1 en los dos, lo mismo que
+            // tenía el carril pintado.
+            .glassEffect(.regular.interactive(), in: .capsule)
+            .fixedSize()
 
             Text(L.t("«Automático» usa el idioma del sistema.",
                      "\"Automatic\" uses the system language."))
                 .font(.escalada(13, relativeTo: .footnote))
                 .foregroundStyle(.white.opacity(0.62))
-                .padding(.leading, 2)
+                .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity)
     }
 
     /// Puntos y botones. **No se mueven entre paso y paso**: "Siguiente" es el
@@ -444,7 +485,7 @@ struct BienvenidaView: View {
                     // si uno fuera a hacer otra cosa.
                     if !esUltima {
                         Button(L.t("Omitir", "Skip")) { alTerminar() }
-                            .buttonStyle(BotonMarcaCristal())
+                            .buttonStyle(BotonBienvenidaCristal())
                             .frame(width: (g.size.width - hueco) / 2.35)
                     }
 
@@ -452,7 +493,7 @@ struct BienvenidaView: View {
                                     : L.t("Siguiente", "Next")) {
                         if esUltima { alTerminar() } else { paso += 1 }
                     }
-                    .buttonStyle(BotonMarca())
+                    .buttonStyle(BotonBienvenidaCristal(principal: true))
                 }
             }
             .frame(height: 56)
