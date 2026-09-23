@@ -39,42 +39,89 @@ struct PantallaInformes: View {
 
     // MARK: - Pestañas y periodo
 
+    /// **En una fila si cabe, en dos si no.** Las pestañas, el periodo y el
+    /// botón en una sola fila pedían 1090 pt de ventana con el inspector
+    /// CERRADO —media pantalla de una MacBook de 14" son 900—, y antes de
+    /// llegar ahí el botón ya se encogía a "…": cabía rompiéndose. Medido el
+    /// 23-sep. En dos filas, el periodo y el CSV bajan debajo de las pestañas
+    /// y la pantalla cabe entera.
     private var cabecera: some View {
-        HStack(spacing: 12) {
-            Picker("", selection: Binding(
-                get: { vm.informeSeleccionado },
-                set: { vm.informeSeleccionado = $0 }
-            )) {
-                Text(L.t("General", "General")).tag(0)
-                Text(L.t("Miembros", "Members")).tag(1)
-                Text(L.t("Asistencia", "Attendance")).tag(2)
-                Text(L.t("Seguimiento", "Follow-up")).tag(3)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                pestanas
+                Spacer(minLength: 0)
+                selectorDePeriodo
+                botonCSV
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-
-            Spacer(minLength: 0)
-
-            // El periodo: los cinco de `PeriodoInforme`, que ya existían.
-            Picker("", selection: Binding(
-                get: { vm.periodoTipo },
-                set: { vm.periodoTipo = $0 }
-            )) {
-                ForEach(PeriodoInforme.allCases, id: \.self) { p in
-                    Text(p.etiqueta).tag(p)
+            VStack(alignment: .leading, spacing: 10) {
+                pestanas
+                HStack(spacing: 12) {
+                    selectorDePeriodo
+                    Spacer(minLength: 0)
+                    botonCSV
                 }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-
-            // **El mismo CSV que el iPhone**, `csvExportString` del ViewModel:
-            // dos exportadores del mismo informe acabarían diciendo cosas
-            // distintas en cuanto uno ganara una sección. Cambia el gesto, no
-            // el archivo: aquí se guarda donde uno diga, como en Configuración.
-            Button(L.t("Exportar como CSV…", "Export as CSV…")) { exportarCSV() }
         }
+    }
+
+    /// **Los meses con su inicial cuando no caben enteros.** A media pantalla
+    /// el panel de altas deja unos 20 pt por mes y Charts cortaba cada nombre
+    /// en "F…", "S…": doce puntos suspensivos no dicen ningún mes. La inicial
+    /// sí, porque el orden de enero a diciembre ya se sabe; es lo que hace el
+    /// calendario de macOS. 30 pt por mes es lo que pide "May" o "Sep" a 11 pt.
+    @AxisContentBuilder
+    private func ejeDeMeses(ancho: CGFloat, cuantos: Int) -> some AxisContent {
+        let apretado = cuantos > 0 && ancho / CGFloat(cuantos) < 30
+        AxisMarks { v in
+            AxisGridLine()
+            AxisValueLabel {
+                if let mes = v.as(String.self) {
+                    Text(apretado ? String(mes.prefix(1)) : mes)
+                }
+            }
+        }
+    }
+
+    private var pestanas: some View {
+        Picker("", selection: Binding(
+            get: { vm.informeSeleccionado },
+            set: { vm.informeSeleccionado = $0 }
+        )) {
+            Text(L.t("General", "General")).tag(0)
+            Text(L.t("Miembros", "Members")).tag(1)
+            Text(L.t("Asistencia", "Attendance")).tag(2)
+            Text(L.t("Seguimiento", "Follow-up")).tag(3)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+    }
+
+    // El periodo: los cinco de `PeriodoInforme`, que ya existían.
+    private var selectorDePeriodo: some View {
+        Picker("", selection: Binding(
+            get: { vm.periodoTipo },
+            set: { vm.periodoTipo = $0 }
+        )) {
+            ForEach(PeriodoInforme.allCases, id: \.self) { p in
+                Text(p.etiqueta).tag(p)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+    }
+
+    // **El mismo CSV que el iPhone**, `csvExportString` del ViewModel: dos
+    // exportadores del mismo informe acabarían diciendo cosas distintas en
+    // cuanto uno ganara una sección. Cambia el gesto, no el archivo: aquí se
+    // guarda donde uno diga, como en Configuración.
+    //
+    // `fixedSize` para que nunca se encoja a "…": sin él, `ViewThatFits` daba
+    // por buena la fila única con el botón ya roto.
+    private var botonCSV: some View {
+        Button(L.t("Exportar como CSV…", "Export as CSV…")) { exportarCSV() }
+            .fixedSize()
     }
 
     // MARK: - El rango
@@ -178,10 +225,13 @@ struct PantallaInformes: View {
                 panel(L.t("ALTAS POR MES", "NEW PER MONTH"), estira: true) {
                     let altas = r.altasPorMes
                     if altas.allSatisfy({ $0.altas == 0 }) { vacio } else {
-                        Chart(altas) { a in
-                            BarMark(x: .value("Mes", a.mes), y: .value("Altas", a.altas))
-                                .foregroundStyle(Paleta.brand)
-                                .cornerRadius(3)
+                        GeometryReader { g in
+                            Chart(altas) { a in
+                                BarMark(x: .value("Mes", a.mes), y: .value("Altas", a.altas))
+                                    .foregroundStyle(Paleta.brand)
+                                    .cornerRadius(3)
+                            }
+                            .chartXAxis { ejeDeMeses(ancho: g.size.width, cuantos: altas.count) }
                         }
                         .frame(height: 130)
                         .padding(.top, 14)
@@ -326,7 +376,7 @@ struct PantallaInformes: View {
 
             // **La frase del handoff, que además es una regla.** Cada tarjeta
             // cuenta con la MISMA regla con la que filtra la lista —
-            // `TarjetaPadron.incluye(_:año:)`—, nunca leyendo un resumen
+            // `TarjetaPadron.incluye(_:en:)`—, nunca leyendo un resumen
             // aparte. Es lo que evita que el número de arriba y la lista de
             // abajo se contradigan.
             Text(vm.tarjeta == .todos
@@ -338,7 +388,7 @@ struct PantallaInformes: View {
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            let lista = vm.miembros.filter { vm.tarjeta.incluye($0, año: vm.añoSeleccionado) }
+            let lista = vm.miembros.filter { vm.tarjeta.incluye($0, en: vm.periodo) }
             if lista.isEmpty {
                 Text(L.t("No hay nadie en este recorte.", "Nobody in this slice."))
                     .font(.system(size: 12.5))
@@ -381,12 +431,23 @@ struct PantallaInformes: View {
     private var pestanaAsistencia: some View {
         if let a = vm.asistencia {
             VStack(alignment: .leading, spacing: 12) {
+                // **Las cifras de las fichas, como el iPhone**, y no las del
+                // resumen del repositorio: el ViewModel ya las cuenta de UNA
+                // fuente para que no se contradigan. Y sin listas tomadas son
+                // "—", no cero: salía "0 %" en verde y "Mejor servicio: 0",
+                // un culto sin nadie coronado como el mejor, justo encima del
+                // aviso que dice que falta el dato.
+                let sinDato = vm.sinListasTomadas
                 HStack(spacing: 12) {
-                    kpi(L.t("Asistencia media", "Average attendance"), "\(a.promedioPct)%", Paleta.brand)
-                    kpi(L.t("Servicios", "Services"), "\(a.serviciosPeriodo)", .primary)
-                    kpi(L.t("Presentes de media", "Average present"), "\(a.presentesPromedio)", .primary)
+                    kpi(L.t("Asistencia media", "Average attendance"),
+                        vm.porcentajeGeneral.map { "\($0)%" } ?? "—",
+                        vm.porcentajeGeneral == nil ? .secondary : Paleta.brand)
+                    kpi(L.t("Servicios", "Services"), "\(vm.serviciosDelPeriodo)", .primary)
+                    kpi(L.t("Presentes de media", "Average present"),
+                        sinDato ? "—" : "\(vm.promedioPorServicio)", sinDato ? .secondary : .primary)
                     kpi(L.t("Mejor servicio", "Best service"),
-                        a.mejorServicio.isEmpty ? "—" : a.mejorServicio, Paleta.placaMorado)
+                        sinDato || a.mejorServicio.isEmpty ? "—" : a.mejorServicio,
+                        sinDato ? .secondary : Paleta.placaMorado)
                 }
 
                 // El aviso que evita que el informe parezca roto.
@@ -398,12 +459,17 @@ struct PantallaInformes: View {
                         .foregroundStyle(Paleta.aviso)
                 }
 
-                if !a.meses.isEmpty {
+                // Sin listas, el gráfico era un marco en blanco debajo del
+                // aviso que ya explica por qué: no añadía nada.
+                if !a.meses.isEmpty && !sinDato {
                     panel(L.t("PRESENTES CONTRA PADRÓN", "PRESENT VS ROSTER")) {
-                        Chart(a.meses) { m in
-                            BarMark(x: .value("Mes", m.mes), y: .value("Presentes", m.presentes))
-                                .foregroundStyle(Paleta.brand)
-                                .cornerRadius(4)
+                        GeometryReader { g in
+                            Chart(a.meses) { m in
+                                BarMark(x: .value("Mes", m.mes), y: .value("Presentes", m.presentes))
+                                    .foregroundStyle(Paleta.brand)
+                                    .cornerRadius(4)
+                            }
+                            .chartXAxis { ejeDeMeses(ancho: g.size.width, cuantos: a.meses.count) }
                         }
                         .frame(height: 150)
                         .padding(.top, 14)
@@ -492,6 +558,9 @@ struct PantallaInformes: View {
             Text(v)
                 .font(.system(size: 22, weight: .bold)).monospacedDigit()
                 .foregroundStyle(tinta).lineLimit(1).minimumScaleFactor(0.6)
+                // Alto fijo: cuando el texto se reduce para caber, la tarjeta
+                // encogía con él y quedaba más baja que sus vecinas.
+                .frame(height: 28, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)

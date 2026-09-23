@@ -76,4 +76,51 @@ final class TrasladosDelInformeTests: XCTestCase {
         m.trasladoSalida = abierto
         XCTAssertEqual(m.trasladoEnCurso?.folio, "TS-2")
     }
+
+    // MARK: - El periodo entero, no solo su año
+
+    /// Dos altas en 2026, en marzo y en agosto. **Con "Mes = marzo" el informe
+    /// contaba las dos**: preguntaba por el año y el mes cambiaba la etiqueta.
+    private func padronDeDos() -> [Miembro] {
+        var marzo = Miembro(id: "m", nombre: "Alta de marzo")
+        marzo.fechaIngreso = "2026-03-10"
+        var agosto = Miembro(id: "a", nombre: "Alta de agosto")
+        agosto.fechaIngreso = "2026-08-20"
+        return [marzo, agosto]
+    }
+
+    func testElMesCuentaSoloSusAltas() async {
+        let vm = InformesMembresiaViewModel(padronRepo: RepoFalso(miembros: padronDeDos()))
+        await vm.cargarPadron()
+        vm.añoSeleccionado = 2026
+        vm.periodoTipo = .anio
+        XCTAssertEqual(vm.cuenta(.nuevos), 2)
+        vm.periodoTipo = .mes
+        vm.mesSeleccionado = 3
+        XCTAssertEqual(vm.cuenta(.nuevos), 1, "### el mes seguía contando las altas de todo el año")
+        vm.periodoTipo = .trimestre
+        vm.trimestreSeleccionado = 3
+        XCTAssertEqual(vm.cuenta(.nuevos), 1)
+        XCTAssertEqual(vm.miembrosFiltrados.count, 2, "la tarjeta 'todos' no filtra por periodo")
+    }
+
+    func testElRangoCuentaSusFechasInclusive() async {
+        let vm = InformesMembresiaViewModel(padronRepo: RepoFalso(miembros: padronDeDos()))
+        await vm.cargarPadron()
+        let cal = Calendar(identifier: .gregorian)
+        vm.periodoTipo = .rango
+        vm.rangoDesde = cal.date(from: DateComponents(year: 2026, month: 8, day: 20, hour: 9))!
+        vm.rangoHasta = cal.date(from: DateComponents(year: 2026, month: 9, day: 1, hour: 9))!
+        XCTAssertEqual(vm.cuenta(.nuevos), 1, "### con 'Rango' se contaba por el año elegido")
+        vm.periodoTipo = .todo
+        XCTAssertEqual(vm.cuenta(.nuevos), 2)
+    }
+
+    func testUnaFechaVaciaNoCaeEnNingunPeriodo() {
+        XCTAssertFalse(PeriodoFechas.todo.contiene(""))
+        XCTAssertTrue(PeriodoFechas.todo.contiene("2020-01-01"))
+        let p = PeriodoFechas(desde: "2026-03-01", hasta: "2026-03-31")
+        XCTAssertTrue(p.contiene("2026-03-31"))
+        XCTAssertFalse(p.contiene("2026-04-01"))
+    }
 }

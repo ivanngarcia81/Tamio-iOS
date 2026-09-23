@@ -55,18 +55,43 @@ enum TarjetaPadron: String, CaseIterable, Identifiable {
     /// informe que encabeza un número y enseña otro no es un informe. Es la
     /// misma lección que ya dejó escrita `MembresiaResumen.total`: **no se
     /// escribe, se suma.**
-    func incluye(_ m: Miembro, año: Int) -> Bool {
+    func incluye(_ m: Miembro, en p: PeriodoFechas) -> Bool {
         switch self {
         case .todos:       return true
         case .activos:     return !m.estado.esBaja && m.estado.registro == .activo
         case .inactivos:   return !m.estado.esBaja && m.estado.registro != .activo
-        case .nuevos:      return m.esNuevo(en: año)
-        case .recibidos:   return m.esNuevo(en: año) && m.esRecibido
+        case .nuevos:      return p.contiene(m.fechaIngreso)
+        case .recibidos:   return p.contiene(m.fechaIngreso) && m.esRecibido
         case .trasladados: return m.estado.baja?.motivo == "traslado"
-                               && Int(m.estado.baja?.fecha.prefix(4) ?? "") == año
+                               && p.contiene(m.estado.baja?.fecha ?? "")
         case .ausencias:   return !m.estado.esBaja && m.tieneAusencias
         case .incompletos: return !m.estado.esBaja && !m.expedienteCompleto
         }
+    }
+}
+
+/// **El periodo como lo cuenta el web** (`Periodo` en
+/// `services/informes/membresia.ts`): dos fechas "YYYY-MM-DD" inclusivas, y
+/// `nil` es "sin límite". Las fechas de la ficha ya se guardan así, así que
+/// comparar las cadenas basta, igual que hace `enPeriodo` allí.
+///
+/// Antes cada recuento preguntaba por el AÑO elegido, y con "Rango", "Mes" o
+/// "Trimestre" el selector cambiaba solo la etiqueta: el informe de marzo
+/// contaba las altas de todo el año.
+struct PeriodoFechas: Equatable {
+    var desde: String?
+    var hasta: String?
+
+    static let todo = PeriodoFechas(desde: nil, hasta: nil)
+
+    /// Una fecha vacía no cae en ningún periodo, ni siquiera en "todo": sin
+    /// fecha de ingreso no se sabe si alguien es nuevo. Es la regla del web.
+    func contiene(_ fecha: String) -> Bool {
+        let dia = String(fecha.prefix(10))
+        guard !dia.isEmpty else { return false }
+        if let desde, dia < desde { return false }
+        if let hasta, dia > hasta { return false }
+        return true
     }
 }
 
@@ -77,9 +102,11 @@ final class InformesMembresiaViewModel {
     var periodoTipo: PeriodoInforme = .anio
 
     // Sub-selectores según tipo
-    var mesSeleccionado: Int = 8          // 1-12
-    var trimestreSeleccionado: Int = 3    // 1-4
-    var añoSeleccionado: Int = 2026
+    // **De la fecha de hoy, no escritos a mano.** Eran 8, 3 y 2026: en
+    // septiembre, "Mes" abría en agosto y el informe del mes no era el de este.
+    var mesSeleccionado: Int = Calendar.current.component(.month, from: Date())          // 1-12
+    var trimestreSeleccionado: Int = (Calendar.current.component(.month, from: Date()) - 1) / 3 + 1  // 1-4
+    var añoSeleccionado: Int = Calendar.current.component(.year, from: Date())
     var rangoDesde: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     var rangoHasta: Date = Date()
 
@@ -208,13 +235,42 @@ final class InformesMembresiaViewModel {
     /// `TarjetaPadron.incluye` sobre el mismo array. Pedirlo al repositorio
     /// enseñaba 236 activos encima de una lista de seis.
     func cuenta(_ t: TarjetaPadron) -> Int {
-        miembros.filter { t.incluye($0, año: añoDelPeriodo) }.count
+        miembros.filter { t.incluye($0, en: periodo) }.count
     }
 
-    /// El año contra el que se cuentan los movimientos del periodo. Sale del
-    /// selector de periodo, no de `Date()`: mirar el informe de 2025 y contar
-    /// las altas de 2026 sería mentir con la cara seria.
-    var añoDelPeriodo: Int { añoSeleccionado }
+    /// **Contra qué se cuentan las altas, las bajas y los traslados.** Sale
+    /// del selector de periodo, no de `Date()`: mirar el informe de 2025 y
+    /// contar las altas de 2026 sería mentir con la cara seria. Y sale del
+    /// periodo ENTERO, no solo de su año: es lo que hace el web con
+    /// `periodoDeMes`, `periodoDeTrimestre` y `periodoDeAnio`.
+    var periodo: PeriodoFechas {
+        let a = añoSeleccionado
+        func dia(_ y: Int, _ m: Int, _ d: Int) -> String {
+            String(format: "%04d-%02d-%02d", y, m, d)
+        }
+        func ultimoDia(_ y: Int, _ m: Int) -> Int {
+            let cal = Calendar(identifier: .gregorian)
+            let fecha = cal.date(from: DateComponents(year: y, month: m, day: 1)) ?? Date()
+            return cal.range(of: .day, in: .month, for: fecha)?.count ?? 31
+        }
+        switch periodoTipo {
+        case .mes:
+            let m = min(max(mesSeleccionado, 1), 12)
+            return PeriodoFechas(desde: dia(a, m, 1), hasta: dia(a, m, ultimoDia(a, m)))
+        case .trimestre:
+            let q = min(max(trimestreSeleccionado, 1), 4)
+            let inicio = (q - 1) * 3 + 1
+            return PeriodoFechas(desde: dia(a, inicio, 1),
+                                 hasta: dia(a, inicio + 2, ultimoDia(a, inicio + 2)))
+        case .anio:
+            return PeriodoFechas(desde: dia(a, 1, 1), hasta: dia(a, 12, 31))
+        case .rango:
+            return PeriodoFechas(desde: Fechas.claveDia(rangoDesde),
+                                 hasta: Fechas.claveDia(rangoHasta))
+        case .todo:
+            return .todo
+        }
+    }
 
     // MARK: Los cuatro filtros combinables del informe de Miembros
 
@@ -246,7 +302,7 @@ final class InformesMembresiaViewModel {
 
     var miembrosFiltrados: [Miembro] {
         miembros.filter { m in
-            guard tarjeta.incluye(m, año: añoDelPeriodo) else { return false }
+            guard tarjeta.incluye(m, en: periodo) else { return false }
             if let e = filtroEstado, m.estado.clave != e { return false }
             if let mi = filtroMinisterio, !m.ministerios.contains(mi) { return false }
             if let c = filtroCargo, !m.cargos.contains(c) { return false }
@@ -342,7 +398,7 @@ final class InformesMembresiaViewModel {
                                                       "since \(Fechas.diaLegible(ultima))")))
                 }
             }
-            if m.esNuevo(en: añoSeleccionado) && !m.expedienteCompleto {
+            if periodo.contiene(m.fechaIngreso) && !m.expedienteCompleto {
                 salida.append(Alerta(miembro: m, tipo: .nuevoSeguimiento,
                                      // `fechaIngreso`, la de verdad: `miembroDesde`
                                      // es "Ingresó 2026" y salía "desde Ingresó 2026".
@@ -446,10 +502,9 @@ final class InformesMembresiaViewModel {
     /// puntos vacía y otra de iglesia también, en un documento que se comparte
     /// con la junta.
     private var trasladosDelPeriodo: [MovimientoTraslado] {
-        let año = añoSeleccionado
+        let p = periodo
         let salidas = miembros.filter {
-            $0.estado.baja?.motivo == "traslado"
-            && ($0.estado.baja?.fecha.hasPrefix(String(año)) ?? false)
+            $0.estado.baja?.motivo == "traslado" && p.contiene($0.estado.baja?.fecha ?? "")
         }.map { m in
             MovimientoTraslado(id: abs(m.id.hashValue),
                                folio: m.trasladoSalida?.folio ?? "",
@@ -463,7 +518,7 @@ final class InformesMembresiaViewModel {
         // abre y lo numera la iglesia que ENVÍA. Lo que sí consta es de dónde
         // vino, que es `iglesiaAnterior` — el mismo campo que define
         // `esRecibido`, así que quien esté en esta lista lo tiene.
-        let entradas = miembros.filter { $0.esRecibido && $0.esNuevo(en: año) }.map { m in
+        let entradas = miembros.filter { $0.esRecibido && p.contiene($0.fechaIngreso) }.map { m in
             MovimientoTraslado(id: abs(m.id.hashValue) &+ 1, folio: "",
                                sentido: .entrada,
                                persona: m.nombre, iglesia: m.iglesiaAnterior,
