@@ -45,27 +45,51 @@ sigamos con los tres puntos».
 
 ### 1. Lo que un usuario vería y no debería
 - [x] El «Andamiaje» de la barra de estado (`74ea547`).
-- [ ] **Reportes no cabe en media pantalla**: pide unos 1060 pt, desde `5f2b070`, para dejar de
-  romperse. Hacerlo caber es rediseño: plegar la lista de tipos. **Lo decide Iván.**
-- [ ] **Configuración pide 961 pt**, y media MacBook son 900. Es diseño.
+- [x] **Reportes (~1060 pt) y Configuración (961 pt) en media pantalla:** Iván decidió el 23-sep
+  **pedírselo al diseñador**. La petición está en `LO-QUE-EL-HANDOFF-NO-TRAE.md` §6.
+- [x] **Informes a media pantalla** (23-sep):
+  - Con el inspector cerrado pedía 1090 pt: la cabecera iba en una sola fila y el botón CSV se
+    encogía a «…». Ahora la cabecera pasa a dos filas y la ventana baja a **812 pt**. Con el
+    inspector abierto, de 1697 a 1419.
+  - Los meses del gráfico usan la inicial cuando no caben.
+  - Asistencia sin listas tomadas dice «—» y no «0 %» ni «Mejor servicio: 0». Lee las cifras del
+    ViewModel, como el iPhone, y las cuatro tarjetas miden lo mismo.
+  - El «inspector cortado» que se vio antes era un recorte de la captura, no de la app.
 - [ ] La pantalla de acceso no es la del handoff. La bienvenida ya la hizo la otra sesión.
 
 ### 2. Decisiones de Iván que siguen abiertas
-- [ ] **Los botones que mueven dinero:** Aprobar ⌘R, Marcar depositado ⇧⌘B, Devolver a la bandeja,
-  «Nuevo depósito…» desde el Mac y, en Por revisar, «Aprobar todo lo seguro» y «Pedir datos».
-- [ ] **Inicio con el inspector abierto:** la propuesta de poner las cuatro tarjetas en 2×2
-  (§0.-23).
-- [ ] Del zip del diseño: el programa de antes del culto (1b), los otros seis PDF (recibo, padrón,
-  informe de membresía, registro de cultos, directorio y bitácora) y «Tamio for Mac», que no se ha
-  leído.
+- [x] **Los botones que mueven dinero:** Iván decidió el 23-sep poner **solo lo que ya existe**.
+  En Por revisar entran Aprobar, «Devolver al tesorero», «Aprobar todo lo seguro» y el aviso con
+  Deshacer. En Ingresos y Gastos entra **Aprobar ⌘R**. Se probó de punta a punta y llega a
+  Supabase. Quedan fuera «Marcar depositado» y «Pedir datos», que no existen en ninguna
+  plataforma, y «Devolver a la bandeja», porque no se sabe si significa devolver o volver a
+  pendiente.
+- [x] **Inicio con el inspector abierto:** **no** va en 2×2. A media pantalla se usa con el
+  inspector cerrado.
+- [x] Del zip del diseño:
+  - Los seis PDF ya estaban descartados en §0.-24.
+  - **El 1b** («Order of service») se solapa entero con `HojaCultoPDF`: no se construye. Como mucho
+    sería una variante sin asistencia ni firmas, y eso habría que pedirlo.
+  - **«Tamio for Mac»** es un borrador anterior al handoff 7, que lo sustituye: no se construye nada
+    de ahí. Sus ajustes nuevos (series de folio, borrar los datos del Mac) no tienen columna.
 
 ### 3. Probar de punta a punta lo que escribe (en la iglesia de prueba)
-- [ ] Firmar un acta desde el Mac y que llegue a la web como «aprobada».
-- [ ] Importar aportantes hasta el final, no solo abrir la hoja.
-- [ ] Una nota de Seguimiento que llegue a la base. Ojo: si el miembro no está en `vm.items`, se
-  pierde sin avisar.
-- [ ] La configuración inicial en un Mac recién estrenado. Solo está compilada.
-- [ ] Informes con «Rango»: las cifras se siguen contando por año, en el ViewModel compartido.
+- [x] Firmar un acta desde el Mac: «PRUEBA Acta handoff7» llegó como `aprobada` con sus tres firmas.
+- [x] Importar aportantes hasta el final: entraron dos y se omitió la fila sin nombre. Al reimportar
+  el mismo archivo, las dos se reconocen como existentes.
+- [x] Una nota de Seguimiento llegó a `members.seguimiento_notas`. Si la persona no está en
+  `vm.items`, ahora se relee la lista antes de rendirse.
+- [x] **Un Mac recién estrenado** (23-sep, con la base apartada y la sesión en el llavero):
+  - Sale la bienvenida, baja todo (las mismas filas que la copia, tabla por tabla) y la iglesia
+    se relee: «Iglesia de prueba · Saltillo». La ficha del servidor no se tocó (`updated_at`
+    anterior a la prueba).
+  - **Fallo encontrado y arreglado:** Inicio se quedaba en $0.00 y «No transactions yet» hasta
+    cambiar de sección. `cargarTodo()` no releía Inicio, Por revisar, Informes ni Reportes; ahora
+    sí. Visto de nuevo con la base vacía: Inicio sale con los datos.
+  - Sin probar: entrar desde la pantalla de acceso con otra cuenta, porque pide la contraseña.
+- [x] Informes con «Rango»: las altas, los recibidos, los traslados y el seguimiento de nuevos ya
+  cuentan por el periodo entero (`PeriodoFechas`, como el `Periodo` del web). **La asistencia
+  todavía no**: `asistenciaResumen()` del repositorio no recibe periodo.
 
 ## Cuando Iván tenga el iPhone y el iPad en casa
 - La suite completa en los dos, cada aparato con su `TMPDIR`: ver §0.-24.

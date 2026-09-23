@@ -90,3 +90,28 @@ Esto no son campos: son cosas que la app hace y el diseño no puede saber.
   del web. Seguir el handoff a ciegas dejaría fuera siete tipos que el web sí
   usa y escribiría estados que allá no significan nada —el mismo fallo que ya
   se arregló el 21-sep con el `estado` traducido de la agenda—.
+
+## 6. Media pantalla: dos pantallas que no caben en 900 pt · 23 de septiembre
+
+Media pantalla de una MacBook Pro de 14" son **900 pt**. El resto de la app
+cabe con el inspector cerrado (§0.-23 de `CONTEXTO.md`), pero estas dos no, y
+hacerlas caber es rediseño. **Iván decidió el 23-sep pedírselo al diseñador** en
+vez de inventarlo:
+
+- **Reportes pide unos 1060 pt** desde `5f2b070`, que lo ensanchó para que
+  dejara de romperse. Lo que no cabe es la lista de tipos de reporte al lado
+  del documento. Una salida sería plegar esa lista por debajo de cierto ancho,
+  como hace Mail con sus buzones. Pero eso cambia cómo se navega, y hay que
+  dibujarlo.
+- **Configuración pide 961 pt**: barra de la app (220) + barra de secciones
+  (320) + panel. La barra de secciones no puede bajar de 320: con 240 y con 300
+  se recortaba («tings» por «Settings»), y caber rompiendo es peor que no
+  caber. Faltan **61 pt**. Hace falta una barra de secciones más estrecha o una
+  que se pliegue.
+
+Lo que se le pide al diseño: **cómo se ven Reportes y Configuración a 900 pt de
+ancho**, con la barra lateral de la app abierta y el inspector cerrado.
+
+**Inicio no entra en la petición.** Con el inspector abierto pide unos 1275 pt.
+Iván decidió el 23-sep que a media pantalla se use con el inspector cerrado (⌘I),
+que así cabe, y **no** poner las cuatro tarjetas en 2×2.
