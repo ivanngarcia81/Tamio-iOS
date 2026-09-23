@@ -60,6 +60,13 @@ struct NuevoMovimientoView: View {
     @FocusState private var importeEnfocado: Bool
     /// Se enciende al intentar guardar, no al abrir.
     @State private var mostrarFaltan = false
+    /// **Una hoja, un movimiento.** Guardar llama a `onGuardar` y luego a
+    /// `dismiss()`, y entre las dos la hoja sigue recibiendo toques: un
+    /// segundo toque rápido en un aparato de verdad crearía otro movimiento,
+    /// con otro folio, que no parece duplicado. Visto por DobleToque en el
+    /// iPhone físico el 23-sep (la prueba no llegó a dar el segundo toque,
+    /// pero el hueco estaba en el código).
+    @State private var guardado = false
 
     init(tipo: TipoMovimiento, folio: String, existente: Movimiento?,
          onGuardar: @escaping (Movimiento) -> Void,
@@ -622,6 +629,8 @@ struct NuevoMovimientoView: View {
     }
 
     private func guardar() {
+        guard !guardado else { return }
+        guardado = true
         onGuardar(armarMovimiento())
         dismiss()
     }
