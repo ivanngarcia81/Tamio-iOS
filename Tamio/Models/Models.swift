@@ -40,9 +40,16 @@ struct Tx: Identifiable {
     let monto: Centavos
 
     /// "Diezmo · María Hernández" — o el concepto si no hay persona.
+    ///
+    /// **En la lengua de la app**, como `Movimiento.titular`: se guarda la
+    /// clave (`diezmo`), y la actividad reciente de Inicio la pintaba cruda
+    /// —«diezmo · Folio 14» con la app en inglés— mientras la dona de al lado
+    /// decía «Tithe». Lo que no es una categoría conocida sale tal cual.
     var titular: String {
-        if let persona, !persona.isEmpty { return "\(categoria) · \(persona)" }
-        return concepto
+        if let persona, !persona.isEmpty {
+            return "\(Catalogos.etiquetaDeCategoria(categoria)) · \(persona)"
+        }
+        return Catalogos.etiquetaDeCategoria(concepto)
     }
     /// "Folio 1042 · Efectivo"
     var subtitulo: String { "Folio \(folio) · \(metodo)" }

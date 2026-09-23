@@ -84,15 +84,26 @@ struct PantallaActas: View {
                     // **Las dos acciones del PDF, como en Reportes**: mirar la
                     // hoja antes, o compartirla sin abrirla. Sin acta elegida
                     // no hay hoja, y el botón lo dice apagándose.
-                    Button(L.t("Vista previa PDF", "PDF preview")) {
+                    // **Las dos, solo con icono** (23-sep): con cuatro botones
+                    // con texto la cabecera truncaba por debajo de ~1000 pt
+                    // —«Colle…», «PDF…»—. El nombre queda en `help` y en
+                    // VoiceOver; «Recopilar firmas» y «Nueva acta» siguen
+                    // con texto porque son las acciones de la pantalla.
+                    Button {
                         actaEnPDF = actaElegida
+                    } label: {
+                        Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.text.magnifyingglass")
                     }
+                    .labelStyle(.iconOnly)
+                    .help(L.t("Vista previa PDF", "PDF preview"))
                     .disabled(actaElegida == nil)
                     Button {
                         if let a = actaElegida { compartirPDF(a) }
                     } label: {
                         Label(L.t("Compartir PDF", "Share PDF"), systemImage: "square.and.arrow.up")
                     }
+                    .labelStyle(.iconOnly)
+                    .help(L.t("Compartir PDF", "Share PDF"))
                     .disabled(actaElegida == nil)
                     .background(VistaAnclaActa(ancla: anclaCompartir))
                     Button { estado.pidiendoAlta = true } label: {
@@ -111,6 +122,13 @@ struct PantallaActas: View {
                 .padding(20)
             }
         }
+        // **El mínimo que la cabecera necesita** (23-sep). Sin él macOS dejaba
+        // la ventana en 600 y la cabecera se partía: «Collec…», «Ne…»,
+        // «MEETING / S THIS YEAR». Caber rompiendo es peor que no caber
+        // (`a3bb7b3`). Con el inspector retirado sigue cabiendo en 900.
+        // 535 y no 440: con 440 truncaba «Collect signa…» y «New m…», y con
+        // 510 aún le faltaban ~20 pt a «New minutes entry ⇧⌘M».
+        .frame(minWidth: 535)
         .background(Color.suelo)
         .sheet(isPresented: Binding(
             get: { estado.pidiendoAlta },
@@ -429,6 +447,7 @@ private struct VistaPreviaActaMac: View {
 
             ScrollView {
                 PantallaActas.hojaImprimible(acta, iglesia: iglesia)
+                    .compositingGroup()  // una sombra para el papel, no una por texto
                     .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
                     .padding(28)
                     .frame(maxWidth: .infinity)

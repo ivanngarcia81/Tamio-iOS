@@ -192,4 +192,22 @@ enum SeccionMac: String, CaseIterable, Identifiable {
     static func del(_ grupo: Grupo) -> [SeccionMac] {
         allCases.filter { $0.grupo == grupo }
     }
+
+    /// **Qué secciones tienen algo que enseñar en el inspector.**
+    ///
+    /// Reportes no aparece siquiera en el `switch` que lo construye —cae al
+    /// `default`, que devuelve `.nada`— y Configuración devuelve un resumen sin
+    /// campos cuyo texto es un cartel señalando a la izquierda. Ver el
+    /// comentario del `.inspector`.
+    ///
+    /// **Actas, igual desde el 23-sep**: con un acta elegida decía «Esta
+    /// pantalla todavía no alimenta el inspector», y abierto le quitaba 310 pt
+    /// a una cabecera que ya trunca sus botones («Colle…», «PDF…»).
+    var alimentaInspector: Bool {
+        switch self {
+        case .reportes, .config, .actas: return false
+        default: return true
+        }
+    }
+
 }

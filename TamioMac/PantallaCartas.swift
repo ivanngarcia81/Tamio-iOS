@@ -597,6 +597,7 @@ struct HojaCarta: View {
         .frame(width: Self.ancho, alignment: .leading)
         .foregroundStyle(Color(red: 0.11, green: 0.11, blue: 0.12))
         .background(.white)
+        .compositingGroup()  // una sombra para el papel, no una por texto
         .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
     }
 

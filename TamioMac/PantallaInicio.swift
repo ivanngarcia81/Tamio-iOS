@@ -213,7 +213,9 @@ struct PantallaInicio: View {
                             // la categoría abajo, que esconde el folio — el
                             // dato con el que se busca un movimiento.
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(t.persona.map { "\(t.categoria) · \($0)" } ?? t.categoria)
+                                // `titular` ya trae la categoría en la lengua de
+                                // la app; `t.categoria` es la clave guardada.
+                                Text(t.titular)
                                     .font(.system(size: 12.5, weight: .medium))
                                     .lineLimit(1)
                                 Text(L.t("Folio \(t.folio) · \(t.metodo)",

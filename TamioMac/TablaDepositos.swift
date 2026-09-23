@@ -133,6 +133,7 @@ private struct VistaPreviaCorteMac: View {
 
             ScrollView {
                 CorteHojaPDF(corte: corte)
+                    .compositingGroup()  // una sombra para el papel, no una por texto
                     .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
                     .padding(28)
                     .frame(maxWidth: .infinity)

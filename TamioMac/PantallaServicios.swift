@@ -475,6 +475,7 @@ private struct VistaPreviaHojaCulto: View {
                     VStack(spacing: 20) {
                         ForEach(0..<hoja.numeroDePaginas, id: \.self) { i in
                             hoja.pagina(i)
+                                .compositingGroup()  // una sombra para el papel, no una por texto
                                 .shadow(color: .black.opacity(0.15), radius: 10, y: 3)
                         }
                     }

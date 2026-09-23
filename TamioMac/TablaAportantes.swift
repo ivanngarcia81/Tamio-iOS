@@ -88,7 +88,7 @@ struct TablaAportantes: View {
         // primera importación es la de una iglesia que aún no tiene a nadie.
         .contextMenu(forSelectionType: Aportante.ID.self) { _ in
             if puedeImportar {
-                Button(L.t("Importar aportantes… (CSV)", "Import contributors… (CSV)")) {
+                Button(L.t("Importar aportantes (CSV)…", "Import contributors (CSV)…")) {
                     eligiendoArchivo = true
                 }
             }

@@ -408,18 +408,9 @@ struct VentanaPrincipal: View {
         }
     }
 
-    /// **Qué secciones tienen algo que enseñar en el inspector.**
-    ///
-    /// Reportes no aparece siquiera en el `switch` que lo construye —cae al
-    /// `default`, que devuelve `.nada`— y Configuración devuelve un resumen sin
-    /// campos cuyo texto es un cartel señalando a la izquierda. Ver el
-    /// comentario del `.inspector`.
-    private var seccionAlimentaElInspector: Bool {
-        switch estado.seccion {
-        case .reportes, .config: return false
-        default: return true
-        }
-    }
+    /// Qué secciones tienen inspector: la regla vive en `SeccionMac` para que
+    /// el menú Visualización pregunte lo mismo que este botón.
+    private var seccionAlimentaElInspector: Bool { estado.seccion.alimentaInspector }
 
     private var muestraPeriodo: Bool {
         switch estado.seccion {

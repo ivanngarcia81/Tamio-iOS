@@ -43,7 +43,9 @@ struct HojaInforme<C: View>: View {
         .frame(width: ancho, alignment: .leading)
         .foregroundStyle(tinta)
         .background(.white)
-        .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+        // **Sin sombra aquí.** Esta misma vista es la que `PDFExport.render`
+        // imprime al compartir, y la sombra salía en el papel: un halo gris
+        // detrás de cada texto. La pone la vista previa, por fuera.
     }
 
     private var membrete: some View {
@@ -137,11 +139,17 @@ struct RenglonInforme: View {
     let rotulo: String
     let valor: String
     var total: Int? = nil
+    /// La parte, en las MISMAS unidades que `total`. Con dinero hace falta:
+    /// el valor viene formateado en dólares y el total en centavos, y leer la
+    /// parte del texto dividía 500 entre 60 000 —la barra de un 83 % salía
+    /// como una rayita en el PDF—.
+    var parte: Int? = nil
 
-    init(_ rotulo: String, _ valor: String, total: Int? = nil) {
+    init(_ rotulo: String, _ valor: String, total: Int? = nil, parte: Int? = nil) {
         self.rotulo = rotulo
         self.valor = valor
         self.total = total
+        self.parte = parte
     }
 
     /// **Se lee del valor solo si es un número.** En Reportes el valor es
@@ -149,6 +157,7 @@ struct RenglonInforme: View {
     /// barra no se pinta: mejor sin barra que con una barra inventada.
     private var fraccion: Double {
         guard let total, total > 0 else { return 0 }
+        if let parte { return min(1, Double(parte) / Double(total)) }
         let limpio = valor.filter { $0.isNumber || $0 == "." || $0 == "," }
             .replacingOccurrences(of: ",", with: "")
         guard let n = Double(limpio) else { return 0 }

@@ -338,6 +338,7 @@ struct CorteHojaPDF: View {
             Text(folio).foregroundStyle(tinta2).lineLimit(1)
                 .frame(width: 40, alignment: .leading)
             Text(concepto).lineSpacing(1)
+                .foregroundStyle(cabecera ? tinta2 : Color.black)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text(metodo).foregroundStyle(tinta2).lineLimit(1)

@@ -39,8 +39,15 @@ struct PantallaReportes: View {
             listaDeTipos
                 .frame(width: 248)
             Divider()
+            // **560 y no 260** (23-sep). Con 260 la ventana bajaba a 761 y el
+            // contenido no cabía en lo que quedaba: se montaba 23 pt sobre la
+            // lista, truncaba los selectores («Septem…», «All cate…») y los
+            // rótulos de las tarjetas, y la tabla perdía la columna del mes.
+            // Caber rompiendo es peor que no caber (`a3bb7b3`): con esto
+            // Reportes ya NO cabe en media pantalla de 900, y hacerlo caber es
+            // rediseño (plegar la lista de tipos), como ya decía §0.-22.
             contenido
-                .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
+                .frame(minWidth: 560, maxWidth: .infinity, maxHeight: .infinity)
         }
         .task { await vm.cargar() }
     }
@@ -88,7 +95,14 @@ struct PantallaReportes: View {
                 }
                 .frame(maxHeight: .infinity)
             } else if verHoja {
-                ScrollView { hoja.padding(28) }
+                // La sombra, aquí y no en la hoja (que es la que se imprime).
+                // `compositingGroup` para que sombree el papel entero y no
+                // cada texto por separado.
+                ScrollView {
+                    hoja.compositingGroup()
+                        .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+                        .padding(28)
+                }
                     .background(Color.suelo)
             } else {
                 ScrollView { resumen.padding(22) }
@@ -171,6 +185,13 @@ struct PantallaReportes: View {
             } label: {
                 Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
             }
+            // **Solo el icono**, como la acción de PDF del iPhone. Con la
+            // palabra, la cabecera pasó de 729 a 761 pt de mínimo y por debajo
+            // de ~900 el contenido se montaba sobre la lista y truncaba los
+            // selectores («Septe…», «PDF prev…»). El nombre sigue en `help` y
+            // en VoiceOver.
+            .labelStyle(.iconOnly)
+            .help(L.t("Compartir PDF", "Share PDF"))
             .buttonStyle(.bordered)
             .font(.system(size: 12))
             // Sin datos no hay hoja que imprimir: un PDF con el membrete y
@@ -326,8 +347,12 @@ struct PantallaReportes: View {
             // La barra de color de la maqueta, que es lo que deja distinguir
             // las cuatro tarjetas de un vistazo sin leer el rótulo.
             Capsule().fill(barra).frame(width: 34, height: 3)
+            // **Hasta dos líneas, no una** (23-sep): al ancho mínimo, «Income
+            // this month» salía «Income this…». Un rótulo partido en dos
+            // renglones se lee; uno truncado obliga a adivinar.
             Text(k).font(.system(size: 12)).foregroundStyle(.secondary)
-                .padding(.top, 10).lineLimit(1)
+                .padding(.top, 10).lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             Text(v)
                 .font(.system(size: 21, weight: .bold)).monospacedDigit()
                 .padding(.top, 4).lineLimit(1).minimumScaleFactor(0.6)
@@ -335,7 +360,9 @@ struct PantallaReportes: View {
                 Text(nota)
                     .font(.system(size: 11.5))
                     .foregroundStyle(notaTinta ?? .secondary)
-                    .padding(.top, 4).lineLimit(1)
+                    // Tres: «including previous balance» no cabe en dos al mínimo.
+                    .padding(.top, 4).lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -495,7 +522,7 @@ struct PantallaReportes: View {
                 BloqueInforme(L.t("Ingresos por categoría", "Income by category")) {
                     ForEach(a.ingresosPorCategoria) { c in
                         RenglonInforme(c.nombre, Money.fmt(c.monto),
-                                       total: Int(a.totalIngresos))
+                                       total: Int(a.totalIngresos), parte: Int(c.monto))
                     }
                 }
             } else if let e = vm.estado {
@@ -507,7 +534,7 @@ struct PantallaReportes: View {
                 BloqueInforme(L.t("Ingresos por categoría", "Income by category")) {
                     ForEach(e.composicion) { c in
                         RenglonInforme(c.nombre, Money.fmt(c.monto),
-                                       total: Int(e.ingresosMes))
+                                       total: Int(e.ingresosMes), parte: Int(c.monto))
                     }
                 }
                 BloqueInforme(L.t("Saldo al cierre", "Ending balance")) {

@@ -65,7 +65,8 @@ struct TablaMovimientos: View {
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
                         .fill(Paleta.categoria(m.claveCategoria, nombre: m.categoria))
                         .frame(width: 8, height: 8)
-                    Text(m.categoria).fontWeight(.semibold)
+                    // En la lengua de la app: se guarda la clave (`diezmo`).
+                    Text(Catalogos.etiquetaDeCategoria(m.categoria)).fontWeight(.semibold)
                     if !quien(m).isEmpty {
                         Text("· \(quien(m))")
                             .foregroundStyle(.secondary)
@@ -131,7 +132,7 @@ struct TablaMovimientos: View {
                 }
                 Button(L.t("Copiar folio", "Copy folio")) { copiar(m.folio) }
                 Button(L.t("Copiar concepto", "Copy concept")) {
-                    copiar([m.categoria, quien(m)].filter { !$0.isEmpty }.joined(separator: " · "))
+                    copiar([Catalogos.etiquetaDeCategoria(m.categoria), quien(m)].filter { !$0.isEmpty }.joined(separator: " · "))
                 }
                 Button(L.t("Copiar importe", "Copy amount")) {
                     copiar(Money.fmt(m.monto))
@@ -179,8 +180,9 @@ struct TablaMovimientos: View {
     private var tituloDelBorrado: String {
         guard aEliminar.count != 1 else {
             let m = aEliminar[0]
-            return L.t("¿Eliminar \(m.categoria) de \(Money.fmt(m.monto))?",
-                       "Delete \(m.categoria) for \(Money.fmt(m.monto))?")
+            let cat = Catalogos.etiquetaDeCategoria(m.categoria)
+            return L.t("¿Eliminar \(cat) de \(Money.fmt(m.monto))?",
+                       "Delete \(cat) for \(Money.fmt(m.monto))?")
         }
         let total = Money.fmt(aEliminar.reduce(0) { $0 + $1.monto })
         return L.t("¿Eliminar \(aEliminar.count) movimientos, \(total) en total?",

@@ -82,6 +82,9 @@ struct ComandosTamio: Commands {
                 estado.inspectorAbierto.toggle()
             }
             .keyboardShortcut("i", modifiers: .command)
+            // Apagado donde no hay inspector (Reportes, Configuración, Actas),
+            // igual que el botón de la barra: la misma regla, `SeccionMac`.
+            .disabled(!estado.seccion.alimentaInspector)
 
             Divider()
 
