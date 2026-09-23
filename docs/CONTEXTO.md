@@ -150,7 +150,7 @@ otra:
 |---|---|
 | Rojas en bruto | 58 |
 | De ellas, **paseos de capturas** sin una sola aserción | **14** |
-| **Rojas de verdad** | **44**, en 26 clases |
+| **Rojas de verdad** | **44**, en 26 clases — *son 28, y 25 de las 44 son de iPad: ver abajo, «Corregido la noche del 22-sep»* |
 
 Los paseos son `HojasSecretaria` (7), `HojasTesoreria` (6) y `MembresiaTelefono`
 (1). **No son pruebas y contarlas como fallos es un error de categoría**: la
@@ -498,6 +498,37 @@ Lo dijo mejor la sesión de la MacBook, que cayó en las dos: **dos comprobacion
 que fallan por el mismo sesgo no son dos comprobaciones.** Es la misma familia
 que el `-only-testing` que no casa y se salta callado, y que el `tail` que se
 come el código de salida.
+
+### Corregido la noche del 22-sep, después de `docs/ROJAS-SEPTIEMBRE.md`
+
+Un equipo de tres —dos investigando y un abogado del diablo, solo leyendo—
+repasó las 44 rojas una por una. El detalle está en `docs/ROJAS-SEPTIEMBRE.md`;
+aquí va solo lo que corrige a esta sección:
+
+- **Son 28 clases, no 26**: 6 de la tanda de cartas y 22 de las demás.
+- **25 de las 44 rojas son pruebas de iPad corriendo en el teléfono.** Buscan
+  la barra lateral o giran a apaisado, y el iPhone no tiene ninguna de las dos.
+  Contarlas como rojas del teléfono es el mismo error de categoría que se le
+  reprocha arriba a los paseos. `aparato_yaml.py` las mete porque reparte por
+  nombre de archivo, no por aparato.
+- **«14 fallidas y 2 pasadas» se deja una omitida**: la de iPad de
+  `TrasladosYMembreteUITests`, que era la única que ya se saltaba en el teléfono.
+- **`DocumentosPDFUITests` SÍ depende de la maqueta.** No por las filas, sino
+  por la configuración: la carta cuenta cuatro campos y el cuarto es la firma,
+  que sale del pastor de Ajustes. La iglesia sincronizada no tiene pastor, así
+  que la carta se queda en 3 de 4 y no se dibuja «Share». La maqueta tiene
+  «Pastor Abel Ramos».
+- **El «pasa» de `ConstanciaIPhone testLaFraseSaleEntera` fue en SIMULADOR**
+  (`58d6a71`, a las 06:45), no en el iPhone.
+- **«No es de cartas, es de navegación» era falso** para DocumentosPDF y
+  Plantillas: las dos llegan a Cartas. Plantillas buscaba un `staticTexts`
+  «Templates» que desde el carrusel (`fcca3a2`) es un segmento, o sea un botón.
+- **La iglesia sincronizada es toda de prueba** (Iván, 22-sep). Que una prueba
+  escriba en ella no daña a nadie; importa por repetibilidad.
+- **Ninguna de las 44 es un fallo de la app.** Pero leyendo DocumentosPDF salió
+  uno que no explica ninguna roja: el primer arranque de un aparato nuevo
+  decidía si pedir la configuración de la iglesia con la ficha de ANTES de
+  sincronizar. Arreglado en `d0f68d7` y visto en el simulador.
 
 ---
 

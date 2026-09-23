@@ -137,6 +137,31 @@ Para comprobarlo hace falta un primer arranque, con sesión, en un aparato limpi
 5. **Volver a correr las 22 sin línea**, clase por clase, conservando el `.xcresult` y sin `head -60`. Empezar por Presentaciones corte detalle e ImportarTelefono, que son las 3 sin decidir.
 6. **Arreglar §3** y probarlo en un aparato limpio.
 
+## 6. Después de los arreglos · 22-sep, noche
+
+Todo corrido en el simulador del iPhone 17 Pro Max, con la sesión de Iván y la
+iglesia sincronizada. **No en el iPhone de verdad**: eso queda para cuando se
+corra la suite entera antes de ir a `main`.
+
+- **Las 30 clases de esta lista: de 44 rojas a 0 que sean de la app.**
+  - 25 pasan, 44 se omiten (las de iPad, más las dos de `BaseCaida` que piden
+    la base preparada por el guion: ahora se corren con
+    `TEST_RUNNER_BASE_CAIDA=danada` o `=directorio`).
+  - Quedan **2 rojas, las de `ImportarTelefono`, y son del instrumento**: el
+    menú «File» es un `PopUpButton` que a veces no abre con el desajuste de
+    tipos de iOS 27, y el archivo se elige tocando por coordenadas dentro del
+    selector, que es de otro proceso. Los CSV se sembraron en «En mi iPhone».
+- **`RevisarRedibujo` destapó un fallo real**, pequeño: `Movimiento.titular`
+  pintaba la categoría guardada sin traducir —«diezmo · Marcos Rios» con la app
+  en inglés— mientras la dona y la ficha decían «Tithe». Al editar un asunto de
+  Por revisar la fila cambiaba de nombre. Ahora pasa por
+  `Catalogos.etiquetaDeCategoria`, y la búsqueda de Movimientos busca por los
+  dos nombres.
+- **Las 250 pruebas de unidad, verdes** con todo esto dentro.
+
+Las de iPad no se han corrido en un iPad con estos cambios: la omisión no las
+toca allí, pero no se ha visto.
+
 ## Cómo se sabe
 
 - **A1: la línea base era de verdad `2555d99` en un aparato físico.** El binario `Debug-iphoneos` de las 03:42 del 22-sep (DerivedData `Tamio-euhurpfpjqqeeyccfytposlvnqlo`) no contiene textos posteriores a `2555d99`: ni «It will be issued without» ni «Delivered». Sí contiene «must be completed before signing». De la tanda de cartas del 21-sep ya no queda binario.

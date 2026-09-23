@@ -81,8 +81,13 @@ PantallaInformes.swift, HojasDeCulto.swift, Nuevo*.swift, Nueva*.swift.
    escribir uno nuevo. Si no existe ninguno para cultos, reportarlo al lead.
 2. Actas: ver y exportar el PDF del acta. El generador ya existe en el código
    compartido (testElActaTienePDF pasa en iOS). Enchufarlo en el Mac.
-3. Informes de membresía: columnas FOLIO y RANGE en la tabla de traslados, y
-   "Exportar CSV" usando el exportador compartido que ya usa iOS.
+3. Informes de membresía: la tabla de traslados (PantallaInformes.swift ~:152)
+   enseña el folio pero sin cabecera FOLIO ni columna de estado, y se titula
+   "TRANSFERS" en vez de "TRANSFER MOVEMENTS". RANGE NO es de esa tabla: es la
+   banda Desde/Hasta del periodo "Rango", y hoy es un FALLO —el Mac ofrece
+   "Rango" pero nadie escribe rangoDesde/rangoHasta, así que se queda en «del
+   mes pasado a hoy»—; va bajo el selector (~:67). Y "Exportar CSV" usando el
+   exportador compartido que ya usa iOS. (Auditoría puesta al día el 22-sep.)
 4. Cartas: verificar contra el handoff que el panel derecho y las tres
    subpestañas (VARIABLES, INTERNAL NOTES, RESOLVED, "Issue the letter") se
    dibujan de verdad. Esto se arregló el 21-sep; solo cerrar lo que quede.
