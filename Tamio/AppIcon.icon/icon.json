@@ -1,6 +1,9 @@
 {
   "fill" : {
-    "solid" : "display-p3:0.51660,0.80420,0.62988,1.00000"
+    "linear-gradient" : [
+      "display-p3:0.31816,0.67992,0.71375,1.00000",
+      "display-p3:0.19646,0.44780,0.49464,1.00000"
+    ]
   },
   "groups" : [
     {
@@ -9,10 +12,10 @@
           "image-name" : "pen logo tamio.svg",
           "name" : "pen logo tamio",
           "position" : {
-            "scale" : 0.37,
+            "scale" : 0.38,
             "translation-in-points" : [
-              0.09495499999991353,
-              -37.284951536603444
+              0.09666999999990367,
+              -40
             ]
           }
         },
