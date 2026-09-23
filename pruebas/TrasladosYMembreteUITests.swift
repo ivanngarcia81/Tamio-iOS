@@ -65,6 +65,9 @@ final class TrasladosYMembreteUITests: XCTestCase {
         // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
         app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch()
+        // En el iPad en vertical la barra lateral arranca plegada.
+        let mostrar = app.buttons["Show Sidebar"].firstMatch
+        if mostrar.waitForExistence(timeout: 5) { mostrar.tap(); sleep(1) }
         XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 30))
         app.buttons["Settings"].tap()
         sleep(2)

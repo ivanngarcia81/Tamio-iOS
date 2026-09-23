@@ -24,7 +24,10 @@ final class FirmaIPad: XCTestCase {
         // que el contenedor del simulador ya lo tenga puesto. Sin él, un
         // contenedor recién estrenado abre la app en la bienvenida y no hay
         // ni sidebar ni pestañas.
-        app.launchArguments += ["-bloqueo.biometrico", "NO",
+        // `-modoRevision YES`: la hoja de firma no lee nada de la iglesia, y
+        // así la prueba corre también en un simulador sin sesión (sin él se
+        // queda en «Sign in» y no mide nada).
+        app.launchArguments += ["-bloqueo.biometrico", "NO", "-modoRevision", "YES",
                                 "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
         app.launch(); sleep(2)
@@ -42,33 +45,57 @@ final class FirmaIPad: XCTestCase {
         ajustes.tap(); sleep(2)
         app.buttons["Treasurer & pastor"].firstMatch.tap(); sleep(2)
 
-        // **"Sign" es el extremo derecho de la fila, no su centro**: en el
-        // centro está el rótulo, y ahí el toque no abre nada.
+        // **La fila entera tiene que abrir la hoja**, que es lo que dibuja: una
+        // fila de lado a lado con «Sign» al fondo. El 23-sep (iPad físico y
+        // simulador) NO la abría: el `Button` es `.plain` y su `HStack` no
+        // lleva `contentShape`, así que solo responden los glifos de «Treasurer
+        // signature» y de «Sign»; el hueco del `Spacer` es transparente al
+        // dedo. Esta prueba tocaba el 92 % del ancho, que caía en ese hueco
+        // (el «Sign» empieza hacia el 94 %). Fallo de la app, no del
+        // instrumento: se deja rojo aquí y se sigue por «Sign» para medir el
+        // resto.
         let fila = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Treasurer signature'")).firstMatch
         XCTAssertTrue(fila.waitForExistence(timeout: 5))
-        fila.coordinate(withNormalizedOffset: .init(dx: 0.92, dy: 0.5)).tap(); sleep(2)
+        fila.coordinate(withNormalizedOffset: .init(dx: 0.6, dy: 0.5)).tap(); sleep(2)
+        if !app.buttons["Save"].waitForExistence(timeout: 3) {
+            XCTFail("### tocar la fila de la firma por el medio no abre la hoja: solo responden sus letras")
+            fila.staticTexts["Sign"].firstMatch.tap(); sleep(2)
+        }
 
         let guardar = app.buttons["Save"], borrar = app.buttons["Clear"]
         XCTAssertTrue(guardar.waitForExistence(timeout: 5), "### no se abrió la hoja de firma")
-        XCTAssertFalse(guardar.isEnabled, "### sin dibujar nada, Guardar tiene que estar apagado")
+
+        // **Desde `4b637b6` (17-sep) «Guardar» está SIEMPRE encendido** y, con
+        // el lienzo en blanco, dice qué falta en vez de apagarse. Esta prueba
+        // seguía exigiéndolo apagado. Lo que demuestra el repintado ahora es
+        // «Borrar»: se apaga con el lienzo vacío y se enciende con el trazo
+        // (`HojaFirma.swift`, `vacio`), y el aviso de lo que falta.
+        let aviso = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS[c] 'drawing the signature'")).firstMatch
+        XCTAssertFalse(borrar.isEnabled, "### sin dibujar nada, Borrar tiene que estar apagado")
+        guardar.tap(); sleep(2)
+        XCTAssertTrue(aviso.waitForExistence(timeout: 5),
+                      "### con el lienzo en blanco, Guardar no dice que falta la firma")
+        XCTAssertTrue(guardar.exists, "### Guardar cerró la hoja con el lienzo en blanco")
 
         let a = app.coordinate(withNormalizedOffset: .init(dx: 0.40, dy: 0.42))
         let b = app.coordinate(withNormalizedOffset: .init(dx: 0.58, dy: 0.50))
         a.press(forDuration: 0.2, thenDragTo: b, withVelocity: .slow, thenHoldForDuration: 0.2)
         sleep(2)
         parada("F-tras-trazo")
-        XCTAssertTrue(guardar.isEnabled, "### tras firmar, Guardar sigue apagado")
-        XCTAssertTrue(borrar.isEnabled, "### tras firmar, Borrar sigue apagado")
+        XCTAssertTrue(borrar.isEnabled, "### tras firmar, Borrar sigue apagado: el cuerpo no se repintó")
+        XCTAssertFalse(aviso.exists, "### tras firmar, sigue diciendo que falta la firma")
 
         // Borrar deja la hoja como estaba, y el botón se vuelve a apagar.
         borrar.tap(); sleep(2)
-        XCTAssertFalse(guardar.isEnabled, "### tras borrar, Guardar tiene que apagarse")
+        XCTAssertFalse(borrar.isEnabled, "### tras borrar, Borrar tiene que apagarse")
 
-        a.press(forDuration: 0.2, thenDragTo: b, withVelocity: .slow, thenHoldForDuration: 0.2)
-        sleep(2)
-        guardar.tap(); sleep(2)
-        XCTAssertFalse(app.buttons["Cancel"].exists, "### Guardar no cerró la hoja")
-        parada("F-guardada")
+        // **Se cierra con «Cancel», no se guarda**: una firma guardada se queda
+        // en el aparato (`FirmasLocales`), cambia la fila a imagen + papelera,
+        // y en la corrida siguiente el toque del extremo derecho cae en la
+        // papelera y la BORRA en vez de abrir la hoja.
+        app.buttons["Cancel"].tap(); sleep(2)
+        XCTAssertFalse(guardar.exists, "### Cancel no cerró la hoja")
     }
 }
 

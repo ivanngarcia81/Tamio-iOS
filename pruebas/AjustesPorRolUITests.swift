@@ -17,8 +17,16 @@ final class AjustesPorRolUITests: XCTestCase {
     /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
     /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
     /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    ///
+    /// **Y solo con la copia parcheada.** Sin el parche el perfil es
+    /// `.administrador`, que SÍ debe ver la Zona de riesgo: en el iPad físico
+    /// (23-sep) la prueba corrió así desde `aparato.sh` y dio roja por hacer lo
+    /// correcto. Quien parchee la copia lo declara con
+    /// `TEST_RUNNER_TAMIO_ROL=tesorero` en el `xcodebuild`.
     override func setUpWithError() throws {
         try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["TAMIO_ROL"] == "tesorero",
+                          "pide la copia parcheada con el rol de tesorero (TEST_RUNNER_TAMIO_ROL=tesorero)")
     }
 
     func testElTesoreroVeCategoriasPeroNoLaZona() {

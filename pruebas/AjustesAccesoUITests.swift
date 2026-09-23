@@ -1,7 +1,12 @@
 import XCTest
 
-/// Ajustes → Acceso y áreas: la parada para medir el contraste de los dos
-/// botones apagados ("Send invitation" y "Sync now").
+/// Ajustes → Acceso y áreas: la parada para medir el contraste del botón
+/// apagado "Send invitation".
+///
+/// **"Sync now" ya no vive aquí**: `7aea1c0` (10-sep) lo mudó a la Zona de
+/// riesgo (`ConfiguracionView.swift`, `SeccionZona.filaSincronizar`). Esta
+/// prueba seguía buscándolo en Acceso y áreas y daba roja en el iPad físico
+/// (23-sep). Ahora comprueba lo contrario: que no se quedó una copia aquí.
 final class AjustesAcceso: XCTestCase {
     /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
     /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
@@ -18,8 +23,10 @@ final class AjustesAcceso: XCTestCase {
         // que el contenedor del simulador ya lo tenga puesto. Sin él, un
         // contenedor recién estrenado abre la app en la bienvenida y no hay
         // ni sidebar ni pestañas.
+        // `-modoRevision YES`: sin sesión, que es lo que mide la parada (el
+        // botón apagado), y así corre también en un simulador sin cuenta.
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
-                                "-prefs.bienvenidaVista", "YES"]
+                                "-prefs.bienvenidaVista", "YES", "-modoRevision", "YES"]
         // Candado apagado por argumento: un bloqueo guardado en el aparato
         // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
         app.launchArguments += ["-bloqueo.biometrico", "NO"]
@@ -34,14 +41,14 @@ final class AjustesAcceso: XCTestCase {
         // **Sin nada que hacer, ya no son botones: son texto.** Es lo que se
         // mide aquí, y de paso lo que hace que el rótulo se lea.
         let invitar = app.staticTexts["Send invitation"].firstMatch
-        let sincronizar = app.staticTexts["Sync now"].firstMatch
-        XCTAssertTrue(invitar.waitForExistence(timeout: 5))
-        XCTAssertTrue(sincronizar.exists)
-        print("### invitar \(invitar.frame) sincronizar \(sincronizar.frame)")
+        XCTAssertTrue(invitar.waitForExistence(timeout: 5), "### no está «Send invitation»")
+        print("### invitar \(invitar.frame)")
         XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Send invitation'")).count, 0,
                        "### sin correo escrito no puede haber botón")
-        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Sync now'")).count, 0,
-                       "### sin sesión no puede haber botón")
+        // La sincronización se mudó a la Zona de riesgo: ni texto ni botón aquí.
+        XCTAssertFalse(app.descendants(matching: .any)
+                        .matching(NSPredicate(format: "label BEGINSWITH 'Sync now'")).firstMatch.exists,
+                       "### «Sync now» sigue también en Acceso y áreas: quedó duplicado")
         print("MARCA:AC-acceso"); fflush(stdout); Thread.sleep(forTimeInterval: 3)
 
         // Y en cuanto hay correo escrito, vuelve a ser un botón de verdad.

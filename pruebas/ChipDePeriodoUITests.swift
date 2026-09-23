@@ -27,6 +27,9 @@ final class ChipDePeriodoUITests: XCTestCase {
         // Candado apagado por argumento: un bloqueo guardado en el aparato
         // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
         app.launchArguments += ["-bloqueo.biometrico", "NO"]
+        // La maqueta: el chip del año solo sale si hay movimientos, y así
+        // corre igual en un simulador sin sesión que en el aparato.
+        app.launchArguments += ["-modoRevision", "YES"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 25))
         sleep(3)
@@ -44,8 +47,13 @@ final class ChipDePeriodoUITests: XCTestCase {
         }
         reportes.tap(); sleep(3)
 
-        let anual = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS 'Annual'")).firstMatch
+        // **En el iPad no es un botón.** La lista de la columna es una fila
+        // con `onTapGesture` (`ReportesView.listaColumna`), y lo que la
+        // accesibilidad ve es el texto «Annual report». La tarjeta-botón es
+        // solo del teléfono (`tarjetasReportes`). Buscando `buttons` la
+        // prueba no la encontraba nunca en el iPad (roja en el físico, 23-sep).
+        let anual = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label BEGINSWITH 'Annual report'")).firstMatch
         guard anual.waitForExistence(timeout: 10) else {
             print("REPORTES:" + app.buttons.allElementsBoundByIndex.prefix(25)
                     .map { String($0.label.prefix(26)) }.joined(separator: "|"))
@@ -61,6 +69,8 @@ final class ChipDePeriodoUITests: XCTestCase {
                     .map { String($0.label.prefix(22)) }.joined(separator: "|"))
             fflush(stdout)
         }
+        // Lo que la cabecera promete: que el chip EXISTE. Antes solo se imprimía.
+        XCTAssertTrue(chip.exists, "### no está el chip del año en el reporte anual")
         print("MARCA:reporte-anual-\(ProcessInfo.processInfo.environment["TEMA"] ?? "claro")")
         fflush(stdout)
         Thread.sleep(forTimeInterval: 3.5)

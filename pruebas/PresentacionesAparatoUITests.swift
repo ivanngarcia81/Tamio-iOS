@@ -480,3 +480,196 @@ final class PresentacionesAparatoUITests: XCTestCase {
             """)
     }
 }
+
+/// **Paseo del 23-sep: la hoja de culto y el corte de caja en PDF, pulsando los
+/// botones.** El §0.-24 dice que los dos PDF solo se habían visto generados
+/// por `DocumentosPDFTests`; aquí se llega por la interfaz —el menú «Actions»
+/// de la ficha del culto y «PDF preview» de `CorteDetalle`— y se fotografía la
+/// vista previa. **Es un paseo, no un juez**: lo único que se exige es haber
+/// llegado a la previa y que «Close» la cierre. Si la hoja se ve completa,
+/// legible y blanca en oscuro lo dicen las capturas, que se miran a mano.
+///
+/// En iPhone y en iPad. Sin sesión (pantalla de acceso) repite con
+/// `-modoRevision YES`, que sirve la maqueta y guarda en memoria. Nada escribe:
+/// se abre, se mira y se cierra. El idioma y el tema van por argumento, que
+/// no se guarda en el aparato.
+final class PDFConSusBotonesUITests: XCTestCase {
+
+    var app: XCUIApplication!
+    private var esPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+    private var sufijo = "claro"
+
+    override func setUpWithError() throws { continueAfterFailure = true }
+
+    private func lanzar(oscuro: Bool, maqueta: Bool) {
+        app?.terminate()
+        app = XCUIApplication()
+        app.launchArguments = ["-prefs.bienvenidaVista", "YES",
+                               "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+                               "-bloqueo.biometrico", "NO",
+                               "-prefs.tema", oscuro ? "oscuro" : "claro"]
+        if maqueta { app.launchArguments += ["-modoRevision", "YES"] }
+        app.launch(); sleep(4)
+    }
+
+    /// Hay sesión si se ve la barra de pestañas (iPhone) o la sidebar (iPad).
+    private func haySesion() -> Bool {
+        if esPad {
+            let barra = app.buttons.matching(NSPredicate(
+                format: "label BEGINSWITH 'Service log' OR label CONTAINS[c] 'sidebar'")).firstMatch
+            return barra.waitForExistence(timeout: 10)
+        }
+        return app.tabBars.buttons["Secretary"].waitForExistence(timeout: 10)
+    }
+
+    /// Arranca y, si no hay sesión, con la maqueta. Devuelve si es maqueta.
+    @discardableResult
+    private func arrancar(oscuro: Bool, maqueta forzar: Bool = false) -> Bool {
+        sufijo = (forzar ? "maqueta-" : "") + (oscuro ? "oscuro" : "claro")
+        lanzar(oscuro: oscuro, maqueta: forzar)
+        if forzar { return true }
+        if haySesion() { print("QA-PDF: con la sesión de la iglesia"); return false }
+        print("QA-PDF: sin sesión; se repite con -modoRevision YES")
+        foto("00-sin-sesion"); sufijo = "maqueta-" + sufijo
+        lanzar(oscuro: oscuro, maqueta: true)
+        return true
+    }
+
+    private func foto(_ nombre: String) {
+        let a = XCTAttachment(screenshot: app.screenshot())
+        a.name = "\(esPad ? "ipad" : "iphone")-\(sufijo)-\(nombre)"
+        a.lifetime = .keepAlways
+        add(a)
+        let txt = app.staticTexts.allElementsBoundByIndex.prefix(25)
+            .compactMap { $0.exists && !$0.label.isEmpty ? $0.label : nil }
+        let bot = app.buttons.allElementsBoundByIndex.prefix(25)
+            .compactMap { $0.exists && !$0.label.isEmpty ? $0.label : nil }
+        print(">>> FOTO \(a.name ?? "")\n    BOTONES: \(bot)\n    TEXTOS: \(txt)")
+        fflush(stdout)
+    }
+
+    /// Una sección: pestaña + fila en el iPhone, sidebar en el iPad.
+    private func ir(pestana: String, fila: String) -> Bool {
+        if esPad {
+            let e = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", fila)).firstMatch
+            if !(e.exists && e.isHittable) {
+                let s = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'sidebar'")).firstMatch
+                if s.exists { s.tap(); sleep(1) }
+            }
+            guard e.waitForExistence(timeout: 6), e.isHittable else { return false }
+            e.tap(); sleep(3); return true
+        }
+        let t = app.tabBars.buttons[pestana]
+        guard t.waitForExistence(timeout: 10) else { return false }
+        t.tap(); sleep(2)
+        let p = NSPredicate(format: "label BEGINSWITH %@", fila)
+        for _ in 0..<4 {
+            for q in [app.buttons, app.cells] {
+                let e = q.matching(p).firstMatch
+                if e.exists && e.isHittable { e.tap(); sleep(3); return true }
+            }
+            app.swipeUp(velocity: .slow); sleep(1)
+        }
+        return false
+    }
+
+    /// La previa abierta: foto de arriba, baja por las páginas, «Share» y «Close».
+    private func mirarPrevia(_ prefijo: String) {
+        let cerrar = app.buttons["Close"]
+        XCTAssertTrue(cerrar.waitForExistence(timeout: 10), "no abrió la vista previa (\(prefijo))")
+        sleep(3)   // el PDF de «Share» se arma en `onAppear`
+        foto("\(prefijo)-1-previa-arriba")
+        let share = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Share'")).firstMatch
+        print("QA-PDF-SHARE \(prefijo): \(share.exists ? "SÍ" : "NO")")
+        XCTAssertTrue(share.exists, "no hay «Share» en la previa de \(prefijo)")
+        // Bajar por la hoja: el arrastre en el centro cae en la previa, que en
+        // el iPad es una hoja centrada.
+        for i in 2...5 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+               .press(forDuration: 0.1,
+                      thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)))
+            sleep(2)
+            foto("\(prefijo)-\(i)-previa-bajando")
+        }
+        if cerrar.isHittable { cerrar.tap(); sleep(2) }
+        XCTAssertFalse(app.buttons["Close"].exists && app.buttons["Share"].exists,
+                       "«Close» no cerró la previa de \(prefijo)")
+        foto("\(prefijo)-9-tras-cerrar")
+    }
+
+    private func hojaDeCulto(oscuro: Bool) throws { try hojaDeCultoCon(oscuro: oscuro) }
+
+    private func hojaDeCultoCon(oscuro: Bool = false, maqueta: Bool = false) throws {
+        arrancar(oscuro: oscuro, maqueta: maqueta)
+        guard ir(pestana: "Secretary", fila: "Service log") else {
+            foto("culto-sin-camino"); return XCTFail("no llegué a Service log")
+        }
+        foto("culto-1-lista")
+        // **La primera celda es la del rótulo «Full history»** (34 pt), no un
+        // culto: tocarla no abre nada y el menú «Actions» que queda es el de
+        // la LISTA, con «Service sheet (PDF)» apagado a propósito. Se toma la
+        // primera celda alta, que es la fila de un culto.
+        let celda = app.cells.allElementsBoundByIndex.first {
+            $0.isHittable && $0.frame.height > 44 && $0.staticTexts.count > 0 }
+        guard let celda else { foto("culto-sin-celdas"); return XCTFail("no hay cultos en la lista") }
+        celda.tap(); sleep(3)
+        foto("culto-2-ficha")
+        let acciones = app.buttons["Actions"]
+        guard acciones.waitForExistence(timeout: 6), acciones.isHittable else {
+            foto("culto-sin-acciones"); return XCTFail("no hay menú «Actions» en la ficha del culto")
+        }
+        acciones.tap(); sleep(2)
+        foto("culto-3-menu-acciones")
+        let hoja = app.buttons["Service sheet (PDF)"]
+        guard hoja.waitForExistence(timeout: 4) else {
+            return XCTFail("el menú «Actions» no trae «Service sheet (PDF)»")
+        }
+        XCTAssertTrue(hoja.isEnabled, "«Service sheet (PDF)» está apagado")
+        hoja.tap(); sleep(3)
+        mirarPrevia("culto")
+    }
+
+    private func corteDeCaja(oscuro: Bool, maqueta forzar: Bool = false) throws {
+        var maqueta = arrancar(oscuro: oscuro, maqueta: forzar)
+        func alCorte() -> Bool {
+            guard ir(pestana: "Treasury", fila: "Deposits") else { return false }
+            let pend = app.buttons["Pending"]
+            if pend.exists && pend.isHittable { pend.tap(); sleep(2) }
+            foto("corte-1-depositos\(maqueta ? "-maqueta" : "")")
+            if app.staticTexts["No pending cuts"].exists { return false }
+            // En el iPad la lista es la columna izquierda: la primera celda
+            // tocable de ahí. En el iPhone, la primera de la pantalla.
+            let celdas = app.cells.allElementsBoundByIndex.filter { $0.isHittable }
+            guard let c = celdas.first else { return false }
+            c.tap(); sleep(3)
+            return app.buttons["New cut"].waitForExistence(timeout: 5)
+        }
+        if !alCorte() {
+            guard !maqueta else { foto("corte-sin-camino"); return XCTFail("ni con la maqueta llegué a un corte") }
+            print("QA-PDF: la iglesia no tiene cortes pendientes; se repite con la maqueta")
+            maqueta = arrancar(oscuro: oscuro, maqueta: true)
+            guard alCorte() else { foto("corte-sin-camino"); return XCTFail("ni con la maqueta llegué a un corte") }
+        }
+        foto("corte-2-ficha")
+        let pdf = app.buttons["PDF preview"]
+        guard pdf.waitForExistence(timeout: 5) else {
+            return XCTFail("CorteDetalle no tiene «PDF preview»")
+        }
+        if !pdf.isHittable {
+            for _ in 0..<3 where !pdf.isHittable { app.swipeDown(); sleep(1) }
+        }
+        pdf.tap(); sleep(3)
+        mirarPrevia("corte")
+    }
+
+    func testHojaDeCultoClaro() throws { try hojaDeCulto(oscuro: false) }
+    func testCorteDeCajaClaro() throws { try corteDeCaja(oscuro: false) }
+    func testHojaDeCultoOscuro() throws { try hojaDeCulto(oscuro: true) }
+    func testCorteDeCajaOscuro() throws { try corteDeCaja(oscuro: true) }
+    /// El corte de la iglesia de prueba está vacío ($0, sin movimientos): la
+    /// maqueta trae cortes con filas, que es donde una tabla se puede romper.
+    func testCorteDeCajaMaqueta() throws { try corteDeCaja(oscuro: false, maqueta: true) }
+    func testHojaDeCultoMaqueta() throws {
+        try hojaDeCultoCon(maqueta: true)
+    }
+}
