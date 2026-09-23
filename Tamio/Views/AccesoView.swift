@@ -178,7 +178,8 @@ struct BotonMarca: ButtonStyle {
             .foregroundStyle(Marca.verdeHondo)
             .frame(maxWidth: .infinity, minHeight: 56)
             .background(.white, in: .rect(cornerRadius: 28))
-            .shadow(color: .black.opacity(0.35), radius: 17, x: 0, y: 14)
+            // Sin sombra: Iván la quitó el 23-sep. Sobre el verde, el blanco
+            // ya se separa solo, y la mancha oscura debajo ensuciaba la puerta.
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
@@ -634,7 +635,7 @@ struct AccesoView: View {
         .textFieldStyle(CampoBlanco())
         .background(.white)
         .clipShape(.rect(cornerRadius: 22, style: .continuous))
-        .shadow(color: .black.opacity(0.35), radius: 18, x: 0, y: 16)
+        // Sin sombra, igual que "Entrar" (23-sep).
     }
 
     /// El marcador de posición se escribe a mano porque el campo va sobre
