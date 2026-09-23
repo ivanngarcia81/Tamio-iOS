@@ -358,7 +358,8 @@ struct TrasladoSalidaFila: Codable, FetchableRecord, PersistableRecord {
     /// informe de membresía también la pregunta, tenerla dos veces era pedir
     /// que se desincronizaran.
     var traslado: TrasladoDeSalida {
-        TrasladoDeSalida(folio: folio, iglesiaDestino: iglesiaDestino, estado: estado)
+        TrasladoDeSalida(folio: folio, iglesiaDestino: iglesiaDestino, estado: estado,
+                         fechaSolicitud: fechaSolicitud)
     }
 }
 

@@ -49,6 +49,15 @@ struct PantallaCartas: View {
         let persona: String
         let destino: String
         let estado: String
+        /// `fechaSolicitud` de `traslados_salida`, tal como baja ("2026-09-02").
+        /// **Con valor por omisión** para que quien arma la lista pueda
+        /// empezar a pasarla sin que se rompa nada mientras tanto: vacía se
+        /// pinta "—", que es la verdad —no se sabe—, no una fecha inventada.
+        var fecha: String = ""
+        /// Hoy todas vienen de `traslados_salida`, así que todas son salidas.
+        /// Se lleva como clave y no se da por hecho en la vista: el día que
+        /// entren los recibidos, la columna ya sabe decirlo.
+        var sentido: MovimientoTraslado.Sentido = .salida
         var enCurso: Bool { estado != "completado" && estado != "cancelado" }
         var estadoLegible: String {
             switch estado {
@@ -318,37 +327,71 @@ struct PantallaCartas: View {
     /// **Salen del padrón, no de las cartas.** Un traslado es un expediente con
     /// folio que vive en `traslados_salida`; la carta es uno de sus papeles. Por
     /// eso la lista la trae Membresía y no este ViewModel.
+    ///
+    /// **Sin columna CARTA, a propósito.** El handoff pinta al final qué carta
+    /// acompaña a cada traslado, pero en la base no hay nada que las una: ni
+    /// `traslados_salida` guarda una carta ni `cartas` guarda un traslado.
+    /// Emparejarlas por persona y tipo sería adivinar, y una columna que
+    /// adivina acabaría diciendo que un traslado abierto ya tiene su carta.
     private var tablaDeTraslados: some View {
-        Table(traslados) {
-            TableColumn(L.t("FOLIO", "FOLIO")) { t in
-                Text(t.folio).monospacedDigit().frame(height: estado.altoDeFila)
-            }
-            .width(min: 110, ideal: 130)
-            TableColumn(L.t("PERSONA", "PERSON")) { t in Text(t.persona) }
-            TableColumn(L.t("IGLESIA", "CHURCH")) { t in
-                Text(t.destino).foregroundStyle(.secondary)
-            }
-            TableColumn(L.t("ESTADO", "STATUS")) { t in
-                Text(t.estadoLegible)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(t.enCurso ? Paleta.aviso : .secondary)
-                    .padding(.horizontal, 8).padding(.vertical, 2)
-                    .background((t.enCurso ? Paleta.aviso : Color.secondary).opacity(0.14),
-                                in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-            }
-            .width(min: 120, ideal: 150)
-        }
-        .tableStyle(.inset)
-        .overlay {
-            if traslados.isEmpty {
-                ContentUnavailableView {
-                    Label(L.t("Ningún traslado", "No transfers"),
-                          systemImage: "arrow.left.arrow.right")
-                } description: {
-                    Text(L.t("Los traslados salen de la ficha de cada miembro.",
-                             "Transfers come from each member's profile."))
+        VStack(alignment: .leading, spacing: 0) {
+            Table(traslados) {
+                // El sentido va pegado al folio, como en el handoff: es parte
+                // de cómo se lee el expediente, no un dato aparte.
+                TableColumn(L.t("FOLIO", "FOLIO")) { t in
+                    HStack(spacing: 6) {
+                        Text(t.folio).monospacedDigit()
+                        Text(t.sentido.etiqueta)
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .foregroundStyle(t.sentido == .entrada ? Paleta.brand : Paleta.aviso)
+                    }
+                    .frame(height: estado.altoDeFila)
                 }
-                .background(Color.suelo)
+                .width(min: 150, ideal: 180)
+                TableColumn(L.t("PERSONA", "PERSON")) { t in Text(t.persona) }
+                TableColumn(L.t("IGLESIA", "CHURCH")) { t in
+                    Text(t.destino).foregroundStyle(.secondary)
+                }
+                TableColumn(L.t("FECHA", "DATE")) { t in
+                    Text(t.fecha.isEmpty ? "—" : Fechas.diaLegible(t.fecha))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .width(min: 90, ideal: 110)
+                TableColumn(L.t("ESTADO", "STATUS")) { t in
+                    Text(t.estadoLegible)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(t.enCurso ? Paleta.aviso : .secondary)
+                        .padding(.horizontal, 8).padding(.vertical, 2)
+                        .background((t.enCurso ? Paleta.aviso : Color.secondary).opacity(0.14),
+                                    in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                }
+                .width(min: 120, ideal: 150)
+            }
+            .tableStyle(.inset)
+            .overlay {
+                if traslados.isEmpty {
+                    ContentUnavailableView {
+                        Label(L.t("Ningún traslado", "No transfers"),
+                              systemImage: "arrow.left.arrow.right")
+                    } description: {
+                        Text(L.t("Los traslados salen de la ficha de cada miembro.",
+                                 "Transfers come from each member's profile."))
+                    }
+                    .background(Color.suelo)
+                }
+            }
+            // La nota del handoff, que explica el estado ámbar: "en curso" no
+            // es un atasco de la app, es que todavía no se ha emitido nada.
+            if !traslados.isEmpty {
+                Divider()
+                Text(L.t("Un traslado sin carta sigue abierto: la persona pidió irse y todavía no se ha emitido nada.",
+                         "A transfer without a letter is still open: the person has asked to move and nothing has been issued yet."))
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
             }
         }
     }

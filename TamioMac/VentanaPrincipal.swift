@@ -137,7 +137,8 @@ struct VentanaPrincipal: View {
                                guard let t = m.trasladoSalida else { return nil }
                                return PantallaCartas.TrasladoEnLista(
                                    id: t.folio, folio: t.folio, persona: m.nombre,
-                                   destino: t.iglesiaDestino, estado: t.estado)
+                                   destino: t.iglesiaDestino, estado: t.estado,
+                                   fecha: t.fechaSolicitud)
                            })
         case .informes:
             PantallaInformes(vm: informes)

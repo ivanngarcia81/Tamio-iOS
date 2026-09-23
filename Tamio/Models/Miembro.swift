@@ -187,6 +187,9 @@ struct TrasladoDeSalida: Hashable {
     let folio: String
     let iglesiaDestino: String
     let estado: String
+    /// Cuándo se pidió, tal como lo guarda la tabla. Con omisión para que la
+    /// maqueta no tenga que inventarse una; el Mac la enseña en Traslados.
+    var fechaSolicitud: String = ""
 
     /// **En curso es todo lo que no ha terminado**, la misma regla del web
     /// (`memberTieneTrasladoActivo`). Vive aquí y no en `TrasladoSalidaFila`
