@@ -116,25 +116,56 @@ struct ConfiguracionIglesia: Equatable {
 
     /// El plan, listo para enseñar. Vacío se lee "—" y no "Completo": no saber
     /// qué plan tiene una iglesia no es lo mismo que darle el mejor.
+    /// **El rótulo del web, no la clave guardada.** Se guarda `completo`, y
+    /// aquí salía `.capitalized` —«Completo» con la app en inglés—. Las claves
+    /// y los rótulos son los del web (`i18n`, `plan.nombre`); una clave que no
+    /// se conoce sale como se guardó, capitalizada, para no esconderla.
     var planLegible: String {
-        plan.trimmingCharacters(in: .whitespaces).isEmpty ? "—" : plan.capitalized
+        let clave = plan.trimmingCharacters(in: .whitespaces).lowercased()
+        switch clave {
+        case "":           return "—"
+        case "completo":   return L.t("Completo", "Complete")
+        case "tesoreria":  return L.t("Solo Tesorería", "Treasury only")
+        case "secretaria": return L.t("Solo Secretaría", "Secretariat only")
+        default:           return plan.capitalized
+        }
+    }
+
+    /// El estado de la suscripción, con los rótulos del web
+    /// (`plan.estadoNombre`): se guardaba `cortesia` y salía «Cortesia», sin
+    /// tilde y en español con la app en inglés.
+    var estadoSuscripcionLegible: String {
+        let clave = subEstado.trimmingCharacters(in: .whitespaces).lowercased()
+        switch clave {
+        case "":         return "—"
+        case "activa":   return L.t("Activa", "Active")
+        case "cortesia": return L.t("Cortesía", "Courtesy")
+        case "prueba":   return L.t("Prueba", "Trial")
+        case "vencida":  return L.t("Vencida", "Expired")
+        default:         return subEstado.capitalized
+        }
     }
 
     /// La suscripción con su vencimiento, si lo hay: "Activa · vence el 12 mar
     /// 2027". La fecha es lo único accionable de esta fila.
     var suscripcionLegible: String {
-        let estado = subEstado.trimmingCharacters(in: .whitespaces)
-        let base = estado.isEmpty ? "—" : estado.capitalized
-        guard !subVence.isEmpty else { return base }
+        let base = estadoSuscripcionLegible
+        guard let vence = venceLegible else { return base }
+        return base + " · " + L.t("vence el \(vence)", "expires \(vence)")
+    }
+
+    /// La fecha de vencimiento en la lengua de la app ("12 mar 2027"), o
+    /// `nil` si no vence. La base la guarda como `yyyy-MM-dd`.
+    var venceLegible: String? {
+        guard !subVence.isEmpty else { return nil }
         let iso = DateFormatter()
         iso.dateFormat = "yyyy-MM-dd"
         iso.locale = Locale(identifier: "en_US_POSIX")
-        guard let fecha = iso.date(from: subVence) else { return base }
+        guard let fecha = iso.date(from: String(subVence.prefix(10))) else { return nil }
         let salida = DateFormatter()
         salida.locale = L.locale
         salida.dateStyle = .medium
-        return base + " · " + L.t("vence el \(salida.string(from: fecha))",
-                                  "expires \(salida.string(from: fecha))")
+        return salida.string(from: fecha)
     }
 
     // MARK: - Derivados para los documentos

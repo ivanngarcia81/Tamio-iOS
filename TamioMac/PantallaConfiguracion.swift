@@ -706,10 +706,10 @@ struct PantallaConfiguracion: View {
 
         Grupo(titulo: L.t("PLAN", "PLAN")) {
             Fila(L.t("Plan", "Plan"), cfg.config.planLegible)
-            Fila(L.t("Estado", "Status"),
-                 cfg.config.subEstado.isEmpty ? "—" : cfg.config.subEstado)
-            Fila(L.t("Vence", "Renews"),
-                 cfg.config.subVence.isEmpty ? "—" : cfg.config.subVence, ultimo: true)
+            // Los rótulos del web, no las claves: salía «cortesia» y la fecha
+            // en crudo («2027-03-12»).
+            Fila(L.t("Estado", "Status"), cfg.config.estadoSuscripcionLegible)
+            Fila(L.t("Vence", "Renews"), cfg.config.venceLegible ?? "—", ultimo: true)
         }
         Nota(L.t("Estos permisos no son solo de la app: el servidor los aplica también, así que cambiarlos aquí cambia lo que se puede hacer desde cualquier aparato.",
                  "These permissions aren't only in the app: the server enforces them too, so changing them here changes what can be done from any device."))
