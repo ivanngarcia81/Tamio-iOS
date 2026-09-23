@@ -19,6 +19,9 @@
 		0A7D7E9E8C8D0CDAB045AD2B /* ImportadorAportes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0083FEE99FCA238DF7673C66 /* ImportadorAportes.swift */; };
 		0A8423DBC7E8A64EA5B1213C /* Miembro.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0ECAB8AB3DDB7471075342 /* Miembro.swift */; };
 		0B8D01419956FF26F533080D /* PDFExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A3F1E2883B1BF903DAF0E8 /* PDFExport.swift */; };
+		2138D5BDB967FF763A93AD05 /* CorteHojaPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D35F4A3D09BCCFDBFE8D2F /* CorteHojaPDF.swift */; };
+		4DBF606C345FD148284015FB /* HojaCultoPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 865BE312EBDD2CB23DC6BC06 /* HojaCultoPDF.swift */; };
+		137249E0C47E3FEED94E9A1F /* PiezasPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD0D80E6AA0B9573356F6C3F /* PiezasPDF.swift */; };
 		0C89DBA6C761483BB7766DB8 /* MovimientosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C8C96D1BB6EF88E7492B545 /* MovimientosRepository.swift */; };
 		0CFC1054F9FE1B93304E7D87 /* MovimientoFila.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78F1A6AA085FD7F5F3231ABC /* MovimientoFila.swift */; };
 		0D7735E7A4E5AA1F99B70C5E /* PantallaCartas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7E59E0C104D3F193C3DEA3 /* PantallaCartas.swift */; };
@@ -191,6 +194,9 @@
 		A1146F0F6FE16EB0C41D14BA /* IPhoneAjustesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D90A2753741AD7825EB7A59 /* IPhoneAjustesView.swift */; };
 		A2BD39D2F5801E8FCDD75718 /* Reporte.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318D735C25A98F16DC683F15 /* Reporte.swift */; };
 		A4EB264BFDFFE8BD35E85337 /* PDFExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A3F1E2883B1BF903DAF0E8 /* PDFExport.swift */; };
+		8CA7B0E77349B83BEA384A96 /* CorteHojaPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D35F4A3D09BCCFDBFE8D2F /* CorteHojaPDF.swift */; };
+		A80B0A3FE0F12098DF2E4BEE /* HojaCultoPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 865BE312EBDD2CB23DC6BC06 /* HojaCultoPDF.swift */; };
+		86F49EE5C47DFD1B306583BC /* PiezasPDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD0D80E6AA0B9573356F6C3F /* PiezasPDF.swift */; };
 		A513D9DEB1A92B422ED58314 /* KPICard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00CF93CF0E516BCEF91ABCC6 /* KPICard.swift */; };
 		A588FDF92131BEE03F8074D1 /* SeccionMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 610A5F6071F2275CB2FD1FF0 /* SeccionMac.swift */; };
 		A5D2C0B62B5434E04AC57BEC /* ExportadorAportantes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99FB5B210A49074A15A4D8C2 /* ExportadorAportantes.swift */; };
@@ -351,6 +357,9 @@
 		508379647B16819AEDE8CA2B /* NuevaNotaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NuevaNotaView.swift; sourceTree = "<group>"; };
 		556C631D33CF32ED1B99031A /* Pieces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pieces.swift; sourceTree = "<group>"; };
 		59A3F1E2883B1BF903DAF0E8 /* PDFExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExport.swift; sourceTree = "<group>"; };
+		B5D35F4A3D09BCCFDBFE8D2F /* CorteHojaPDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorteHojaPDF.swift; sourceTree = "<group>"; };
+		865BE312EBDD2CB23DC6BC06 /* HojaCultoPDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HojaCultoPDF.swift; sourceTree = "<group>"; };
+		BD0D80E6AA0B9573356F6C3F /* PiezasPDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiezasPDF.swift; sourceTree = "<group>"; };
 		5B5ECF3C352C8A25CF9A50EA /* MiembrosRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiembrosRepository.swift; sourceTree = "<group>"; };
 		5ED2D352ABF4028DA709B359 /* ConfiguracionIglesiaRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfiguracionIglesiaRepository.swift; sourceTree = "<group>"; };
 		60865A62E331A5B86A0168B7 /* MotorSincronizacion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorSincronizacion.swift; sourceTree = "<group>"; };
@@ -647,6 +656,9 @@
 				95131737CD36368276793476 /* NavHeader.swift */,
 				630E8CADA66AF06CEC50D6D5 /* Palette.swift */,
 				59A3F1E2883B1BF903DAF0E8 /* PDFExport.swift */,
+				B5D35F4A3D09BCCFDBFE8D2F /* CorteHojaPDF.swift */,
+				865BE312EBDD2CB23DC6BC06 /* HojaCultoPDF.swift */,
+				BD0D80E6AA0B9573356F6C3F /* PiezasPDF.swift */,
 				D624B7AA19596E66494F18D3 /* Permisos.swift */,
 				804F8F6B50873C1579D13583 /* Plataforma.swift */,
 				7E478666D7AD087B2BD5F242 /* PreferenciasApp.swift */,
@@ -937,6 +949,9 @@
 				D73D2D9CA8A8DC9BA71427B4 /* OfflineMiembrosRepository.swift in Sources */,
 				298F3401DC447EC09CC8AA9D /* OfflineMovimientosRepository.swift in Sources */,
 				A4EB264BFDFFE8BD35E85337 /* PDFExport.swift in Sources */,
+				8CA7B0E77349B83BEA384A96 /* CorteHojaPDF.swift in Sources */,
+				A80B0A3FE0F12098DF2E4BEE /* HojaCultoPDF.swift in Sources */,
+				86F49EE5C47DFD1B306583BC /* PiezasPDF.swift in Sources */,
 				73F51DDAA99039892B8563CC /* Palette.swift in Sources */,
 				2239C86526621ABADE74126B /* PantallaActas.swift in Sources */,
 				4800F9CACF253F685CE7444C /* PantallaAgenda.swift in Sources */,
@@ -1094,6 +1109,9 @@
 				E170589F1C5B01A95C55A878 /* OfflineMiembrosRepository.swift in Sources */,
 				E9B6CA49C255ABAF523A707E /* OfflineMovimientosRepository.swift in Sources */,
 				0B8D01419956FF26F533080D /* PDFExport.swift in Sources */,
+				2138D5BDB967FF763A93AD05 /* CorteHojaPDF.swift in Sources */,
+				4DBF606C345FD148284015FB /* HojaCultoPDF.swift in Sources */,
+				137249E0C47E3FEED94E9A1F /* PiezasPDF.swift in Sources */,
 				D234DFBF05FFB31A64866326 /* Palette.swift in Sources */,
 				952A3B47740B295CD0B1B169 /* PantallaBloqueo.swift in Sources */,
 				C220C5F2586B03DBAE82DCD2 /* Permisos.swift in Sources */,

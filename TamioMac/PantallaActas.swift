@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// **Actas, según el handoff**: una rejilla de tarjetas a dos columnas, con el
 /// estado, la fecha y quién firma.
@@ -21,6 +22,26 @@ struct PantallaActas: View {
     /// `isPresented:`**, por lo que ya midió el iPhone: la hoja recibe el acta
     /// que se abrió y no vuelve a leer la selección, que podría ser otra.
     @State private var actaFirmando: Acta?
+
+    /// El acta cuya hoja se está mirando. `item:` por lo mismo que la de
+    /// firmas: la vista previa enseña el acta que se abrió, no la que esté
+    /// elegida cuando la hoja termine de presentarse.
+    @State private var actaEnPDF: Acta?
+
+    /// La configuración de la iglesia, para el membrete, las firmas y el pie.
+    /// Observada y no leída una vez: si Ajustes cambia el nombre o el pie con
+    /// la pantalla abierta, el PDF que se comparta tiene que decir lo nuevo.
+    @State private var iglesia = ConfiguracionIglesiaViewModel.compartido
+
+    /// La vista de AppKit bajo el botón "Compartir PDF", de la que cuelga el
+    /// menú de `NSSharingServicePicker`. Ver `AnclaCompartirActa`.
+    @State private var anclaCompartir = AnclaCompartirActa()
+
+    /// La elegida, sea cual sea su estado: un acta se imprime también cuando
+    /// ya está firmada o archivada, que es justo cuando más se imprime.
+    private var actaElegida: Acta? {
+        vm.lista.first { $0.id == seleccion }
+    }
 
     /// La elegida, si admite firmas. Borrador o pendiente: lo demás ya pasó
     /// por ese paso o lo cerró.
@@ -60,6 +81,20 @@ struct PantallaActas: View {
                         actaFirmando = actaElegidaFirmable
                     }
                     .disabled(actaElegidaFirmable == nil)
+                    // **Las dos acciones del PDF, como en Reportes**: mirar la
+                    // hoja antes, o compartirla sin abrirla. Sin acta elegida
+                    // no hay hoja, y el botón lo dice apagándose.
+                    Button(L.t("Vista previa PDF", "PDF preview")) {
+                        actaEnPDF = actaElegida
+                    }
+                    .disabled(actaElegida == nil)
+                    Button {
+                        if let a = actaElegida { compartirPDF(a) }
+                    } label: {
+                        Label(L.t("Compartir PDF", "Share PDF"), systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(actaElegida == nil)
+                    .background(VistaAnclaActa(ancla: anclaCompartir))
                     Button { estado.pidiendoAlta = true } label: {
                         HStack(spacing: 6) {
                             Text(L.t("Nueva acta", "New minutes entry"))
@@ -91,6 +126,9 @@ struct PantallaActas: View {
                     await MotorSincronizacion.compartido.sincronizar()
                 }
             }
+        }
+        .sheet(item: $actaEnPDF) { acta in
+            VistaPreviaActaMac(acta: acta, iglesia: iglesia.config)
         }
         .sheet(item: $actaFirmando) { acta in
             FirmasActaMac(acta: acta) { firmas in
@@ -157,6 +195,10 @@ struct PantallaActas: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
+            Button(L.t("Vista previa PDF", "PDF preview")) {
+                seleccion = a.id
+                actaEnPDF = a
+            }
             if Self.admiteFirmas(a) {
                 Button(L.t("Recopilar firmas…", "Collect signatures…")) {
                     seleccion = a.id
@@ -198,6 +240,44 @@ struct PantallaActas: View {
         .padding(.vertical, 3)
         .background(Color.secondary.opacity(0.12),
                     in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    /// **El PDF que se comparte es la misma hoja de la vista previa**, y la
+    /// misma del iPhone: `ActaHojaPDF` vive en `Support/PiezasPDF.swift` para
+    /// que la compilen los dos, y `PDFExport.render` la pasa a páginas carta.
+    ///
+    /// Se genera al pulsar y no antes: entre que se abre la pantalla y se
+    /// comparte, el acta puede haber recogido una firma, y un PDF hecho de
+    /// antemano saldría con la raya vacía.
+    private func compartirPDF(_ acta: Acta) {
+        guard let url = PDFExport.render(Self.hojaImprimible(acta, iglesia: iglesia.config),
+                                         nombre: Self.nombreArchivo(acta)),
+              let vista = anclaCompartir.vista else { return }
+        NSSharingServicePicker(items: [url])
+            .show(relativeTo: vista.bounds, of: vista, preferredEdge: .minY)
+    }
+
+    /// La hoja tal como va al papel.
+    ///
+    /// **Blanca y en claro, pase lo que pase en la ventana.** `ActaHojaPDF` pinta
+    /// con `.secondary` y el color de texto por omisión, que en un Mac en modo
+    /// oscuro se resuelven a gris claro y blanco: en la previa salía texto
+    /// claro sobre el fondo oscuro de la hoja modal y, en el PDF, sobre un
+    /// papel sin fondo. Es lo que ya hacen `ReporteHojaPDF` y la constancia
+    /// del aportante por dentro; se pone aquí fuera para no cambiarle al
+    /// iPhone una hoja que no se tocaba.
+    @MainActor
+    static func hojaImprimible(_ acta: Acta, iglesia: ConfiguracionIglesia) -> some View {
+        ActaHojaPDF(acta: acta, iglesia: iglesia)
+            .background(.white)
+            .environment(\.colorScheme, .light)
+    }
+
+    /// El folio, que es como se cita un acta y como se ordenan en una
+    /// carpeta; el mismo nombre que le pone el iPhone. Un acta recién creada
+    /// que todavía no tiene folio no deja el archivo en un "Acta-.pdf".
+    static func nombreArchivo(_ acta: Acta) -> String {
+        acta.folio.isEmpty ? "Acta" : "Acta-\(acta.folio)"
     }
 
     private func meta(_ a: Acta) -> String {
@@ -306,5 +386,96 @@ private struct FirmasActaMac: View {
             return FirmaActa(rol: rol, firmado: true, fecha: antes?.fecha ?? hoy)
         })
         return true
+    }
+}
+
+// MARK: - Vista previa del PDF
+
+/// **La hoja del acta a tamaño de papel, con su botón de compartir.**
+///
+/// Es la contraparte de `DocumentoPDFSheet` del iPhone, que no se puede usar
+/// aquí: vive en `Views/Components`, que el Mac no compila, y está hecha de
+/// `NavigationStack`, `ShareLink` y barra de iOS. La hoja, en cambio, es la
+/// misma: lo que se ve aquí es exactamente lo que sale.
+///
+/// A escala 1 y no encogida: la ventana del Mac da los 612 puntos de la
+/// carta, y una previa a su tamaño es la única que deja juzgar la letra.
+private struct VistaPreviaActaMac: View {
+    let acta: Acta
+    let iglesia: ConfiguracionIglesia
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var ancla = AnclaCompartirActa()
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Text(L.t("Vista previa PDF · \(acta.titulo)", "PDF preview · \(acta.titulo)"))
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Button {
+                    compartir()
+                } label: {
+                    Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+                }
+                .background(VistaAnclaActa(ancla: ancla))
+                Button(L.t("Cerrar", "Close")) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            .overlay(alignment: .bottom) { Divider() }
+
+            ScrollView {
+                PantallaActas.hojaImprimible(acta, iglesia: iglesia)
+                    .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+                    .padding(28)
+                    .frame(maxWidth: .infinity)
+            }
+            .background(Color.suelo)
+        }
+        // El ancho de la carta más sus márgenes: la hoja nunca se recorta.
+        .frame(minWidth: PDFExport.anchoCarta + 56 + 40, idealWidth: 760,
+               minHeight: 560, idealHeight: 820)
+    }
+
+    /// Se genera al pulsar, igual que desde la cabecera de la pantalla.
+    private func compartir() {
+        guard let url = PDFExport.render(PantallaActas.hojaImprimible(acta, iglesia: iglesia),
+                                         nombre: PantallaActas.nombreArchivo(acta)),
+              let vista = ancla.vista else { return }
+        NSSharingServicePicker(items: [url])
+            .show(relativeTo: vista.bounds, of: vista, preferredEdge: .minY)
+    }
+}
+
+/// Guarda la `NSView` que hay debajo de un botón "Compartir" para que
+/// `NSSharingServicePicker` sepa de dónde colgar su menú.
+///
+/// **Es copia de `AnclaCompartir` de `PantallaReportes.swift`**, que es
+/// `private` a su archivo. Son quince líneas de fontanería de AppKit; si un
+/// tercer sitio las necesita, toca sacarlas a un archivo común del Mac.
+private final class AnclaCompartirActa {
+    weak var vista: NSView?
+}
+
+/// Una `NSView` vacía del tamaño del botón. No pinta nada ni recibe clics
+/// (`hitTest` devuelve nil), así que el botón sigue siendo el que se pulsa.
+private struct VistaAnclaActa: NSViewRepresentable {
+    let ancla: AnclaCompartirActa
+
+    func makeNSView(context: Context) -> NSView {
+        let v = VistaTransparente()
+        ancla.vista = v
+        return v
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        ancla.vista = nsView
+    }
+
+    private final class VistaTransparente: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
     }
 }

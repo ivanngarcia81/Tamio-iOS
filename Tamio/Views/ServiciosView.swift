@@ -24,6 +24,9 @@ struct ServiciosView: View {
         /// reciente. Cuando Servicios se siente sobre la tabla, el culto será
         /// el de la fila y esto se cae solo.
         case lista(CultoConLista)
+        /// La hoja de culto en PDF. Lleva el culto y no tira de la selección:
+        /// en el teléfono la ficha abierta es `abierto`, no `vm.seleccion`.
+        case pdf(Servicio)
 
         var id: String {
             switch self {
@@ -31,6 +34,7 @@ struct ServiciosView: View {
             case .asignar: return "asignar"
             case .contar:  return "contar"
             case .lista(let c): return "lista-\(c.id)"
+            case .pdf(let s): return "pdf-\(s.id)"
             }
         }
     }
@@ -127,6 +131,15 @@ struct ServiciosView: View {
                         vm.registrarAsistencia(servicioId: s.id, presentes: presentes,
                                                total: total, fecha: fecha)
                     }
+                }
+            case .pdf(let s):
+                // El culto como está AHORA en la lista, no la copia que abrió
+                // la ficha: lo que llegó al sincronizar tiene que salir en el
+                // papel (ver la nota de `navigationDestination`).
+                let actual = vm.lista.first { $0.id == s.id } ?? s
+                DocumentoPDFSheet(titulo: L.t("Vista previa PDF", "PDF preview"),
+                                  nombreArchivo: HojaCultoPDF.nombreArchivo(actual)) {
+                    HojaCultoPDF(servicio: actual)
                 }
             }
         }
@@ -399,7 +412,7 @@ struct ServiciosView: View {
     /// Iván: *"ponerlo todo dentro de una hamburguesa… y así se ahorra
     /// espacio"*.
     ///
-    /// Las tres del culto se apagan cuando no hay culto delante: en el teléfono
+    /// Las del culto —también la hoja en PDF— se apagan cuando no hay culto delante: en el teléfono
     /// eso es la lista —donde `seleccionId` puede seguir apuntando al último
     /// abierto, y actuar sobre él sería actuar a ciegas— y en iPad es la
     /// columna derecha vacía. "Nuevo" nunca se apaga, que es lo que hay que
@@ -420,6 +433,16 @@ struct ServiciosView: View {
 
             Button { hoja = .asignar } label: {
                 Label(L.t("Asignar", "Assign"), systemImage: "person.2.badge.plus")
+            }
+            .disabled(servicioActivo == nil)
+
+            // **El papel del culto**, con las otras acciones de la ficha: aquí
+            // no hay fila de botones como en Actas, todo lo del culto vive en
+            // este menú.
+            Button {
+                if let s = servicioActivo { hoja = .pdf(s) }
+            } label: {
+                Label(L.t("Hoja de culto (PDF)", "Service sheet (PDF)"), systemImage: "doc.text")
             }
             .disabled(servicioActivo == nil)
 

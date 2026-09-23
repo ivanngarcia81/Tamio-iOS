@@ -22,6 +22,8 @@ struct PantallaServicios: View {
     /// dos hojas distintas sobre el mismo culto: una lo crea y la otra lo
     /// rellena con lo que solo se sabe estando allí.
     @State private var tomandoLista: Servicio?
+    /// El culto cuya hoja de culto se está mirando antes de compartirla.
+    @State private var hojaDeCulto: Servicio?
 
     private var elegido: Servicio? {
         vm.lista.first { $0.id == seleccion } ?? vm.lista.first
@@ -47,6 +49,12 @@ struct PantallaServicios: View {
                     Divider()
             detalle
                 .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
+                // En el detalle y no junto a las otras dos hojas: tres
+                // `.sheet` colgados de la misma vista compiten entre sí, y
+                // en el iPhone ya se vio que la última no llega a presentarse.
+                .sheet(item: $hojaDeCulto) { culto in
+                    VistaPreviaHojaCulto(servicio: culto)
+                }
         }
         .sheet(isPresented: Binding(
             get: { estado.pidiendoAlta },
@@ -74,6 +82,14 @@ struct PantallaServicios: View {
             ToolbarItem(placement: .automatic) {
                 Button(L.t("Tomar asistencia…", "Take attendance…")) {
                     tomandoLista = elegido
+                }
+                .disabled(elegido == nil)
+            }
+            // Al lado de «Tomar asistencia», como lo dibuja el handoff: el
+            // papel es del culto elegido, igual que la lista.
+            ToolbarItem(placement: .automatic) {
+                Button(L.t("Hoja de culto (PDF)", "Service sheet (PDF)")) {
+                    hojaDeCulto = elegido
                 }
                 .disabled(elegido == nil)
             }
@@ -403,5 +419,76 @@ extension Servicio {
     /// Se busca por fecha en el histórico, que es donde vive `presentes/total`.
     var contraPadron: AsistenciaServicio? {
         historial.first { $0.fecha == fecha }
+    }
+}
+
+// MARK: - La hoja de culto
+
+/// **La vista previa de la hoja de culto, con Compartir.** Las páginas se
+/// enseñan sueltas y a tamaño real —612 caben en la hoja—, con aire entre
+/// ellas: aquí se mira dónde cae el corte, y dos páginas pegadas lo esconden.
+///
+/// `DocumentoPDFSheet` es del iPhone (`NavigationStack`, barra de iOS) y el Mac
+/// no compila esa carpeta; esta es su versión de Mac, con lo mismo dentro: el
+/// PDF que se comparte es exactamente el que se ve, porque sale de la misma
+/// `HojaCultoPDF` y de `PDFExport.render`, el mismo que usa el iPhone.
+private struct VistaPreviaHojaCulto: View {
+    let servicio: Servicio
+
+    @Environment(\.dismiss) private var cerrar
+    @Environment(\.openURL) private var abrir
+    /// Se arma al aparecer y no en `body`: repartir la hoja mide cada bloque,
+    /// y hacerlo a cada repintado sería trabajo tirado.
+    @State private var hoja: HojaCultoPDF?
+    @State private var url: URL?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(L.t("Hoja de culto", "Service sheet"))
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("\(servicio.titulo) · \(servicio.fechaLegible)")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                if let url {
+                    // Abrirlo en la app de PDF del sistema es el camino a
+                    // imprimir y a guardar con nombre, que el menú de
+                    // Compartir no trae.
+                    Button(L.t("Abrir PDF", "Open PDF")) { abrir(url) }
+                    ShareLink(item: url) {
+                        Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+                    }
+                }
+                Button(L.t("Cerrar", "Close")) { cerrar() }
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            Divider()
+
+            ScrollView {
+                if let hoja {
+                    VStack(spacing: 20) {
+                        ForEach(0..<hoja.numeroDePaginas, id: \.self) { i in
+                            hoja.pagina(i)
+                                .shadow(color: .black.opacity(0.15), radius: 10, y: 3)
+                        }
+                    }
+                    .padding(24)
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .background(Color.suelo)
+        }
+        .frame(width: PDFExport.anchoCarta + 88, height: 720)
+        .onAppear {
+            let h = HojaCultoPDF(servicio: servicio)
+            hoja = h
+            url = PDFExport.render(h, nombre: HojaCultoPDF.nombreArchivo(servicio))
+        }
     }
 }

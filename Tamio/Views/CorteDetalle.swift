@@ -31,6 +31,10 @@ struct CorteDetalle: View {
     @State private var mostrarFirma = false
     @State private var nombreCuenta = ""
     @State private var fechaEditada = Date()
+    /// El corte que se está viendo en papel. `item:` y no `isPresented:`: con
+    /// un booleano la hoja puede presentarse antes de tener el dato y salir en
+    /// blanco (se vio con el CSV de Informes; ver `ActasView`).
+    @State private var corteEnPDF: Corte?
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
@@ -82,6 +86,14 @@ struct CorteDetalle: View {
             }
         }
         .sheet(isPresented: $mostrarFecha) { hojaFecha }
+        // La hoja de siempre de los documentos: previa escalada y Compartir,
+        // que genera el PDF con la MISMA vista que se ve. Solo lee el corte.
+        .sheet(item: $corteEnPDF) { c in
+            DocumentoPDFSheet(titulo: L.t("Vista previa PDF", "PDF preview"),
+                              nombreArchivo: CorteHojaPDF.nombreArchivo(c)) {
+                CorteHojaPDF(corte: c)
+            }
+        }
         .sheet(isPresented: $mostrarFirma) {
             SegundaFirmaView(corte: corte, candidatos: candidatosFirma) { nombre, rol, modo, conteo in
                 onFirmar?(nombre, rol, modo, conteo)
@@ -109,6 +121,18 @@ struct CorteDetalle: View {
                 .buttonStyle(.glass)
                 .tint(Color.secondary)
             }
+            // **El papel del corte**, debajo del título y no al lado de "Nuevo
+            // corte": dos botones en esa fila le quitan al H1 el ancho que ya
+            // le falta en un iPhone (el chip se bajó por lo mismo). Sirve en
+            // cualquier estado —sin depositar lleva la ficha
+            // en blanco para el banco; depositado, el comprobante con los
+            // datos del depósito—, así que no se esconde nunca.
+            Button { corteEnPDF = corte } label: {
+                Label(L.t("Vista previa PDF", "PDF preview"), systemImage: "doc.richtext")
+                    .font(.subheadline)
+            }
+            .buttonStyle(.glass)
+            .tint(Color.secondary)
             // El chip en línea con el H1 partía el título en dos renglones.
             if corte.sinDepositar {
                 Pill(texto: L.t("Sin depositar", "Not deposited"), color: Paleta.aviso)

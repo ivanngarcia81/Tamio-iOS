@@ -369,85 +369,9 @@ struct ReportePDFSheet: View {
 }
 
 
-/// Bloque de firmas al pie de un documento. Las líneas salen de Ajustes y solo
-/// se imprimen las de quien tiene nombre: una raya con un cargo debajo y nadie
-/// encima no vale para nada.
-struct FirmasPDF: View {
-    let iglesia: ConfiguracionIglesia
-    /// Las firmas guardadas en ESTE aparato. No viajan: un documento generado
-    /// desde otro teléfono sale con la raya en blanco, y eso es lo esperado
-    /// (ver `FirmasLocales`).
-    var firmas: FirmasLocales = .compartidas
-
-    var body: some View {
-        let firmantes = iglesia.firmantes
-        if !firmantes.isEmpty {
-            VStack(alignment: .leading, spacing: 28) {
-                Divider()
-                HStack(alignment: .top, spacing: 32) {
-                    ForEach(Array(firmantes.enumerated()), id: \.offset) { i, f in
-                        VStack(spacing: 6) {
-                            // La firma va ENCIMA de la raya, no en lugar de
-                            // ella: así el documento se lee igual esté firmado
-                            // en la app o a mano sobre el papel, y quien no
-                            // tenga firma guardada sigue teniendo dónde firmar.
-                            if let imagen = firma(para: i) {
-                                Image(uiImage: imagen)
-                                    .resizable().scaledToFit()
-                                    .frame(height: 34)
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                            } else {
-                                Color.clear.frame(height: 34)
-                            }
-                            Rectangle().fill(.secondary.opacity(0.5))
-                                .frame(height: 0.75)
-                            Text(f.nombre).font(.caption.weight(.semibold))
-                            Text(f.cargo).font(.caption2).foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-            }
-        }
-    }
-
-    /// `firmantes` va en orden pastor, tesorero, secretario, y solo trae a los
-    /// que tienen nombre: por eso no vale el índice para saber quién es cada
-    /// uno. Se compara con el nombre configurado.
-    private func firma(para indice: Int) -> UIImage? {
-        let f = iglesia.firmantes[indice]
-        if f.nombre == iglesia.tesoreroNombre { return firmas.imagen(.tesorero) }
-        if f.nombre == iglesia.pastorNombre { return firmas.imagen(.pastor) }
-        return nil
-    }
-}
-
-/// Pie institucional: la línea libre de Ajustes, con los datos de contacto.
-struct PieInstitucionalPDF: View {
-    let iglesia: ConfiguracionIglesia
-
-    private var contacto: String {
-        [iglesia.direccion, iglesia.telefono, iglesia.correo]
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " · ")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            if !contacto.isEmpty {
-                Text(contacto).font(.caption2).foregroundStyle(.secondary)
-            }
-            if !iglesia.pieInstitucional.isEmpty {
-                Text(iglesia.pieInstitucional).font(.caption2).foregroundStyle(.secondary)
-            }
-            if !iglesia.idFiscal.isEmpty {
-                Text(L.t("ID fiscal: \(iglesia.idFiscal)", "Tax ID: \(iglesia.idFiscal)"))
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
-        }
-    }
-}
+// `FirmasPDF` y `PieInstitucionalPDF` viven en `Support/PiezasPDF.swift`:
+// las usan todos los documentos, y el Mac —que no compila esta carpeta—
+// también tiene que poder imprimirlas.
 
 /// Página imprimible del "Reporte anual": los doce meses en una hoja. Es el
 /// segundo documento del dominio, y hasta ahora la lista de Reportes lo

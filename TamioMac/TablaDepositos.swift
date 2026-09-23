@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// **Depósitos.** Las seis columnas de la maqueta: Fecha, Cuenta, Folios,
 /// Movimientos, Estado e Importe.
@@ -10,6 +11,9 @@ struct TablaDepositos: View {
     @Environment(EstadoVentana.self) private var estado
     @Binding var seleccion: Set<Corte.ID>
     @State private var orden = [KeyPathComparator(\Corte.registro.fecha, order: .reverse)]
+    /// El corte que se está viendo en papel. `item:` y no un booleano, como en
+    /// Actas: la hoja no puede abrirse antes de tener el corte.
+    @State private var corteEnPDF: Corte?
 
     private var filas: [Corte] { vm.items.sorted(using: orden) }
 
@@ -72,6 +76,113 @@ struct TablaDepositos: View {
         // TODO el alto de la tabla, también donde no hay datos: con dos filas
         // en pantalla la ventana se llenaba de renglones rayados vacíos.
         .tableStyle(.inset)
+        // **El papel del corte, desde el menú de la fila y con doble clic.**
+        // La tabla no tiene un detalle propio donde poner el botón —el
+        // inspector es de `VentanaPrincipal`—, y el menú contextual es donde
+        // el Mac busca "qué puedo hacer con esto". Solo con UNA fila: un PDF
+        // es de un corte, y con seis seleccionados habría que elegir cuál sin
+        // decirlo. Solo lee: no hay nada aquí que marque o mueva dinero.
+        .contextMenu(forSelectionType: Corte.ID.self) { ids in
+            if ids.count == 1, let c = filas.first(where: { ids.contains($0.id) }) {
+                Button(L.t("Vista previa PDF", "PDF preview")) { corteEnPDF = c }
+            }
+        } primaryAction: { ids in
+            if ids.count == 1, let c = filas.first(where: { ids.contains($0.id) }) {
+                corteEnPDF = c
+            }
+        }
+        .sheet(item: $corteEnPDF) { c in
+            VistaPreviaCorteMac(corte: c)
+        }
+    }
+}
+
+// MARK: - Vista previa del PDF
+
+/// **La hoja del corte a tamaño de papel, con su botón de compartir.**
+///
+/// La contraparte de `DocumentoPDFSheet` del iPhone, que el Mac no compila.
+/// Sigue a `VistaPreviaActaMac` (`PantallaActas.swift`): a escala 1 porque la
+/// ventana da los 612 puntos, y el PDF sale de la MISMA `CorteHojaPDF` que se
+/// ve — lo que se mira es lo que se comparte.
+private struct VistaPreviaCorteMac: View {
+    let corte: Corte
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var ancla = AnclaCompartirCorte()
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Text(L.t("Vista previa PDF · \(corte.titulo)", "PDF preview · \(corte.titulo)"))
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Button {
+                    compartir()
+                } label: {
+                    Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
+                }
+                .background(VistaAnclaCorte(ancla: ancla))
+                Button(L.t("Cerrar", "Close")) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            .overlay(alignment: .bottom) { Divider() }
+
+            ScrollView {
+                CorteHojaPDF(corte: corte)
+                    .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+                    .padding(28)
+                    .frame(maxWidth: .infinity)
+            }
+            .background(Color.suelo)
+        }
+        // El ancho de la carta más sus márgenes: la hoja nunca se recorta.
+        .frame(minWidth: PDFExport.anchoCarta + 56 + 40, idealWidth: 760,
+               minHeight: 560, idealHeight: 820)
+    }
+
+    /// Se genera al pulsar y no al abrir: si el corte cambia con la hoja
+    /// abierta, lo que se comparte es la hoja que se está viendo.
+    private func compartir() {
+        guard let url = PDFExport.render(CorteHojaPDF(corte: corte),
+                                         nombre: CorteHojaPDF.nombreArchivo(corte)),
+              let vista = ancla.vista else { return }
+        NSSharingServicePicker(items: [url])
+            .show(relativeTo: vista.bounds, of: vista, preferredEdge: .minY)
+    }
+}
+
+/// Guarda la `NSView` que hay debajo del botón "Compartir" para que
+/// `NSSharingServicePicker` sepa de dónde colgar su menú.
+///
+/// **Es la TERCERA copia** —después de `AnclaCompartir` (Reportes) y
+/// `AnclaCompartirActa` (Actas)—, las dos `private` a su archivo. El comentario
+/// de Actas ya decía que al tercer uso tocaba sacarlas a un archivo común del
+/// Mac; no se hace aquí porque un archivo nuevo lo da de alta el lead.
+private final class AnclaCompartirCorte {
+    weak var vista: NSView?
+}
+
+/// Una `NSView` vacía del tamaño del botón. No recibe clics (`hitTest`
+/// devuelve nil), así que el botón sigue siendo el que se pulsa.
+private struct VistaAnclaCorte: NSViewRepresentable {
+    let ancla: AnclaCompartirCorte
+
+    func makeNSView(context: Context) -> NSView {
+        let v = VistaTransparente()
+        ancla.vista = v
+        return v
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        ancla.vista = nsView
+    }
+
+    private final class VistaTransparente: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
     }
 }
 
