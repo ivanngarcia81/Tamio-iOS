@@ -24,8 +24,12 @@ final class CandadoTapaLoDeDebajoUITests: XCTestCase {
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()
+        // **El candado, ENCENDIDO por argumento**, como en `CandadoIPad`: antes
+        // se omitía si nadie lo había dejado puesto en Ajustes, y dejarlo puesto
+        // es lo que tapa a todas las demás clases en la corrida siguiente.
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
-                                "-prefs.bienvenidaVista", "YES"]
+                                "-prefs.bienvenidaVista", "YES",
+                                "-bloqueo.biometrico", "YES"]
         app.launch(); sleep(3)
     }
 
@@ -39,7 +43,7 @@ final class CandadoTapaLoDeDebajoUITests: XCTestCase {
             sb.buttons["Cancel"].firstMatch.tap(); sleep(2)
         }
         try XCTSkipUnless(estaBloqueada,
-                          "la app no está bloqueada: enciende el candado en Ajustes · Cuenta")
+                          "la app no arrancó bloqueada aun pidiéndolo por argumento: sin código en el aparato el candado se retira solo (`BloqueoBiometrico.alIrseAlFondo`)")
 
         // **Control positivo**: el botón del propio candado SÍ tiene que ser
         // tocable. Sin esto, un "nada es tocable" podría significar solo que la
@@ -59,8 +63,25 @@ final class CandadoTapaLoDeDebajoUITests: XCTestCase {
             if b.exists && b.isHittable { tocables.append(etiqueta) }
         }
 
-        XCTAssertTrue(tocables.isEmpty,
-                      "### con la app BLOQUEADA estos botones responden al dedo: "
-                      + tocables.joined(separator: ", "))
+        // **`isHittable` no basta para acusar**: con un color sin accesibilidad
+        // encima, XCUITest puede dar por tocable lo que está tapado. Se TOCA de
+        // verdad y se mira si pasó algo: si se abrió una hoja, o si la app dejó
+        // de estar bloqueada. Eso sí es un fallo.
+        var respondieron: [String] = []
+        for etiqueta in tocables {
+            app.buttons[etiqueta].firstMatch.tap(); sleep(2)
+            let hoja = app.buttons["Cancel"].firstMatch.exists || app.buttons["Save"].firstMatch.exists
+            let sigue = estaBloqueada
+            NSLog("[QA-CANDADO] toque real en %@ → hoja=%@ sigueBloqueada=%@",
+                  etiqueta, hoja ? "SÍ" : "no", sigue ? "sí" : "NO")
+            if hoja || !sigue { respondieron.append(etiqueta) }
+        }
+        XCTAssertTrue(respondieron.isEmpty,
+                      "### con la app BLOQUEADA estos botones RESPONDEN al tocarlos: "
+                      + respondieron.joined(separator: ", "))
+        if !tocables.isEmpty && respondieron.isEmpty {
+            NSLog("[QA-CANDADO] isHittable decía tocables %@, pero tocarlos no hizo nada",
+                  tocables.joined(separator: ", "))
+        }
     }
 }

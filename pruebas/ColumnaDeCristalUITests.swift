@@ -28,7 +28,6 @@ final class ColumnaDeCristalUITests: XCTestCase {
         try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
     }
 
-
     var app: XCUIApplication!
 
     /// El tema se pone por la preferencia de la APP, no con el del sistema: la
@@ -50,6 +49,9 @@ final class ColumnaDeCristalUITests: XCTestCase {
         app.launchArguments += ["-prefs.bienvenidaVista", "1",
                                 "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.tema", tema]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
         sleep(3)

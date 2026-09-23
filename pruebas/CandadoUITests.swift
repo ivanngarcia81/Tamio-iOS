@@ -21,6 +21,14 @@ import XCTest
 /// el shell al ver MARCA-CARA— y termina volviendo del fondo.
 final class CandadoUITests: XCTestCase {
 
+    /// **Solo iPhone**: tras desbloquear espera la pestaña «Settings», que el
+    /// iPad no tiene. En el iPad físico (23-sep) salió VERDE sin medir nada:
+    /// las seis vueltas dijeron «no se pudo desbloquear» y el resultado fue
+    /// «0 de 6 con error». El candado del iPad lo cubre `CandadoIPad`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
+
     private let rojo = NSPredicate(format:
         "label CONTAINS[c] 'interaction' OR label CONTAINS[c] 'LocalAuthentication' OR label CONTAINS[c] 'operation'")
 
@@ -29,7 +37,12 @@ final class CandadoUITests: XCTestCase {
         let vueltas = 6
         for vuelta in 1...vueltas {
             let app = XCUIApplication()
-            app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+            // **El candado, ENCENDIDO por argumento**, como en `CandadoIPad`: sin
+            // esto la prueba dependía de que se hubiera dejado puesto a mano en
+            // Ajustes, y ese ajuste guardado es el que después tapa a todas las
+            // demás. El dominio de argumentos no escribe de vuelta.
+            app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
+                                    "-bloqueo.biometrico", "YES"]
             app.launch(); sleep(3)
 
             // Arranca bloqueada: la cara la manda el shell.

@@ -6,6 +6,9 @@ final class VolcadoRapidoUITests: XCTestCase {
     func testQueHayEnPantalla() {
         let app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(5)
         func lista(_ q: XCUIElementQuery, _ n: String) {
             let s = q.allElementsBoundByIndex.prefix(30)

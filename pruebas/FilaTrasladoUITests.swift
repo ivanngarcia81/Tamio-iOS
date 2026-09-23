@@ -11,7 +11,6 @@ final class FilaTraslado: XCTestCase {
         try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
     }
 
-
     func testLaPastillaNoSeRecortaNiEstiraLaFila() {
         let app = XCUIApplication()
         // `-prefs.bienvenidaVista` salta el recorrido de bienvenida: es un
@@ -21,6 +20,9 @@ final class FilaTraslado: XCTestCase {
         // ni sidebar ni pestañas.
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(2)
         XCUIDevice.shared.orientation = .landscapeLeft; sleep(3)
         let m = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Membership'")).firstMatch

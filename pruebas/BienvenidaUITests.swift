@@ -10,6 +10,9 @@ final class BienvenidaUITests: XCTestCase {
     private func recorrer(idioma: String, region: String) {
         let app = XCUIApplication()
         app.launchArguments += ["-AppleLanguages", "(\(idioma))", "-AppleLocale", region]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(8)
         for _ in 0..<4 {

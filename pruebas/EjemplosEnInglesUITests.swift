@@ -14,6 +14,9 @@ final class EjemplosEnInglesUITests: XCTestCase {
     private func abrirAjustes() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(8)
         app.buttons["Settings"].firstMatch.tap()
@@ -24,7 +27,12 @@ final class EjemplosEnInglesUITests: XCTestCase {
     /// "Church" es además el título de su sección, así que el rótulo no basta:
     /// la cabecera de sección NO vive dentro de una celda y la fila sí, que es
     /// lo que las separa.
-    func test1Iglesia() {
+    ///
+    /// **Solo iPhone**: busca la fila como CELDA de una `List`, y en la
+    /// Configuración del iPad no lo es (roja en el iPad físico el 23-sep, «no hay
+    /// fila de Iglesia»). Las otras tres buscan el rótulo y valen en los dos.
+    func test1Iglesia() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
         let app = abrirAjustes()
         let fila = app.cells.containing(.staticText, identifier: "Church").firstMatch
         XCTAssertTrue(fila.waitForExistence(timeout: 10), "### no hay fila de Iglesia")

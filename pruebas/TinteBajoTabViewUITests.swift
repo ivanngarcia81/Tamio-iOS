@@ -21,12 +21,22 @@ import XCTest
 /// número lo pone `pruebas/contraste.py` sobre el PNG, con el `.tint` puesto y
 /// quitado.
 final class TinteBajoTabViewUITests: XCTestCase {
+    /// **Solo iPhone**: mide el tinte bajo el `TabView` del teléfono; ella misma
+    /// lo dice al fallar. En el iPad físico (23-sep) daba roja con «No matches
+    /// found for Descendants matching type TabBar» o su equivalente, que no dice
+    /// nada de la app: es la omisión de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     func testSelectorDeAgenda() {
         let app = XCUIApplication()
         app.launchArguments = ["-prefs.bienvenidaVista", "1",
                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                "-prefs.tema", "oscuro"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
         sleep(2)

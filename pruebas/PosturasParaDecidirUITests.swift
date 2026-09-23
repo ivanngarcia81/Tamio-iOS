@@ -20,6 +20,13 @@ import XCTest
 /// quedan pegadas bajo la barra de navegación: material opaco contra cristal,
 /// que es el patrón que esta pasada viene quitando.
 final class PosturasParaDecidirUITests: XCTestCase {
+    /// **Solo iPhone**: fotografía el fondo del tab bar y llega por pestañas. En
+    /// el iPad físico (23-sep) daba roja con «No matches found for Descendants
+    /// matching type TabBar» o su equivalente, que no dice nada de la app: es la
+    /// omisión de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     var app: XCUIApplication!
 
@@ -29,6 +36,9 @@ final class PosturasParaDecidirUITests: XCTestCase {
         app.launchArguments = ["-prefs.bienvenidaVista", "1",
                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                "-prefs.tema", tema]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
         sleep(2)

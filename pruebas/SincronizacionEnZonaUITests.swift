@@ -9,6 +9,14 @@ import XCTest
 /// La prueba comprueba las DOS mitades. Solo mirar el destino dejaría pasar el
 /// error más fácil de cometer al mover algo: dejar una copia en el origen.
 final class SincronizacionEnZona: XCTestCase {
+    /// **Solo iPhone**: mira la Zona de riesgo del TELÉFONO
+    /// (`IPhoneAjustesView`), por la pestaña Settings. En el iPad físico (23-sep)
+    /// daba roja con «No matches found for Descendants matching type TabBar» o su
+    /// equivalente, que no dice nada de la app: es la omisión de las de iPad, al
+    /// revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     var app: XCUIApplication!
 
@@ -16,6 +24,9 @@ final class SincronizacionEnZona: XCTestCase {
         continueAfterFailure = true
         app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(2)
     }
 

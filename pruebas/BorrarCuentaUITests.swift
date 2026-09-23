@@ -4,9 +4,21 @@ import XCTest
 /// destructivo**: solo se comprueba que está, que se encuentra y que su aviso
 /// se lee. Lo que hace de verdad lo hace una Edge Function contra el servidor.
 final class BorrarCuentaUITests: XCTestCase {
+    /// **Solo iPhone**: toca la primera celda de los Ajustes del teléfono (la
+    /// fila de perfil), que en el iPad no es una celda. En el iPad físico
+    /// (23-sep) daba roja con «No matches found for Descendants matching type
+    /// TabBar» o su equivalente, que no dice nada de la app: es la omisión de las
+    /// de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
+
     private func abrirCuenta(_ idioma: String, _ region: String) {
         let app = XCUIApplication()
         app.launchArguments += ["-AppleLanguages", "(\(idioma))", "-AppleLocale", region]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(8)
         // La pestaña se llama distinto en cada idioma; se toca la que exista.

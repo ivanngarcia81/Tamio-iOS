@@ -23,6 +23,13 @@ import XCTest
 /// Se corre con el modo revisión ENCENDIDO. Para el diff de píxeles y para
 /// mirarlo en oscuro y en AX1, las paradas están puestas.
 final class CategoriasDeCristal: XCTestCase {
+    /// **Solo iPhone**: llega a Categorías por la pestaña Settings. En el iPad
+    /// físico (23-sep) daba roja con «No matches found for Descendants matching
+    /// type TabBar» o su equivalente, que no dice nada de la app: es la omisión
+    /// de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     var app: XCUIApplication!
 
@@ -41,6 +48,9 @@ final class CategoriasDeCristal: XCTestCase {
         app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.tema", tema]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(2)
     }
 

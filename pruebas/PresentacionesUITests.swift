@@ -12,6 +12,13 @@ import XCTest
 /// La prueba no adivina: toca el botón y mira si el árbol crece con una hoja,
 /// una alerta o una barra de navegación nueva. Lo que no crece, no salió.
 final class Presentaciones: XCTestCase {
+    /// **Solo iPhone**: llega a cada pantalla por la barra de pestañas. En el
+    /// iPad físico (23-sep) daba roja con «No matches found for Descendants
+    /// matching type TabBar» o su equivalente, que no dice nada de la app: es la
+    /// omisión de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     var app: XCUIApplication!
     var fallos: [String] = []
@@ -20,6 +27,9 @@ final class Presentaciones: XCTestCase {
         continueAfterFailure = true
         app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(2)
     }

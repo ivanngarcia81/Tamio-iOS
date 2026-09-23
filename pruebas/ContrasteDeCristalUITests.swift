@@ -121,8 +121,17 @@ final class ContrasteDeCristalUITests: XCTestCase {
 
     // MARK: - H4 · el aviso de deshacer
 
-    func testH4ToastOscuro() { toast(tema: "oscuro") }
-    func testH4ToastClaro()  { toast(tema: "claro") }
+    // **Solo iPhone, prueba a prueba**: el aviso se abre desde la pestaña «To
+    // review», y el iPad no tiene barra de pestañas (allí dieron roja el
+    // 23-sep). La clase no se omite entera porque `testH6BotonDeConteo` es de iPad.
+    func testH4ToastOscuro() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+        toast(tema: "oscuro")
+    }
+    func testH4ToastClaro() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+        toast(tema: "claro")
+    }
 
     func toast(tema: String) {
         arrancar(tema: tema)

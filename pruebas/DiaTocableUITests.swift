@@ -17,6 +17,9 @@ final class DiaTocableUITests: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         let app = XCUIApplication()
         app.launchArguments = ["-prefs.bienvenidaVista", "1", "-AppleLanguages", "(es)"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(3)
 
         let agenda = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Agenda'")).firstMatch

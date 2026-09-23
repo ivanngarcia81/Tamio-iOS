@@ -17,6 +17,9 @@ final class IdiomaDeArranqueUITests: XCTestCase {
     private func barra(idioma: String, region: String) -> (esp: Bool, ing: Bool) {
         let app = XCUIApplication()
         app.launchArguments += ["-AppleLanguages", "(\(idioma))", "-AppleLocale", region]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(10)
         return (app.buttons["Inicio"].exists || app.staticTexts["Inicio"].exists,

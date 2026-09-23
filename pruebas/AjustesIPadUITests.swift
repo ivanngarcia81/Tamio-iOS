@@ -14,6 +14,10 @@ final class AjustesIPadUITests: XCTestCase {
     var app: XCUIApplication!
 
     override func setUpWithError() throws {
+        // **Solo iPad.** Recorre la Configuración de la barra lateral en
+        // apaisado, y el iPhone no tiene ninguna de las dos cosas: en el
+        // iPhone físico (23-sep) daba roja buscando «, go to Settings».
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
         continueAfterFailure = true
         XCUIDevice.shared.orientation = .landscapeLeft
         app = XCUIApplication()

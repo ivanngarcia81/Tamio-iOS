@@ -21,9 +21,11 @@ final class AjustesPorRolUITests: XCTestCase {
         try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
     }
 
-
     func testElTesoreroVeCategoriasPeroNoLaZona() {
         let app = XCUIApplication()
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(6)
         // La sidebar del iPad arranca plegada: el botón de arriba a la

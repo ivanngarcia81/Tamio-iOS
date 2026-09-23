@@ -20,6 +20,9 @@ final class FichaAportante: XCTestCase {
         app.launchArguments += ["-modoRevision", "YES",
                                 "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(2)
         XCUIDevice.shared.orientation = .landscapeLeft; sleep(3)
         let ap = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Contributors'")).firstMatch
@@ -48,6 +51,14 @@ final class FichaAportante: XCTestCase {
 
 /// La misma ficha en el teléfono: `AportanteDetalle` es una sola vista.
 final class FichaAportanteIPhone: XCTestCase {
+    /// **Solo iPhone**: es la mitad de teléfono; la de iPad es `FichaAportante`.
+    /// En el iPad físico (23-sep) daba roja con «No matches found for Descendants
+    /// matching type TabBar» o su equivalente, que no dice nada de la app: es la
+    /// omisión de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
+
     func testLasCifrasDelHistorialMidenLoMismo() {
         let app = XCUIApplication()
         // `-prefs.bienvenidaVista` salta el recorrido de bienvenida: es un
@@ -58,6 +69,9 @@ final class FichaAportanteIPhone: XCTestCase {
         app.launchArguments += ["-modoRevision", "YES",
                                 "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(3)
         app.tabBars.buttons["Treasury"].tap(); sleep(2)
         let fila = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Contributors'")).firstMatch

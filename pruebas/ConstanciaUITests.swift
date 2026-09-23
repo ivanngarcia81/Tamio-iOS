@@ -35,6 +35,12 @@ class Constancia: XCTestCase {
 }
 
 final class ConstanciaIPad: Constancia {
+    /// **Solo iPad**: va por la barra lateral y en apaisado. Sin esto, en el
+    /// iPhone físico (23-sep) buscaba el botón «sidebar» y daba roja.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     func testLaFraseSaleEntera() {
         arrancar()
         XCUIDevice.shared.orientation = .landscapeLeft; sleep(3)
@@ -53,6 +59,13 @@ final class ConstanciaIPad: Constancia {
 }
 
 final class ConstanciaIPhone: Constancia {
+    /// **Solo iPhone**: entra por la barra de pestañas, que en el iPad no
+    /// existe (allí es barra lateral). En el iPad físico (23-sep) daba roja con
+    /// «No matches found for Descendants matching type TabBar».
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
+
     func testLaFraseSaleEntera() {
         arrancar()
         app.tabBars.buttons["Treasury"].tap(); sleep(2)

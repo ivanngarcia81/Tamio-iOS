@@ -30,6 +30,15 @@ import XCTest
 ///    mentira: así se dieron por recorridas cinco pantallas de Secretaría que
 ///    no se habían abierto.
 final class RecorridoInterfaz: XCTestCase {
+    /// **Solo iPhone**: es el recorrido de captura del teléfono; el del iPad es
+    /// `RecorridoIPadUITests`. Allí 17 de 18 salían VERDES sin medir nada:
+    /// `pestana` no falla si no encuentra la barra. En el iPad físico (23-sep)
+    /// daba roja con «No matches found for Descendants matching type TabBar» o su
+    /// equivalente, que no dice nada de la app: es la omisión de las de iPad, al
+    /// revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     var app: XCUIApplication!
 
@@ -39,6 +48,9 @@ final class RecorridoInterfaz: XCTestCase {
         // El idioma de la INTERFAZ lo manda `prefs.idioma` (§5); `AppleLanguages`
         // mueve el del aparato, que es lo que decide los diálogos del sistema.
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(2)
     }

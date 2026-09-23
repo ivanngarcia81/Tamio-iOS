@@ -27,11 +27,18 @@ final class AvisoNombraLoQueSeVeUITests: XCTestCase {
     var tema: String { ProcessInfo.processInfo.environment["TEMA"] ?? "claro" }
 
     override func setUpWithError() throws {
+        // **Solo iPhone**: llega a Agenda y Movimientos por la barra de pestañas.
+        // En el iPad físico (23-sep) daba roja buscando la barra de pestañas: la
+        // omisión de las de iPad, al revés.
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
         continueAfterFailure = true
         app = XCUIApplication()
         app.launchArguments = ["-prefs.bienvenidaVista", "1",
                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                "-prefs.tema", tema]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 25))
         sleep(3)

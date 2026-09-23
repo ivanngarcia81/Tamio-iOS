@@ -20,9 +20,16 @@ final class PresentacionesAparatoUITests: XCTestCase {
     var app: XCUIApplication!
 
     override func setUpWithError() throws {
+        // **Solo iPhone**: llega por la barra de pestañas; en el iPad se paraba en
+        // «no hay pestaña Ajustes/Secretaría». En el iPad físico (23-sep) daba
+        // roja buscando la barra de pestañas: la omisión de las de iPad, al revés.
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
         continueAfterFailure = true
         app = XCUIApplication()
         app.launchArguments = ["-prefs.bienvenidaVista", "1", "-AppleLanguages", "(es)"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(3)
     }
 
@@ -214,21 +221,60 @@ final class PresentacionesAparatoUITests: XCTestCase {
 
     // MARK: - 2 · Las cinco de CorteDetalle
 
+    /// Abre un corte **PENDIENTE** y confirma que de verdad está en su ficha.
+    ///
+    /// Las cuatro presentaciones que se exigen abajo solo se pintan con
+    /// `corte.sinDepositar`: «Agregar dinero sin depositar»
+    /// (`CorteDetalle.swift:200`), el menú de cuentas con «Otra cuenta…»
+    /// (`filaCuenta`, `:577`), el botón de la fecha (`filaFecha`, `:597`) y
+    /// «Marcar depositado», que en el teléfono es `barraDepositar` (`:560`). En un corte depositado no existe
+    /// ninguna. La cabecera decía que «no dependen del estado de los datos», y
+    /// dependen de uno: que haya un corte sin depositar.
+    ///
+    /// En el iPhone de Iván, el 23-sep, Depósitos decía «0 cortes pendientes».
+    /// La versión anterior tocaba igualmente «la primera celda tocable» —que en
+    /// la lista vacía es la del aviso «Sin cortes pendientes»—, no comprobaba
+    /// haber llegado a ningún sitio y buscaba las cuatro en la LISTA: roja con
+    /// «se abrieron 0 de 4», que parecía un fallo de la app y era del camino.
     private func irAUnCorte() -> Bool {
         guard pestana("Tesorería") else { return false }
         guard abrir("Depósitos") else { print("!! no hay Depósitos"); return false }
+        // El segmento puede haberse quedado en «Depositados» de otra corrida.
+        let pendientes = app.buttons["Pendientes"]
+        if pendientes.exists && pendientes.isHittable { pendientes.tap(); sleep(2) }
         volcado("Depósitos")
+        if app.staticTexts["Sin cortes pendientes"].exists {
+            print("!! no hay ningún corte pendiente en la lista"); return false
+        }
         // El primer corte de la lista. Su rótulo lleva datos, así que se toca
         // la primera celda tocable en vez de buscarlo por nombre.
         let celda = app.cells.allElementsBoundByIndex.first { $0.isHittable }
         guard let celda else { print("!! no hay ningún corte en la lista"); return false }
         celda.tap(); sleep(3)
         volcado("CorteDetalle")
+        // «Nuevo corte» solo está en la cabecera de la ficha (`CorteDetalle:106`);
+        // la lista tiene «Nuevo» a secas. Sin esto, un toque que no abre nada
+        // se toma por haber llegado.
+        guard app.buttons["Nuevo corte"].waitForExistence(timeout: 5) else {
+            print("!! la celda no abrió la ficha de un corte"); return false
+        }
         return true
     }
 
     func testLasCincoPresentacionesDeCorteDetalle() throws {
-        try XCTSkipUnless(irAUnCorte(), "no se pudo abrir ningún corte")
+        if !irAUnCorte() {
+            // **Sin corte pendiente en la iglesia, se repite con la maqueta.**
+            // `-modoRevision YES` guarda en memoria y trae tres cortes
+            // pendientes (`MockDepositosRepository`), así que las cuatro se
+            // ejercitan igual y no se escribe nada en la iglesia. Crear un
+            // corte de verdad para la prueba sí escribiría, y dejaría la
+            // corrida siguiente con otros datos.
+            print("QA-CORTE: la iglesia no tiene cortes pendientes; se repite con la maqueta")
+            app.terminate()
+            app.launchArguments += ["-modoRevision", "YES"]
+            app.launch(); sleep(3)
+            try XCTSkipUnless(irAUnCorte(), "ni con la maqueta se pudo abrir un corte pendiente")
+        }
 
         var abiertas: [String] = [], sinCamino: [String] = []
 
@@ -265,8 +311,20 @@ final class PresentacionesAparatoUITests: XCTestCase {
         ejercitar("Agregar dinero sin depositar") {
             alPrincipio(); return self.abrir("Agregar dinero sin depositar")
         }
-        ejercitar("Marcar depositado") {
-            alPrincipio(); return self.abrir("Marcar depositado")
+        // «Marcar depositado» va APAGADO con el corte a $0 o sin cuenta
+        // (`botonDepositar`, `CorteDetalle:541`), y un botón apagado se deja
+        // tocar sin abrir nada: se apuntaba como abierta. Apagado es un estado
+        // de los datos, no un camino roto, así que se informa y no se exige.
+        var depositarApagado = false
+        let depositar = app.buttons["Marcar depositado"]
+        alPrincipio()
+        if depositar.exists && !depositar.isEnabled {
+            depositarApagado = true
+            print("QA-CORTE: «Marcar depositado» está apagado en este corte ($0 o sin cuenta): no se exige")
+        } else {
+            ejercitar("Marcar depositado") {
+                alPrincipio(); return self.abrir("Marcar depositado")
+            }
         }
 
         // 4 · la fecha (`:84`). El botón lleva la FECHA, no la palabra.
@@ -350,12 +408,13 @@ final class PresentacionesAparatoUITests: XCTestCase {
         // Las CUATRO que dependen del código —no de los datos— tienen que
         // abrirse. La quinta se informa arriba y no se exige.
         XCTAssertTrue(sinCamino.isEmpty, """
-            No se llegó a \(sinCamino). Estas cuatro no dependen del estado de \
-            los datos, así que una que no se alcance es un hallazgo o un \
+            No se llegó a \(sinCamino). En un corte PENDIENTE estas cuatro se \
+            pintan siempre, así que una que no se alcance es un hallazgo o un \
             camino mal escrito: mirar `qa-pres-NO-se-abrió-*.png`.
             """)
-        XCTAssertGreaterThanOrEqual(abiertas.count, 4,
-                                    "se abrieron \(abiertas.count) de las cuatro que no dependen de los datos")
+        let exigidas = depositarApagado ? 3 : 4
+        XCTAssertGreaterThanOrEqual(abiertas.count, exigidas,
+                                    "se abrieron \(abiertas.count) de las \(exigidas) que tienen camino en un corte pendiente")
     }
 
     // MARK: - 3 · Las cuatro de ActasView

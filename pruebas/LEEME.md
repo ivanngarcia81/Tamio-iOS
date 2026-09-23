@@ -510,3 +510,35 @@ La receta entera, en el aparato:
 
 Sirve para comparar un material contra otro donde importa: la pantalla es P3 y
 devuelve otro píxel del que se pidió.
+
+## Cada clase en su aparato, y el candado · 23 de septiembre
+
+La primera corrida en el iPhone y el iPad FÍSICOS a la vez dejó dos familias de
+rojas que no decían nada de la app:
+
+- **Las de iPad en el iPhone** (9) y **las de teléfono en el iPad** (la mayoría
+  de las 91): unas buscan la barra lateral o giran a apaisado, las otras entran
+  por `app.tabBars`. Ahora cada clase dice en su `setUpWithError` para qué
+  aparato es: `XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo
+  iPad")` o `== .phone, "solo iPhone"`. **Si una clase tiene pruebas de los dos
+  aparatos, se omite prueba a prueba** (`ContrasteDeCristal`,
+  `EjemplosEnIngles.test1Iglesia`, `TrasladosYMembrete`), no entera.
+  `EstrechoIPad` se omitía por TAMAÑO (`< 1024`) y el teléfono cabía en esa
+  condición: el tamaño no dice el aparato.
+- **Omitir no es arreglar.** `RecorridoInterfaz` daba 17 verdes de 18 en el
+  iPad sin haber medido nada —`pestana` imprime «no existe» y sigue—. Esos
+  verdes eran peores que la roja.
+
+### El candado y las corridas
+
+`BloqueoBiometrico` lee `bloqueo.biometrico` UNA vez al arrancar, y el dominio de
+argumentos pisa al guardado sin escribir de vuelta. Por eso **toda clase de
+interfaz lleva `-bloqueo.biometrico NO`**, y las tres del candado
+(`CandadoIPad`, `CandadoUITests`, `CandadoTapaLoDeDebajo`) lo piden **`YES`**
+por argumento en vez de depender de que alguien lo dejara puesto en Ajustes.
+Dejarlo puesto es justo lo que, en la corrida siguiente, tapa a todas las demás.
+
+En el registro del iPad del 23-sep, ojo: de las 23 apariciones de «Face ID» o
+«Unlock», las del texto de la pantalla de bloqueo («The church's accounts are
+locked», «Unlock with…») salen SOLO en las pruebas del candado. Las demás son el
+rótulo del interruptor en Ajustes. Esa corrida no se cayó por el candado.

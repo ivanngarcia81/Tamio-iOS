@@ -31,6 +31,9 @@ final class PlacasDeIconoUITests: XCTestCase {
         app.launchArguments = ["-prefs.bienvenidaVista", "1",
                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                "-prefs.tema", tema]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 25))
         sleep(3)

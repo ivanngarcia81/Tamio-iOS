@@ -8,7 +8,12 @@ final class TrasladosYMembreteUITests: XCTestCase {
     /// Antes había una tabla de 580 puntos dentro de un scroll horizontal con
     /// `showsIndicators: false`: la fecha y el estado existían, pero fuera de
     /// la pantalla y sin nada que insinuara que se podía arrastrar.
-    func testUnTrasladoSeVeEnteroEnElTelefono() {
+    ///
+    /// **Solo iPhone**, prueba a prueba: la tabla que aquí NO debe salir es
+    /// justo la que `testEnIPadSigueLaTabla` exige en el iPad, y el camino es la
+    /// pestaña «Secretary» del teléfono (roja en el iPad físico el 23-sep).
+    func testUnTrasladoSeVeEnteroEnElTelefono() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
         let app = XCUIApplication()
         // La maqueta y no la iglesia sincronizada: lo que busca es de la
         // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).

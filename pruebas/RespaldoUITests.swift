@@ -2,11 +2,21 @@ import XCTest
 
 /// El botón "Respaldar ahora" de Ajustes · Zona de riesgo, mirado despacio.
 final class RespaldoEnPantalla: XCTestCase {
+    /// **Solo iPhone**: llega al respaldo por la pestaña Settings. En el iPad
+    /// físico (23-sep) daba roja con «No matches found for Descendants matching
+    /// type TabBar» o su equivalente, que no dice nada de la app: es la omisión
+    /// de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     func testRespaldarAhora() {
         continueAfterFailure = true
         let app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(2)
 
         app.tabBars.buttons["Settings"].tap(); sleep(2)

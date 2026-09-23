@@ -3,6 +3,13 @@ import XCTest
 /// Dos ataques al dinero que no necesitan servidor: cambiar la moneda de la
 /// iglesia y guardar un movimiento de cero.
 final class MonedaYCero: XCTestCase {
+    /// **Solo iPhone**: llega a Ajustes y a Movimientos por pestañas. En el iPad
+    /// físico (23-sep) daba roja con «No matches found for Descendants matching
+    /// type TabBar» o su equivalente, que no dice nada de la app: es la omisión
+    /// de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     var app: XCUIApplication!
 

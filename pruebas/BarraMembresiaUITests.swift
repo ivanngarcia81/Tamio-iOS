@@ -2,9 +2,19 @@ import XCTest
 
 /// Que la lupa esté donde Iván la pidió: escondida hasta tirar hacia abajo.
 final class BarraMembresiaUITests: XCTestCase {
+    /// **Solo iPhone**: mira el cajón de la lupa del teléfono, y llega por la
+    /// pestaña Secretary. En el iPad físico (23-sep) daba roja con «No matches
+    /// found for Descendants matching type TabBar» o su equivalente, que no dice
+    /// nada de la app: es la omisión de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     func testElCajonDeLaLupa() {
         let app = XCUIApplication()
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.buttons["Secretary"].waitForExistence(timeout: 20))
         app.buttons["Secretary"].tap()

@@ -20,6 +20,13 @@ import XCTest
 /// tarjeta por arriba hace lo OTRO. Es la cuarta forma de que una prueba dé
 /// verde sin probar nada.
 final class CapsulaDeTarjeta: XCTestCase {
+    /// **Solo iPhone**: llega a Reportes por la pestaña Treasury. En el iPad
+    /// físico (23-sep) daba roja con «No matches found for Descendants matching
+    /// type TabBar» o su equivalente, que no dice nada de la app: es la omisión
+    /// de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     var app: XCUIApplication!
 
@@ -27,6 +34,9 @@ final class CapsulaDeTarjeta: XCTestCase {
         continueAfterFailure = true
         app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         _ = app.wait(for: .runningForeground, timeout: 25)
         sleep(2)

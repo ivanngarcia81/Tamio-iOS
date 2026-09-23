@@ -26,6 +26,13 @@ import XCTest
 /// a dar: una iglesia sin logo. Se comprueba quitando la siembra: el documento
 /// tiene que salir exactamente como salía antes, sin hueco reservado.
 final class LogoUITests: XCTestCase {
+    /// **Solo iPhone**: llega a Reportes y Cartas por los hubs del teléfono. En
+    /// el iPad físico (23-sep) daba roja con «No matches found for Descendants
+    /// matching type TabBar» o su equivalente, que no dice nada de la app: es la
+    /// omisión de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     func testElLogoSaleEnElPDFDelEstadoFinanciero() {
         let app = XCUIApplication()

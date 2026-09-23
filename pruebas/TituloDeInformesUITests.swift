@@ -6,12 +6,22 @@ import XCTest
 /// botones de la derecha. Esta prueba solo abre la pantalla y se para para que
 /// el shell capture: la respuesta se mira, no se afirma.
 final class TituloDeInformesUITests: XCTestCase {
+    /// **Solo iPhone**: llega a los informes por la pestaña Secretary. En el iPad
+    /// físico (23-sep) daba roja con «No matches found for Descendants matching
+    /// type TabBar» o su equivalente, que no dice nada de la app: es la omisión
+    /// de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     func testTitulo() {
         let app = XCUIApplication()
         app.launchArguments = ["-prefs.bienvenidaVista", "1",
                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                "-prefs.tema", ProcessInfo.processInfo.environment["TEMA"] ?? "claro"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 25))
         sleep(2)

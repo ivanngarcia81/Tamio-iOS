@@ -3,6 +3,13 @@ import XCTest
 /// Dos cosas propias del teléfono: el teclado que tapa el campo enfocado, y las
 /// cuatro `.sheet` que Membresía cuelga del mismo cuerpo (`MembresiaView:33-45`).
 final class TecladoYHojas: XCTestCase {
+    /// **Solo iPhone**: mide el teclado sobre las hojas del teléfono, y llega por
+    /// pestañas. En el iPad físico (23-sep) daba roja con «No matches found for
+    /// Descendants matching type TabBar» o su equivalente, que no dice nada de la
+    /// app: es la omisión de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     var app: XCUIApplication!
 
@@ -10,6 +17,9 @@ final class TecladoYHojas: XCTestCase {
         continueAfterFailure = true
         app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(2)
     }
 

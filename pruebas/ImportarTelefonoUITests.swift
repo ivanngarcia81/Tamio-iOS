@@ -3,6 +3,14 @@ import XCTest
 /// El teléfono comparte `MiembrosView`, así que el arreglo tiene que valer
 /// aquí también: menú → selector → CSV → mapeo → previa.
 final class ImportarTelefono: XCTestCase {
+    /// **Solo iPhone**: es el importador del teléfono; el del iPad es
+    /// `ImportarIPad`. En el iPad físico (23-sep) daba roja con «No matches found
+    /// for Descendants matching type TabBar» o su equivalente, que no dice nada
+    /// de la app: es la omisión de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
+
     var app: XCUIApplication!
 
     override func setUp() {
@@ -10,6 +18,9 @@ final class ImportarTelefono: XCTestCase {
         app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.bienvenidaVista", "YES"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(3)
     }
 

@@ -9,6 +9,13 @@ import XCTest
 final class CandadoIPad: XCTestCase {
     var app: XCUIApplication!
 
+    /// **Solo iPad.** Gira a apaisado, y el iPhone solo admite vertical
+    /// (`project.yml`). En el teléfono ya la cubre `CandadoUITests`; esta,
+    /// corrida en el iPhone físico (23-sep), daba roja sin decir nada de la app.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()

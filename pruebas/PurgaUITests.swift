@@ -6,6 +6,9 @@ final class PurgaUITests: XCTestCase {
     /// mira lo que dice.
     func testSinNadaQuePurgarNoHayBoton() {
         let app = XCUIApplication()
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 30))
         app.buttons["Settings"].tap()

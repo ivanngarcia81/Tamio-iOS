@@ -18,11 +18,21 @@ import XCTest
 /// En vertical. Los adjuntos en apaisado salen rotados y recortados (§0.0 del
 /// traspaso); aquí no hace falta girar nada.
 final class MaterialesEnAparato: XCTestCase {
+    /// **Solo iPhone**: recorre las pestañas Treasury y Secretary. En el iPad
+    /// físico (23-sep) daba roja con «No matches found for Descendants matching
+    /// type TabBar» o su equivalente, que no dice nada de la app: es la omisión
+    /// de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     func lanzar(tema: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                 "-prefs.tema", tema]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 25))
         sleep(2)

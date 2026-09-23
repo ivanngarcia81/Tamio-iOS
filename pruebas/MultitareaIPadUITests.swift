@@ -18,6 +18,13 @@ final class MultitareaIPad: XCTestCase {
     var app: XCUIApplication!
     let sb = XCUIApplication(bundleIdentifier: "com.apple.springboard")
 
+    /// **Solo iPad.** Lo que se prueba es estrechar la ventana de iPadOS hasta
+    /// la clase compacta, y el iPhone ya ES compacto y no tiene ventanas que
+    /// estrechar. En el iPhone físico (23-sep) daba roja buscando «sidebar».
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()

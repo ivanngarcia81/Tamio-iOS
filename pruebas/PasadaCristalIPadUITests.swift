@@ -26,6 +26,9 @@ final class PasadaCristalIPadUITests: XCTestCase {
     var tema: String { ProcessInfo.processInfo.environment["TEMA"] ?? "oscuro" }
 
     override func setUpWithError() throws {
+        // **Solo iPad**: recorre la barra lateral en apaisado. En el iPhone
+        // físico (23-sep) daba cinco rojas «no está … en la barra lateral».
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
         continueAfterFailure = true
         XCUIDevice.shared.orientation = .landscapeLeft
         app = XCUIApplication()

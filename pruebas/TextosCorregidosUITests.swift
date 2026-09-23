@@ -13,13 +13,15 @@ final class TextosCorregidosUITests: XCTestCase {
         try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
     }
 
-
     private func arranca(_ idioma: String) -> XCUIApplication {
         XCUIDevice.shared.orientation = .landscapeLeft
         let app = XCUIApplication()
         app.launchArguments = ["-prefs.bienvenidaVista", "1",
                                "-AppleLanguages", "(\(idioma))",
                                "-AppleLocale", idioma == "es" ? "es_MX" : "en_US"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch(); sleep(3)
         return app
     }

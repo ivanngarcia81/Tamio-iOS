@@ -43,6 +43,9 @@ final class CapturasTienda: XCTestCase {
             "-AppleLanguages", "(es-MX)",
             "-AppleLocale", "es_MX",
         ]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(3)
     }

@@ -30,6 +30,14 @@ final class ZonaDeRiesgoIPadUITests: XCTestCase {
 
     var app: XCUIApplication!
 
+    /// **Solo iPad.** Prueba `SeccionZona`, la Configuración de la barra
+    /// lateral; la del teléfono es otra vista (`IPhoneAjustesView`) y ya mira
+    /// `BaseLocal.caida`. En el iPhone físico (23-sep) daba roja con «la fila de
+    /// espacio no salió», que no decía nada de la app.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()

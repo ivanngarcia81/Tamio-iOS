@@ -14,12 +14,22 @@ import XCTest
 ///
 /// Esta prueba solo abre y se para: la decisión es de Iván.
 final class BotonesDeHojaUITests: XCTestCase {
+    /// **Solo iPhone**: llega a Movimientos por la pestaña Treasury. En el iPad
+    /// físico (23-sep) daba roja con «No matches found for Descendants matching
+    /// type TabBar» o su equivalente, que no dice nada de la app: es la omisión
+    /// de las de iPad, al revés.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
 
     func testHojaDeFiltros() {
         let app = XCUIApplication()
         app.launchArguments = ["-prefs.bienvenidaVista", "1",
                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                "-prefs.tema", ProcessInfo.processInfo.environment["TEMA"] ?? "claro"]
+        // Candado apagado por argumento: un bloqueo guardado en el aparato
+        // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
+        app.launchArguments += ["-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 25))
         sleep(2)

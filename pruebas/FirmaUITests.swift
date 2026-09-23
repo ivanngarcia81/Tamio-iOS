@@ -9,6 +9,13 @@ import XCTest
 final class FirmaIPad: XCTestCase {
     var app: XCUIApplication!
 
+    /// **Solo iPad**: gira a apaisado y busca la firma en la Configuración de
+    /// la barra lateral. En el iPhone físico (23-sep) daba roja buscando
+    /// «Treasurer signature»; el teléfono lo cubre `FirmaIPhone`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()
@@ -68,6 +75,13 @@ final class FirmaIPad: XCTestCase {
 /// La misma hoja en el teléfono: `HojaFirma` es una sola y la abren las dos
 /// plataformas (`ConfiguracionView` y `IPhoneAjustesView`).
 final class FirmaIPhone: XCTestCase {
+    /// **Solo iPhone**: entra por la barra de pestañas, que el iPad no tiene.
+    /// En el iPad físico (23-sep) daba roja con «No matches found for
+    /// Descendants matching type TabBar»; el iPad lo cubre `FirmaIPad`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "solo iPhone")
+    }
+
     func testElTrazoEnciendeGuardar() {
         let app = XCUIApplication()
         // `-prefs.bienvenidaVista` salta el recorrido de bienvenida: es un

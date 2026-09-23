@@ -14,6 +14,15 @@ import XCTest
 final class EstrechoIPad: XCTestCase {
     var app: XCUIApplication!
 
+    /// **Solo iPad.** El tamaño ya la omite en el iPad grande (abajo), pero en
+    /// el teléfono la ventana también mide menos de 1024 y la dejaba pasar:
+    /// en el iPhone físico (23-sep) daba roja pidiendo una sidebar fijada que
+    /// el teléfono no tiene. Lo que distingue esta postura es la clase
+    /// regular, y eso solo lo da el iPad.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     override func setUp() {
         continueAfterFailure = true
         app = XCUIApplication()
