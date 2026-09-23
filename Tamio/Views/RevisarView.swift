@@ -53,8 +53,14 @@ struct RevisarView: View {
             // es un texto —lo dice `aprobarTodo`—, pero el sistema le pone su
             // cristal igual y "0 of 16 ready" se lee como un control que no
             // responde, que es justo lo que esta pantalla dejó de hacer.
+            //
+            // **Y sin la del sistema cuando SÍ es un botón.** El botón ya trae
+            // su cápsula (`.buttonStyle(.glass)`, con el verde de marca), y
+            // con `.automatic` la barra le ponía la suya detrás: salían dos
+            // cápsulas de cristal, una dentro de otra. Visto por Iván en su
+            // iPhone el 23-sep con "Approve 1 of 10".
             ToolbarItem(placement: .topBarTrailing) { aprobarTodo }
-                .sharedBackgroundVisibility(vm.aprobablesCount == 0 ? .hidden : .automatic)
+                .sharedBackgroundVisibility(.hidden)
         }
         .overlay(alignment: .bottom) { toastView }
         .animation(.snappy, value: vm.toast?.id)
