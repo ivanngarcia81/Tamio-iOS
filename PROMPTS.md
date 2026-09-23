@@ -65,8 +65,11 @@ PantallaRevisar.swift, HojaDeInforme.swift, PantallaInicio.swift.
 4. Aportantes: "Importar aportantes… (CSV)" usando el importador compartido que
    ya usa iOS (buscar MapeoDeColumnas / ImportarIPadUITests). Si el importador
    vive en Tamio/Data y necesita cambios, pedírselos al lead.
-5. Inicio: ancho mínimo 1360 pt. Proponer al lead —sin implementar todavía—
-   cómo reorganizar las tiras de indicadores en dos filas por debajo de ~1000 pt.
+5. Inicio: el 1360 pt de la auditoría se midió ANTES del trabajo de media
+   pantalla del 22-sep (Membresía bajó de 1306 a 650 con ese cambio, e Inicio
+   no se volvió a medir). Medir el mínimo actual con el inspector abierto y
+   cerrado. Si cabe en 900 pt, reportarlo y cerrar la tarea. Solo si no cabe,
+   proponer al lead —sin implementar— qué reorganizar.
 6. Registro: comprobar que la tabla enseña lo que dice §0.-21 del CONTEXTO
    (el registro guarda copias, no referencias). La cabecera "WHAT WAS SAVED"
    del panel de detalle es del inspector: se la pide al lead, no la escribe.
