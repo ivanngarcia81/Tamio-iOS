@@ -34,31 +34,73 @@ final class MiembrosViewModel {
     }
     /// Aplica una importación ya confirmada. Los que traen id van a
     /// actualizar; los que no, a crear.
-    @MainActor func importar(_ lista: [Aportante]) async {
-        for a in lista {
+    /// `progreso` recibe cuántas van, para la barra de «Importando…» del Mac.
+    @MainActor func importar(_ lista: [Aportante], progreso: ((Int) -> Void)? = nil) async {
+        for (i, a) in lista.enumerated() {
             if a.id.isEmpty { try? await repo.crear(a) } else { try? await repo.actualizar(a) }
+            progreso?(i + 1)
         }
         await cargar()
     }
 
-    /// Añade los aportes importados a cada persona y recalcula su total.
-    @MainActor func importarAportes(_ porAportante: [String: [Aporte]]) async {
-        for (id, nuevos) in porAportante {
-            guard let actual = items.first(where: { $0.id == id }) else { continue }
-            let combinados = (actual.aportes + nuevos).sorted { $0.fecha > $1.fecha }
-            var copia = actual
-            copia = Aportante(
-                id: actual.id, nombre: actual.nombre, estado: actual.estado,
-                rol: actual.rol, miembroDesde: actual.miembroDesde,
-                telefono: actual.telefono, correo: actual.correo,
-                nacimiento: actual.nacimiento, direccion: actual.direccion,
-                estadoCivil: actual.estadoCivil, idFiscal: actual.idFiscal,
-                congregaDesde: actual.congregaDesde, frecuencia: actual.frecuencia,
-                // El total ya no hay que recalcularlo: sale del historial.
-                aportes: combinados,
-                familia: actual.familia
-            )
-            try? await repo.actualizar(copia)
+    /// **Los aportes importados son ingresos, y entran ya cerrados.**
+    ///
+    /// Antes esto metía los aportes dentro de la ficha y la guardaba. Pero la
+    /// base no guarda aportes en la ficha: los calcula de los ingresos con su
+    /// `memberUid` (`AportanteFila`). Así que **en la app real no se guardaba
+    /// nada** y no lo decía: solo funcionaba en la maqueta. Visto el 23-sep.
+    ///
+    /// Ahora cada aporte es un ingreso aprobado, vinculado a su persona y con
+    /// constancia anual, y todos van a **un corte ya depositado** que los
+    /// reclama. Decidido por Iván el 23-sep: un aporte de 2023 no puede sumar
+    /// hoy al efectivo en caja ni pedir depósito, y «depositado» no es una
+    /// casilla del ingreso sino que un corte depositado lo reclame. El corte
+    /// usa las tablas de siempre, así que el web lo entiende sin cambios.
+    ///
+    /// Cada ingreso toma su folio del contador del servidor, como cualquier
+    /// otro: la serie de recibos avanza tantos como aportes se importan.
+    @MainActor func importarAportes(_ porAportante: [String: [Aporte]], archivo: String = "",
+                                    autor: String = "", progreso: ((Int) -> Void)? = nil) async {
+        let movimientos = repositorioMovimientos()
+        let depositos = repositorioDepositos()
+        var creados: [String] = []
+        for (uid, aportes) in porAportante {
+            let nombre = items.first { $0.id == uid }?.nombre
+            for ap in aportes {
+                // La clave del catálogo si el concepto es uno suyo («Diezmo»,
+                // «Tithe»), y el texto tal cual si es de la iglesia.
+                let categoria = Catalogos.clave(deEtiqueta: ap.concepto)?.rawValue ?? ap.concepto
+                let m = Movimiento(
+                    id: UUID().uuidString, tipo: .ingreso, categoria: categoria,
+                    persona: nombre, folio: "", metodo: "", monto: ap.monto, hora: "",
+                    fecha: ap.fecha, registradoPor: autor, miembro: nombre,
+                    categoriaCompleta: categoria,
+                    nota: archivo.isEmpty ? nil : L.t("Importado de \(archivo)", "Imported from \(archivo)"),
+                    sinDepositar: false, comprobante: nil, auditoria: [],
+                    estadoRevision: .aprobado, incluidoEnCorte: true,
+                    darConstanciaAnual: true, memberUid: uid)
+                do {
+                    try await movimientos.crear(m)
+                    creados.append(m.id)
+                } catch {}
+                progreso?(creados.count)
+            }
+        }
+        if !creados.isEmpty {
+            let hoy = Date()
+            let corte = Corte(
+                id: UUID().uuidString,
+                titulo: archivo.isEmpty ? L.t("Aportes importados", "Imported gifts")
+                                        : L.t("Aportes importados · \(archivo)", "Imported gifts · \(archivo)"),
+                descripcion: L.t("Aportes de años anteriores, importados el \(Fechas.diaLegible(Fechas.claveDia(hoy))). No pasaron por la caja de hoy: este corte los da por depositados.",
+                                 "Gifts from past years, imported on \(Fechas.diaLegible(Fechas.claveDia(hoy))). They never went through today’s cash box: this cut counts them as deposited."),
+                estado: .depositado,
+                movimientos: [],
+                registro: RegistroDeposito(cuenta: Corte.sinAsignar,
+                                           fecha: Fechas.claveDia(hoy),
+                                           periodo: Fechas.clavePeriodo(hoy)))
+            try? await depositos.crear(corte)
+            try? await depositos.agregarAlCorte(corteId: corte.id, movimientoIds: creados)
         }
         await cargar()
     }

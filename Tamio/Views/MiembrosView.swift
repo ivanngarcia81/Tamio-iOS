@@ -103,7 +103,7 @@ struct MiembrosView: View {
                     }
                 case .revisarAportes(let a):
                     ImportarAportesView(analisis: a) { porAportante in
-                        Task { await vm.importarAportes(porAportante) }
+                        Task { await vm.importarAportes(porAportante, autor: sesion?.perfil.firma ?? "") }
                     }
                 }
             }

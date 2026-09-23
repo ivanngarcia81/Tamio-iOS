@@ -62,12 +62,15 @@ enum ImportadorAportes {
                alias: ["date", "dia", "day", "fecha_del_aporte", "fecha_de_pago"]),
          .init("monto", L.t("Importe", "Amount"), obligatorio: true,
                alias: ["amount", "importe", "cantidad", "valor", "total", "monto_del_aporte"]),
-         .init("aportante_nombre", L.t("Aportante", "Contributor"),
-               alias: ["nombre", "name", "giver", "miembro", "member", "donante"]),
-         .init("aportante_id", L.t("Id del aportante", "Contributor ID"),
-               alias: ["member_uid", "uid", "id"]),
-         .init("concepto", L.t("Concepto", "Description"),
-               alias: ["description", "descripcion", "detalle", "memo", "nota"])]
+         // Rótulos del handoff «Trae tus datos», y también como alias: son
+         // los encabezados de la plantilla que se descarga.
+         .init("aportante_nombre", L.t("Aportante (nombre)", "Contributor (name)"),
+               alias: ["nombre", "name", "giver", "miembro", "member", "donante",
+                       "aportante", "contributor", "contributor_name"]),
+         .init("aportante_id", L.t("Id del aportante", "Contributor id"),
+               alias: ["member_uid", "uid", "id", "id_del_aportante", "contributor_id"]),
+         .init("concepto", L.t("Concepto", "Concept"),
+               alias: ["description", "descripcion", "detalle", "memo", "nota", "concept"])]
     }
 
     /// **Recibe el documento ya mapeado, no el archivo.** Antes leía el URL y
@@ -111,7 +114,7 @@ enum ImportadorAportes {
 
             guard let persona = porId[idArchivo] ?? porNombre[nombre.lowercased()] else {
                 analizadas.append(fallo(L.t("No hay ningún aportante con ese nombre",
-                                            "No giver matches that name")))
+                                            "No contributor with that name")))
                 continue
             }
             // **`diaDeCalendario`**: lo que viene del archivo es un DÍA, y
@@ -151,6 +154,9 @@ enum ImportadorAportes {
     /// —alguien que da dos veces lo mismo el mismo día— pero omitir de más es
     /// preferible a duplicar cifras de dinero.
     private static func huella(_ id: String, _ fecha: Date, _ concepto: String, _ monto: Centavos) -> String {
-        "\(id)|\(CSV.fecha(fecha))|\(concepto.lowercased())|\(monto)"
+        // El concepto por su clave del catálogo: el aporte guardado dice
+        // «diezmo» y el archivo «Diezmo» o «Tithe», y sin esto reimportar el
+        // mismo archivo no reconocía ninguno como ya registrado.
+        "\(id)|\(CSV.fecha(fecha))|\(Catalogos.clave(deEtiqueta: concepto)?.rawValue ?? concepto.lowercased())|\(monto)"
     }
 }

@@ -15,6 +15,9 @@ final class MembresiaViewModel {
     private let repo: MembresiaRepository
 
     private(set) var items: [Miembro] = []
+    /// Si ya se leyó la lista al menos una vez. Distingue «el padrón está
+    /// vacío» de «todavía no ha cargado», que sin esto se enseñaban igual.
+    private(set) var cargado = false
     private(set) var resumen: MembresiaResumen?
     private(set) var asistencia: AsistenciaResumen?
     var seleccionId: String?
@@ -132,6 +135,7 @@ final class MembresiaViewModel {
         resumen    = await repo.resumen()
         asistencia = await repo.asistenciaResumen()
         items = (try? await repo.lista()) ?? []
+        cargado = true
         if seleccionId == nil || !items.contains(where: { $0.id == seleccionId }) {
             seleccionId = itemsFiltrados.first?.id
         }

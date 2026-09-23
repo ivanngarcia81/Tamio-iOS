@@ -115,4 +115,40 @@ final class MapeoDeColumnasTests: XCTestCase {
         XCTAssertEqual(m.valor(m.filas[0], "nombre"), "Ana")
         XCTAssertEqual(m.valor(m.filas[0], "correo"), "")
     }
+
+    // MARK: - La plantilla de «Trae tus datos»
+
+    /// **La plantilla se reconoce entera, en los dos idiomas.** Sus
+    /// encabezados son los rótulos de los campos, y tres de ellos
+    /// («Identificador», «Identificación fiscal», «Tipo de aporte») no eran
+    /// alias: quien descargaba la plantilla tenía que relacionarlos a mano.
+    func testLaPlantillaDePersonasSeMapeaSolaEnLosDosIdiomas() {
+        let es = ["Nombre", "Identificador", "Identificación fiscal", "Estado", "Tipo de aporte",
+                  "Teléfono", "Correo", "Domicilio", "Nacimiento", "Estado civil",
+                  "Miembro desde", "Congrega desde", "Frecuencia"]
+        let en = ["Name", "Identifier", "Tax ID", "Status", "Gift type", "Phone", "Email",
+                  "Address", "Birth date", "Marital status", "Member since", "Attending since",
+                  "Frequency"]
+        for encabezados in [es, en, campos.map(\.rotulo)] {
+            let d = doc(encabezados.map { $0.lowercased() }, [])
+            let mapeo = CSVLector.mapeoSugerido(d, campos: campos)
+            let sinReconocer = campos.filter { mapeo[$0.clave] == nil }.map(\.clave)
+            XCTAssertTrue(sinReconocer.isEmpty,
+                          "### la plantilla deja sin reconocer: \(sinReconocer) en \(encabezados)")
+        }
+    }
+
+    /// Lo mismo con la de aportes, que usa los rótulos del handoff.
+    func testLaPlantillaDeAportesSeMapeaSolaEnLosDosIdiomas() {
+        let camposAp = ImportadorAportes.campos
+        let es = ["Fecha", "Importe", "Aportante (nombre)", "Id del aportante", "Concepto"]
+        let en = ["Date", "Amount", "Contributor (name)", "Contributor id", "Concept"]
+        for encabezados in [es, en] {
+            let d = doc(encabezados.map { $0.lowercased() }, [])
+            let mapeo = CSVLector.mapeoSugerido(d, campos: camposAp)
+            let sinReconocer = camposAp.filter { mapeo[$0.clave] == nil }.map(\.clave)
+            XCTAssertTrue(sinReconocer.isEmpty,
+                          "### la plantilla de aportes deja sin reconocer: \(sinReconocer)")
+        }
+    }
 }

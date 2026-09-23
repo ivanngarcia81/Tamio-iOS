@@ -50,11 +50,14 @@ enum ImportadorAportantes {
     static var campos: [CSVLector.Campo] {
         [.init("nombre", L.t("Nombre", "Name"), obligatorio: true,
                alias: ["name", "nombre_completo", "full_name", "aportante", "miembro", "member"]),
-         .init("id", L.t("Identificador", "Identifier"), alias: ["uid", "codigo", "code"]),
+         // Los rótulos también son alias ("identificador", "tipo de aporte"…):
+         // la plantilla que se descarga lleva los rótulos como encabezados, y
+         // sin esto tres de sus columnas había que relacionarlas a mano.
+         .init("id", L.t("Identificador", "Identifier"), alias: ["uid", "codigo", "code", "identificador", "identifier"]),
          .init("id_fiscal", L.t("Identificación fiscal", "Tax ID"),
-               alias: ["rfc", "tax_id", "ein", "idfiscal"]),
+               alias: ["rfc", "tax_id", "ein", "idfiscal", "identificacion_fiscal"]),
          .init("estado", L.t("Estado", "Status"), alias: ["status", "situacion"]),
-         .init("rol", L.t("Tipo de aporte", "Gift type"), alias: ["tipo", "type"]),
+         .init("rol", L.t("Tipo de aporte", "Gift type"), alias: ["tipo", "type", "tipo_de_aporte", "gift_type"]),
          .init("telefono", L.t("Teléfono", "Phone"), alias: ["phone", "tel", "celular", "movil", "numero", "numero_de_telefono"]),
          .init("correo", L.t("Correo", "Email"), alias: ["email", "e_mail", "mail"]),
          .init("direccion", L.t("Domicilio", "Address"), alias: ["address", "domicilio", "direccion_completa", "calle"]),
@@ -100,7 +103,7 @@ enum ImportadorAportantes {
             guard !nombre.isEmpty else {
                 analizadas.append(FilaAnalizada(
                     linea: linea, nombre: "—",
-                    destino: .error(L.t("Sin nombre", "Missing name")),
+                    destino: .error(L.t("Sin nombre", "No name")),
                     aportante: nil))
                 continue
             }
@@ -109,7 +112,7 @@ enum ImportadorAportantes {
             if vistosEnArchivo.contains(clave) {
                 analizadas.append(FilaAnalizada(
                     linea: linea, nombre: nombre,
-                    destino: .error(L.t("Repetido en el archivo", "Duplicated in the file")),
+                    destino: .error(L.t("Repetido en el archivo", "Repeated in the file")),
                     aportante: nil))
                 continue
             }
