@@ -557,8 +557,12 @@ struct VentanaPrincipal: View {
             return L.t("\(registro.totalCount) apuntes en el aparato",
                        "\(registro.totalCount) entries on this device")
         }
-        return L.t("Andamiaje: esta pantalla todavía no lee del motor",
-                   "Scaffolding: this screen is not reading from the engine yet")
+        // **Nada, y no un cartel de obra.** Decía «Andamiaje: esta pantalla
+        // todavía no lee del motor» en todas las secciones sin contador
+        // propio, que desde el 21-sep ya leen todas de la base: el cartel era
+        // del principio, mentía, y lo habría visto el revisor de Apple. Lo
+        // que cuenta cada sección lo dice el subtítulo de la ventana (`subtitulo`).
+        return ""
     }
 }
 
