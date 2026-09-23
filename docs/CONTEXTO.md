@@ -15,6 +15,121 @@ QA del iPhone, del 12 al 14 (§0.-11).
 
 ---
 
+## 0.-24 Los PDF que faltaban, y la suite en los aparatos de verdad · 23 de septiembre, madrugada
+
+### Los PDF
+
+El diseño llegó en `Pdf que faltaban.zip`, de Claude Design. Traía cuatro cosas: la hoja de culto en
+dos versiones que se contradicen, siete PDF más que nadie había pedido y una ventana entera de
+«Tamio for Mac». El encargo está en `docs/ENCARGO-HOJA-DE-CULTO.md`. Se construyó esto:
+
+- **Hoja de culto** (`Tamio/Support/HojaCultoPDF.swift`), con el diseño «Hoja de Culto Página».
+  La otra versión, «Service Sheet PDF», sumaba los visitantes al total y tenía un visitante de
+  «2 personas», y ninguno de los dos datos existe.
+  - **Compone sus propias páginas** de 612×792 y las apila: `PDFExport.render` corta cada 792.
+    Cada pieza se mide con `ImageRenderer` a 516 pt, que es el mismo motor que exporta.
+  - La segunda página lleva una cabecera corta y «Página N de M».
+  - Hay al menos dos filas por página. Con 11+1 quedaba una fila huérfana, que se vio en el PDF.
+  - «Revisado por» solo va en la última página.
+  - Los visitantes llevan nombre, quién los invitó y si es su primera visita, **sin teléfono ni
+    correo**. El total es niños + jóvenes + adultos. Un bloque vacío desaparece entero.
+  - **El membrete usa las medidas del diseño en puntos** y no `.title3`/`.caption`: en el Mac y en
+    el iPhone esos estilos miden distinto, y el mismo culto se repartía en páginas distintas.
+- **Corte de caja** (`Tamio/Support/CorteHojaPDF.swift`), el primero de los siete. Se eligió porque
+  es el único que cubre un hueco real: el corte se firma y no quedaba nada impreso. Los otros seis
+  no entran:
+  - el recibo ya lo cubre la constancia anual;
+  - el padrón y el directorio ya salen en CSV, e imprimir los contactos de toda la iglesia es un
+    riesgo;
+  - el informe de membresía, el registro de cultos y la bitácora piden datos que no existen: motivo
+    de alta, ofrenda por culto y huella SHA-256.
+
+  Cambios frente al diseño:
+  - **No lleva la tabla de billetes y monedas**, porque el corte no guarda denominaciones. En su
+    lugar va el doble conteo a ciegas: lo registrado, lo que contó el asistente y la diferencia.
+  - El membrete va **centrado**, como el resto de los PDF.
+  - Dice **cheques** y no transferencias.
+  - Lleva **dos firmas y no tres**.
+  - No lleva el importe en letra: no hay ninguna función que lo escriba.
+- **Las piezas de papel, a `Tamio/Support/PiezasPDF.swift`**: el membrete, el logo, `FirmaEnLinea`,
+  `FirmasPDF`, `PieInstitucionalPDF` y `ActaHojaPDF`. Estaban en `Tamio/Views`, que el Mac no
+  compila, y eso era lo que bloqueaba el PDF del acta en el Mac (§0.-23).
+  - Conservan el mismo nombre y la misma firma. `UIImage` pasa a `ImagenPlataforma` más
+    `Image(plataforma:)`.
+  - `LogoMembrete.swift` quedó vacío dentro del proyecto y **está pendiente de quitarlo del
+    `.pbxproj`**.
+- Los tres archivos nuevos se dieron de alta **a mano** en el `.pbxproj`, en los dos targets:
+  18 líneas, sin xcodegen.
+
+**Cómo se miraron**: `DocumentosPDFTests` genera la hoja de culto (una llena y una mínima sin logo)
+y el corte (con y sin segundo conteo). Si existe la variable `TAMIO_PDF_DIR` (en `xcodebuild`,
+`TEST_RUNNER_TAMIO_PDF_DIR`), guarda una copia del PDF. En el simulador esa ruta es del Mac, así que
+se abre sin sacar nada del aparato. Luego un guion de PDFKit la pasa a PNG.
+
+Mirándolos salieron cuatro fallos, y ya están corregidos:
+- el método de pago sin traducir («Efectivo» en un PDF en inglés);
+- una diferencia negativa pintada en **verde**;
+- la ficha de depósito se salía de su recuadro;
+- la fila huérfana de la hoja de culto.
+
+**Compilar no los habría encontrado.**
+
+### La suite en el iPhone y el iPad físicos
+
+La primera corrida en los aparatos tuvo su propia trampa: en el iPhone salieron 14 rojas y en el
+iPad 91. Estas son las lecciones:
+
+- **La omisión por aparato tiene que ir en las dos direcciones.** Ya se omitían en el teléfono las
+  pruebas de iPad. En el iPad corrían **72 pruebas de teléfono** buscando la barra de pestañas.
+  Ahora cada clase lleva su `XCTSkipUnless(... == .pad / .phone)`, o la lleva cada prueba cuando la
+  clase mezcla las dos.
+- **`-bloqueo.biometrico NO` en todas**, salvo las tres del candado, que lo piden con `YES` por
+  argumento. Resultó que el candado no había tumbado ninguna: las 29 apariciones de «Face ID» en el
+  registro eran el rótulo del interruptor de Ajustes.
+- **Los dos aparatos a la vez**: `aparato.sh` guarda la copia y el cerrojo en `TMPDIR`, así que con
+  un `TMPDIR` distinto para cada aparato no se pisan.
+- **Una alerta del sistema en el iPhone**, a la 1:36, tapó la app y se tragó los toques de cinco
+  pruebas seguidas: «Interrupting element Alert, foreground application springboard». Una roja que
+  parece de navegación puede ser eso. **Antes de diagnosticar, buscar «Interrupting element» en el
+  registro.**
+- **`DobleToque` fue un falso positivo**: el segundo toque nunca se dio, y contaba la fila de $88
+  que dejó una corrida anterior. **Pero el hueco existía**: «Guardar» no se protegía de un segundo
+  toque. Está cerrado en `8b972b1`.
+- **`CandadoTapaLoDeDebajo` también fue un falso positivo**, de `isHittable`: daba «New» por
+  tocable con la app bloqueada. Se comprobó **con el iPhone boca abajo**, porque Face ID reconocía
+  a Iván y la app se desbloqueaba sola. Al tocarlo de verdad no se abrió nada y la app siguió
+  bloqueada. La prueba ahora toca, y no se fía de `isHittable`.
+
+**Cómo quedaron**: las pruebas de unidad pasan 253 de 253 en los dos aparatos.
+
+| Pruebas de interfaz | Verdes | Omitidas | Rojas |
+|---|---|---|---|
+| iPhone | 107 | 66 | 10 |
+| iPad | 66 | 97 | 20 |
+
+- iPhone: cinco rojas son de la alerta; las otras cinco son del instrumento o de datos.
+- iPad: casi todas son del instrumento o de datos: la ventana que no se estrecha, el AX1, que en el
+  aparato no se puede poner, los CSV sin sembrar y filas de la maqueta.
+- **Quedan seis sin decidir en el iPad**: FirmaIPad, AjustesPorRol, ChipDePeriodo,
+  TrasladosYMembrete (el membrete), AjustesAcceso («Sync now») e InicioEstrecho.
+- Las preferencias de los dos aparatos quedaron **iguales** antes y después de la corrida, salvo
+  `respaldo.ultimo`.
+- El candado del iPad, que las corridas del 22-sep habían dejado encendido, **quedó apagado**
+  durante la primera corrida de este día.
+
+### Commits
+
+`9b33c79` (los PDF), `8b972b1` (guardar solo una vez), `5489434` (la suite). Las tres ramas quedaron
+en `5489434`. Después, otra sesión commiteó la bienvenida del Mac (`fc0eda4`) y el icono nuevo
+(`0fd3b99`).
+
+### Qué falta ver
+
+**Nada de esto se ha visto en pantalla pulsando los botones**, ni en el Mac ni en los aparatos. Los
+PDF sí se vieron, pero generados por una prueba.
+
+---
+
 ## 0.-23 El primer equipo que construye el Mac · 22 de septiembre, noche
 
 El Prompt 2 de `PROMPTS.md`, lanzado con el zip de Iván
