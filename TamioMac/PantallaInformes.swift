@@ -19,6 +19,9 @@ struct PantallaInformes: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 cabecera
+                // Bajo el selector, solo con "Rango": con otro periodo las
+                // dos fechas no significan nada y ocuparían sitio para nada.
+                if vm.periodoTipo == .rango { bandaDeRango }
                 switch vm.informeSeleccionado {
                 case 1:  pestanaMiembros
                 case 2:  pestanaAsistencia
@@ -65,7 +68,76 @@ struct PantallaInformes: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
+
+            // **El mismo CSV que el iPhone**, `csvExportString` del ViewModel:
+            // dos exportadores del mismo informe acabarían diciendo cosas
+            // distintas en cuanto uno ganara una sección. Cambia el gesto, no
+            // el archivo: aquí se guarda donde uno diga, como en Configuración.
+            Button(L.t("Exportar como CSV…", "Export as CSV…")) { exportarCSV() }
         }
+    }
+
+    // MARK: - El rango
+
+    /// **La banda Desde/Hasta del periodo "Rango".** Antes el selector ofrecía
+    /// "Rango" y nadie en el Mac escribía `rangoDesde` ni `rangoHasta`, así que
+    /// elegirlo dejaba el informe clavado en «del mes pasado a hoy» sin forma de
+    /// cambiarlo: una opción que no se podía usar.
+    ///
+    /// Cada fecha limita a la otra —el `in:` de los dos selectores, igual que
+    /// en el iPhone—, y por eso el rango no puede quedar al revés: no hay que
+    /// avisar de un error que no se puede cometer.
+    private var bandaDeRango: some View {
+        HStack(spacing: 10) {
+            Text(L.t("RANGO", "RANGE"))
+                .font(.system(size: 11, weight: .bold)).kerning(0.5)
+                .foregroundStyle(.secondary)
+            Text(L.t("Desde", "From")).font(.system(size: 12))
+            DatePicker("", selection: Binding(
+                get: { vm.rangoDesde },
+                set: { vm.rangoDesde = $0 }
+            ), in: ...vm.rangoHasta, displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.field)
+                .fixedSize()
+            Text(L.t("Hasta", "To")).font(.system(size: 12))
+            DatePicker("", selection: Binding(
+                get: { vm.rangoHasta },
+                set: { vm.rangoHasta = $0 }
+            ), in: vm.rangoDesde..., displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.field)
+                .fixedSize()
+            Spacer(minLength: 8)
+            Text(L.t("Cada fecha limita a la otra, así que el rango nunca puede quedar al revés.",
+                     "Each date clamps the other, so the range can never run backwards."))
+                .font(.system(size: 11.5))
+                .foregroundStyle(.tertiary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, 12)
+    }
+
+    // MARK: - Exportar
+
+    /// Se escribe a un temporal y se copia encima del destino elegido, que es
+    /// lo que ya hace Configuración con sus CSV. El nombre lleva el periodo
+    /// para que dos exportaciones no se pisen en Descargas.
+    private func exportarCSV() {
+        let periodo = vm.etiquetaPeriodo
+            .replacingOccurrences(of: " ", with: "-")
+            .replacingOccurrences(of: "/", with: "-")
+        let nombre = L.t("Membresia", "Membership") + "-\(periodo).csv"
+        let origen = FileManager.default.temporaryDirectory.appendingPathComponent(nombre)
+        guard (try? vm.csvExportString.write(to: origen, atomically: true, encoding: .utf8)) != nil
+        else { return }
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = nombre
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let destino = panel.url else { return }
+        try? FileManager.default.removeItem(at: destino)
+        try? FileManager.default.copyItem(at: origen, to: destino)
     }
 
     // MARK: - General
@@ -149,14 +221,33 @@ struct PantallaInformes: View {
             }
 
             if !r.traslados.isEmpty {
-                panel(L.t("TRASLADOS", "TRANSFERS")) {
+                // **Con cabecera y con estado, como el handoff.** Antes se
+                // llamaba "Traslados" y pintaba el folio sin decir que era un
+                // folio: en un documento que se enseña a la junta, una columna
+                // de códigos sin nombre obliga a preguntar qué son.
+                panel(L.t("MOVIMIENTOS DE TRASLADO", "TRANSFER MOVEMENTS")) {
                     VStack(spacing: 0) {
+                        HStack(spacing: 10) {
+                            Text(L.t("FOLIO", "FOLIO")).frame(width: 90, alignment: .leading)
+                            Text(L.t("TIPO", "TYPE")).frame(width: 70, alignment: .leading)
+                            Text(L.t("PERSONA", "PERSON"))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text(L.t("IGLESIA", "CHURCH"))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text(L.t("FECHA", "DATE")).frame(width: 100, alignment: .leading)
+                            Text(L.t("ESTADO", "STATUS")).frame(width: 96, alignment: .leading)
+                        }
+                        .font(.system(size: 10.5, weight: .semibold)).kerning(0.4)
+                        .foregroundStyle(.tertiary)
+                        .padding(.bottom, 6)
+                        .overlay(alignment: .bottom) { Divider() }
+
                         ForEach(r.traslados) { t in
                             HStack(spacing: 10) {
                                 Text(t.folioLegible)
                                     .font(.system(size: 11.5)).monospacedDigit()
                                     .foregroundStyle(.secondary)
-                                    .frame(width: 70, alignment: .leading)
+                                    .frame(width: 90, alignment: .leading)
                                 // Entrada en verde, salida en ámbar: quien entra
                                 // suma y quien sale hay que despedirlo bien.
                                 Text(t.tipoTraslado)
@@ -164,13 +255,22 @@ struct PantallaInformes: View {
                                     .foregroundStyle(t.sentido == .entrada ? Paleta.brand : Paleta.aviso)
                                     .frame(width: 70, alignment: .leading)
                                 Text(t.persona).font(.system(size: 12.5, weight: .medium))
-                                Spacer(minLength: 8)
-                                Text(t.iglesia)
+                                    .lineLimit(1)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text(t.iglesia.isEmpty ? "—" : t.iglesia)
                                     .font(.system(size: 11.5)).foregroundStyle(.secondary)
                                     .lineLimit(1)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                                 Text(t.fecha.isEmpty ? "—" : Fechas.diaLegible(t.fecha))
                                     .font(.system(size: 11.5)).foregroundStyle(.tertiary)
-                                    .frame(width: 110, alignment: .trailing)
+                                    .frame(width: 100, alignment: .leading)
+                                Text(t.estado)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 8).padding(.vertical, 2)
+                                    .background(Color.secondary.opacity(0.14),
+                                                in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                                    .frame(width: 96, alignment: .leading)
                             }
                             .padding(.vertical, 7)
                             .overlay(alignment: .bottom) { Divider() }
