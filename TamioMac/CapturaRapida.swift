@@ -228,8 +228,35 @@ struct CapturaRapida: View {
             await categorias.cargar()
             await aportantes.cargar()
             alCambiarDeTipo()
+            aplicarPlantilla()
             foco = .importe
         }
+        // Si la ventana ya estaba abierta el `.task` no vuelve a correr: un
+        // segundo "Duplicar" llega por aquí.
+        .onChange(of: estado.plantillaCaptura) { aplicarPlantilla() }
+    }
+
+    /// Rellena con lo que dejó "Duplicar", y lo consume. No guarda nada.
+    private func aplicarPlantilla() {
+        guard let p = estado.plantillaCaptura else { return }
+        estado.plantillaCaptura = nil
+        tipo = p.tipo == .gasto ? .gasto : .ingreso
+        importe = String(format: "%d.%02d", p.monto / 100, p.monto % 100)
+        metodo = p.metodo
+        quien = ""; nota = ""; fecha = Date(); fallo = nil
+        // **Por clave, no por texto.** El movimiento guarda `diezmo` y el
+        // selector ofrece nombres —"Diezmo", "Tithe"—, así que comparar el
+        // texto no casaba nunca. Después de cambiar el tipo, para que su
+        // `onChange` no pise la categoría.
+        DispatchQueue.main.async {
+            let buscada = Catalogos.clave(deEtiqueta: p.categoria)
+            let igual = nombresDeCategoria.first { n in
+                if let buscada { return Catalogos.clave(deEtiqueta: n) == buscada }
+                return Catalogos.normalizar(n) == Catalogos.normalizar(p.categoria)
+            }
+            if let igual { categoria = igual }
+        }
+        foco = .importe
     }
 
     // MARK: - Piezas

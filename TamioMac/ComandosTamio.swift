@@ -63,6 +63,15 @@ struct ComandosTamio: Commands {
                 estado.pidiendoAlta = true
             }
             .keyboardShortcut("t", modifiers: [.command, .shift])
+
+            Divider()
+            // En Archivo, como lo dibuja el handoff. Lleva a Aportantes y abre
+            // allí el selector: el importador vive en la tabla.
+            Button(L.t("Importar aportantes…", "Import contributors…")) {
+                estado.seccion = .miembros
+                estado.pidiendoImportarAportantes = true
+            }
+            .disabled(!Permisos.vigentes(sesion).administraPadron)
         }
 
         // MARK: Ver

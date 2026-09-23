@@ -10,6 +10,7 @@ import AppKit
 struct TablaMovimientos: View {
     let vm: MovimientosViewModel
     @Environment(EstadoVentana.self) private var estado
+    @Environment(\.openWindow) private var abrirVentana
     @Binding var seleccion: Set<Movimiento.ID>
 
     /// **Quién puede borrar, y por qué se pregunta.** El permiso vive en
@@ -114,13 +115,20 @@ struct TablaMovimientos: View {
         //
         // El diseño lista ocho órdenes: Aprobar ⌘R, Marcar depositado ⇧⌘B,
         // Devolver a la bandeja, Duplicar ⌘D, Copiar folio ⌘C, Eliminar… y
-        // dos más. Seis de las ocho mueven dinero o estado de revisión y
-        // todavía no están escritas; ponerlas apagadas o, peor, que no hagan
-        // nada, promete lo que no hay. Entran las tres de copiar, que son las
-        // que se pueden cumplir hoy — y son justo las que se usan para cuadrar
-        // contra el talonario sin soltar el teclado.
+        // dos más. Las que mueven dinero o estado de revisión todavía no están
+        // escritas; ponerlas apagadas o, peor, que no hagan nada, promete lo
+        // que no hay. Entran las tres de copiar —las que se usan para cuadrar
+        // contra el talonario sin soltar el teclado— y Duplicar, que no mueve
+        // nada: solo rellena la captura rápida, y guardar sigue siendo ⌘S.
         .contextMenu(forSelectionType: Movimiento.ID.self) { ids in
             if let m = filas.first(where: { ids.contains($0.id) }) {
+                // Solo con UNA fila: la captura rápida es de un apunte, y
+                // duplicar seis a la vez tendría que elegir cuál sin decirlo.
+                if ids.count == 1 {
+                    Button(L.t("Duplicar", "Duplicate")) { duplicar(m) }
+                        .keyboardShortcut("d", modifiers: .command)
+                    Divider()
+                }
                 Button(L.t("Copiar folio", "Copy folio")) { copiar(m.folio) }
                 Button(L.t("Copiar concepto", "Copy concept")) {
                     copiar([m.categoria, quien(m)].filter { !$0.isEmpty }.joined(separator: " · "))
@@ -137,6 +145,20 @@ struct TablaMovimientos: View {
                     }
                 }
             }
+        }
+        // **El ⌘D tiene que funcionar sin abrir el menú.** Un atajo dentro de
+        // un menú contextual solo responde mientras el menú está abierto; este
+        // botón invisible es el que lo cumple con la fila seleccionada, igual
+        // que el ⌘C de una tabla del Finder.
+        .background {
+            Button(L.t("Duplicar", "Duplicate")) {
+                if let m = seleccionUnica { duplicar(m) }
+            }
+            .keyboardShortcut("d", modifiers: .command)
+            .disabled(seleccionUnica == nil)
+            .opacity(0)
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
         }
         // **Actúa sobre TODA la selección, no sobre la fila pulsada.** Una
         // tabla de Mac selecciona muchas y el menú sale de la selección; borrar
@@ -184,6 +206,27 @@ struct TablaMovimientos: View {
             // la baja se quedaría en la cola hasta el próximo arranque.
             await MotorSincronizacion.compartido.sincronizar()
         }
+    }
+
+    /// La fila elegida, si es una sola. Con varias no hay "el" movimiento que
+    /// duplicar.
+    private var seleccionUnica: Movimiento? {
+        guard seleccion.count == 1, let id = seleccion.first else { return nil }
+        return filas.first { $0.id == id }
+    }
+
+    /// **Duplicar no guarda: abre la captura rápida ya rellena.**
+    ///
+    /// Se copian el tipo, la categoría, el método y el importe, que es lo que
+    /// se repite entre dos sobres iguales. La persona, la nota y la fecha NO:
+    /// son de cada apunte, y heredarlas metería en el libro un aporte con el
+    /// nombre y el día de otro. El folio lo asigna el repositorio al guardar,
+    /// como siempre. La plantilla viaja por `EstadoVentana` porque la captura
+    /// es otra escena y no hay otro sitio que vean las dos.
+    private func duplicar(_ m: Movimiento) {
+        estado.plantillaCaptura = .init(tipo: m.tipo, categoria: m.categoria,
+                                        metodo: m.metodo, monto: m.monto)
+        abrirVentana(id: CapturaRapida.idVentana)
     }
 
     private func copiar(_ texto: String) {

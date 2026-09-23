@@ -37,6 +37,25 @@ final class EstadoVentana {
     /// pantalla lo apaga al cerrar su hoja.
     var pidiendoAlta = false
 
+    /// **Lo que "Duplicar ⌘D" copia de un movimiento para la captura rápida.**
+    ///
+    /// La captura es otra escena (`Window`), así que la tabla no puede
+    /// rellenarle los campos directamente: lo deja aquí, que lo comparten las
+    /// dos, y la captura lo consume al leerlo. **Solo rellena, no guarda**:
+    /// guardar sigue siendo ⌘S, con quien captura mirando.
+    struct PlantillaCaptura: Equatable {
+        let tipo: TipoMovimiento
+        let categoria: String
+        let metodo: String
+        let monto: Centavos
+    }
+    var plantillaCaptura: PlantillaCaptura?
+
+    /// El testigo de "Importar aportantes…" del menú Archivo, por el mismo
+    /// motivo que `pidiendoAlta`: el menú es una escena hermana y no alcanza
+    /// el estado de la tabla. `TablaAportantes` lo apaga al abrir el selector.
+    var pidiendoImportarAportantes = false
+
     /// El panel de la derecha. **Empieza abierto**, como en la maqueta: es
     /// donde se lee el detalle de lo seleccionado, y una ventana que arranca
     /// sin él parece que le falta algo.
