@@ -135,6 +135,16 @@ struct ComandosTamio: Commands {
         // cada fila de la barra lateral, y ahí es donde están declarados—.
         // Aquí solo vive Configuración, porque su ⌘, es el del sistema entero
         // y tiene que funcionar aunque la barra lateral esté oculta.
+        // MARK: Ayuda
+        //
+        // De los cuatro del handoff solo entra éste: "Tamio Help", "Keyboard
+        // shortcuts" y "Contact support" no tienen todavía adónde llevar.
+        CommandGroup(before: .help) {
+            Button(L.t("Bienvenida a Tamio", "Welcome to Tamio")) {
+                estado.viendoBienvenida = true
+            }
+        }
+
         CommandGroup(replacing: .appSettings) {
             Button(L.t("Configuración…", "Settings…")) {
                 estado.seccion = .config

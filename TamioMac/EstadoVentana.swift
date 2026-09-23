@@ -20,6 +20,12 @@ final class EstadoVentana {
     /// vista. Subiéndolo aquí lo alcanzan los dos.
     var seccion: SeccionMac = .inicio
 
+    /// **La bienvenida a la vista.** Aquí y no en la raíz porque la vuelve a
+    /// abrir un menú —Ayuda › Bienvenida a Tamio, como en el handoff—, y la
+    /// barra de menús no alcanza el estado privado de una vista. Arranca de la
+    /// bandera del aparato, que es la misma del iPhone.
+    var viendoBienvenida = !PreferenciasApp.bienvenidaVista
+
     /// **El testigo del ⌘N: "la pantalla de delante, abre tu alta".**
     ///
     /// Vive aquí por el mismo motivo que `seccion`, y esta vez el motivo es un

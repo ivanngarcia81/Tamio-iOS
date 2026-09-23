@@ -42,6 +42,19 @@ struct TamioMacApp: App {
                 if bloqueo.cerrado {
                     CandadoMac(bloqueo: bloqueo)
                         .frame(minWidth: 520, minHeight: 360)
+                } else if estado.viendoBienvenida {
+                    // **La bienvenida ANTES de las credenciales**, como en
+                    // iOS y como en el handoff. Detrás del candado y no
+                    // delante: vuelta a abrir desde Ayuda lleva el nombre de
+                    // quien entró, y eso no se enseña con el Mac bloqueado.
+                    BienvenidaMac(sesion: sesion) {
+                        PreferenciasApp.bienvenidaVista = true
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            estado.viendoBienvenida = false
+                        }
+                    }
+                    .frame(minWidth: 880, minHeight: 640)
+                    .transition(.opacity)
                 } else {
                     contenido
                 }

@@ -132,6 +132,240 @@ struct AccesoMac: View {
     }
 }
 
+// MARK: - La bienvenida
+
+/// **La bienvenida del Mac: una sola pantalla que dice dónde está cada cosa.**
+///
+/// Es la del handoff (`welVals()` y el bloque `welcome` de `Tamio macOS.dc.html`)
+/// y no el recorrido de cuatro diapositivas del iPhone. Allí se desliza con el
+/// dedo; aquí una ventana enseña las tres áreas a la vez y se quita de en medio
+/// con un ↩. Es la regla de que el Mac, el iPad y el iPhone son apps distintas.
+///
+/// **Va ANTES del acceso**, como en el handoff —`welcome` gana a `locked`— y como
+/// en iOS. Por eso el saludo y la iglesia son condicionales: sin sesión no se
+/// sabe quién es ni de qué iglesia, porque RLS exige `auth.uid()`. Con sesión
+/// —un Mac que ya había entrado, o volviendo a ella desde Ayuda— salen el
+/// nombre y la iglesia de verdad, que es lo que dibuja el handoff.
+///
+/// La bandera es la MISMA del iPhone, `PreferenciasApp.bienvenidaVista`: del
+/// aparato, y el reinicio de fábrica la borra.
+struct BienvenidaMac: View {
+    let sesion: SesionSupabase
+    /// Se llama con "Empezar". Quien manda la bandera es la raíz.
+    let alEmpezar: () -> Void
+
+    @State private var iglesia = ConfiguracionIglesiaViewModel.compartido
+    @Environment(\.colorScheme) private var esquema
+
+    private struct Tarjeta {
+        let icono: String
+        let titulo: String
+        let texto: String
+        let donde: String
+    }
+
+    /// Los tres textos del handoff, palabra por palabra. Los iconos son los SF
+    /// Symbols que dibujan lo mismo que sus trazos: una hoja con renglones, dos
+    /// personas y una caja de archivo.
+    private var tarjetas: [Tarjeta] {
+        [.init(icono: "doc.text",
+               titulo: L.t("Dinero que cuadra", "Money that adds up"),
+               texto: L.t("Ofrendas, gastos y depósitos, cada uno con su folio, su comprobante y el nombre de quien lo registró.",
+                          "Offerings, expenses and deposits, each one with its folio, its receipt and the name of whoever recorded it."),
+               donde: L.t("Tesorería · Inicio, Movimientos, Depósitos",
+                          "Treasury · Home, Movements, Deposits")),
+         .init(icono: "person.2",
+               titulo: L.t("Personas a las que se conoce", "People who are known"),
+               texto: L.t("El registro, las ausencias, el seguimiento y las cartas de traslado salen de la misma ficha: la persona se escribe una vez.",
+                          "The registry, absences, follow-up and transfer letters come out of the same file: you write the person once."),
+               donde: L.t("Secretaría · Membresía, Servicios, Cartas",
+                          "Secretary · Membership, Services, Letters")),
+         .init(icono: "archivebox",
+               titulo: L.t("Un registro que se queda", "A record that stays"),
+               texto: L.t("Actas, registro y reportes. Nada se borra: una corrección se escribe junto a lo que corrige.",
+                          "Minutes, log and reports. Nothing is deleted: a correction is written down next to what it corrects."),
+               donde: L.t("Actas, Registro, Reportes", "Minutes, Log, Reports"))]
+    }
+
+    private var haySesion: Bool {
+        if case .autenticada = sesion.estado { return true }
+        return false
+    }
+
+    /// El nombre de pila, como en "Welcome to Tamio, Iván.". Sin sesión, nada.
+    private var nombre: String? {
+        guard haySesion,
+              let primero = sesion.perfil.nombre.split(separator: " ").first
+        else { return nil }
+        return String(primero)
+    }
+
+    private var titulo: String {
+        if let nombre {
+            return L.t("Te damos la bienvenida a Tamio, \(nombre).", "Welcome to Tamio, \(nombre).")
+        }
+        return L.t("Te damos la bienvenida a Tamio.", "Welcome to Tamio.")
+    }
+
+    /// "Cornerstone Church" solo si hay sesión y la iglesia ya tiene nombre;
+    /// antes de entrar, la configuración que hay es la de fábrica.
+    private var deLaIglesia: String {
+        let n = iglesia.config.nombre.trimmingCharacters(in: .whitespaces)
+        guard haySesion, !n.isEmpty else {
+            return L.t("de tu iglesia", "of your church")
+        }
+        return L.t("de \(n)", "of \(n)")
+    }
+
+    // Los rellenos del handoff que la paleta no tiene con nombre.
+    private var rellenoMarca: Color { Paleta.brand.opacity(esquema == .dark ? 0.22 : 0.12) }
+    /// `--content`: el suelo de las tres tarjetas.
+    private var fondoTarjetas: Color { esquema == .dark ? Color(white: 0x1E / 255) : .white }
+    /// `--surface2`: el pie.
+    private var fondoPie: Color { esquema == .dark ? Color(white: 0x2B / 255) : Color(white: 0xF6 / 255) }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            cabecera
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Paleta.brand)
+            Rectangle().fill(Color.filo.opacity(0.10)).frame(height: 0.5)
+            fila
+            Rectangle().fill(Color.filo.opacity(0.10)).frame(height: 0.5)
+            pie
+        }
+        // El verde sube hasta el borde de arriba, por debajo de los semáforos,
+        // como en el handoff: la barra de título no se pinta aparte.
+        .ignoresSafeArea()
+        .toolbar(removing: .title)
+        .toolbarBackground(.hidden, for: .windowToolbar)
+    }
+
+    private var cabecera: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Image("LogoTamio")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 40, height: 40)
+                    .shadow(color: .black.opacity(0.25), radius: 3, y: 2)
+                Text("Tamio")
+                    .font(.system(size: 19, weight: .bold))
+                    .tracking(-0.19)
+                Text(L.t("para Mac", "for Mac"))
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3)
+                    .background(.white.opacity(0.16), in: Capsule())
+                    .padding(.leading, 4)
+            }
+
+            Text(titulo)
+                .font(.system(size: 36, weight: .bold))
+                .tracking(-0.9)
+                .frame(maxWidth: 620)
+                .padding(.top, 34)
+
+            Text(L.t("La tesorería y la secretaría \(deLaIglesia), juntas en este Mac. Ya tienes una cuenta: esto es solo para que sepas dónde está cada cosa.",
+                     "The treasury and the secretary’s desk \(deLaIglesia), together on this Mac. You already have an account: this is only so you know where things are."))
+                .font(.system(size: 14.5))
+                .lineSpacing(5.5)
+                .foregroundStyle(.white.opacity(0.92))
+                .frame(maxWidth: 560)
+                .padding(.top, 14)
+        }
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .foregroundStyle(.white)
+        // 46 de la barra de título que el handoff dibuja dentro del verde, más
+        // sus 6 de aire; 38 abajo.
+        .padding(.top, 52)
+        .padding(.bottom, 38)
+        .padding(.horizontal, 54)
+    }
+
+    /// Las tres áreas, separadas por un filo de un punto como el `gap:1px` del
+    /// handoff sobre su `--sep`.
+    private var fila: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(tarjetas.enumerated()), id: \.offset) { i, t in
+                if i > 0 {
+                    Rectangle().fill(Color.filo.opacity(0.10)).frame(width: 1)
+                }
+                tarjeta(t)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .background(fondoTarjetas)
+    }
+
+    private func tarjeta(_ t: Tarjeta) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: t.icono)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(Paleta.brand)
+                .frame(width: 30, height: 30)
+                .background(rellenoMarca, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            Text(t.titulo)
+                .font(.system(size: 14.5, weight: .semibold))
+                .tracking(-0.145)
+            Text(t.texto)
+                .font(.system(size: 12.5))
+                .lineSpacing(5)
+                .foregroundStyle(.secondary)
+            Text(t.donde)
+                .font(.system(size: 11.5))
+                .foregroundStyle(.tertiary)
+                .padding(.top, 2)
+        }
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.top, 26)
+        .padding(.bottom, 30)
+        .padding(.horizontal, 28)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var pie: some View {
+        VStack(spacing: 16) {
+            VStack(spacing: 5) {
+                Text(L.t("Funciona sin señal.", "It works with no signal."))
+                    .font(.system(size: 12.5, weight: .semibold))
+                // La versión, del bundle: el handoff escribe "1.4.0 (218)"
+                // como ejemplo, y una inventada manda a buscar fallos a otro
+                // sitio (ver `VersionApp`).
+                Text(L.t("Lo que registras se queda en este Mac y sube cuando hay internet. Versión \(VersionApp.completa).",
+                         "What you record stays on this Mac and goes up when there is internet. Version \(VersionApp.completa)."))
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+            }
+            .multilineTextAlignment(.center)
+
+            Button(action: alEmpezar) {
+                HStack(spacing: 8) {
+                    Text(L.t("Empezar", "Get started"))
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("↩")
+                        .font(.system(size: 14, weight: .medium))
+                        .opacity(0.75)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 24)
+                .frame(minHeight: 40)
+                .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut(.defaultAction)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 24)
+        .padding(.bottom, 28)
+        .padding(.horizontal, 54)
+        .background(fondoPie)
+    }
+}
+
 // MARK: - Recuperar la contraseña
 
 /// Los dos pasos del mismo camino que usa el iPhone: Supabase manda un código
