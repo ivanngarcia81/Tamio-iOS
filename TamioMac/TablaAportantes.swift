@@ -234,12 +234,15 @@ private struct HojaImportarAportantes: View {
     private func resumen(_ a: ImportadorAportantes.Analisis) -> some View {
         SeccionHoja(titulo: L.t("QUÉ VA A PASAR", "WHAT WILL HAPPEN")) {
             filaResumen("plus.circle.fill", Paleta.brand, a.nuevos,
-                        L.t("aportantes nuevos", "new contributors"))
+                        a.nuevos == 1 ? L.t("aportante nuevo", "new contributor")
+                                      : L.t("aportantes nuevos", "new contributors"))
             filaResumen("arrow.triangle.2.circlepath", Paleta.enlace, a.actualizados,
-                        L.t("ya existen y se actualizarán", "already exist, will be updated"))
+                        a.actualizados == 1 ? L.t("ya existe y se actualizará", "already exists, will be updated")
+                                            : L.t("ya existen y se actualizarán", "already exist, will be updated"))
             if !a.errores.isEmpty {
                 filaResumen("exclamationmark.triangle.fill", Paleta.aviso, a.errores.count,
-                            L.t("filas con problemas, se omitirán", "rows with problems, will be skipped"))
+                            a.errores.count == 1 ? L.t("fila con problemas, se omitirá", "row with problems, will be skipped")
+                                                 : L.t("filas con problemas, se omitirán", "rows with problems, will be skipped"))
             }
         }
         if !a.errores.isEmpty {

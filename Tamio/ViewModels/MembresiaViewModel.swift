@@ -87,6 +87,13 @@ final class MembresiaViewModel {
     /// vuelta saliendo antes de que la operación esté en la cola.
     @MainActor
     func agregarSeguimientoEsperando(miembroId: String, nota: SeguimientoNota) async {
+        // **Si la persona no está en la lista, se relee antes de rendirse.**
+        // Una sincronización mientras la hoja estaba abierta puede rehacer
+        // `items`, y el `guard` a secas tiraba la nota sin decir nada. No se
+        // guarda la copia que abrió la hoja: podría pisar notas más nuevas.
+        if !items.contains(where: { $0.id == miembroId }) {
+            items = (try? await repo.lista()) ?? items
+        }
         guard let idx = items.firstIndex(where: { $0.id == miembroId }) else { return }
         items[idx].seguimientoNotas.append(nota)
         let m = items[idx]

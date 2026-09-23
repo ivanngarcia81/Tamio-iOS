@@ -163,7 +163,17 @@ struct VentanaPrincipal: View {
         }
     }
 
+    /// **Todas las que guardan datos, también las que se pintan con resumen.**
+    /// Faltaban Inicio, Por revisar, Informes y Reportes: solo cargaban al
+    /// aparecer. En un Mac recién estrenado se abre en Inicio mientras baja
+    /// la primera sincronización, así que Inicio decía $0.00 y "No hay
+    /// movimientos" con los cuatro ya en la base, hasta cambiar de sección y
+    /// volver. Visto el 23-sep con la base apartada.
     private func cargarTodo() async {
+        await inicio.cargar()
+        await registroDeRevisiones.cargar()
+        await informes.cargarPadron()
+        await reportes.cargar()
         await ingresos.cargar()
         await gastos.cargar()
         await registro.cargar()
