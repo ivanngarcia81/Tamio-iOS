@@ -3,6 +3,14 @@ import XCTest
 /// La fila del padrón con un traslado abierto: la pastilla entera y la fila a
 /// la misma altura que sus vecinas.
 final class FilaTraslado: XCTestCase {
+    /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
+    /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
+    /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
+    /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
 
     func testLaPastillaNoSeRecortaNiEstiraLaFila() {
         let app = XCUIApplication()

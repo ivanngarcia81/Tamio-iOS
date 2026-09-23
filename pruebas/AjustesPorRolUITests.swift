@@ -13,6 +13,14 @@ import XCTest
 /// enseñó además lo que la prueba unitaria no puede ver: que el número de
 /// versión, que vivía al pie de la Zona, sigue apareciendo al pie de General.
 final class AjustesPorRolUITests: XCTestCase {
+    /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
+    /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
+    /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
+    /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
 
     func testElTesoreroVeCategoriasPeroNoLaZona() {
         let app = XCUIApplication()

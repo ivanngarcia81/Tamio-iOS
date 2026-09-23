@@ -10,6 +10,14 @@ import XCTest
 /// No afirma aspecto —eso se mira en la captura— pero sí que el chip EXISTE y
 /// se puede tocar: si alguien lo deja sin cápsula y sin contenido, esto cae.
 final class ChipDePeriodoUITests: XCTestCase {
+    /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
+    /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
+    /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
+    /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
 
     func testReporteAnual() {
         let app = XCUIApplication()

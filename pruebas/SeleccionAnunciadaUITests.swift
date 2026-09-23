@@ -3,6 +3,14 @@ import XCTest
 /// La fila abierta se anuncia, no solo se pinta: `isSelected` en la sidebar,
 /// en la sidebar de Ajustes y en las listas de maestro-detalle.
 final class SeleccionAnunciada: XCTestCase {
+    /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
+    /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
+    /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
+    /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     var app: XCUIApplication!
 
     override func setUp() {

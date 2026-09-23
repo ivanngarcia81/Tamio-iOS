@@ -8,6 +8,14 @@ import XCTest
 /// borde de la ventana, y cualquier rótulo que ocupe más de dos renglones—.
 /// Eso es lo que hay que mirar en las capturas.
 class HojasIPad: XCTestCase {
+    /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
+    /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
+    /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
+    /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     var app: XCUIApplication!
 
     override func setUp() {

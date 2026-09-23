@@ -20,6 +20,14 @@ import XCTest
 /// El segmentado del TELÉFONO no se toca y no se prueba aquí: vive en
 /// `ToolbarItem(placement: .title)`, donde el sistema ya pone la cápsula.
 final class ColumnaDeCristalUITests: XCTestCase {
+    /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
+    /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
+    /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
+    /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
 
     var app: XCUIApplication!
 

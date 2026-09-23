@@ -3,6 +3,14 @@ import XCTest
 /// Informes de membresía y el panel de Asistencia en una columna estrecha:
 /// 13" en vertical con la sidebar (unos 450 pt de contenido).
 final class SecretariaEstrecho: XCTestCase {
+    /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
+    /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
+    /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
+    /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     var app: XCUIApplication!
 
     override func setUp() {

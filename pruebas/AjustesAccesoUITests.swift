@@ -3,6 +3,14 @@ import XCTest
 /// Ajustes → Acceso y áreas: la parada para medir el contraste de los dos
 /// botones apagados ("Send invitation" y "Sync now").
 final class AjustesAcceso: XCTestCase {
+    /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
+    /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
+    /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
+    /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     func testParadaEnAccesoYAreas() {
         let app = XCUIApplication()
         // `-prefs.bienvenidaVista` salta el recorrido de bienvenida: es un

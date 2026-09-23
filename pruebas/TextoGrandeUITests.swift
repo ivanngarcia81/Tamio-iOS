@@ -4,6 +4,14 @@ import XCTest
 /// pueden salir en dos renglones. Se corre con
 /// `xcrun simctl ui <udid> content_size accessibility-medium`.
 final class TextoGrande: XCTestCase {
+    /// **Solo iPad.** El `setUp` gira a apaisado y `seccion` busca la barra
+    /// lateral: el iPhone no tiene ninguna de las dos. La de la agenda de
+    /// Inicio pasaba en el teléfono solo si había actividades esa semana.
+    /// Ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     var app: XCUIApplication!
 
     override func setUp() {

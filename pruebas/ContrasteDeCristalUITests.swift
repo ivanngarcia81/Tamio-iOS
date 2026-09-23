@@ -25,6 +25,9 @@ final class ContrasteDeCristalUITests: XCTestCase {
         app.launchArguments = ["-prefs.bienvenidaVista", "1",
                                "-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
                                "-prefs.tema", tema]
+        // La maqueta y no la iglesia sincronizada: lo que busca es de la
+        // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
+        app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
         sleep(2)
@@ -60,7 +63,8 @@ final class ContrasteDeCristalUITests: XCTestCase {
     /// Por eso el primer intento fallaba y, peor, **salía en verde**: tocaba un
     /// "Contar" apagado, no pasaba nada, y la prueba terminaba contenta. De ahí
     /// el `isEnabled` y la comprobación de que la hoja está delante.
-    func testH6BotonDeConteo() {
+    func testH6BotonDeConteo() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad: barra lateral y apaisado")
         XCUIDevice.shared.orientation = .landscapeLeft
         arrancar(tema: "oscuro")
 

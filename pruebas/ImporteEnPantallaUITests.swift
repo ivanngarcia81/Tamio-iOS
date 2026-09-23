@@ -19,6 +19,9 @@ final class ImporteEnPantalla: XCTestCase {
         app.launchArguments += ["-prefs.idioma", idioma,
                                 "-AppleLocale", locale,
                                 "-AppleLanguages", locale.hasPrefix("es") ? "(es)" : "(en)"]
+        // La maqueta y no la iglesia sincronizada: lo que busca es de la
+        // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
+        app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(2)
     }
@@ -94,10 +97,18 @@ final class ImporteEnPantalla: XCTestCase {
         // no son un número y `Double(...) ?? 0` los convierte en cero.
         campo.typeText("..")
         sleep(1)
+        // Desde `4b637b6` (17-sep) Guardar está SIEMPRE encendido y dice qué
+        // falta en vez de apagarse. Lo que hay que exigir es que con ".." NO
+        // guarde: que avise del importe y que la hoja siga abierta.
         let guardar = app.navigationBars.buttons["Save"]
-        print("CAMPO:\(campo.value as? String ?? "?") GUARDAR-ENCENDIDO:\(guardar.isEnabled)")
-        XCTAssertFalse(guardar.isEnabled,
-                       "Guardar está encendido con \"..\" en el importe: guardaría $0.00")
+        guardar.tap(); sleep(2)
+        let aviso = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS[c] 'the amount'")).firstMatch
+        print("CAMPO:\(campo.value as? String ?? "?") AVISO:\(aviso.exists)")
+        XCTAssertTrue(aviso.waitForExistence(timeout: 5),
+                      "Con \"..\" en el importe, Guardar no avisa de que falta el importe")
+        XCTAssertTrue(guardar.exists,
+                      "Con \"..\" en el importe, Guardar cerró la hoja: guardó $0.00")
     }
 
 }

@@ -165,14 +165,21 @@ final class PresentacionesAparatoUITests: XCTestCase {
             return XCTFail("la hoja de firma no abrió: no hay botón Guardar")
         }
 
-        // --- control positivo: apagado con el lienzo en blanco
-        XCTAssertFalse(guardar.isEnabled, """
-            «Guardar» ya estaba ENCENDIDO con el lienzo en blanco, así que \
-            encenderse después no demostraría nada. O la hoja abrió con una \
-            firma ya hecha —y entonces hay que borrarla antes— o `vacio` \
-            (`HojaFirma:43`) no está mirando el lienzo.
+        // --- control positivo: con el lienzo en blanco, Guardar dice qué falta
+        // Desde `4b637b6` (17-sep) Guardar está SIEMPRE encendido: en vez de
+        // apagarse, avisa «Falta dibujar la firma» y no cierra la hoja. El
+        // aviso solo se pinta mientras `faltan` no esté vacío, así que su
+        // desaparición tras el trazo es lo que demuestra que el lienzo lo contó.
+        let aviso = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS[c] 'dibujar la firma'")).firstMatch
+        guardar.tap(); sleep(2)
+        XCTAssertTrue(aviso.waitForExistence(timeout: 5), """
+            Con el lienzo en blanco, «Guardar» no avisó de que falta la firma. \
+            O la hoja abrió con una firma ya hecha —y entonces hay que borrarla \
+            antes— o `vacio` (`HojaFirma`) no está mirando el lienzo.
             """)
-        print("QA-FIRMA: Guardar apagado con el lienzo en blanco")
+        XCTAssertTrue(guardar.exists, "«Guardar» cerró la hoja con el lienzo en blanco")
+        print("QA-FIRMA: con el lienzo en blanco, Guardar avisa y no cierra")
 
         // --- el trazo: tres segmentos despacio, como un dedo
         let centro = app.coordinate(withNormalizedOffset: CGVector(dx: 0.30, dy: 0.45))
@@ -184,22 +191,23 @@ final class PresentacionesAparatoUITests: XCTestCase {
         }
         sleep(2)
 
-        XCTAssertTrue(guardar.isEnabled, """
-            Se dibujó en el lienzo y «Guardar» sigue APAGADO. Es la regresión \
-            de `PKCanvasView` que `HojaFirma:31-43` dice haber arreglado con el \
-            contador `trazos`: o el delegado no llega, o el arrastre de \
-            XCUITest no cuenta como trazo —y entonces lo que falla es la \
-            prueba, que hay que comprobar mirando la captura—.
+        XCTAssertFalse(aviso.exists, """
+            Se dibujó en el lienzo y el aviso de que falta la firma sigue ahí. \
+            Es la regresión de `PKCanvasView` que `HojaFirma` dice haber \
+            arreglado con el contador `trazos`: o el delegado no llega, o el \
+            arrastre de XCUITest no cuenta como trazo —y entonces lo que falla \
+            es la prueba, que hay que comprobar mirando la captura—.
             """)
-        print("QA-FIRMA: Guardar ENCENDIDO tras dibujar")
+        print("QA-FIRMA: el trazo quita el aviso")
 
-        // Y «Borrar» tiene que volver a apagarlo: es la otra mitad de `vacio`.
+        // Y «Borrar» tiene que devolverlo: es la otra mitad de `vacio`.
         let borrar = app.buttons["Borrar"]
         if borrar.exists && borrar.isHittable {
             borrar.tap(); sleep(2)
-            XCTAssertFalse(guardar.isEnabled,
-                           "«Borrar» dejó «Guardar» encendido con el lienzo vacío")
-            print("QA-FIRMA: Borrar lo vuelve a apagar")
+            guardar.tap(); sleep(2)
+            XCTAssertTrue(aviso.waitForExistence(timeout: 5),
+                          "tras «Borrar», Guardar ya no avisa de que falta la firma")
+            print("QA-FIRMA: Borrar lo devuelve")
         }
         cerrar()
     }

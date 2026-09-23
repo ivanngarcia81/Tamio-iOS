@@ -1,7 +1,7 @@
 import XCTest
 
 /// **Dos cosas de la pasada del 7 de septiembre que solo se ven mirando.**
-/// Requiere el parche de modo revisión en la copia (ver `LogoUITests`).
+/// Corre con `-modoRevision YES`, que sustituye al parche de la copia.
 final class TrasladosYMembreteUITests: XCTestCase {
 
     /// En el teléfono, los cinco datos de un traslado sin gestos escondidos.
@@ -10,12 +10,17 @@ final class TrasladosYMembreteUITests: XCTestCase {
     /// la pantalla y sin nada que insinuara que se podía arrastrar.
     func testUnTrasladoSeVeEnteroEnElTelefono() {
         let app = XCUIApplication()
+        // La maqueta y no la iglesia sincronizada: lo que busca es de la
+        // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
+        app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.buttons["Secretary"].waitForExistence(timeout: 30))
         app.buttons["Secretary"].tap()
         sleep(2)
         app.swipeUp(); sleep(1); app.swipeUp(); sleep(2)
-        app.buttons["Membership reports"].firstMatch.tap()
+        // BEGINSWITH: la fila del hub es un `NavigationLink` con título y
+        // subtítulo, y su rótulo es «Membership reports, Overview, …».
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Membership reports'")).firstMatch.tap()
         sleep(4)
         for _ in 0..<9 { app.swipeUp() }
         sleep(3)
@@ -32,11 +37,16 @@ final class TrasladosYMembreteUITests: XCTestCase {
     func testEnIPadSigueLaTabla() throws {
         try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
         let app = XCUIApplication()
+        // La maqueta y no la iglesia sincronizada: lo que busca es de la
+        // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
+        app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch()
         sleep(6)
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.031, dy: 0.06)).tap()
         sleep(2)
-        app.buttons["Membership reports"].firstMatch.tap()
+        // BEGINSWITH: la fila del hub es un `NavigationLink` con título y
+        // subtítulo, y su rótulo es «Membership reports, Overview, …».
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Membership reports'")).firstMatch.tap()
         sleep(4)
         for _ in 0..<10 { app.swipeUp() }
         sleep(3)
@@ -46,6 +56,9 @@ final class TrasladosYMembreteUITests: XCTestCase {
     /// La vista previa del membrete, que era un "Próximamente".
     func testElMembreteSeVe() {
         let app = XCUIApplication()
+        // La maqueta y no la iglesia sincronizada: lo que busca es de la
+        // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
+        app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 30))
         app.buttons["Settings"].tap()

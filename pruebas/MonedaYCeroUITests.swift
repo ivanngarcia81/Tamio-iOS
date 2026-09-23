@@ -11,6 +11,9 @@ final class MonedaYCero: XCTestCase {
         app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", idioma,
                                 "-AppleLanguages", idioma == "ingles" ? "(en)" : "(es)"]
+        // La maqueta y no la iglesia sincronizada: lo que busca es de la
+        // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
+        app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch(); sleep(2)
     }
 
@@ -124,12 +127,18 @@ final class MonedaYCero: XCTestCase {
         let campo = app.textFields.element(boundBy: 0)
         XCTAssertTrue(campo.waitForExistence(timeout: 6))
         campo.tap(); campo.typeText(".."); sleep(1)
+        // Guardar está SIEMPRE encendido desde `4b637b6` (17-sep): con «..»
+        // tiene que avisar del importe y dejar la hoja abierta, no guardar.
         let guardar = app.navigationBars.buttons["Save"]
-        print("CERO · campo=\(campo.value as? String ?? "?") guardar=\(guardar.isEnabled)")
+        guardar.tap(); sleep(2)
         parada("alta-cero")
-        XCTAssertFalse(guardar.isEnabled, "Guardar está encendido con «..»: guardaría $0.00")
-        if guardar.isEnabled {
-            guardar.tap(); sleep(3)
+        let aviso = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS[c] 'the amount'")).firstMatch
+        print("CERO · campo=\(campo.value as? String ?? "?") aviso=\(aviso.exists)")
+        XCTAssertTrue(aviso.waitForExistence(timeout: 5),
+                      "Con «..» Guardar no avisa de que falta el importe")
+        XCTAssertTrue(guardar.exists, "Con «..» Guardar cerró la hoja: guardó $0.00")
+        if !guardar.exists {
             parada("lista-con-cero")
             print("LISTA-CERO:" + app.staticTexts.allElementsBoundByIndex.map(\.label)
                 .prefix(20).joined(separator: "|"))

@@ -41,8 +41,8 @@ import XCTest
 /// **Aviso sobre esta prueba, que costó una vuelta:** el testigo de "ya estoy
 /// en Cartas" NO puede ser una fila de la lista. Cuando todo va bien, las 16
 /// plantillas empujan "Issued this month" fuera de pantalla, así que usarlo de
-/// testigo marca como fallo justo las corridas BUENAS. Se usa la cabecera
-/// "Templates", que está en los dos casos. Es la lección del §5: una prueba que
+/// testigo marca como fallo justo las corridas BUENAS. Se usa el segmento
+/// "Templates" del selector, que está en los dos casos. Es la lección del §5: una prueba que
 /// no encuentra algo solo vale si sabes que sabría encontrarlo.
 final class PlantillasDeCartaUITests: XCTestCase {
 
@@ -66,7 +66,12 @@ final class PlantillasDeCartaUITests: XCTestCase {
                 app.swipeUp(velocity: .slow); sleep(1)
             }
 
-            guard app.staticTexts["Templates"].waitForExistence(timeout: 8) else {
+            // "Templates" es un SEGMENTO del selector de la barra desde el
+            // carrusel del teléfono (`fcca3a2`, 13-sep), y un segmento es un
+            // botón: como `staticTexts` no aparecía nunca, y las 20 vueltas
+            // decían «no se llegó» habiendo llegado. La cabecera de texto
+            // solo existe en la columna del iPad.
+            guard app.buttons["Templates"].waitForExistence(timeout: 8) else {
                 XCTFail("vuelta \(vuelta): no se llegó a Cartas")
                 app.terminate(); continue
             }

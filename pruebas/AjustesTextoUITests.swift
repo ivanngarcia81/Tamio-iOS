@@ -9,6 +9,14 @@ import XCTest
 ///     xcrun simctl ui <udid> content_size large                  → testEnFabrica
 ///     xcrun simctl ui <udid> content_size accessibility-medium   → testEnAX1
 final class AjustesTexto: XCTestCase {
+    /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
+    /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
+    /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
+    /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
     var app: XCUIApplication!
 
     override func setUp() {

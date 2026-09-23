@@ -1,7 +1,7 @@
 import XCTest
 
-/// **Los documentos de Secretaría, vistos.** Requiere el parche de modo
-/// revisión en la copia (ver `pruebas/LogoUITests.swift`).
+/// **Los documentos de Secretaría, vistos.** Corre con `-modoRevision YES`,
+/// que sustituye al parche de la copia.
 ///
 /// Lo que encontró el 7 de septiembre y ninguna prueba unitaria daba:
 ///
@@ -17,6 +17,9 @@ import XCTest
 final class DocumentosPDFUITests: XCTestCase {
 
     private func alHub(_ app: XCUIApplication) {
+        // La maqueta y no la iglesia sincronizada: lo que busca es de la
+        // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
+        app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.buttons["Secretary"].waitForExistence(timeout: 30))
         app.buttons["Secretary"].tap()

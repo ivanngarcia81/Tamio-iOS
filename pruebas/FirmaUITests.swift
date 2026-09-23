@@ -90,12 +90,22 @@ final class FirmaIPhone: XCTestCase {
         firma.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap(); sleep(2)
         let guardar = app.buttons["Save"]
         XCTAssertTrue(guardar.waitForExistence(timeout: 5), "### no se abrió la hoja de firma")
-        XCTAssertFalse(guardar.isEnabled)
+        // Desde `4b637b6` (17-sep) Guardar está SIEMPRE encendido y, con el
+        // lienzo en blanco, dice qué falta en vez de apagarse. Se comprueba
+        // eso, y que el trazo lo quita: el aviso solo se pinta mientras
+        // `faltan` no esté vacío (`HojaFirma.swift`, `avisoDeFaltantes`).
+        // No se guarda nada: la prueba no deja una firma en el aparato.
+        let aviso = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS[c] 'drawing the signature'")).firstMatch
+        guardar.tap(); sleep(2)
+        XCTAssertTrue(aviso.waitForExistence(timeout: 5),
+                      "### con el lienzo en blanco, Guardar no dice que falta la firma")
+        XCTAssertTrue(guardar.exists, "### Guardar cerró la hoja con el lienzo en blanco")
         let a = app.coordinate(withNormalizedOffset: .init(dx: 0.35, dy: 0.35))
         let b = app.coordinate(withNormalizedOffset: .init(dx: 0.65, dy: 0.42))
         a.press(forDuration: 0.2, thenDragTo: b, withVelocity: .slow, thenHoldForDuration: 0.2)
         sleep(2)
         print("MARCA:FT-tras-trazo"); fflush(stdout); Thread.sleep(forTimeInterval: 3)
-        XCTAssertTrue(guardar.isEnabled, "### en el teléfono, tras firmar, Guardar sigue apagado")
+        XCTAssertFalse(aviso.exists, "### en el teléfono, tras firmar, sigue diciendo que falta la firma")
     }
 }

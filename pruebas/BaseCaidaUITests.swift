@@ -11,7 +11,8 @@ import XCTest
 ///   semanas nadie lee ninguno.
 ///
 /// **Cómo se corre.** Tres pasadas, con el shell preparando el contenedor entre
-/// una y otra (el contenedor se saca con
+/// una y otra —y diciéndoselo a la prueba con `TEST_RUNNER_BASE_CAIDA=danada`
+/// o `=directorio`; sin eso, la 2 y la 3 se omiten en vez de salir rojas— (el contenedor se saca con
 /// `xcrun simctl get_app_container <udid> church.tamio.pruebas data`):
 ///
 /// 1. `testConLaBaseSanaNoHayAviso` — sin tocar nada. Es el control positivo:
@@ -65,7 +66,12 @@ final class BaseCaida: XCTestCase {
     }
 
     /// Pasada 2, archivo dañado: naranja, y la app sigue guardando.
-    func testLaBaseDaniadaAvisaEnNaranjaYDiceDondeQuedo() {
+    func testLaBaseDaniadaAvisaEnNaranjaYDiceDondeQuedo() throws {
+        // Sin el contenedor preparado por el guion, esta pasada mide una base
+        // sana y sale roja sin decir nada de la app. Se corre pasando
+        // `TEST_RUNNER_BASE_CAIDA=danada` a `xcodebuild` (llega sin el prefijo).
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["BASE_CAIDA"] == "danada",
+                          "pide la base preparada por el guion (BASE_CAIDA=danada)")
         print("FRANJA:\(cualquierFranja ?? "«ninguna»")")
         parada("daniada")
         XCTAssertNotNil(franja("WAS DAMAGED"), "la base estaba dañada y no se avisa")
@@ -89,7 +95,12 @@ final class BaseCaida: XCTestCase {
     }
 
     /// Pasada 3, la base que ni se abre: rojo, y nada se guarda.
-    func testLaBaseQueNiSeAbreAvisaEnRojo() {
+    func testLaBaseQueNiSeAbreAvisaEnRojo() throws {
+        // Sin el contenedor preparado por el guion, esta pasada mide una base
+        // sana y sale roja sin decir nada de la app. Se corre pasando
+        // `TEST_RUNNER_BASE_CAIDA=directorio` a `xcodebuild` (llega sin el prefijo).
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["BASE_CAIDA"] == "directorio",
+                          "pide la base preparada por el guion (BASE_CAIDA=directorio)")
         print("FRANJA:\(cualquierFranja ?? "«ninguna»")")
         parada("en-memoria")
         XCTAssertNotNil(franja("NOTHING IS BEING SAVED"),

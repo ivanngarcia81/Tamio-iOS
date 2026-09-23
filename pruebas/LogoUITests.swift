@@ -2,8 +2,9 @@ import XCTest
 
 /// **El logo en el papel**, que es lo que las pruebas unitarias no ven.
 ///
-/// Para correrla hay que parchear LA COPIA (nunca el repo): `ModoRevision`
-/// `activada = true` y, en `LogoIglesia.init`, sembrar una imagen —el
+/// El modo revisión ya no se parchea: va por `-modoRevision YES`. Para ver
+/// el logo de verdad en el papel sigue haciendo falta parchear LA COPIA
+/// (nunca el repo): en `LogoIglesia.init`, sembrar una imagen —el
 /// `PhotosPicker` abre otro proceso y no se conduce desde un XCUITest sin
 /// preparar antes el carrete del simulador—:
 ///
@@ -28,6 +29,9 @@ final class LogoUITests: XCTestCase {
 
     func testElLogoSaleEnElPDFDelEstadoFinanciero() {
         let app = XCUIApplication()
+        // La maqueta y no la iglesia sincronizada: lo que busca es de la
+        // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
+        app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.buttons["Treasury"].waitForExistence(timeout: 30))
         app.buttons["Treasury"].tap()
@@ -37,14 +41,20 @@ final class LogoUITests: XCTestCase {
         app.staticTexts["Financial statement"].tap()
         sleep(4)
         // El icono de documento de la barra: la vista previa de la hoja que se
-        // imprime, que es donde va el membrete. Por coordenadas, sin nombre.
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.893, dy: 0.129)).tap()
+        // imprime, que es donde va el membrete. **Por su rótulo, no por
+        // coordenadas**: el rediseño de Reportes en tarjetas (17-19 sep) lo
+        // movió, y el toque en (0.893, 0.129) caía en otra cosa. El botón es
+        // solo icono, pero su `Label` le da nombre (`ReportesView.accionPDF`).
+        app.buttons["PDF preview"].firstMatch.tap()
         sleep(5)
         XCTAssertTrue(app.staticTexts["PDF preview"].exists)
     }
 
     func testLaCartaLlevaElLogoCentradoSobreElNombre() {
         let app = XCUIApplication()
+        // La maqueta y no la iglesia sincronizada: lo que busca es de la
+        // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
+        app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch()
         XCTAssertTrue(app.buttons["Secretary"].waitForExistence(timeout: 30))
         app.buttons["Secretary"].tap()

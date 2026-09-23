@@ -5,6 +5,14 @@ import XCTest
 /// falle: prueba que el texto cambiado no se ve ahí —un marcador con el campo
 /// lleno, un `Picker` bajo el pliegue—. Esta prueba va a buscarlos.
 final class TextosCorregidosUITests: XCTestCase {
+    /// **Solo iPad.** Pide barra lateral o apaisado, y el iPhone no tiene
+    /// ninguna de las dos (`project.yml`: solo vertical; `RootView`: la barra
+    /// lateral solo con `.regular`). Corrida en el teléfono daba rojas que no
+    /// decían nada de la app: ver `docs/ROJAS-SEPTIEMBRE.md`.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "solo iPad")
+    }
+
 
     private func arranca(_ idioma: String) -> XCUIApplication {
         XCUIDevice.shared.orientation = .landscapeLeft

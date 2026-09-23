@@ -25,6 +25,9 @@ final class RevisarRedibujo: XCTestCase {
         continueAfterFailure = true
         app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
+        // La maqueta y no la iglesia sincronizada: lo que busca es de la
+        // semilla, y lo que escribe se queda en memoria (ver `docs/ROJAS-SEPTIEMBRE.md`).
+        app.launchArguments += ["-modoRevision", "YES", "-bloqueo.biometrico", "NO"]
         app.launch(); sleep(2)
     }
 
@@ -52,7 +55,10 @@ final class RevisarRedibujo: XCTestCase {
         let campo = app.textFields.element(boundBy: 0)
         XCTAssertTrue(campo.waitForExistence(timeout: 5), "no encuentro el campo de importe")
         campo.tap()
-        for _ in 0..<10 { app.keys["Delete"].tap() }
+        // Borrar tecleando `delete`, no tocando la tecla: `app.keys["Delete"]`
+        // puede quedar fuera de la pantalla («Failed to scroll to visible»),
+        // y el carácter de borrado no depende de dónde se dibuje el teclado.
+        campo.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12))
         campo.typeText("1.00"); sleep(1)
         let guardar = app.buttons["Save changes"]
         print("ESCRITO:[\(campo.value as? String ?? "?")] GUARDAR-ENCENDIDO:\(guardar.isEnabled)")
