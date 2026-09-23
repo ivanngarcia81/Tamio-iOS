@@ -15,6 +15,65 @@ QA del iPhone, del 12 al 14 (§0.-11).
 
 ---
 
+## 0.-23 El primer equipo que construye el Mac · 22 de septiembre, noche
+
+El Prompt 2 de `PROMPTS.md`, lanzado con el zip de Iván
+(`tamio-agent-team.zip`: mismo `CLAUDE.md` y `settings.json`; de su
+`PROMPTS.md` se tomó la tarea de Inicio, la del repo tenía ya la de Informes
+corregida). Tres teammates —tesoreria-mac y secretaria-mac, dueños exclusivos
+de sus archivos, y un verificador que es el único que compila— y el lead
+tocando solo lo compartido, a petición.
+
+**Cómo funcionó el reparto.** Los dos que programan no compilan ni commitean;
+cuando necesitan algo fuera de sus archivos, se lo piden al lead por mensaje y
+siguen con otra tarea. Hubo tres peticiones: la fecha del traslado
+(`TrasladoDeSalida.fechaSolicitud`), la plantilla de «Duplicar» en
+`EstadoVentana` + `CapturaRapida`, y «Importar aportantes…» en Archivo. En la
+segunda, **el lead corrigió la petición antes de aplicarla**: comparaba la
+categoría por texto, y el movimiento guarda la clave (`diezmo`) mientras el
+selector ofrece «Diezmo»/«Tithe» — no habría casado nunca.
+
+**La trampa que había que avisar de entrada:** el Mac compila `Tamio/Models`,
+`Data`, `ViewModels` y `Support`, **no `Tamio/Views`**. Los PDF de iOS
+(`SecretariaPDF`, `ReporteHojaPDF`) y las hojas del importador no le sirven.
+Avisado en el prompt de cada uno, nadie copió código de iOS.
+
+### Qué se hizo (compilado Mac e iOS, limpio; NADA visto en pantalla)
+
+| Commit | Qué |
+|---|---|
+| `02874cc` | Cartas › Traslados: fecha, sentido y la nota. Sin columna LETTER: la base no une carta y traslado. |
+| `fd6bc9c` | Informes: la banda «Rango» escribe las fechas; tabla TRANSFER MOVEMENTS con estado; Exportar CSV. |
+| `70aec0f` | Actas: «Recopilar firmas…» sobre el `firmarActa` compartido. |
+| `47b5524` | Reportes: PERIOD BALANCE, las dos notas, Deposited en el anual, y Compartir con `NSSharingServicePicker`. |
+| `f29b000` | Duplicar ⌘D (solo rellena) e Importar aportantes (CSV), en la tabla y en Archivo. |
+
+### Lo que quedó fuera, y por qué
+
+- **PDF del acta en el Mac: bloqueado.** `ActaHojaPDF` vive en
+  `Tamio/Views/Components` y usa `UIImage`, `LogoMembrete` y
+  `PieInstitucionalPDF`. Enchufarlo es moverlo a una carpeta compartida,
+  cambiar `UIImage` por `ImagenPlataforma` y volver a probar el acta en iOS.
+- **Hoja de culto (PDF): no existe en ninguna plataforma.** Pide diseño.
+- **Con «Rango», las cifras de Informes siguen contándose por el año elegido.**
+  Vive en `InformesMembresiaViewModel`, compartido.
+- **Inicio en 900 pt:** estimación leída del código —cabe con el inspector
+  cerrado (~800-870), no con él abierto (~1275)—. Propuesta: `ViewThatFits`
+  en las filas y las cuatro KPI en 2×2. Sin implementar, sin medir.
+- **Seguimiento:** comprobado leyendo de punta a punta; si el miembro no está
+  en `vm.items` la nota se pierde sin avisar. La fila en la base, sin mirar.
+- **Por revisar y los botones que mueven dinero**, fuera a propósito: son
+  decisiones de Iván.
+
+### Qué falta ver en pantalla
+
+Todo lo de la tabla de arriba. En particular: que la sombra de la hoja no salga
+en el PDF de Compartir, cuánto sube el mínimo de ancho de Reportes con el botón
+nuevo, que Duplicar llegue con la categoría puesta, y que firmar un acta desde
+el Mac suba al web como «aprobada».
+
+---
+
 ## 0.-22 Lo que la carta no dice, el candado, y Configuración entera · 21 de septiembre, noche
 
 §0.-21 cerró con una lista de tres cosas que la app todavía no hacía. Esta
