@@ -126,6 +126,8 @@ private struct FilaConf: View {
 private struct FilaEditable: View {
     let label: String
     @Binding var texto: String
+    /// El ejemplo en gris mientras el campo está vacío ("p. ej. …").
+    var ejemplo: String = ""
 
     var body: some View {
         HStack(spacing: 12) {
@@ -133,7 +135,7 @@ private struct FilaEditable: View {
                 .font(.escalada(15.5, relativeTo: .subheadline))
                 .foregroundStyle(.secondary)
                 .layoutPriority(1)
-            TextField("", text: $texto)
+            TextField(ejemplo, text: $texto)
                 .font(.escalada(15.5, relativeTo: .subheadline))
                 .multilineTextAlignment(.trailing)
         }
@@ -700,6 +702,8 @@ private struct SeccionIglesia: View {
 
 // MARK: - Institución
 
+/// Rótulo y ejemplo de cada campo del membrete, en el orden del handoff. El
+/// campo al que escribe cada uno lo pone `SeccionInstitucion.enlace(_:)`.
 private let membreteItems: [(String, String)] = [
     (L.t("Dirección de la iglesia", "Church address"),
      L.t("p. ej. Av. Constitución 1420, Col. Centro", "e.g. 1420 Constitution Ave.")),
@@ -718,6 +722,30 @@ private let membreteItems: [(String, String)] = [
 ]
 
 private struct SeccionInstitucion: View {
+    /// **La configuración de verdad.** Hasta el 23-sep esta sección era la
+    /// maqueta del prototipo: siete textos fijos «p. ej. …» y ningún campo, así
+    /// que en el iPad no se podía escribir la dirección, el teléfono, el correo,
+    /// el pie ni el secretario del membrete —el iPhone sí—. Lo destapó
+    /// `TrasladosYMembrete` en el iPad físico. Se guarda solo, como el resto de
+    /// Ajustes (`ConfiguracionIglesiaViewModel.programarGuardado`).
+    @State private var cfg = ConfiguracionIglesiaViewModel.compartido
+    @State private var verMembrete = false
+
+    /// Los mismos campos que escribe el iPhone (`AjustesInstitucionView`),
+    /// incluido «Estado / provincia» → `ciudad`: los dos aparatos tienen que
+    /// guardar lo mismo en el mismo sitio.
+    private func enlace(_ i: Int) -> Binding<String> {
+        switch i {
+        case 0: return $cfg.config.direccion
+        case 1: return $cfg.config.ciudad
+        case 2: return $cfg.config.telefono
+        case 3: return $cfg.config.correo
+        case 4: return $cfg.config.pieInstitucional
+        case 5: return $cfg.config.secretarioNombre
+        default: return $cfg.config.secretarioCargo
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -747,57 +775,45 @@ private struct SeccionInstitucion: View {
                           nota: L.t("Lo que quede vacío no se imprime: el membrete se cierra sin dejar renglones en blanco.",
                                     "Empty fields won't print — the letterhead closes without blank lines.")) {
                     ForEach(Array(membreteItems.enumerated()), id: \.offset) { idx, item in
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(item.0)
-                                .font(.escalada(13.5, relativeTo: .footnote))
-                                .foregroundStyle(.secondary)
-                            Text(item.1)
-                                .font(.escalada(16, relativeTo: .body))
-                                .foregroundStyle(.tertiary)
-                                .lineLimit(1)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, Esp.pantalla)
-                        .padding(.vertical, 11)
+                        FilaEditable(label: item.0, texto: enlace(idx), ejemplo: item.1)
                         if idx < membreteItems.count - 1 { Divider() }
                     }
                 }
 
-                // Vista previa PDF
+                // Vista previa PDF · **ahora sí lleva a algún sitio**: la hoja
+                // del membrete, con el mismo visor y las mismas piezas que el
+                // iPhone («Ver cómo queda el membrete»). La previa de arriba solo
+                // enseña el nombre; esta enseña el papel entero, con el pie.
                 GrupoConf {
-                    HStack(spacing: 13) {
-                        RoundedRectangle(cornerRadius: 11, style: .continuous)
-                            .fill(.black)
-                            .frame(width: 40, height: 40)
-                            .overlay(
-                                Image(systemName: "doc.text.fill")
-                                    .font(.escalada(20, relativeTo: .title3))
-                                    .foregroundStyle(.white)
-                            )
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(L.t("Vista previa del PDF", "PDF preview"))
-                                .font(.escalada(16.5, weight: .bold, relativeTo: .body))
-                                .foregroundStyle(.primary)
-                            Text(L.t("Así se verá el encabezado de tus reportes",
-                                     "This is how your report headers will look"))
-                                .font(.escalada(13.5, relativeTo: .footnote))
-                                .foregroundStyle(.secondary)
+                    Button { verMembrete = true } label: {
+                        HStack(spacing: 13) {
+                            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                .fill(.black)
+                                .frame(width: 40, height: 40)
+                                .overlay(
+                                    Image(systemName: "doc.text.fill")
+                                        .font(.escalada(20, relativeTo: .title3))
+                                        .foregroundStyle(.white)
+                                )
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(L.t("Ver cómo queda el membrete", "See how the letterhead looks"))
+                                    .font(.escalada(16.5, weight: .bold, relativeTo: .body))
+                                    .foregroundStyle(.primary)
+                                Text(L.t("Así se verá el encabezado de tus reportes",
+                                         "This is how your report headers will look"))
+                                    .font(.escalada(13.5, relativeTo: .footnote))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.escalada(14, weight: .semibold, relativeTo: .subheadline))
+                                .foregroundStyle(.tertiary)
                         }
-                        Spacer()
-                        // **Sin galón: no hay adónde ir.** Esta tarjeta
-                        // dibujaba un `chevron.right` —el signo con el que
-                        // toda la app anuncia "aquí se entra"— dentro de un
-                        // `GrupoConf` sin `Button` ni `onTapGesture`.
-                        //
-                        // Y no se le puede dar destino, porque **la previa ya
-                        // está arriba en esta misma pantalla**: el membrete se
-                        // pinta en vivo sobre estos mismos datos, tres
-                        // tarjetas más arriba. Que la tarjeta de abajo siga
-                        // anunciando una vista previa aparte es redundante y
-                        // es decisión de Iván si se queda o se va entera.
+                        .frame(minHeight: Esp.altoFilaDoble)
+                        .padding(.horizontal, Esp.pantalla)
+                        .contentShape(Rectangle())
                     }
-                    .frame(minHeight: Esp.altoFilaDoble)
-                    .padding(.horizontal, Esp.pantalla)
+                    .buttonStyle(.plain)
                 }
             }
             .padding(Esp.panel)
@@ -806,6 +822,12 @@ private struct SeccionInstitucion: View {
         }
         .background(Color(.systemGroupedBackground))
         .scrollEdgeEffectStyle(.soft, for: .all)
+        .sheet(isPresented: $verMembrete) {
+            DocumentoPDFSheet(titulo: L.t("Membrete", "Letterhead"),
+                              nombreArchivo: "Membrete") {
+                MembreteHojaPDF()
+            }
+        }
     }
 }
 
@@ -936,6 +958,11 @@ private struct SeccionTesorero: View {
                 }
                 .frame(minHeight: Esp.altoFilaDoble)
                 .padding(.horizontal, Esp.pantalla).padding(.vertical, 10)
+                // **La fila entera se toca.** Con `.plain` solo responden los
+                // píxeles que pintan algo, y el `Spacer` es transparente: había
+                // que acertar en las letras de «Firmar». Lo midió FirmaIPad en
+                // el iPad físico el 23-sep, tocando el centro de la fila.
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
