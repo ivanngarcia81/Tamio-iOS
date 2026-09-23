@@ -159,10 +159,27 @@ histórico por importación.
 - 3 ingresos, con folios 17, 18 y 19;
 - el corte «Imported gifts · aportes-prueba.csv».
 
+**iPhone e iPad, hechos el 23-sep por la noche** (vistos en los simuladores; P2a en el iPad):
+- `ImportarAportantesView.swift` tiene ahora la invitación (I1 · P1) y el importador colgado de la
+  raíz (`ImportarDatosIOS`, con el testigo `Navegacion.pidiendoImportar`). Tiene también la hoja
+  `HojaImportarIOS`:
+  - en el iPhone, «Columnas» y «Revisar» con el botón abajo, y el «Hecho» con la tarjeta de aportes
+    (I2, I3, I6, I7, I10);
+  - en el iPad, las dos columnas (P2a, P3, P4).
+- `ImportarAportesView.swift` tiene ahora Ajustes › Datos del iPhone y el padrón vacío (I8).
+  Ajustes › Datos del iPad está en `ConfiguracionView` (P5).
+- La invitación sale una vez por aparato (`PreferenciasApp.traerDatosOfrecido`), después de la
+  primera bajada y de la configuración inicial. En DEBUG se fuerza con `-mostrarTraerDatos YES`.
+- Visto: los aportes importados desde el Mac bajaron al iPhone y ahí salen como «ya registrados».
+- Pruebas de interfaz `ImportarIPad` e `ImportarTelefono` adaptadas: el iPad ya no tiene
+  «Continue».
+
 **Falta:**
-- **El iPhone y el iPad.** «Datos» está en el enum compartido, pero `veAjuste` la esconde fuera del
-  Mac hasta construirla. El importador de aportes del iPhone ya guarda bien, con la hoja vieja.
-- **Sin ver en pantalla:** el estado vacío de Membresía (la iglesia tiene padrón) y el aviso de sin
-  conexión del «Hecho».
+- **Una caída del Mac, sin reproducir:** a las 10:43 del 23-sep, un bucle de restricciones de AppKit
+  (`_postWindowNeedsUpdateConstraints`) al cambiar de sección. Encaja con Informes estirando la
+  ventana antes del arreglo de ese día. Recorridas las 15 secciones después, no se cae. Informe:
+  `~/Library/Logs/DiagnosticReports/Tamio-2026-09-23-104349.ips`.
+- **Sin ver en pantalla:** el padrón vacío (la iglesia tiene padrón) y el aviso de sin conexión
+  del «Hecho».
 - **El concepto vacío** de un aporte sigue saliendo como «Aporte», que no es categoría del
   catálogo: se decide cuando haya un archivo real.
