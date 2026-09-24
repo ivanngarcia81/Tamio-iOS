@@ -5,13 +5,128 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **21 de septiembre de 2026** (§0.-22, el aviso de las
+Última actualización: **24 de septiembre de 2026** (§0.-25: los tres puntos, «Trae tus datos» en los tres aparatos, la suite en los aparatos físicos y la iglesia del revisor restaurada). Antes: **21 de septiembre de 2026** (§0.-22, el aviso de las
 variables, el candado y Configuración entera; §0.-21, el ⌘N contextual,
 la primera hoja de Membresía y el estado traducido; §0.-20, las dos primeras acciones del Mac; §0.-19, las
 plantillas que no faltaban; §0.-18, la app de Mac). Lo anterior: las capturas y la
 ficha en §0.-17, lo técnico de la subida en §0.-16, lo de interfaz en §0.-15
 —verificado en el iPhone físico— y la pasada grande sigue siendo la segunda de
 QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-25 Los tres puntos, «Trae tus datos» en los tres aparatos, y la iglesia del revisor · 23 y 24 de septiembre
+
+Un chat largo que empezó por los tres puntos de `SIGUIENTE-CHAT.md` y acabó arreglando un fallo que
+mezclaba los datos de dos iglesias. Commits de `694eee8` a `8a4f3da`, todos en `mac-target` y
+empujados.
+
+### Las decisiones de Iván (no se vuelven a discutir)
+
+- **Botones que mueven dinero:** solo lo que ya existía en el repositorio compartido.
+  - En Por revisar: Aprobar, «Devolver al tesorero», «Aprobar todo lo seguro» y Deshacer.
+  - En Ingresos y Gastos: Aprobar ⌘R.
+  - Fuera: «Marcar depositado» y «Pedir datos», porque no existen en ninguna plataforma, y
+    «Devolver a la bandeja», porque es ambiguo.
+- **Reportes (~1060 pt) y Configuración (961 pt) a media pantalla:** se le pide al diseñador
+  (`LO-QUE-EL-HANDOFF-NO-TRAE.md` §6).
+- **Inicio con el inspector abierto:** no va en 2×2; a media pantalla se usa con el inspector
+  cerrado.
+- **Del zip de PDF:** el programa 1b se solapa con `HojaCultoPDF` y no se construye. «Tamio for Mac»
+  es un borrador anterior al handoff 7 y tampoco.
+- **«Trae tus datos»:** P2a en el iPad (dos columnas, como el Mac).
+- **Aportes importados:** son ingresos ya cerrados, dentro de un corte histórico depositado. Ver
+  abajo.
+- **Pantalla de acceso del Mac:** fuera «Mantener la sesión» y «Desbloquear con Touch ID»
+  (`LO-QUE-EL-HANDOFF-NO-TRAE.md` §7).
+
+### Lo construido
+
+- **Informes por periodo.** Mes, trimestre y rango eran solo etiquetas: todo se contaba por el año.
+  - `PeriodoFechas` (como el `Periodo` del web) para altas, recibidos, traslados y seguimiento.
+  - `MembresiaRepository.lista(desde:hasta:)` y `asistenciaResumen(desde:hasta:)`. Presentes y
+    servicios salen del periodo; la racha y la última visita siguen siendo globales, como en el web.
+  - Recarga con `.task(id: vm.periodo)`.
+  - En el Mac: la cabecera pasa a dos filas si no cabe (Informes baja de 1090 a 812 pt), los meses
+    del gráfico usan la inicial y la asistencia dice «—» sin listas tomadas.
+- **Probado de punta a punta contra Supabase:**
+  - firmar un acta (llega como `aprobada`);
+  - importar aportantes;
+  - una nota de Seguimiento;
+  - un Mac recién estrenado. Aquí apareció un fallo: Inicio se quedaba en $0 hasta cambiar de
+    sección, porque `cargarTodo()` no releía Inicio, Por revisar, Informes ni Reportes.
+- **«Trae tus datos», en los tres aparatos** (encargo en `ENCARGO-TRAE-TUS-DATOS.md`; el handoff
+  llegó como `Artifact_link_no_accesible-handoff.zip`):
+  - la invitación, una vez por aparato y con el padrón vacío, después de la primera bajada;
+  - la hoja de importar personas y la de aportes;
+  - Configuración › Datos, Archivo › Importar… ⇧⌘I y el padrón vacío;
+  - la plantilla compartida (`PlantillaImportar`);
+  - el importador de iOS cuelga de la raíz (`ImportarDatosIOS` + `Navegacion.pidiendoImportar`).
+
+  En DEBUG, `-mostrarTraerDatos YES` abre la invitación.
+- **Importar aportes no guardaba nada en producción.** Escribía los aportes en la ficha, pero la base
+  los calcula de los ingresos (`AportanteFila`). Ahora:
+  - crea un ingreso aprobado, con constancia y `memberUid`;
+  - mete todos los ingresos en un corte «Aportes importados · archivo.csv» ya depositado, sin ficha
+    de depósito, para que no sumen al efectivo de hoy;
+  - cada aporte toma un folio del servidor;
+  - la huella de duplicados compara el concepto por su clave del catálogo.
+- **La pantalla de acceso del Mac**, la del handoff 7. En DEBUG se ve con `-mostrarAcceso YES`.
+- **Contraste en modo oscuro:** el texto blanco sobre el verde claro daba 2,41:1. Ahora lo decide
+  `Paleta.sobre` (7,08:1), en las pantallas verdes del Mac y en la invitación de iOS.
+- **Limpieza:**
+  - `LogoMembrete.swift` fuera del proyecto;
+  - una sola `AnclaCompartir` en `SuperficiesMac.swift`;
+  - varios plurales rotos («1 items», «1 rows», «1 services», «Import 1 gifts»).
+
+### La suite en los aparatos físicos (23-sep, noche)
+
+- **iPad, por cable:**
+  - unidad 258/258;
+  - interfaz: 79 en verde y 12 rojas, todas de instrumento o de datos (la ventana que no se
+    estrecha, AX1, CSV sin sembrar y filas de la maqueta).
+- **iPhone, por Wi-Fi:** la primera vuelta dio 77 rojas porque el iPhone **se bloqueó a media
+  corrida** («Not authorized for performing UI testing actions»). Con el Bloqueo automático en
+  «Nunca», de las 71 repetidas quedan 4:
+  - 2 de datos;
+  - 1 falso negativo de `isHittable` en un carrusel;
+  - 1 inestable (`CorteDetalle`), que corrida sola pasa.
+- **Una caída del Mac (10:43 del 23-sep):** un bucle de restricciones de AppKit al cambiar de
+  sección, con la pantalla en 4K. Buscada a fondo en la versión actual y en la anterior; no se
+  reproduce.
+
+### La iglesia del revisor, contaminada, y el fallo que lo hizo
+
+Entre el 21 y el 23-sep la suite corrió con **la sesión del revisor de Apple** en algún aparato. Su
+iglesia (`809d3b50…`, «Iglesia Nueva Vida», Monterrey) acabó así:
+- con gastos de $1.23 y diezmos sueltos;
+- con un aportante con emojis, tres veces;
+- con 8 movimientos de la semilla aprobados o devueltos;
+- **con la ficha entera de la iglesia de prueba encima**: Saltillo, USD, sin pastor ni tesorero.
+
+- **La causa era de la app, en los tres aparatos:**
+  - `ConfiguracionIglesiaViewModel` guardaba en memoria la ficha de la iglesia anterior al cambiar
+    de cuenta sin cerrar la app (`cargar()` no vuelve a leer);
+  - `guardarYa()` la subía entera a la iglesia nueva (`guardar` escribe bajo `churchIdActivo`).
+- **Arreglado:**
+  - la ficha lleva la iglesia de la que se leyó y solo se guarda en ella;
+  - `olvidar()` al cerrar sesión y al cambiar de iglesia.
+
+  `FichaDeOtraIglesiaTests`: sin el arreglo, 2 rojas; con él, 3 verdes.
+- **Restaurada** a la semilla. Cuadra con `APP-STORE.md`: 14 miembros, 34 movimientos, $48,820.00 y
+  $31,520.50.
+- **`aparato.sh` se niega a correr** si el aparato tiene abierta la iglesia del revisor.
+- En la iglesia de prueba, `TextoBruto` había dejado el nombre larguísimo (restaurado). Se marcaron
+  como borrados 2 diezmos de la suite ($7.77 y $853.00) y el aportante con emojis.
+
+### Lecciones
+
+- **Las pruebas escriben donde haya sesión.** Antes de una suite, mirar qué iglesia tiene el
+  aparato; después, mirar qué dejó. `TextoBruto` no devuelve el nombre de la iglesia.
+- **Por Wi-Fi, el iPhone con Bloqueo automático en «Nunca»**, o la corrida se cae sin avisar.
+- **La ventana del Mac crece sola al cambiar de sección.** Leer `size of window 1` antes de recortar
+  una captura: un recorte fijo dio un falso «inspector cortado».
+- **El push a `main` lo bloquea el clasificador de permisos:** lo hace Iván desde su terminal.
 
 ---
 
