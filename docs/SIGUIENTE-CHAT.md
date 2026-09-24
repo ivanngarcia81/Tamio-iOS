@@ -37,7 +37,7 @@ sigamos».
 
 1. ~~Crear la ficha~~ **Hecho el 24-sep:** «Tamio Church», Apple ID 6815859389, SKU `TAMIO-IOS-001`.
 2. ~~Subir el IPA~~ **Hecho** (2026092402). Faltan las capturas por idioma.
-   **El web dice «Tamio Iglesia»** en la privacidad y en soporte: cambiarlo a «Tamio Church».
+   El web ya dice «Tamio Church» (`d5ed865` en `pages` de `Tamio-app`, verificado en vivo).
 3. **Los tres cuestionarios** (privacidad, edad, exportación): respuestas en `APP-STORE.md` y
    `FICHA-APP-STORE.md`.
 4. **Notas para el revisor:** la cuenta `ivanngarcia82+prueba@gmail.com` y su contraseña (va en

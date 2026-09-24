@@ -56,8 +56,9 @@ subir. Commits de `b2c9e11` a `fe54076`, todos en `mac-target`.
 - **El SKU quedó `TAMIO-IOS-001`**, el previsto.
 - **El nombre de la ficha quedó «Tamio Church»**, no «Tamio Iglesia» como se había decidido el
   17-sep: coincide con el nombre bajo el icono. Puestos al día `FICHA-APP-STORE.md` (también la
-  nota al revisor), `APP-STORE.md`, `ACUERDO-CON-EL-WEB.md` y el comentario de `project.yml`. **El
-  web publicado aún dice «Tamio Iglesia»** en privacidad y soporte; se cambia en su repo.
+  nota al revisor), `APP-STORE.md`, `ACUERDO-CON-EL-WEB.md` y el comentario de `project.yml`. El web
+  también: `d5ed865` en la rama `pages` de `Tamio-app`, hecho en un worktree aparte (el clon
+  `~/Desktop/tesoreria-mac-` está en otra rama con cambios sin guardar) y verificado en vivo.
 - **Handoff 8 en el Mac:** Reportes y Configuración caben a 900 pt plegando su columna (lista
   flotante; riel de iconos de 60 pt). El Registro de servicios apila sus paneles (partía «Assign
   person» letra por letra).
