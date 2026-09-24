@@ -109,7 +109,7 @@ private struct VistaPreviaCorteMac: View {
     let corte: Corte
 
     @Environment(\.dismiss) private var dismiss
-    @State private var ancla = AnclaCompartirCorte()
+    @State private var ancla = AnclaCompartir()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -123,7 +123,7 @@ private struct VistaPreviaCorteMac: View {
                 } label: {
                     Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
                 }
-                .background(VistaAnclaCorte(ancla: ancla))
+                .background(VistaAncla(ancla: ancla))
                 Button(L.t("Cerrar", "Close")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
             }
@@ -153,37 +153,6 @@ private struct VistaPreviaCorteMac: View {
               let vista = ancla.vista else { return }
         NSSharingServicePicker(items: [url])
             .show(relativeTo: vista.bounds, of: vista, preferredEdge: .minY)
-    }
-}
-
-/// Guarda la `NSView` que hay debajo del botón "Compartir" para que
-/// `NSSharingServicePicker` sepa de dónde colgar su menú.
-///
-/// **Es la TERCERA copia** —después de `AnclaCompartir` (Reportes) y
-/// `AnclaCompartirActa` (Actas)—, las dos `private` a su archivo. El comentario
-/// de Actas ya decía que al tercer uso tocaba sacarlas a un archivo común del
-/// Mac; no se hace aquí porque un archivo nuevo lo da de alta el lead.
-private final class AnclaCompartirCorte {
-    weak var vista: NSView?
-}
-
-/// Una `NSView` vacía del tamaño del botón. No recibe clics (`hitTest`
-/// devuelve nil), así que el botón sigue siendo el que se pulsa.
-private struct VistaAnclaCorte: NSViewRepresentable {
-    let ancla: AnclaCompartirCorte
-
-    func makeNSView(context: Context) -> NSView {
-        let v = VistaTransparente()
-        ancla.vista = v
-        return v
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        ancla.vista = nsView
-    }
-
-    private final class VistaTransparente: NSView {
-        override func hitTest(_ point: NSPoint) -> NSView? { nil }
     }
 }
 

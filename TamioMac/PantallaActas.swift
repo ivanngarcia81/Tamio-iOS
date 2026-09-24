@@ -34,8 +34,8 @@ struct PantallaActas: View {
     @State private var iglesia = ConfiguracionIglesiaViewModel.compartido
 
     /// La vista de AppKit bajo el botón "Compartir PDF", de la que cuelga el
-    /// menú de `NSSharingServicePicker`. Ver `AnclaCompartirActa`.
-    @State private var anclaCompartir = AnclaCompartirActa()
+    /// menú de `NSSharingServicePicker`. Ver `AnclaCompartir`.
+    @State private var anclaCompartir = AnclaCompartir()
 
     /// La elegida, sea cual sea su estado: un acta se imprime también cuando
     /// ya está firmada o archivada, que es justo cuando más se imprime.
@@ -105,7 +105,7 @@ struct PantallaActas: View {
                     .labelStyle(.iconOnly)
                     .help(L.t("Compartir PDF", "Share PDF"))
                     .disabled(actaElegida == nil)
-                    .background(VistaAnclaActa(ancla: anclaCompartir))
+                    .background(VistaAncla(ancla: anclaCompartir))
                     Button { estado.pidiendoAlta = true } label: {
                         HStack(spacing: 6) {
                             Text(L.t("Nueva acta", "New minutes entry"))
@@ -423,7 +423,7 @@ private struct VistaPreviaActaMac: View {
     let iglesia: ConfiguracionIglesia
 
     @Environment(\.dismiss) private var dismiss
-    @State private var ancla = AnclaCompartirActa()
+    @State private var ancla = AnclaCompartir()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -437,7 +437,7 @@ private struct VistaPreviaActaMac: View {
                 } label: {
                     Label(L.t("Compartir", "Share"), systemImage: "square.and.arrow.up")
                 }
-                .background(VistaAnclaActa(ancla: ancla))
+                .background(VistaAncla(ancla: ancla))
                 Button(L.t("Cerrar", "Close")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
             }
@@ -466,35 +466,5 @@ private struct VistaPreviaActaMac: View {
               let vista = ancla.vista else { return }
         NSSharingServicePicker(items: [url])
             .show(relativeTo: vista.bounds, of: vista, preferredEdge: .minY)
-    }
-}
-
-/// Guarda la `NSView` que hay debajo de un botón "Compartir" para que
-/// `NSSharingServicePicker` sepa de dónde colgar su menú.
-///
-/// **Es copia de `AnclaCompartir` de `PantallaReportes.swift`**, que es
-/// `private` a su archivo. Son quince líneas de fontanería de AppKit; si un
-/// tercer sitio las necesita, toca sacarlas a un archivo común del Mac.
-private final class AnclaCompartirActa {
-    weak var vista: NSView?
-}
-
-/// Una `NSView` vacía del tamaño del botón. No pinta nada ni recibe clics
-/// (`hitTest` devuelve nil), así que el botón sigue siendo el que se pulsa.
-private struct VistaAnclaActa: NSViewRepresentable {
-    let ancla: AnclaCompartirActa
-
-    func makeNSView(context: Context) -> NSView {
-        let v = VistaTransparente()
-        ancla.vista = v
-        return v
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        ancla.vista = nsView
-    }
-
-    private final class VistaTransparente: NSView {
-        override func hitTest(_ point: NSPoint) -> NSView? { nil }
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// **Las superficies del Mac, con los valores del handoff.**
 ///
@@ -49,5 +50,39 @@ extension View {
                     .stroke(Color.filo.opacity(0.10), lineWidth: 0.5)
             )
             .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)
+    }
+}
+
+// MARK: - El ancla de «Compartir»
+
+/// **Guarda la `NSView` que hay debajo de un botón «Compartir»** para que
+/// `NSSharingServicePicker` sepa de dónde colgar su menú. Es una clase y no un
+/// valor porque la vista la crea AppKit después de que SwiftUI arme el cuerpo:
+/// el botón lee la referencia cuando se pulsa, no cuando se dibuja.
+///
+/// Estuvo copiada tres veces, `private` en Reportes, Actas y el corte; al
+/// tercer uso tocaba sacarla aquí, y aquí está.
+final class AnclaCompartir {
+    weak var vista: NSView?
+}
+
+/// Una `NSView` vacía del tamaño del botón, puesta en su `.background`. No
+/// pinta nada ni recibe clics (`hitTest` devuelve nil), así que el botón sigue
+/// siendo el que se pulsa.
+struct VistaAncla: NSViewRepresentable {
+    let ancla: AnclaCompartir
+
+    func makeNSView(context: Context) -> NSView {
+        let v = VistaTransparente()
+        ancla.vista = v
+        return v
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        ancla.vista = nsView
+    }
+
+    private final class VistaTransparente: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
     }
 }

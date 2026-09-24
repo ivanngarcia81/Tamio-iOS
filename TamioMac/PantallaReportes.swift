@@ -619,31 +619,3 @@ struct PantallaReportes: View {
         .tarjetaMac(14)
     }
 }
-
-/// Guarda la `NSView` que hay debajo del botón "Compartir" para que
-/// `NSSharingServicePicker` sepa de dónde colgar su menú. Es una clase y no un
-/// valor porque la vista la crea AppKit después de que SwiftUI arme el cuerpo:
-/// el botón lee la referencia cuando se pulsa, no cuando se dibuja.
-private final class AnclaCompartir {
-    weak var vista: NSView?
-}
-
-/// Una `NSView` vacía del tamaño del botón. No pinta nada ni recibe clics
-/// (`hitTest` devuelve nil), así que el botón sigue siendo el que se pulsa.
-private struct VistaAncla: NSViewRepresentable {
-    let ancla: AnclaCompartir
-
-    func makeNSView(context: Context) -> NSView {
-        let v = VistaTransparente()
-        ancla.vista = v
-        return v
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        ancla.vista = nsView
-    }
-
-    private final class VistaTransparente: NSView {
-        override func hitTest(_ point: NSPoint) -> NSView? { nil }
-    }
-}

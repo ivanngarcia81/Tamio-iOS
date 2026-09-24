@@ -118,6 +118,31 @@ sigamos con los tres puntos».
 - Preferencias de los dos aparatos, idénticas antes y después. Las copias quedaron en el scratchpad
   de la sesión 059c0f73.
 
+## La iglesia del revisor, contaminada y restaurada · 24-sep
+
+Entre el 21 y el 23-sep la suite corrió con **la sesión del revisor de Apple** en algún aparato, y
+su iglesia (`809d3b50…`, «Iglesia Nueva Vida», Monterrey) acabó así:
+- con gastos «Limpieza» de $1.23, diezmos sueltos y un aportante con emojis tres veces;
+- con 8 movimientos de la semilla aprobados o devueltos;
+- **con la ficha ENTERA de la iglesia de prueba encima**: Saltillo, USD y los cargos vacíos.
+
+- **Restaurada** a la semilla: ficha, estados, y lo ajeno marcado como borrado. Cuadra con
+  `APP-STORE.md`: 14 miembros, 34 movimientos, $48,820.00 y $31,520.50.
+- **La causa de la ficha era un fallo de la app, en los tres aparatos:**
+  - `ConfiguracionIglesiaViewModel` guardaba en memoria la ficha de la iglesia anterior al cambiar
+    de cuenta sin cerrar la app;
+  - y `guardarYa()` la subía entera a la iglesia nueva.
+  Ahora la ficha se olvida al cerrar sesión y al cambiar de iglesia, y solo se guarda en la iglesia
+  de la que se leyó. `FichaDeOtraIglesiaTests`: 3 pruebas; sin el arreglo, las dos del fallo dan
+  rojo.
+- **`aparato.sh` se niega a correr** si el aparato (o el simulador) tiene abierta la iglesia del
+  revisor. Probado en los dos caminos.
+- En la iglesia de prueba, `TextoBruto` había dejado el nombre larguísimo (restaurado a «Iglesia de
+  prueba»). Además quedaron 2 diezmos ($7.77 y $853.00, creados en la ventana de la suite) y el
+  aportante con emojis: marcados como borrados.
+- **Antes de mandar a Apple:** repetir la consulta de la iglesia del revisor (nombre, ciudad,
+  moneda, 14/34).
+
 ## Cuando Iván tenga el iPhone y el iPad en casa
 - La suite completa en los dos, cada aparato con su `TMPDIR`: ver §0.-24.
 - **Con el iPhone boca abajo** si se prueba el candado, porque Face ID desbloquea la app solo.
@@ -127,9 +152,9 @@ sigamos con los tres puntos».
 - Sembrar los CSV en los aparatos para las pruebas de importar.
 
 ## Pequeños pendientes
-- Quitar `Tamio/Views/Components/LogoMembrete.swift` del `.pbxproj`: quedó vacío.
-- El ancla de «Compartir» del Mac está copiada tres veces (Reportes, Actas y Corte). Merece un
-  archivo común.
+- ~~Quitar `LogoMembrete.swift` del `.pbxproj`~~: hecho el 24-sep.
+- ~~El ancla de «Compartir» del Mac, copiada tres veces~~: hecho el 24-sep, una sola en
+  `SuperficiesMac.swift`. Probado en Reportes.
 - La vista previa del acta y de la carta en iOS en modo oscuro: sin comprobar.
 - Las pruebas que escriben en la iglesia en cada corrida, como `DobleToque`: ¿pasarlas a la
   maqueta?

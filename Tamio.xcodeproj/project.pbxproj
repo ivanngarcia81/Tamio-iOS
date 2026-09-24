@@ -226,7 +226,6 @@
 		BB9D7A23C8C68B346FDFC964 /* Catalogos.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BA9C2777558EDFD55E7DD3 /* Catalogos.swift */; };
 		BC1AFDA08D32D431C8636A4C /* TamioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB8A95AD4951F784685174A /* TamioApp.swift */; };
 		BDB2233B43707AF445F35761 /* ImportarAportesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC9C5BDBBC490C54F3BC0B35 /* ImportarAportesView.swift */; };
-		BDD35A3DDAEF0AF7070042C6 /* LogoMembrete.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0580E3535856A4D46F5CC068 /* LogoMembrete.swift */; };
 		BDF815CE7A89D066D97123CA /* MovimientoRecurrente.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B4E7D4195763D56C308AAB3 /* MovimientoRecurrente.swift */; };
 		BE05BA901A3B7DB30C4BBC8D /* OfflineDepositosRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC569F015276F5D82D6C0438 /* OfflineDepositosRepository.swift */; };
 		BF3447E00DFEBC54A8001306 /* ConfiguracionIglesiaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED2D352ABF4028DA709B359 /* ConfiguracionIglesiaRepository.swift */; };
@@ -291,7 +290,6 @@
 		0373D9A8A3832B8791E0C108 /* ComandosTamio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComandosTamio.swift; sourceTree = "<group>"; };
 		0443766F8B7F327455F085E3 /* AgendaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgendaViewModel.swift; sourceTree = "<group>"; };
 		056C5CAF9667F55A2373560E /* ReportesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportesViewModel.swift; sourceTree = "<group>"; };
-		0580E3535856A4D46F5CC068 /* LogoMembrete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoMembrete.swift; sourceTree = "<group>"; };
 		05A757092F90A8F4C8636DF6 /* AgendaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgendaView.swift; sourceTree = "<group>"; };
 		05FD8BC1ABEDCA3AA230C7FF /* HojaFirma.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HojaFirma.swift; sourceTree = "<group>"; };
 		06C53E27C6E088CFC1F1AAB3 /* AportantesCatalogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AportantesCatalogo.swift; sourceTree = "<group>"; };
@@ -594,7 +592,6 @@
 				E0CC5968BA4CDAFC7360EE01 /* CompartirArchivo.swift */,
 				29B0953C6235B09583D046DD /* DeltaBadge.swift */,
 				00CF93CF0E516BCEF91ABCC6 /* KPICard.swift */,
-				0580E3535856A4D46F5CC068 /* LogoMembrete.swift */,
 				A8DCB9347E5541C6677D9486 /* MonthlyBarChart.swift */,
 				556C631D33CF32ED1B99031A /* Pieces.swift */,
 				BC33051936AF83903AD7CA7D /* ReportePDF.swift */,
@@ -1077,7 +1074,6 @@
 				A513D9DEB1A92B422ED58314 /* KPICard.swift in Sources */,
 				A8D814FC36E37F8AE45FBA04 /* Localization.swift in Sources */,
 				B5540D09A58A5D3387BCD5DA /* LogoIglesia.swift in Sources */,
-				BDD35A3DDAEF0AF7070042C6 /* LogoMembrete.swift in Sources */,
 				584A223F70A5D1FF1EFD015E /* MembresiaRepository.swift in Sources */,
 				55BE47478958A09E5E13CBCC /* MembresiaView.swift in Sources */,
 				AE47E6BB26592BFAA9D7AD3F /* MembresiaViewModel.swift in Sources */,
