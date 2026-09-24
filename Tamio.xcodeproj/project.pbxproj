@@ -1178,6 +1178,7 @@
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "To photograph the bank receipt when recording a deposit.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Tamio Church";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "To unlock Tamio with your face instead of typing your password every time.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "To attach a photo of the bank receipt to a deposit.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1254,6 +1255,7 @@
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "To photograph the bank receipt when recording a deposit.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Tamio Church";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "To unlock Tamio with your face instead of typing your password every time.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "To attach a photo of the bank receipt to a deposit.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

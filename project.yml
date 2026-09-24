@@ -157,6 +157,10 @@ targets:
         # Estaban solo en el `.pbxproj` y solo en español, así que un usuario
         # en inglés veía tres diálogos del sistema en español.
         INFOPLIST_KEY_NSCameraUsageDescription: "To photograph the bank receipt when recording a deposit."
+        # El nombre bajo el icono. Sin él salía el del producto, «Tamio», igual
+        # que la app de Tauri (`com.tesoreria.app`), y en un teléfono con las dos
+        # no se distinguían. Decisión de Iván, 24-sep.
+        INFOPLIST_KEY_CFBundleDisplayName: "Tamio Church"
         INFOPLIST_KEY_NSFaceIDUsageDescription: "To unlock Tamio with your face instead of typing your password every time."
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "To attach a photo of the bank receipt to a deposit."
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
