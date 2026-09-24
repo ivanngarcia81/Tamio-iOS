@@ -44,6 +44,31 @@ LIMPIO=0
 if [[ "$1" == "--limpio" ]]; then LIMPIO=1; shift; fi
 UDID="${1:?falta el UDID de hardware (devicectl list devices, fila physical)}"
 shift
+# **Nunca contra la iglesia del revisor de Apple.** Las pruebas escriben en la
+# iglesia que tenga abierta el aparato, y entre el 21 y el 23-sep la suite
+# corrió con la sesión del revisor: su iglesia amaneció con gastos de $1.23,
+# un aportante con emojis y la ficha de otra iglesia encima. Se mira qué
+# iglesia tiene la sesión y, si es la suya, no se corre nada.
+IGLESIA_REVISOR="809d3b50-810f-433b-a0d2-f3413ca49637"
+PREFS_APARATO="${TMPDIR:-/tmp}/tamio-aparato-prefs.plist"
+rm -f "$PREFS_APARATO"
+if xcrun simctl list devices | /usr/bin/grep -q "$UDID"; then
+  CONT=$(xcrun simctl get_app_container "$UDID" church.tamio.native data 2>/dev/null)
+  [[ -n "$CONT" ]] && cp "$CONT/Library/Preferences/church.tamio.native.plist" "$PREFS_APARATO" 2>/dev/null
+else
+  xcrun devicectl device copy from --device "$UDID" --domain-type appDataContainer \
+    --domain-identifier church.tamio.native \
+    --source Library/Preferences/church.tamio.native.plist \
+    --destination "$PREFS_APARATO" >/dev/null 2>&1
+fi
+IGLESIA_APARATO=$(/usr/libexec/PlistBuddy -c "Print :sesion.perfil.churchId" "$PREFS_APARATO" 2>/dev/null)
+if [[ "$IGLESIA_APARATO" == "$IGLESIA_REVISOR" ]]; then
+  echo "!! el aparato tiene abierta la iglesia del REVISOR DE APPLE ($IGLESIA_REVISOR)." >&2
+  echo "   Las pruebas escribirían en ella. Cierra esa sesión y entra con la iglesia de prueba." >&2
+  exit 78
+fi
+echo "--- iglesia del aparato: ${IGLESIA_APARATO:-sin sesión o sin app}"
+
 REPO="${0:A:h:h}"
 COPIA="${TMPDIR:-/tmp}/tamio-aparato"
 
