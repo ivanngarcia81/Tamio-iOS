@@ -23,6 +23,16 @@ final class ConfiguracionIglesiaViewModel {
     }
     private(set) var cargada = false
     private var cargando = false
+    /// **De qué iglesia es la ficha que hay en memoria.** Sin esto, cerrar
+    /// sesión y entrar con otra cuenta sin cerrar la app dejaba aquí la ficha
+    /// de la iglesia anterior —`cargar()` no vuelve a leer—, y el primer
+    /// guardado la subía ENTERA a la iglesia nueva (`guardar` escribe bajo
+    /// `churchIdActivo`, sea de quien sea la ficha). Pasó de verdad: el
+    /// 23-sep la iglesia del revisor de Apple amaneció con el nombre, la
+    /// ciudad, la moneda y los cargos vacíos de la iglesia de prueba.
+    private var iglesiaLeida: String?
+    /// Solo se guarda una ficha en la iglesia de la que se leyó.
+    private var puedeGuardar: Bool { iglesiaLeida == churchIdActivo }
 
     private let repo = repositorioConfiguracionIglesia()
     private var tareaGuardado: Task<Void, Never>?
@@ -44,12 +54,30 @@ final class ConfiguracionIglesiaViewModel {
         await releer()
     }
 
+    /// **Olvida la ficha**: al cerrar sesión y al entrar en otra iglesia. Se
+    /// cancela lo que estuviera por guardarse y la siguiente `cargar()` vuelve
+    /// a leer de verdad.
+    @MainActor
+    func olvidar() {
+        tareaGuardado?.cancel()
+        tareaGuardado = nil
+        cargando = true
+        config = ConfiguracionIglesia()
+        cargando = false
+        cargada = false
+        iglesiaLeida = nil
+    }
+
     @MainActor
     private func releer() async {
+        let iglesia = churchIdActivo
         guard let c = try? await repo.cargar() else { return }
+        // Si entre tanto cambió la iglesia, esto ya no es de nadie.
+        guard iglesia == churchIdActivo else { return }
         cargando = true
         config = c
         cargando = false
+        iglesiaLeida = iglesia
 
         // El logo va aparte porque lo que se guarda aquí es su RUTA, no la
         // imagen. Sin red, `sincronizar` no hace nada y se sigue viendo la que
@@ -63,10 +91,11 @@ final class ConfiguracionIglesiaViewModel {
     /// membrete de los documentos se queda a medias sin que nadie sepa por qué.
     private func programarGuardado() {
         tareaGuardado?.cancel()
+        guard puedeGuardar, let iglesia = iglesiaLeida else { return }
         let aGuardar = config
         tareaGuardado = Task { [repo] in
             try? await Task.sleep(nanoseconds: 800_000_000)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, iglesia == churchIdActivo else { return }
             try? await repo.guardar(aGuardar)
         }
     }
@@ -115,6 +144,7 @@ final class ConfiguracionIglesiaViewModel {
     @MainActor
     func guardarYa() async {
         tareaGuardado?.cancel()
+        guard puedeGuardar else { return }
         try? await repo.guardar(config)
     }
 }

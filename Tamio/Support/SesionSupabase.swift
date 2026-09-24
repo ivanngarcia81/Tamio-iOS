@@ -299,6 +299,9 @@ final class SesionSupabase {
         // siguiente que entre.
         try? BaseLocal.compartida.limpiar()
         Self.olvidarCache()
+        // La ficha de la iglesia en memoria, también: si no, quien entre
+        // después con otra cuenta la heredaría y la subiría a su iglesia.
+        ConfiguracionIglesiaViewModel.compartido.olvidar()
         perfil = Perfil()
         modoSinConexion = false
         estado = .sinSesion
@@ -324,6 +327,7 @@ final class SesionSupabase {
                 // servidor: viene con la sesión.
                 guardado.perfil.correo = correo
                 guardado.perfil.id = uid
+                if guardado.churchId != churchIdActivo { ConfiguracionIglesiaViewModel.compartido.olvidar() }
                 churchIdActivo = guardado.churchId
                 perfil = guardado.perfil
                 autorActual = guardado.perfil.firma
@@ -348,6 +352,8 @@ final class SesionSupabase {
             estado = .sinSesion
             return
         }
+        // Otra iglesia que la de la ficha en memoria: se olvida antes de nada.
+        if leido.churchId != churchIdActivo { ConfiguracionIglesiaViewModel.compartido.olvidar() }
         churchIdActivo = leido.churchId
         perfil = leido.perfil
         perfil.correo = correo
