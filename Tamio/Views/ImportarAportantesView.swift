@@ -24,7 +24,11 @@ struct TraerDatosView: View {
     let despues: () -> Void
 
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.colorScheme) private var esquema
     private var compacto: Bool { sizeClass == .compact }
+    /// El texto sobre el verde: blanco en claro, casi negro en oscuro, donde
+    /// el verde se aclara y el blanco no llega a 4,5:1.
+    private var sobreVerde: Color { Paleta.sobre(Paleta.brand, esquema) }
 
     private var titulo: String { L.t("Trae a tu gente", "Bring your people") }
     private var cuerpo: String {
@@ -64,7 +68,7 @@ struct TraerDatosView: View {
                     .padding(.top, 10)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(sobreVerde)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 28)
             .padding(.bottom, 30)
@@ -119,7 +123,7 @@ struct TraerDatosView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(sobreVerde)
             .padding(.horizontal, 56)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(Paleta.brand.ignoresSafeArea())

@@ -1,134 +1,236 @@
 import SwiftUI
 
-/// **La pantalla de acceso del Mac.**
+/// **La pantalla de acceso del Mac, según el handoff 7** (bloque `locked`).
 ///
-/// No reutiliza `AccesoView`: esa vive en `Views`, que este target no compila,
-/// y son 1.044 líneas que cargan además con la bienvenida y el recorrido de
-/// estreno del teléfono. Aquí hace falta lo que hace falta en un Mac: una
-/// tarjeta centrada, dos casillas y el tabulador funcionando.
+/// Un panel verde de 380 a la izquierda —el lema y la promesa de que nada se
+/// borra— y el formulario a la derecha: correo, contraseña con «Mostrar»,
+/// el aviso del fallo encima del botón y «¿Olvidaste tu contraseña?».
 ///
-/// Se apoya en el MISMO `SesionSupabase` que el iPhone, así que quien entra
-/// aquí entra igual que allí: mismas credenciales, mismo perfil, mismo rol.
+/// **Dos piezas del handoff no entran, y no por olvido:**
+///
+/// - **«Mantener la sesión en este Mac».** Cerrar la sesión en Tamio BORRA
+///   la base del aparato (`SesionSupabase.cerrarSesion` → `BaseLocal.limpiar`),
+///   porque los datos de una iglesia no pueden quedarse para el siguiente que
+///   entre. Con la casilla desmarcada, cerrar la app se llevaría lo que aún
+///   no hubiera subido —la ofrenda capturada sin señal—.
+/// - **«Desbloquear con Touch ID».** Aquí se llega SIN sesión, y Touch ID no
+///   puede iniciarla sin guardar la contraseña. El desbloqueo con Touch ID
+///   existe y es el candado (`CandadoMac`), que tapa una sesión ya abierta.
+///
+/// Decidido por Iván el 24-sep: las dos se quedan fuera.
+///
+/// Se apoya en el MISMO `SesionSupabase` que el iPhone: mismas credenciales,
+/// mismo perfil, mismo rol.
 struct AccesoMac: View {
     let sesion: SesionSupabase
 
     @State private var correo = ""
     @State private var contrasena = ""
+    @State private var mostrar = false
     @State private var recuperando = false
+    /// El aviso de campos vacíos, que es de esta pantalla y no del servidor.
+    @State private var faltanDatos = false
     @FocusState private var foco: Casilla?
 
     private enum Casilla { case correo, contrasena }
 
-    /// **El botón se apaga si falta algo.** Mandar un intento vacío al
-    /// servidor solo sirve para que vuelva un error que ya sabíamos.
-    private var puedeEntrar: Bool {
-        !correo.trimmingCharacters(in: .whitespaces).isEmpty
-            && !contrasena.isEmpty
-            && !sesion.ocupada
+    @Environment(\.colorScheme) private var esquema
+    /// **El texto sobre el verde, legible en los dos modos.** En oscuro el
+    /// verde de marca se aclara y el blanco encima daba 2,41:1 (medido); el
+    /// handoff «Trae tus datos» usa ahí texto casi negro (`--sobre`), que es
+    /// lo que decide `Paleta.sobre`.
+    private var sobreVerde: Color { Paleta.sobre(Paleta.brand, esquema) }
+    private var relleno: Color { esquema == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05) }
+
+    /// El error que se enseña: el de los campos vacíos o el del servidor.
+    private var error: String? {
+        faltanDatos ? L.t("Escribe tu correo y tu contraseña.", "Type your email and your password.")
+                    : sesion.error
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
-            tarjeta
-            Spacer(minLength: 0)
+        HStack(spacing: 0) {
+            panel
+            formulario
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.background)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.suelo)
+        .ignoresSafeArea()
+        .toolbar(removing: .title)
+        .toolbarBackground(.hidden, for: .windowToolbar)
         .sheet(isPresented: $recuperando) {
             RecuperarContrasenaMac(sesion: sesion, correoInicial: correo)
         }
-    }
-
-    private var tarjeta: some View {
-        VStack(spacing: 0) {
-            Image("LogoTamio")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-            Text("Tamio")
-                .font(.system(size: 26, weight: .bold))
-                .padding(.top, 14)
-            Text(L.t("La tesorería de tu iglesia", "Your church's treasury"))
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-                .padding(.top, 2)
-
-            VStack(alignment: .leading, spacing: 10) {
-                casilla(L.t("Correo", "Email")) {
-                    TextField("", text: $correo, prompt: Text("nombre@iglesia.org"))
-                        .textContentType(.username)
-                        .focused($foco, equals: .correo)
-                        .onSubmit { foco = .contrasena }
-                }
-                casilla(L.t("Contraseña", "Password")) {
-                    SecureField("", text: $contrasena, prompt: Text("••••••••"))
-                        .textContentType(.password)
-                        .focused($foco, equals: .contrasena)
-                        .onSubmit { entrar() }
-                }
-            }
-            .textFieldStyle(.roundedBorder)
-            .padding(.top, 24)
-
-            // El fallo, donde se mira después de pulsar: justo encima del
-            // botón y no en una esquina.
-            if let error = sesion.error {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Paleta.negativo)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 12)
-            }
-
-            Button(action: entrar) {
-                HStack(spacing: 8) {
-                    if sesion.ocupada { ProgressView().controlSize(.small) }
-                    Text(sesion.ocupada ? L.t("Entrando…", "Signing in…")
-                                        : L.t("Entrar", "Sign in"))
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(Paleta.brand)
-            .controlSize(.large)
-            .disabled(!puedeEntrar)
-            .keyboardShortcut(.defaultAction)
-            .padding(.top, 18)
-
-            Button(L.t("¿Olvidaste la contraseña?", "Forgot your password?")) {
-                recuperando = true
-            }
-            .buttonStyle(.link)
-            .font(.system(size: 12))
-            .padding(.top, 12)
-        }
-        .padding(34)
-        .frame(width: 380)
-        .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: .black.opacity(0.14), radius: 24, y: 8)
         .onAppear { foco = .correo }
     }
 
-    private func casilla<C: View>(_ rotulo: String, @ViewBuilder campo: () -> C) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(rotulo)
-                .font(.system(size: 11.5, weight: .medium))
-                .foregroundStyle(.secondary)
-            campo()
+    // MARK: El panel verde
+
+    private var panel: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image("LogoTamio")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 34, height: 34)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                Text("Tamio")
+                    .font(.system(size: 19, weight: .bold))
+                    .tracking(-0.19)
+            }
+            Text(L.t("Los libros de la iglesia, en orden.", "The church’s books, kept straight."))
+                .font(.system(size: 27, weight: .bold))
+                .tracking(-0.54)
+                .lineSpacing(4)
+                .padding(.top, 44)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L.t("Tesorería y Secretaría en un solo sitio. Lo que registras en este Mac es tuyo aunque no haya señal: se sincroniza cuando la hay.",
+                     "Treasury and Secretary in one place. What you record on this Mac is yours even with no signal: it syncs when there is one."))
+                .font(.system(size: 13.5))
+                .lineSpacing(5)
+                .foregroundStyle(sobreVerde.opacity(0.9))
+                .padding(.top, 12)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 20)
+            Text(L.t("Cada apunte queda con tu nombre. Nada se borra.",
+                     "Every entry is logged with your name. Nothing is deleted."))
+                .font(.system(size: 12))
+                .foregroundStyle(sobreVerde.opacity(0.82))
         }
+        .foregroundStyle(sobreVerde)
+        // 46 de la barra de título que el verde cubre, como en la bienvenida.
+        .padding(.top, 30 + 46)
+        .padding(.bottom, 30)
+        .padding(.horizontal, 32)
+        .frame(width: 380, alignment: .leading)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Paleta.brand)
     }
 
-    private func entrar() {
-        guard puedeEntrar else { return }
-        Task {
-            await sesion.iniciarSesion(
-                correo: correo.trimmingCharacters(in: .whitespaces),
-                contrasena: contrasena)
+    // MARK: El formulario
+
+    private var formulario: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(L.t("Iniciar sesión", "Sign in"))
+                .font(.system(size: 21, weight: .bold))
+                .tracking(-0.21)
+            Text(L.t("Con la cuenta que te dio tu iglesia.", "With the account your church gave you."))
+                .font(.system(size: 12.5))
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(L.t("Correo", "Email"))
+                    .font(.system(size: 11.5)).foregroundStyle(.secondary)
+                TextField("", text: $correo, prompt: Text(verbatim: "nombre@iglesia.org"))
+                    .textContentType(.username)
+                    .focused($foco, equals: .correo)
+                    .onSubmit { foco = .contrasena }
+                    .modifier(CasillaAcceso(relleno: relleno, conError: error != nil))
+            }
+            .padding(.top, 22)
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(L.t("Contraseña", "Password"))
+                        .font(.system(size: 11.5)).foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    Button(mostrar ? L.t("Ocultar", "Hide") : L.t("Mostrar", "Show")) { mostrar.toggle() }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Paleta.enlace)
+                }
+                Group {
+                    if mostrar {
+                        TextField("", text: $contrasena, prompt: Text(verbatim: "••••••••"))
+                    } else {
+                        SecureField("", text: $contrasena, prompt: Text(verbatim: "••••••••"))
+                    }
+                }
+                .textContentType(.password)
+                .focused($foco, equals: .contrasena)
+                .onSubmit { entrar() }
+                .modifier(CasillaAcceso(relleno: relleno, conError: error != nil))
+            }
+            .padding(.top, 12)
+
+            // El fallo, donde se mira después de pulsar: justo encima del
+            // botón y no en una esquina.
+            if let error {
+                HStack(spacing: 9) {
+                    Image(systemName: "exclamationmark.circle")
+                        .foregroundStyle(Paleta.negativo)
+                    Text(error)
+                        .font(.system(size: 12.5))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 13).padding(.vertical, 10)
+                .background(Paleta.negativo.opacity(0.12),
+                            in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .padding(.top, 12)
+            }
+
+            HStack {
+                Spacer(minLength: 0)
+                Button(L.t("¿Olvidaste tu contraseña?", "Forgot your password?")) { recuperando = true }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(Paleta.enlace)
+            }
+            .padding(.top, 16)
+
+            Button(action: entrar) {
+                HStack(spacing: 8) {
+                    if sesion.ocupada { ProgressView().controlSize(.small).tint(sobreVerde) }
+                    Text(sesion.ocupada ? L.t("Entrando…", "Signing in…")
+                                        : L.t("Iniciar sesión", "Sign in"))
+                        .font(.system(size: 14, weight: .semibold))
+                    if !sesion.ocupada { Text("↩").opacity(0.75) }
+                }
+                .foregroundStyle(sobreVerde)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(sesion.ocupada)
+            .keyboardShortcut(.defaultAction)
+            .padding(.top, 20)
         }
+        .frame(maxWidth: 420)
+        .padding(.horizontal, 46)
+        .padding(.bottom, 40)
+        .onChange(of: correo) { faltanDatos = false }
+        .onChange(of: contrasena) { faltanDatos = false }
+    }
+
+    /// **El botón no se apaga: avisa**, como en el handoff. Apagado no decía
+    /// por qué no se podía entrar; ahora lo dice encima del botón.
+    private func entrar() {
+        let c = correo.trimmingCharacters(in: .whitespaces)
+        guard !c.isEmpty, !contrasena.trimmingCharacters(in: .whitespaces).isEmpty else {
+            faltanDatos = true
+            return
+        }
+        guard !sesion.ocupada else { return }
+        Task { await sesion.iniciarSesion(correo: c, contrasena: contrasena) }
+    }
+}
+
+/// La casilla del handoff: relleno suave, radio 9 y un filo que se pone rojo
+/// cuando hay un fallo.
+private struct CasillaAcceso: ViewModifier {
+    let relleno: Color
+    let conError: Bool
+    func body(content: Content) -> some View {
+        content
+            .textFieldStyle(.plain)
+            .font(.system(size: 13))
+            .padding(.horizontal, 12).padding(.vertical, 9)
+            .background(relleno, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke(conError ? Paleta.negativo : Color.primary.opacity(0.12), lineWidth: 1))
     }
 }
 
@@ -156,6 +258,11 @@ struct BienvenidaMac: View {
 
     @State private var iglesia = ConfiguracionIglesiaViewModel.compartido
     @Environment(\.colorScheme) private var esquema
+    /// **El texto sobre el verde, legible en los dos modos.** En oscuro el
+    /// verde de marca se aclara y el blanco encima daba 2,41:1 (medido); el
+    /// handoff «Trae tus datos» usa ahí texto casi negro (`--sobre`), que es
+    /// lo que decide `Paleta.sobre`.
+    private var sobreVerde: Color { Paleta.sobre(Paleta.brand, esquema) }
 
     private struct Tarjeta {
         let icono: String
@@ -256,7 +363,7 @@ struct BienvenidaMac: View {
                     .font(.system(size: 11.5, weight: .semibold))
                     .padding(.horizontal, 9)
                     .padding(.vertical, 3)
-                    .background(.white.opacity(0.16), in: Capsule())
+                    .background(sobreVerde.opacity(0.16), in: Capsule())
                     .padding(.leading, 4)
             }
 
@@ -270,13 +377,13 @@ struct BienvenidaMac: View {
                      "The treasury and the secretary’s desk \(deLaIglesia), together on this Mac. You already have an account: this is only so you know where things are."))
                 .font(.system(size: 14.5))
                 .lineSpacing(5.5)
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(sobreVerde.opacity(0.92))
                 .frame(maxWidth: 560)
                 .padding(.top, 14)
         }
         .multilineTextAlignment(.center)
         .fixedSize(horizontal: false, vertical: true)
-        .foregroundStyle(.white)
+        .foregroundStyle(sobreVerde)
         // 46 de la barra de título que el handoff dibuja dentro del verde, más
         // sus 6 de aire; 38 abajo.
         .padding(.top, 52)
@@ -349,7 +456,7 @@ struct BienvenidaMac: View {
                         .font(.system(size: 14, weight: .medium))
                         .opacity(0.75)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(sobreVerde)
                 .padding(.horizontal, 24)
                 .frame(minHeight: 40)
                 .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -382,6 +489,11 @@ struct TraerDatosMac: View {
     let despues: () -> Void
 
     @Environment(\.colorScheme) private var esquema
+    /// **El texto sobre el verde, legible en los dos modos.** En oscuro el
+    /// verde de marca se aclara y el blanco encima daba 2,41:1 (medido); el
+    /// handoff «Trae tus datos» usa ahí texto casi negro (`--sobre`), que es
+    /// lo que decide `Paleta.sobre`.
+    private var sobreVerde: Color { Paleta.sobre(Paleta.brand, esquema) }
 
     private var rellenoMarca: Color { Paleta.brand.opacity(esquema == .dark ? 0.22 : 0.12) }
     private var fondoTarjetas: Color { esquema == .dark ? Color(white: 0x1E / 255) : .white }
@@ -425,13 +537,13 @@ struct TraerDatosMac: View {
                      "If your church’s people are already in Excel, a Google Sheet or another system, bring them into Tamio in one go. Nothing is saved until you review it."))
                 .font(.system(size: 14.5))
                 .lineSpacing(5.5)
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(sobreVerde.opacity(0.92))
                 .frame(maxWidth: 560)
                 .padding(.top, 12)
         }
         .multilineTextAlignment(.center)
         .fixedSize(horizontal: false, vertical: true)
-        .foregroundStyle(.white)
+        .foregroundStyle(sobreVerde)
         .padding(.top, 52)
         .padding(.bottom, 34)
         .padding(.horizontal, 54)
@@ -472,7 +584,7 @@ struct TraerDatosMac: View {
                         .font(.system(size: 13.5, weight: .semibold))
                     Text("↩").opacity(0.75)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(sobreVerde)
                 .padding(.horizontal, 20)
                 .frame(height: 34)
                 .background(Paleta.brand, in: RoundedRectangle(cornerRadius: 9, style: .continuous))

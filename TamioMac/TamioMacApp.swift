@@ -145,6 +145,21 @@ struct TamioMacApp: App {
 
     @ViewBuilder
     private var contenido: some View {
+        #if DEBUG
+        // `-mostrarAcceso YES` enseña la pantalla de acceso sin cerrar la
+        // sesión: cerrarla borra la base del Mac y pide la contraseña.
+        if UserDefaults.standard.bool(forKey: "mostrarAcceso") {
+            AccesoMac(sesion: sesion).frame(minWidth: 800, minHeight: 560)
+        } else {
+            contenidoSegunSesion
+        }
+        #else
+        contenidoSegunSesion
+        #endif
+    }
+
+    @ViewBuilder
+    private var contenidoSegunSesion: some View {
         switch sesion.estado {
         case .comprobando:
             // Mientras se mira si hay sesión guardada del arranque anterior.
@@ -152,8 +167,9 @@ struct TamioMacApp: App {
                 .frame(minWidth: 520, minHeight: 360)
 
         case .sinSesion:
+            // El panel verde (380) y el formulario caben a partir de 800.
             AccesoMac(sesion: sesion)
-                .frame(minWidth: 520, minHeight: 480)
+                .frame(minWidth: 800, minHeight: 560)
 
         case .autenticada:
             VentanaPrincipal()

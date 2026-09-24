@@ -55,7 +55,10 @@ sigamos con los tres puntos».
   - Asistencia sin listas tomadas dice «—» y no «0 %» ni «Mejor servicio: 0». Lee las cifras del
     ViewModel, como el iPhone, y las cuatro tarjetas miden lo mismo.
   - El «inspector cortado» que se vio antes era un recorte de la captura, no de la app.
-- [ ] La pantalla de acceso no es la del handoff. La bienvenida ya la hizo la otra sesión.
+- [x] **La pantalla de acceso del Mac, la del handoff 7** (24-sep). Sin «Mantener la sesión» ni
+  «Touch ID»: Iván las dejó fuera, y el porqué está en `LO-QUE-EL-HANDOFF-NO-TRAE.md` §7. En DEBUG se
+  ve sin cerrar la sesión con `-mostrarAcceso YES`. De paso, el texto sobre el verde en modo oscuro
+  pasó de 2,41:1 a 7,08:1 en las tres pantallas verdes del Mac y en la invitación de iOS.
 
 ### 2. Decisiones de Iván que siguen abiertas
 - [x] **Los botones que mueven dinero:** Iván decidió el 23-sep poner **solo lo que ya existe**.

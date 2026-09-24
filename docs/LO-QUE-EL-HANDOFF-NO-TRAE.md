@@ -115,3 +115,19 @@ ancho**, con la barra lateral de la app abierta y el inspector cerrado.
 **Inicio no entra en la petición.** Con el inspector abierto pide unos 1275 pt.
 Iván decidió el 23-sep que a media pantalla se use con el inspector cerrado (⌘I),
 que así cabe, y **no** poner las cuatro tarjetas en 2×2.
+
+## 7. La pantalla de acceso del Mac: dos piezas que no entran · 24 de septiembre
+
+El handoff 7 dibuja en el bloque `locked` dos cosas que la app no puede cumplir. **Iván decidió el
+24-sep dejarlas fuera**, y conviene que el diseño las quite:
+
+- **«Keep me signed in on this Mac».** Cerrar la sesión en Tamio borra la base del aparato
+  (`SesionSupabase.cerrarSesion` → `BaseLocal.limpiar`), para que los datos de una iglesia no se
+  queden para el siguiente que entre. Con la casilla desmarcada, cerrar la app se llevaría lo que
+  aún no hubiera subido.
+- **«Unlock with Touch ID» y su nota.** A esa pantalla se llega sin sesión, y Touch ID no puede
+  iniciarla sin guardar la contraseña. El Touch ID de verdad es el candado (`CandadoMac`), que
+  tapa una sesión ya abierta, y ese sí está dibujado aparte.
+
+El resto del bloque está construido tal cual: el panel verde de 380, «Show/Hide», el aviso de campos
+vacíos con el borde rojo y «Forgot your password?».
