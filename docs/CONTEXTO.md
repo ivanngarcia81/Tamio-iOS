@@ -5,13 +5,94 @@ de un mes— no empiece de cero. **No es documentación del código**: eso ya es
 en los comentarios y en los mensajes de commit, que en este proyecto explican
 el porqué y no el qué. Aquí va lo que NO se deduce leyendo el repo.
 
-Última actualización: **24 de septiembre de 2026** (§0.-25: los tres puntos, «Trae tus datos» en los tres aparatos, la suite en los aparatos físicos y la iglesia del revisor restaurada). Antes: **21 de septiembre de 2026** (§0.-22, el aviso de las
+Última actualización: **24 de septiembre de 2026, noche** (§0.-26: la iglesia del revisor en inglés, el IPA y el paquete del Mac, los handoffs 8 y 9 en el Mac, y la ficha de la iglesia subiendo solo lo cambiado). Antes, el mismo día: §0.-25, los tres puntos, «Trae tus datos» en los tres aparatos, la suite en los aparatos físicos y la iglesia del revisor restaurada. Antes: **21 de septiembre de 2026** (§0.-22, el aviso de las
 variables, el candado y Configuración entera; §0.-21, el ⌘N contextual,
 la primera hoja de Membresía y el estado traducido; §0.-20, las dos primeras acciones del Mac; §0.-19, las
 plantillas que no faltaban; §0.-18, la app de Mac). Lo anterior: las capturas y la
 ficha en §0.-17, lo técnico de la subida en §0.-16, lo de interfaz en §0.-15
 —verificado en el iPhone físico— y la pasada grande sigue siendo la segunda de
 QA del iPhone, del 12 al 14 (§0.-11).
+
+---
+
+## 0.-26 La iglesia del revisor en inglés, la app lista para la tienda y el Mac a media pantalla · 24 de septiembre, tarde y noche
+
+Un chat que empezó por el punto 1 del mapa y acabó con la app de iPhone y la de Mac listas para
+subir. Commits de `b2c9e11` a `fe54076`, todos en `mac-target`.
+
+### Lo que se hizo
+
+- **Las pruebas que escribían en la iglesia, a la maqueta.** `TextoBruto`, `DobleToque` y
+  `FichaAlDia` llevan `-modoRevision YES`. `TextoBruto` ya mide el nombre de 500 caracteres (el acta
+  lo parte en seis líneas del membrete sin pisar nada) y `FichaAlDia` borra con `typeText`:
+  `app.keys["Delete"]` no se deja pulsar en el simulador.
+- **La iglesia del revisor, en inglés** (decisión de Iván): «New Life Church», Houston, Texas, USD,
+  con el padrón, los libros, las actas, la agenda y los cultos en inglés (`docs/demo-revision.sql`).
+  Se corrió una versión limitada a las filas `demo-*`, para no borrar las lápidas de la
+  contaminación del 23-sep. **Dos fallos de la semilla, arreglados de paso:** estado civil,
+  ministerios y cargos iban como etiquetas en español y no como claves JSON (los ministerios salían
+  «Sin área»), y el método de pago iba en clave («efectivo») cuando la app guarda y enseña la
+  etiqueta («Cash»). Visto con la cuenta del revisor en un simulador nuevo, que después se borró;
+  la contraseña que dio Iván no quedó en ningún archivo.
+- **Las capturas de la ficha, en los dos idiomas.** La maqueta en inglés es «New Life Church», la
+  iglesia que ve el revisor; `capturas-tienda.sh` acepta `en`. Cuarenta de iOS
+  (`{telefono,ipad}{,-en}`) y veinte del Mac (`pruebas/capturas-mac.sh`, `mac{,-en}`).
+- **El nombre bajo el icono, «Tamio Church»** (`CFBundleDisplayName`), para no confundirla con la
+  app de Tauri, que también se llama «Tamio» (`com.tesoreria.app`, 1.3.5 en TestFlight). Son dos
+  fichas distintas: la 1.0.0 nativa no choca con la 1.3.5.
+- **El IPA y el paquete del Mac**, en `~/Desktop/Tamio-ipa/` y `~/Desktop/Tamio-mac/`, 1.0.0 con
+  build **2026092401** (sobrescrito por línea de órdenes; el repo sigue en `1`). Firmados para la
+  tienda y revisados por dentro. **Ninguno subido.** Al exportar el del Mac, Xcode creó en la cuenta
+  el certificado «3rd Party Mac Developer Installer».
+- **El IPA se rehízo la noche del 24-sep** con build **2026092402** desde `fe54076`: el de las 14:43
+  se había hecho cuatro minutos antes de ese commit y no llevaba la ficha que sube solo lo cambiado.
+  Revisado por dentro: `church.tamio.native`, 1.0.0, «Tamio Church», Apple Distribution, perfil de
+  tienda, `get-task-allow` en falso. El anterior quedó en `~/Desktop/Tamio-ipa/anterior-2026092401/`.
+  El paquete del Mac sigue en 2026092401 y tampoco lleva `fe54076`.
+- **La ficha existe y el IPA está subido** (24-sep, 18:30). Iván creó la ficha nueva en App Store
+  Connect (Apple ID de la app **6815859389**) y subió el 2026092402 con Transporter: «UPLOAD
+  SUCCEEDED with no errors», sin avisos en el análisis, y el build quedó en PROCESSING. El IPA lleva
+  `ITSAppUsesNonExemptEncryption = NO`, así que TestFlight no pregunta por el cifrado.
+- **El SKU quedó `TAMIO-IOS-001`**, el previsto.
+- **El nombre de la ficha quedó «Tamio Church»**, no «Tamio Iglesia» como se había decidido el
+  17-sep: coincide con el nombre bajo el icono. Puestos al día `FICHA-APP-STORE.md` (también la
+  nota al revisor), `APP-STORE.md`, `ACUERDO-CON-EL-WEB.md` y el comentario de `project.yml`. **El
+  web publicado aún dice «Tamio Iglesia»** en privacidad y soporte; se cambia en su repo.
+- **Handoff 8 en el Mac:** Reportes y Configuración caben a 900 pt plegando su columna (lista
+  flotante; riel de iconos de 60 pt). El Registro de servicios apila sus paneles (partía «Assign
+  person» letra por letra).
+- **Handoff 9 en el Mac:** Membresía (tira 4 × 2, barra en dos líneas, filtros que saltan de verdad
+  con un layout en flujo) y las cinco tablas soltando a 900 pt la columna que ya está en el
+  inspector. A 900 pt, Ingresos y Gastos dejaban el Importe fuera de la vista.
+- **El inspector flotante a media pantalla** (decisión de Iván): ⌘I con la ventana por debajo de
+  1100 pt lo abre encima del contenido; se decide al pulsar.
+- **«diezmo» en el inspector** del Mac, que enseñaba la clave de la categoría: ahora la etiqueta.
+- **La ficha de la iglesia sube solo los campos cambiados** (`CamposIglesia`, migración
+  `v27_baseIglesia`). Subía entera y ganaba la última subida: así volvió a la iglesia de prueba el
+  nombre de 500 caracteres de `TextoBruto`, a las 13:43 UTC, cuando una app subió de su cola una
+  ficha guardada días antes. Probado de punta a punta con el Mac contra la iglesia de prueba y con
+  `CamposIglesiaTests` (5 de 5).
+- **El iPhone de Iván**, con la versión de desarrollo de `fe54076`, instalada a distancia (el Mac lo
+  alcanzaba emparejado). Respaldo previo en `~/Desktop/Tamio-respaldo-iphone-20260924-1802/`.
+
+### Lo que costó, para que no vuelva a costar
+
+- **Medir anchos en un `@State` tumba la app del Mac.** La primera versión del plegado medía con
+  `onGeometryChange`; al plegarse el inspector al cambiar de sección, el estado cambiaba la vista a
+  mitad del layout de AppKit y la app caía en `_postWindowNeedsUpdateConstraints` (9 idas y vueltas
+  Inicio↔Reportes; la versión anterior aguantó 25). Con `ViewThatFits`: cero caídas en cientos de
+  cambios. La caída del 23-sep era de la misma familia.
+- **Un `Divider()` en un `overlay` es horizontal** y se centra: las tres capas flotantes tenían una
+  raya gris a media altura. Primero se culpó a la sombra; no era.
+- **Conducir el Mac por índice de la barra lateral es peligroso:** con los grupos plegados, el guion
+  contó botones del contenido y pulsó «Preparar un respaldo». Por posición o por atajo. Y System
+  Events confunde la app del Mac con la de un simulador: cerrar antes la del simulador.
+- **El push a `main` lo bloquea el clasificador del modo automático** («Git Destructive»), porque es
+  la rama por defecto. Además el repo tiene `deny: git push` en `.claude/settings.json`, que solo
+  aplica si Claude se abre DENTRO del repo (este chat se abrió en `~`).
+- **La «actualización» que Iván vio en el teléfono fuera de casa no era nueva:** era una versión
+  vieja que no había visto antes, y creyó que se acababa de instalar (lo aclaró él el 24-sep).
+  Tampoco había salido de este Mac: ni subida, ni Xcode Cloud, ni instalación por red. Cerrado.
 
 ---
 

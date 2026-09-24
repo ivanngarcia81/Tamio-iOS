@@ -25,9 +25,9 @@ Redactado el **18 de septiembre de 2026**, para `church.tamio.native` 1.0.0 (1).
 
 | Campo | Qué poner |
 |---|---|
-| **Nombre** | `Tamio Iglesia` |
+| **Nombre** | `Tamio Church` (así quedó la ficha el 24-sep; Apple ID 6815859389) |
 | **Bundle ID** | `church.tamio.native` |
-| **SKU** | `TAMIO-IOS-001` |
+| **SKU** | `TAMIO-IOS-001` (confirmado en la ficha el 24-sep) |
 | **Idioma principal** | Español (México) |
 | **Categoría principal** | **Negocios** |
 | **Categoría secundaria** | Finanzas |
@@ -276,7 +276,7 @@ la revisión es en inglés.
     WHY THERE ARE TWO "TAMIO" APPS (4.3)
     "Tamio" (id6794741319) is a single-device app: no account, no server, the
     data lives on that one iPhone. It stays published for the people using it.
-    "Tamio Iglesia" is a different product: multi-user, with a treasurer, a
+    "Tamio Church" is a different product: multi-user, with a treasurer, a
     pastor and a secretary working on the same books under separate roles and
     permissions, synchronised across their devices. They share a name because
     they come from the same project, not because one is a tier of the other.

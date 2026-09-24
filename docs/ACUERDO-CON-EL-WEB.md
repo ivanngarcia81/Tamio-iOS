@@ -347,8 +347,9 @@ hace desde dentro de la app y es inmediato.
 
 ### El nombre, ya decidido
 
-La ficha nueva se llama **«Tamio Iglesia»** (17-sep), y así está escrito en las
-dos páginas. No es un marcador.
+La ficha nueva se decidió como **«Tamio Iglesia»** (17-sep), y así está escrito en las
+dos páginas. **Pero la ficha se creó el 24-sep como «Tamio Church»**: las dos páginas del web
+hay que cambiarlas para que digan lo mismo que la tienda.
 
 «Tamio» a secas no se puede: lo ocupa la app de Tauri, publicada en iOS
 (`apps.apple.com/us/app/tamio/id6794741319`). En toda la tienda no hay ningún

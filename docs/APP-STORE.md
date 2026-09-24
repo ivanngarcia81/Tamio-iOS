@@ -155,7 +155,8 @@ Ese número es el que hay que mirar antes de mandar nada.
 corto: la publicada es gratis, sin cuenta y local, y mandarle esta encima como
 actualización rompe la app a quien la tenga, sin nada que migrar.
 
-**El nombre de la ficha: «Tamio Iglesia».** Decidido el 17-sep. «Tamio» a
+**El nombre de la ficha: «Tamio Church».** Se decidió «Tamio Iglesia» el 17-sep, pero la ficha
+se creó el 24-sep como «Tamio Church», igual que el nombre bajo el icono (Apple ID 6815859389). «Tamio» a
 secas lo ocupa la app de Tauri, que sigue publicada
 (`apps.apple.com/us/app/tamio/id6794741319`), y el nombre es único en toda la
 tienda. Se descartó «Tamio Pro»: la **4.3** va contra dos fichas del mismo
@@ -270,7 +271,7 @@ es el correo oficial y es el que hay que poner también en App Store Connect.
 ### D · App Store Connect · nada de esto se puede hacer antes
 
 13. **CREAR LA FICHA.** Apps → `+` → Nueva app, con `church.tamio.native` en el
-    desplegable y el nombre «Tamio Iglesia». **Es el bloqueante estructural:
+    desplegable y el nombre «Tamio Church» (hecho el 24-sep). **Es el bloqueante estructural:
     sin ficha no se puede ni subir el binario**, y el error que da no lo dice
     —suena a problema de firma—. Ver §0.-16 del contexto.
 14. **Contestar los tres cuestionarios**, que son tres pantallas distintas y es
