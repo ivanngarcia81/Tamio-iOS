@@ -78,13 +78,21 @@ struct OfflineConfiguracionIglesiaRepository: ConfiguracionIglesiaRepository {
 /// En modo revisión no hay sesión ni base que sincronizar: se recuerda en
 /// memoria para poder recorrer la pantalla y ver los documentos con datos.
 struct MockConfiguracionIglesiaRepository: ConfiguracionIglesiaRepository {
+    /// **En inglés es la iglesia del revisor de Apple**: «New Life Church», en
+    /// Houston, como la que ve al entrar con su cuenta (`docs/demo-revision.sql`,
+    /// pasada al inglés el 24-sep). Las capturas en inglés de la ficha salen de
+    /// aquí, y el revisor tiene que reconocer en ellas la iglesia que abre.
+    /// `L.t` se resuelve una vez, al nacer el almacén: el idioma es el del
+    /// arranque.
     private static var almacen = ConfiguracionIglesia(
-        nombre: "Iglesia Nueva Vida",
-        direccion: "Av. Constitución 1234",
-        ciudad: "Monterrey", estado: "Nuevo León", pais: "México",
-        codigoPostal: "64000", idFiscal: "INV010203AB4",
-        telefono: "81 1234 5678", correo: "contacto@nuevavida.mx",
-        pieInstitucional: "Asociación Religiosa registrada",
+        nombre: L.t("Iglesia Nueva Vida", "New Life Church"),
+        direccion: L.t("Av. Constitución 1234", "1842 Main St"),
+        ciudad: L.t("Monterrey", "Houston"), estado: L.t("Nuevo León", "Texas"),
+        pais: L.t("México", "United States"),
+        codigoPostal: L.t("64000", "77002"), idFiscal: L.t("INV010203AB4", "12-3456789"),
+        telefono: L.t("81 1234 5678", "(713) 555-0100"),
+        correo: L.t("contacto@nuevavida.mx", "contact@example.com"),
+        pieInstitucional: L.t("Asociación Religiosa registrada", "New Life Church · Houston, TX"),
         // **"Pastor Abel Ramos", que es quien la maqueta dice que es.** Aquí
         // ponía "Samuel Ruvalcaba", el apellido de la familia ficticia que Iván
         // mandó borrar el 6 de septiembre —"la familia Rubalcaba es ficticio lo

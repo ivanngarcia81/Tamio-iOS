@@ -142,7 +142,8 @@ enum PuenteCortes {
 struct MockDepositosRepository: DepositosRepository {
     private static var almacen: [Corte] = pendientes + depositados
     private static var cuentasAlmacen: [String] = [
-        "Banorte ··4821", "Chase ··7730", "BBVA ··9014",
+        L.t("Banorte ··4821", "Chase ··4821"), "Chase ··7730",
+        L.t("BBVA ··9014", "Wells Fargo ··9014"),
     ]
 
     // MARK: - Lectura
@@ -276,7 +277,7 @@ struct MockDepositosRepository: DepositosRepository {
                                  "Cash from Sunday, Sep 6 · review before taking it to the bank"),
                 estado: .pendiente,
                 movimientos: [],
-                registro: RegistroDeposito(cuenta: "Banorte ··4821",
+                registro: RegistroDeposito(cuenta: L.t("Banorte ··4821", "Chase ··4821"),
                                            fecha: "2026-09-07",
                                            periodo: "2026-09"),
                 registradoPor: "Iván García",
@@ -300,7 +301,7 @@ struct MockDepositosRepository: DepositosRepository {
                                  "Large cut · three checks plus the special service cash"),
                 estado: .pendiente,
                 movimientos: [],
-                registro: RegistroDeposito(cuenta: "Banorte ··4821",
+                registro: RegistroDeposito(cuenta: L.t("Banorte ··4821", "Chase ··4821"),
                                            fecha: "2026-09-07",
                                            periodo: "2026-09")
             ),
@@ -315,7 +316,7 @@ struct MockDepositosRepository: DepositosRepository {
                 descripcion: L.t("Depositado el lunes 17 de agosto", "Deposited Monday, Aug 17"),
                 estado: .depositado,
                 movimientos: [],
-                registro: RegistroDeposito(cuenta: "Banorte ··4821",
+                registro: RegistroDeposito(cuenta: L.t("Banorte ··4821", "Chase ··4821"),
                                            fecha: "2026-08-17",
                                            periodo: "2026-08"),
                 deposito: DepositoBancario(
@@ -323,7 +324,7 @@ struct MockDepositosRepository: DepositosRepository {
                     fecha: "2026-08-17",
                     periodo: "2026-08",
                     monto: 14_320_00,
-                    cuenta: "Banorte ··4821",
+                    cuenta: L.t("Banorte ··4821", "Chase ··4821"),
                     referencia: "OP-884213",
                     comprobantePath: "ficha-banorte-17ago.pdf")
             ),

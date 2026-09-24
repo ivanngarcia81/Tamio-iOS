@@ -105,9 +105,10 @@ La semilla está escrita y comprobada contra el esquema:
 tres meses, tres cortes, dos actas, tres cultos con asistencia y ocho
 actividades. Los teléfonos van en el bloque 555 y los correos en
 `example.com`, que la RFC 2606 reserva para que no puedan ser de nadie. La
-iglesia se llama **«Iglesia Nueva Vida», en Monterrey**, que es el mismo nombre
-que sale en las capturas de la ficha: si el revisor las compara con lo que ve
-al entrar, tiene que reconocerlo.
+iglesia se llama **«New Life Church», en Houston, y lleva dólares** desde el
+24-sep. Antes era «Iglesia Nueva Vida», en Monterrey, que es el nombre que sale
+en las capturas de la ficha: si el revisor las compara con lo que ve al
+entrar, ya no coinciden.
 
 Los tres pasos, en este orden —y **los dos primeros los hace Iván**, porque uno
 pide el panel y el otro pide la app:

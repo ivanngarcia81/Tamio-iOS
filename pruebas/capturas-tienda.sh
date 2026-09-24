@@ -1,9 +1,12 @@
 #!/bin/zsh
 # Genera el juego de capturas de la ficha de App Store, en el SIMULADOR.
 #
-# Uso:  pruebas/capturas-tienda.sh telefono|ipad [--limpio]
+# Uso:  pruebas/capturas-tienda.sh telefono|ipad [en] [--limpio]
 #
-# Sale en  docs/capturas-tienda/<telefono|ipad>/NN-nombre.png
+# Sale en  docs/capturas-tienda/<telefono|ipad>/NN-nombre.png, y con `en` en
+# docs/capturas-tienda/<telefono|ipad>-en/: el juego de la localización en-US,
+# con la maqueta en inglés, que es «New Life Church» como la iglesia del
+# revisor de Apple.
 #
 # ── Por qué una copia y no el repo ──────────────────────────────────────────
 # Hacen falta dos cambios que NO pueden quedarse en el repo:
@@ -39,12 +42,19 @@ fi
 trap '/bin/rmdir "$CERROJO" 2>/dev/null' EXIT
 
 QUE="${1:?telefono o ipad}"
-LIMPIO=0
-[[ "$2" == "--limpio" ]] && LIMPIO=1
+LIMPIO=0; IDIOMA=es
+for a in "${@:2}"; do
+  case "$a" in
+    --limpio) LIMPIO=1 ;;
+    en)       IDIOMA=en ;;
+    *) echo "!! argumento desconocido: $a" >&2; exit 2 ;;
+  esac
+done
 
 REPO="${0:A:h:h}"
 COPIA="${TMPDIR:-/tmp}/tamio-tienda"
 DEST="$REPO/docs/capturas-tienda/$QUE"
+[[ "$IDIOMA" == en ]] && DEST="$DEST-en"
 
 case "$QUE" in
   telefono) SIM="iPhone 17 Pro Max"; PRUEBA="testTelefono"; ROTAR=no ;;
@@ -125,7 +135,8 @@ mkdir -p "$DEST"
 CAP=$!
 
 set +e
-xcodebuild test -scheme Tamio -destination "id=$UDID" \
+# `TEST_RUNNER_IDIOMA` llega a la prueba como `IDIOMA`.
+TEST_RUNNER_IDIOMA="$IDIOMA" xcodebuild test -scheme Tamio -destination "id=$UDID" \
   -only-testing:"PruebasUIAparato/CapturasTienda/$PRUEBA" \
   -resultBundlePath "$COPIA/tienda.xcresult" > "$LOG" 2>&1
 EXIT=$?

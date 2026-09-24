@@ -319,7 +319,7 @@ Ya existe, con su iglesia sembrada y comprobada contra las cifras que
 |---|---|
 | Correo | `ivanngarcia82+prueba@gmail.com` (confirmada) |
 | Perfil | «Revisión App Store», administrador |
-| Iglesia | «Iglesia Nueva Vida», `809d3b50-810f-433b-a0d2-f3413ca49637` |
+| Iglesia | «New Life Church», Houston, USD (hasta el 24-sep, «Iglesia Nueva Vida», Monterrey, MXN), `809d3b50-810f-433b-a0d2-f3413ca49637` |
 | Contenido | 14 miembros · 34 movimientos · 3 cortes · 2 actas · 3 cultos · 8 actividades |
 | Dinero | ingresos $48,820.00 · gastos $31,520.50 · balance $17,299.50 |
 | **Perfiles** | **2** — el segundo es `ivanngarcia82+revision2@gmail.com`, administrador |
@@ -358,6 +358,13 @@ Se generan con `pruebas/capturas-tienda.sh`, que las deja en
 - **Sin la franja naranja del modo revisión.** Sale fija en lo alto de todas
   las pantallas y el guion la apaga en la copia. Es el fallo que no se ve
   hasta mirar el PNG: mirar el PNG.
+- **Y en inglés, para la localización en-US**:
+  `pruebas/capturas-tienda.sh telefono en` (e `ipad en`) las deja en
+  `telefono-en/` e `ipad-en/`. En inglés la maqueta es **«New Life Church»,
+  Houston, en dólares**, la misma iglesia que ve el revisor al entrar con su
+  cuenta (desde el 24-sep). En español sigue siendo «Iglesia Nueva Vida»,
+  Monterrey. Coincide el nombre de la iglesia, no las personas: la maqueta
+  tiene su propio padrón.
 - **No están en el repo**, a propósito: pesan 10 MB y el repo empaquetado pesa
   4,5. Se rehacen en tres minutos con el guion. Están en `.gitignore` con el
   motivo escrito.

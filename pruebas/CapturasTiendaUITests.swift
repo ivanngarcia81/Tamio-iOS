@@ -7,7 +7,7 @@ import XCTest
 ///
 /// Por qué existe aparte de `RecorridoInterfaz`, que ya recorre lo mismo:
 ///
-/// 1. **Va en español.** El recorrido de QA fuerza el inglés porque ahí lo que
+/// 1. **Va en español**, y en inglés si se pide (`enIngles`, abajo). El recorrido de QA fuerza el inglés porque ahí lo que
 ///    se mira es el idioma que menos se usa y más se rompe. La ficha es para
 ///    México, y una captura en inglés en una ficha en español es un rechazo
 ///    tonto —2.3.3: las capturas tienen que enseñar la app en el idioma de esa
@@ -30,6 +30,15 @@ final class CapturasTienda: XCTestCase {
 
     var app: XCUIApplication!
 
+    /// **El juego en inglés, para la localización en-US de la ficha.** Lo pide
+    /// `capturas-tienda.sh <telefono|ipad> en`, que pasa `TEST_RUNNER_IDIOMA`;
+    /// xcodebuild le quita el prefijo al llegar aquí. En inglés la maqueta es
+    /// «New Life Church», Houston: la iglesia del revisor de Apple.
+    private let enIngles = ProcessInfo.processInfo.environment["IDIOMA"] == "en"
+
+    /// La etiqueta en el idioma de la corrida.
+    private func t(_ es: String, _ en: String) -> String { enIngles ? en : es }
+
     override func setUpWithError() throws {
         continueAfterFailure = true
         app = XCUIApplication()
@@ -38,10 +47,10 @@ final class CapturasTienda: XCTestCase {
         // fechas y el dinero. Las dos, o el encabezado sale en español y los
         // importes con punto decimal inglés.
         app.launchArguments = [
-            "-prefs.idioma", "espanol",
+            "-prefs.idioma", enIngles ? "ingles" : "espanol",
             "-prefs.bienvenidaVista", "1",
-            "-AppleLanguages", "(es-MX)",
-            "-AppleLocale", "es_MX",
+            "-AppleLanguages", enIngles ? "(en-US)" : "(es-MX)",
+            "-AppleLocale", enIngles ? "en_US" : "es_MX",
         ]
         // Candado apagado por argumento: un bloqueo guardado en el aparato
         // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
@@ -151,13 +160,13 @@ final class CapturasTienda: XCTestCase {
     func testTelefono() {
         // 1 · Inicio. Es la primera del resultado de búsqueda: la que tiene que
         // decir "esto lleva la contabilidad de una iglesia" sin leer nada.
-        pestana("Inicio")
+        pestana(t("Inicio", "Home"))
         volcado("inicio")
         parada("01-inicio")
 
         // 2 · Movimientos. El libro, que es el producto.
-        pestana("Tesorería")
-        if abrirFila("Movimientos") {
+        pestana(t("Tesorería", "Treasury"))
+        if abrirFila(t("Movimientos", "Transactions")) {
             parada("02-movimientos")
 
             // 3 · La ficha de un movimiento con su historial. Es lo que
@@ -171,7 +180,7 @@ final class CapturasTienda: XCTestCase {
             // la captura que tiene que demostrar justo lo contrario. El folio
             // 1043 lleva tres entradas, nota larga y comprobante. Si algún día
             // cambia la semilla, esta captura se queda muda sin avisar.
-            if tocarTexto("Diezmo · María Hernández") {
+            if tocarTexto(t("Diezmo · María Hernández", "Tithe · María Hernández")) {
                 parada("03-detalle-movimiento")
                 volver()
             }
@@ -181,25 +190,25 @@ final class CapturasTienda: XCTestCase {
         // 4 · Un corte por dentro, no la lista. La lista son tres filas y
         // media pantalla vacía; el corte enseña de qué dinero está hecho, que
         // es lo que hay que contar.
-        if abrirFila("Depósitos") {
-            if tocarTexto("Culto domingo 6 de septiembre") { parada("04-deposito"); volver() }
+        if abrirFila(t("Depósitos", "Deposits")) {
+            if tocarTexto(t("Culto domingo 6 de septiembre", "Sunday, September 6 service")) { parada("04-deposito"); volver() }
             volver()
         }
 
         // 5 · Reportes · estado financiero.
-        if abrirFila("Reportes") {
-            if tocarTexto("Estado financiero") { parada("05-estado-financiero"); volver() }
+        if abrirFila(t("Reportes", "Reports")) {
+            if tocarTexto(t("Estado financiero", "Financial statement")) { parada("05-estado-financiero"); volver() }
             volver()
         }
 
         // 6 · Por revisar. La aprobación por rol, que es la razón de que esto
         // no sea la app de un solo aparato.
-        pestana("Por revisar")
+        pestana(t("Por revisar", "To review"))
         parada("06-por-revisar")
 
         // 7 · Membresía · el padrón.
-        pestana("Secretaría")
-        if abrirFila("Membresía") {
+        pestana(t("Secretaría", "Secretary"))
+        if abrirFila(t("Membresía", "Membership")) {
             parada("07-membresia")
             // 8 · La ficha de un miembro.
             if tocarTexto("María Hernández Ríos") { parada("08-ficha-miembro"); volver() }
@@ -215,8 +224,8 @@ final class CapturasTienda: XCTestCase {
         // siete del mes ya pasaron y salen TACHADAS y en gris. Una ficha de la
         // tienda con una lista tachada se lee como cosas canceladas. La rejilla
         // del mes es más pobre y no miente.
-        if abrirFila("Agenda") {
-            elegirVista("Mes")
+        if abrirFila(t("Agenda", "Calendar")) {
+            elegirVista(t("Mes", "Month"))
             parada("09-agenda")
             volver()
         }
@@ -224,8 +233,8 @@ final class CapturasTienda: XCTestCase {
         // 10 · Un acta por dentro, por lo mismo que el corte: la lista son
         // cuatro filas, y lo que distingue esto de un cuaderno son los
         // acuerdos y las tres firmas.
-        if abrirFila("Actas") {
-            if tocarTexto("Acta 2026-08 · Consejo") { parada("10-acta"); volver() }
+        if abrirFila(t("Actas", "Minutes")) {
+            if tocarTexto(t("Acta 2026-08 · Consejo", "Minutes 2026-08 · Council")) { parada("10-acta"); volver() }
             volver()
         }
     }
@@ -239,16 +248,16 @@ final class CapturasTienda: XCTestCase {
         sleep(2)
 
         let recorrido: [(String, String)] = [
-            ("01-inicio",            "Inicio"),
-            ("02-ingresos",          "Ingresos"),
-            ("03-depositos",         "Depósitos"),
-            ("04-reportes",          "Reportes"),
-            ("05-por-revisar",       "Por revisar"),
-            ("06-membresia",         "Membresía"),
-            ("07-actas",             "Actas"),
-            ("08-cartas",            "Cartas y traslados"),
-            ("09-agenda",            "Agenda"),
-            ("10-registro",          "Registro"),
+            ("01-inicio",            t("Inicio", "Home")),
+            ("02-ingresos",          t("Ingresos", "Income")),
+            ("03-depositos",         t("Depósitos", "Deposits")),
+            ("04-reportes",          t("Reportes", "Reports")),
+            ("05-por-revisar",       t("Por revisar", "To review")),
+            ("06-membresia",         t("Membresía", "Membership")),
+            ("07-actas",             t("Actas", "Minutes")),
+            ("08-cartas",            t("Cartas y traslados", "Letters & transfers")),
+            ("09-agenda",            t("Agenda", "Calendar")),
+            ("10-registro",          t("Registro", "Log")),
         ]
 
         for (marca, seccion) in recorrido {
@@ -266,7 +275,7 @@ final class CapturasTienda: XCTestCase {
         let boton = app.buttons.matching(NSPredicate(
             format: "label CONTAINS 'Sidebar' OR label CONTAINS 'barra lateral'")).firstMatch
         guard boton.exists, boton.isHittable else { return }
-        let yaSeVe = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reportes'")).firstMatch
+        let yaSeVe = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", t("Reportes", "Reports"))).firstMatch
         if !yaSeVe.exists || !yaSeVe.isHittable { boton.tap(); sleep(1) }
     }
 }

@@ -88,7 +88,7 @@ struct MockDashboardRepository: DashboardRepository {
         return DashboardData(
             church: Church(id: "1",
                 nombre: "Iglesia Getsemaní",
-                ciudad: "Monterrey, N.L.",
+                ciudad: L.t("Monterrey, N.L.", "Houston, TX"),
                 moneda: Catalogos.monedaPorDefecto.codigo,
                 tesoreroNombre: "Iván García"
             ),
@@ -139,8 +139,8 @@ struct MockDashboardRepository: DashboardRepository {
         [
             Tx(id: "1", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "María Hernández",
                concepto: L.t("Diezmo", "Tithe"), folio: "1042", metodo: L.t("Efectivo", "Cash"), monto: 1_200_00),
-            Tx(id: "2", tipo: .gasto, categoria: L.t("Servicios", "Utilities"), persona: "Luz CFE",
-               concepto: L.t("Luz CFE", "CFE power"), folio: "0518", metodo: L.t("Transferencia", "Transfer"), monto: 3_410_50),
+            Tx(id: "2", tipo: .gasto, categoria: L.t("Servicios", "Utilities"), persona: L.t("Luz CFE", "CenterPoint Energy"),
+               concepto: L.t("Luz CFE", "Electric bill"), folio: "0518", metodo: L.t("Transferencia", "Transfer"), monto: 3_410_50),
             Tx(id: "3", tipo: .ingreso, categoria: L.t("Ofrenda", "Offering"), persona: nil,
                concepto: L.t("Ofrenda misionera", "Mission offering"), folio: "1041", metodo: L.t("Culto domingo", "Sunday service"), monto: 6_845_00),
             Tx(id: "4", tipo: .ingreso, categoria: L.t("Diezmo", "Tithe"), persona: "Ana Lucía Torres",
@@ -158,7 +158,7 @@ struct MockDashboardRepository: DashboardRepository {
                        subtitulo: L.t("10:00 · roster completo", "10:00 · full roster"), familia: 1),
             AgendaItem(id: "3", dia: L.t("DOM", "SUN"), num: "23",
                        titulo: L.t("Depósito bancario", "Bank deposit"),
-                       subtitulo: L.t("Banorte · 14 movimientos sin depositar", "Banorte · 14 undeposited items"), familia: 2),
+                       subtitulo: L.t("Banorte · 14 movimientos sin depositar", "Chase · 14 undeposited items"), familia: 2),
             AgendaItem(id: "4", dia: L.t("MIÉ", "WED"), num: "26",
                        titulo: L.t("Carta de traslado · J. Medina", "Transfer letter · J. Medina"),
                        subtitulo: L.t("Pendiente de firma del pastor", "Awaiting pastor's signature"), familia: 3),

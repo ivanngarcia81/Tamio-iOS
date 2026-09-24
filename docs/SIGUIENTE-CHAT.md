@@ -22,9 +22,14 @@ sigamos».
 
 ## Antes de mandar la app a Apple
 
-- **Revisar la iglesia del revisor** (`809d3b50-810f-433b-a0d2-f3413ca49637`). Debe seguir siendo
-  «Iglesia Nueva Vida», Monterrey, MXN, con 14 miembros y 34 movimientos. Se contaminó una vez
-  (§0.-25) y se restauró el 24-sep.
+- **Revisar la iglesia del revisor** (`809d3b50-810f-433b-a0d2-f3413ca49637`). Debe ser
+  «New Life Church», Houston, USD, con 14 miembros y 34 movimientos. Se contaminó una vez
+  (§0.-25) y se restauró el 24-sep. Ese mismo día Iván la pasó al inglés, entera, con
+  `docs/demo-revision.sql` (antes era «Iglesia Nueva Vida», Monterrey, MXN). Solo los nombres de
+  las personas siguen siendo hispanos. Las cifras que debe dar están al final de ese archivo.
+- **Las capturas de la ficha, rehechas el 24-sep**, en español y en inglés
+  (`docs/capturas-tienda/{telefono,ipad}{,-en}/`, cuarenta en total). Las de inglés enseñan «New
+  Life Church», como la cuenta del revisor. Falta subirlas a App Store Connect.
 - **La contraseña del revisor** en la nota de `FICHA-APP-STORE.md`, que va en blanco a propósito.
 - **Las notas para el revisor:** explicar la cuenta «Courtesy» con la 3.1.3(c) (`APP-STORE.md`).
 
