@@ -199,10 +199,14 @@ histórico por importación.
   «Continue».
 
 **Falta:**
-- **Una caída del Mac, sin reproducir:** a las 10:43 del 23-sep, un bucle de restricciones de AppKit
-  (`_postWindowNeedsUpdateConstraints`) al cambiar de sección. Encaja con Informes estirando la
-  ventana antes del arreglo de ese día. Recorridas las 15 secciones después, no se cae. Informe:
-  `~/Library/Logs/DiagnosticReports/Tamio-2026-09-23-104349.ips`.
+- **Una caída del Mac, que no se reproduce:** a las 10:43 del 23-sep, un bucle de restricciones de
+  AppKit (`_postWindowNeedsUpdateConstraints`) al cambiar de sección, con la pantalla en 4K.
+  Informe: `~/Library/Logs/DiagnosticReports/Tamio-2026-09-23-104349.ips`.
+  - Buscada el 24-sep en la versión actual y en la de antes del arreglo de Informes (`694eee8`,
+    compilada aparte). En las 15 secciones: estrechando y ensanchando, con el inspector abierto y
+    cerrado, con la ventana contra el borde, con clics reales y con el AppleScript de la barra
+    lateral. Ninguna se cayó, así que la hipótesis de Informes no se confirmó.
+  - Si vuelve a pasar, mirar si la pantalla era la 4K.
 - **Sin ver en pantalla:** el padrón vacío (la iglesia tiene padrón) y el aviso de sin conexión
   del «Hecho».
 - **El concepto vacío** de un aporte sigue saliendo como «Aporte», que no es categoría del
