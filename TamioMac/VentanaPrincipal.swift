@@ -57,6 +57,32 @@ struct VentanaPrincipal: View {
             VStack(spacing: 0) {
                 contenido
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // **El inspector flotando**, a media pantalla (handoff 8):
+                    // encima del contenido y sin empujarlo. Es una capa, no
+                    // un panel de la ventana, así que abrirlo no pliega ni
+                    // despliega nada de AppKit.
+                    .overlay(alignment: .trailing) {
+                        if estado.inspectorFlotando && seccionAlimentaElInspector {
+                            InspectorTamio(seccion: estado.seccion, ficha: ficha)
+                                .frame(width: 312)
+                                .frame(maxHeight: .infinity)
+                                // El fondo, hecho de vista y no de un color suelto: un color subía
+                                // por detrás de la barra de herramientas y tapaba sus botones.
+                                .background {
+                                    Rectangle()
+                                        .fill(Color(nsColor: .windowBackgroundColor))
+                                        .shadow(color: .black.opacity(0.22), radius: 18, x: -8)
+                                }
+                                // **El borde, una línea vertical y no `Divider()`.** Fuera de un
+                                // `HStack` un `Divider` es horizontal y se centraba a media altura:
+                                // una raya gris de lado a lado de la capa (24-sep).
+                                .overlay(alignment: .leading) {
+                                    Rectangle().fill(Color(nsColor: .separatorColor)).frame(width: 1)
+                                }
+                                .onKeyPress(.escape) { estado.inspectorFlotando = false; return .handled }
+                                .transition(.move(edge: .trailing))
+                        }
+                    }
                 BarraEstado(estado: textoEstado, hayInspector: seccionAlimentaElInspector)
             }
             .navigationTitle(estado.seccion.titulo)
@@ -407,7 +433,7 @@ struct VentanaPrincipal: View {
 
         ToolbarItem(placement: .primaryAction) {
             Button {
-                estado.inspectorAbierto.toggle()
+                estado.alternarInspector()
             } label: {
                 Label(L.t("Inspector", "Inspector"), systemImage: "sidebar.trailing")
             }

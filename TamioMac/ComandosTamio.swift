@@ -85,10 +85,10 @@ struct ComandosTamio: Commands {
 
         // MARK: Ver
         CommandGroup(after: .toolbar) {
-            Button(estado.inspectorAbierto
+            Button(estado.inspectorVisible
                    ? L.t("Ocultar inspector", "Hide inspector")
                    : L.t("Mostrar inspector", "Show inspector")) {
-                estado.inspectorAbierto.toggle()
+                estado.alternarInspector()
             }
             .keyboardShortcut("i", modifiers: .command)
             // Apagado donde no hay inspector (Reportes, Configuración, Actas),

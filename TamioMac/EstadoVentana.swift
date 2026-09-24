@@ -1,3 +1,4 @@
+import AppKit
 import Observation
 import SwiftUI
 
@@ -87,6 +88,37 @@ final class EstadoVentana {
     /// donde se lee el detalle de lo seleccionado, y una ventana que arranca
     /// sin él parece que le falta algo.
     var inspectorAbierto = true
+
+    /// **El inspector flotando encima del contenido**, que es como lo dibuja el
+    /// handoff 8 a media pantalla (decisión de Iván, 24-sep): a 900 pt no cabe
+    /// como columna sin empujar el contenido, así que se abre por encima.
+    var inspectorFlotando = false
+
+    /// Si hay inspector a la vista, de cualquiera de las dos maneras.
+    var inspectorVisible: Bool { inspectorAbierto || inspectorFlotando }
+
+    /// Por debajo de este ancho de ventana el inspector abre flotando. Con él
+    /// como columna, la ventana más estrecha que cabe es de unos 1090
+    /// (Inicio, medido el 24-sep).
+    static let anchoParaInspectorFijo: CGFloat = 1100
+
+    /// **⌘I y el botón de la barra.** La forma se decide AL PULSAR, mirando el
+    /// ancho de la ventana en ese momento, y no midiendo la ventana todo el
+    /// rato: un estado que cambiaba con el ancho a mitad del layout de AppKit
+    /// fue lo que tumbó la app al plegar paneles (`PantallaReportes`, 24-sep).
+    func alternarInspector() {
+        if inspectorVisible {
+            inspectorAbierto = false
+            inspectorFlotando = false
+            return
+        }
+        let ancho = NSApp.keyWindow?.frame.width ?? .infinity
+        if ancho < Self.anchoParaInspectorFijo {
+            inspectorFlotando = true
+        } else {
+            inspectorAbierto = true
+        }
+    }
 
     /// El periodo del que se habla: lo que en la maqueta es el selector de tres
     /// posiciones de la barra de herramientas.

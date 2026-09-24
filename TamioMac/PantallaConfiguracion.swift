@@ -256,11 +256,19 @@ struct PantallaConfiguracion: View {
             barra
                 .frame(width: Self.anchoBarra)
                 .frame(maxHeight: .infinity)
-                // Sin `ignoresSafeAreaEdges`, el fondo sube por detrás de la barra
-                // de herramientas y tapa sus botones y el título.
-                .background(Color(nsColor: .windowBackgroundColor), ignoresSafeAreaEdges: [])
-                .overlay(alignment: .trailing) { Divider() }
-                .shadow(color: .black.opacity(0.22), radius: 18, x: 6)
+                // El fondo, hecho de vista y no de un color suelto: un color subía
+                // por detrás de la barra de herramientas y tapaba sus botones.
+                .background {
+                    Rectangle()
+                        .fill(Color(nsColor: .windowBackgroundColor))
+                        .shadow(color: .black.opacity(0.22), radius: 18, x: 6)
+                }
+                // **El borde, una línea vertical y no `Divider()`.** Fuera de un
+                // `HStack` un `Divider` es horizontal y se centraba a media altura:
+                // una raya gris de lado a lado de la capa (24-sep).
+                .overlay(alignment: .trailing) {
+                    Rectangle().fill(Color(nsColor: .separatorColor)).frame(width: 1)
+                }
                 .padding(.leading, Self.anchoRiel + 1)
                 .onKeyPress(.escape) { seccionesAbiertas = false; return .handled }
         }
