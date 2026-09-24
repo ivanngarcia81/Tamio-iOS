@@ -93,6 +93,11 @@ Esto no son campos: son cosas que la app hace y el diseño no puede saber.
 
 ## 6. Media pantalla: dos pantallas que no caben en 900 pt · 23 de septiembre
 
+> **Resuelto con el handoff 8 (24-sep).** Reportes pliega su lista de tipos por debajo de 809 pt de
+> pantalla y la abre flotando desde un botón de su barra; Configuración cambia su barra por un riel
+> de iconos de 60 pt por debajo de 741. El diseño dibuja solo los dos estados; el corte es donde
+> deja de caber. La hoja del PDF no se achica al 88 % del diseño: en el Mac mide 612 (carta) y cabe.
+
 Media pantalla de una MacBook Pro de 14" son **900 pt**. El resto de la app
 cabe con el inspector cerrado (§0.-23 de `CONTEXTO.md`), pero estas dos no, y
 hacerlas caber es rediseño. **Iván decidió el 23-sep pedírselo al diseñador** en
@@ -117,6 +122,8 @@ Iván decidió el 23-sep que a media pantalla se use con el inspector cerrado (�
 que así cabe, y **no** poner las cuatro tarjetas en 2×2.
 
 ## 7. La pantalla de acceso del Mac: dos piezas que no entran · 24 de septiembre
+
+> **Resuelto en el handoff 8 (24-sep):** el diseño quitó las dos piezas y el separador «or».
 
 El handoff 7 dibuja en el bloque `locked` dos cosas que la app no puede cumplir. **Iván decidió el
 24-sep dejarlas fuera**, y conviene que el diseño las quite:

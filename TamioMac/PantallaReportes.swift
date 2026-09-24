@@ -21,35 +21,79 @@ struct PantallaReportes: View {
     /// botón: se la damos nosotros con un ancla invisible en su fondo.
     @State private var anclaCompartir = AnclaCompartir()
 
+    /// **La lista de tipos se pliega cuando no cabe al lado** (handoff 8).
+    ///
+    /// Por debajo de lo que piden la lista y el contenido juntos (248 + 1 +
+    /// 560 = 809, unos 1030 de ventana con la barra de la app), la lista se
+    /// esconde y la abre un botón de la barra, flotando encima, como los
+    /// buzones de Mail. El diseño dibuja solo dos estados, pantalla completa y
+    /// 900; el corte es donde deja de caber, que es un dato y no una decisión
+    /// (`LO-QUE-EL-HANDOFF-NO-TRAE.md` §6).
+    @State private var tiposAbiertos = false
+    private static let anchoLista: CGFloat = 248
+    private static let minimoContenido: CGFloat = 560
+
     var body: some View {
-        // **`HStack` y no `HSplitView`, y es por una medida.**
+        // **`ViewThatFits` y no medir el ancho**, y es por una caída.
         //
-        // El `HSplitView` de macOS no comprime por debajo del tamaño IDEAL de
-        // sus paneles, así que esta pantalla imponía un ancho mínimo de ventana
-        // de más de **2000 puntos** —más que la pantalla de Iván— y la ventana
-        // se quedaba estancada: no se podía achicar ni ajustar. Medido con
-        // `set size` en las quince secciones; las tres que usaban `HSplitView`
-        // —Reportes, Cartas y Registro de servicios— eran las únicas que no
-        // cedían, contra los 964 de una tabla.
+        // La primera versión medía con `onGeometryChange` y guardaba el ancho
+        // en un `@State`. Al cambiar de sección el inspector se pliega animado,
+        // el ancho cruzaba el corte a media animación y el estado cambiaba la
+        // vista DENTRO del layout de AppKit: la app se caía en
+        // `_postWindowNeedsUpdateConstraints` a la novena ida y vuelta entre
+        // Inicio y Reportes (24-sep). La versión anterior aguantó 25. Con
+        // `ViewThatFits` la elección es parte del layout y no cambia nada a
+        // mitad de él.
         //
-        // Lo que se pierde es arrastrar el divisor. Lo que se gana es que la
-        // ventana se pueda usar en media pantalla, que es como se trabaja con
-        // dos ventanas al lado.
-        HStack(spacing: 0) {
-            listaDeTipos
-                .frame(width: 248)
-            Divider()
-            // **560 y no 260** (23-sep). Con 260 la ventana bajaba a 761 y el
-            // contenido no cabía en lo que quedaba: se montaba 23 pt sobre la
-            // lista, truncaba los selectores («Septem…», «All cate…») y los
-            // rótulos de las tarjetas, y la tabla perdía la columna del mes.
-            // Caber rompiendo es peor que no caber (`a3bb7b3`): con esto
-            // Reportes ya NO cabe en media pantalla de 900, y hacerlo caber es
-            // rediseño (plegar la lista de tipos), como ya decía §0.-22.
-            contenido
-                .frame(minWidth: 560, maxWidth: .infinity, maxHeight: .infinity)
+        // Y de paso da el mínimo de ventana bueno: con propuesta cero no cabe
+        // ninguno y se queda con el último, el plegado.
+        //
+        // **`HStack` y no `HSplitView`**, por una medida: el `HSplitView` de
+        // macOS no comprime por debajo del tamaño IDEAL de sus paneles, y esta
+        // pantalla imponía más de 2000 puntos de ventana. Lo que se pierde es
+        // arrastrar el divisor.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 0) {
+                listaDeTipos
+                    .frame(width: Self.anchoLista)
+                Divider()
+                // **560 y no 260** (23-sep). Con 260 el contenido no cabía:
+                // truncaba los selectores («Septem…», «All cate…») y los
+                // rótulos de las tarjetas. Caber rompiendo es peor que no
+                // caber (`a3bb7b3`). El `idealWidth` es lo que mira
+                // `ViewThatFits` para decidir si la lista cabe al lado.
+                contenido(plegada: false)
+                    .frame(minWidth: Self.minimoContenido, idealWidth: Self.minimoContenido,
+                           maxWidth: .infinity, maxHeight: .infinity)
+            }
+            contenido(plegada: true)
+                .frame(minWidth: Self.minimoContenido, idealWidth: Self.minimoContenido,
+                       maxWidth: .infinity, maxHeight: .infinity)
+                .onDisappear { tiposAbiertos = false }
         }
+        // Elegir un reporte cierra la lista flotante, como elegir un buzón.
+        .onChange(of: vm.seleccionId) { _, _ in tiposAbiertos = false }
         .task { await vm.cargar() }
+    }
+
+    /// La lista de tipos, flotando sobre el contenido cuando no cabe al lado.
+    /// Va DEBAJO de la barra de selectores, para que el botón que la abre siga
+    /// a la vista y la cierre, como en Mail. Un clic fuera o Escape también.
+    private var tiposFlotando: some View {
+        ZStack(alignment: .topLeading) {
+            Color.black.opacity(0.001)
+                .contentShape(Rectangle())
+                .onTapGesture { tiposAbiertos = false }
+            listaDeTipos
+                .frame(width: Self.anchoLista)
+                .frame(maxHeight: .infinity)
+                // Sin `ignoresSafeAreaEdges`, el fondo sube por detrás de la barra
+                // de herramientas y tapa sus botones y el título.
+                .background(Color(nsColor: .windowBackgroundColor), ignoresSafeAreaEdges: [])
+                .overlay(alignment: .trailing) { Divider() }
+                .shadow(color: .black.opacity(0.22), radius: 18, x: 6)
+                .onKeyPress(.escape) { tiposAbiertos = false; return .handled }
+        }
     }
 
     // MARK: - Los reportes
@@ -79,40 +123,56 @@ struct PantallaReportes: View {
 
     // MARK: - Resumen u hoja
 
-    @ViewBuilder
-    private var contenido: some View {
+    private func contenido(plegada: Bool) -> some View {
         VStack(spacing: 0) {
-            barra
-            if vm.cargando {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if vm.sinDatos {
-                ContentUnavailableView {
-                    Label(L.t("Sin datos en el periodo", "No data for this period"),
-                          systemImage: "chart.bar")
-                } description: {
-                    Text(L.t("Cuando se capturen movimientos aparecerán aquí.",
-                             "Once transactions are captured they'll show up here."))
+            barra(plegada: plegada)
+            cuerpo
+                .overlay(alignment: .topLeading) {
+                    if plegada && tiposAbiertos { tiposFlotando }
                 }
-                .frame(maxHeight: .infinity)
-            } else if verHoja {
-                // La sombra, aquí y no en la hoja (que es la que se imprime).
-                // `compositingGroup` para que sombree el papel entero y no
-                // cada texto por separado.
-                ScrollView {
-                    hoja.compositingGroup()
-                        .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
-                        .padding(28)
-                }
-                    .background(Color.suelo)
-            } else {
-                ScrollView { resumen.padding(22) }
-                    .background(Color.suelo)
-            }
         }
     }
 
-    private var barra: some View {
+    @ViewBuilder
+    private var cuerpo: some View {
+        if vm.cargando {
+            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if vm.sinDatos {
+            ContentUnavailableView {
+                Label(L.t("Sin datos en el periodo", "No data for this period"),
+                      systemImage: "chart.bar")
+            } description: {
+                Text(L.t("Cuando se capturen movimientos aparecerán aquí.",
+                         "Once transactions are captured they'll show up here."))
+            }
+            .frame(maxHeight: .infinity)
+        } else if verHoja {
+            // La sombra, aquí y no en la hoja (que es la que se imprime).
+            // `compositingGroup` para que sombree el papel entero y no
+            // cada texto por separado.
+            ScrollView {
+                hoja.compositingGroup()
+                    .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+                    .padding(28)
+            }
+                .background(Color.suelo)
+        } else {
+            ScrollView { resumen.padding(22) }
+                .background(Color.suelo)
+        }
+    }
+
+    private func barra(plegada: Bool) -> some View {
         HStack(spacing: 10) {
+            if plegada {
+                Button { tiposAbiertos.toggle() } label: {
+                    Image(systemName: "sidebar.left")
+                }
+                .buttonStyle(.bordered)
+                .font(.system(size: 12))
+                .help(L.t("Tipos de reporte", "Report types"))
+                .accessibilityLabel(L.t("Tipos de reporte", "Report types"))
+            }
             // **Selectores de verdad, no rótulos.** El handoff los dibuja como
             // texto porque una maqueta no navega; aquí los periodos y los años
             // salen de los datos (`repo.periodos()`, `repo.anios()`), así que

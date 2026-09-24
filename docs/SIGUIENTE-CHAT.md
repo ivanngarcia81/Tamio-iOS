@@ -46,10 +46,22 @@ sigamos».
    - la vista previa del acta y de la carta en iOS en modo oscuro.
 3. **El concepto vacío de un aporte importado** sale como «Aporte», que no es categoría del
    catálogo. Se decide cuando haya un archivo real de una iglesia.
-4. **Esperando al diseñador:** Reportes y Configuración a 900 pt (`LO-QUE-EL-HANDOFF-NO-TRAE.md` §6)
-   y quitar del handoff las dos piezas de la pantalla de acceso (§7).
-5. **Una caída del Mac que no se reproduce** (§0.-25). Si vuelve a pasar, mirar si la pantalla era la
-   4K. Informe: `~/Library/Logs/DiagnosticReports/Tamio-2026-09-23-104349.ips`.
+4. **Handoff 8, hecho en el Mac (24-sep):** Reportes y Configuración caben a 900 pt, plegando su
+   columna (lista flotante en Reportes, riel de iconos en Configuración), y el Registro de servicios
+   apila sus paneles. La pantalla de acceso ya no tenía las dos piezas del §7. Visto a 900 y a
+   pantalla completa, y las 15 secciones a 900 sin caída.
+5. **Queda para Iván, del Mac:**
+   - la tira de 8 indicadores de Membresía recorta seis rótulos a 900 («Remo…», «With a…»), y el
+     diseño tampoco lo resuelve (8 columnas fijas);
+   - el inspector a 900: el diseño lo hace flotar encima; la app lo deja como está (⌘I).
+6. **Las caídas del Mac, `_postWindowNeedsUpdateConstraints` al plegar el inspector o la barra
+   lateral.** El 24-sep la primera versión del plegado las provocaba (un `@State` con el ancho medido
+   que cambiaba la vista a mitad del layout): 9 idas y vueltas Inicio↔Reportes. Con `ViewThatFits`,
+   50 idas y vueltas y 40 pliegues de la barra sin caída. La del 23-sep (10:43, antes de este cambio)
+   era de la misma familia y sigue sin causa conocida: **no medir anchos en un `@State`** en el Mac.
+7. **La iglesia de prueba volvió a tener el nombre de 500 caracteres** de `TextoBruto` en Supabase
+   (subido a las 13:43 UTC del 24-sep, cuando por la mañana decía «Iglesia de prueba»). Algún
+   aparato con la ficha vieja la volvió a subir encima. Mirar quién y por qué.
 
 ## Cuando se corra la suite en los aparatos
 

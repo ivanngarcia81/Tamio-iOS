@@ -33,6 +33,16 @@ struct PantallaConfiguracion: View {
     /// reevalúa muchas veces.
     private let biometria = BloqueoBiometrico.disponible()
 
+    /// **La barra de secciones se cambia por un riel cuando no cabe** (handoff
+    /// 8). Por debajo de barra + panel (320 + 1 + 420 = 741, unos 961 de
+    /// ventana) queda un riel de iconos de 60 pt, y la lista entera abre
+    /// flotando desde su primer botón. Eran los 61 pt que faltaban para media
+    /// pantalla (`LO-QUE-EL-HANDOFF-NO-TRAE.md` §6).
+    @State private var seccionesAbiertas = false
+    private static let anchoBarra: CGFloat = 320
+    private static let anchoRiel: CGFloat = 60
+    private static let minimoPanel: CGFloat = 420
+
     @State private var invEmail = ""
     @State private var invNom = ""
     @State private var invRol: SesionSupabase.Perfil.Rol = .tesorero
@@ -77,57 +87,82 @@ struct PantallaConfiguracion: View {
         // barra de secciones y el panel, que en una pantalla de ajustes no
         // vale lo que cuesta: la lista de secciones no es una columna que uno
         // quiera ensanchar, y el divisor de la ventana principal sigue ahí.
-        HStack(spacing: 0) {
-            // **Mínimo 300 y no 240.** Con 240 el `HStack` sí comprimía —la
-            // ventana bajaba a 881— pero la barra se RECORTABA: su contenido
-            // natural es más ancho que 240 y SwiftUI lo centra y lo corta por
-            // los dos lados. Se leía "tings" en vez de "Settings" y "AL" en
-            // vez de "GENERAL". Caber rompiendo es peor que no caber.
-            barra.frame(minWidth: 320, idealWidth: 320, maxWidth: 360)
-            Divider()
-            ScrollView {
-                VStack(spacing: 24) {
-                    cabecera
-                    contenido
-                }
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
-                .padding(24)
+        // **`ViewThatFits` y no medir el ancho**, por la misma caída que
+        // Reportes: un `@State` con el ancho medido cambiaba la vista a mitad
+        // del layout de AppKit cuando el inspector se plegaba al cambiar de
+        // sección (`PantallaReportes`, 24-sep). Aquí la elección es parte del
+        // layout, y con propuesta cero se queda con el riel: ese es el mínimo.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 0) {
+                // **Mínimo 300 y no 240.** Con 240 la barra se RECORTABA: su
+                // contenido natural es más ancho y SwiftUI lo centra y lo corta
+                // por los dos lados. Se leía "tings" en vez de "Settings" y "AL"
+                // en vez de "GENERAL". Caber rompiendo es peor que no caber.
+                barra.frame(minWidth: Self.anchoBarra, idealWidth: Self.anchoBarra, maxWidth: 360)
+                Divider()
+                panel
             }
-            // **El saldo se relee al ENTRAR en Iglesia y se fija al SALIR.**
-            // En el iPad eso lo hacen el `onAppear`/`onDisappear` de una
-            // pantalla empujada; aquí no hay tal cosa —la columna se queda
-            // montada y solo cambia lo de dentro—, así que la señal es el
-            // cambio de sección.
-            .onChange(of: seccion) { anterior, _ in
-                if anterior == .iglesia {
-                    fijarApertura()
-                    Task { await cfg.guardarYa() }
-                }
-                aperturaTexto = textoApertura
+            HStack(spacing: 0) {
+                riel
+                Divider()
+                panel
             }
-            .onAppear { aperturaTexto = textoApertura }
-            .sheet(item: $firmando) { quien in
-                HojaFirmaMac(firmante: quien, firmas: firmas)
+            .overlay(alignment: .topLeading) {
+                if seccionesAbiertas { seccionesFlotando }
             }
-            .alert(L.t("¿Quitar el logo?", "Remove the logo?"),
-                   isPresented: $confirmarQuitarLogo) {
-                Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
-                Button(L.t("Quitar", "Remove"), role: .destructive) {
-                    Task { await quitarLogo() }
-                }
-            } message: {
-                Text(L.t("Los documentos volverán a salir sin logo, en todos los aparatos de la iglesia.",
-                         "Documents will print without a logo again, on every device in the church."))
-            }
-            .task {
-                composicionDelMes = await repositorioReportes()
-                    .estadoFinanciero(periodo: Fechas.clavePeriodo(), categoria: nil)?
-                    .composicion ?? []
-            }
-            .frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.suelo)
+            .onDisappear { seccionesAbiertas = false }
         }
+        // **El saldo se relee al ENTRAR en Iglesia y se fija al SALIR.**
+        // En el iPad eso lo hacen el `onAppear`/`onDisappear` de una
+        // pantalla empujada; aquí no hay tal cosa —la columna se queda
+        // montada y solo cambia lo de dentro—, así que la señal es el
+        // cambio de sección. Van aquí y no en el panel, que existe dos veces
+        // (una por estado): se ejecutan una sola vez.
+        .onChange(of: seccion) { anterior, _ in
+            // Elegir una sección cierra también la lista flotante.
+            seccionesAbiertas = false
+            if anterior == .iglesia {
+                fijarApertura()
+                Task { await cfg.guardarYa() }
+            }
+            aperturaTexto = textoApertura
+        }
+        .onAppear { aperturaTexto = textoApertura }
+        .sheet(item: $firmando) { quien in
+            HojaFirmaMac(firmante: quien, firmas: firmas)
+        }
+        .alert(L.t("¿Quitar el logo?", "Remove the logo?"),
+               isPresented: $confirmarQuitarLogo) {
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) {}
+            Button(L.t("Quitar", "Remove"), role: .destructive) {
+                Task { await quitarLogo() }
+            }
+        } message: {
+            Text(L.t("Los documentos volverán a salir sin logo, en todos los aparatos de la iglesia.",
+                     "Documents will print without a logo again, on every device in the church."))
+        }
+        .task {
+            composicionDelMes = await repositorioReportes()
+                .estadoFinanciero(periodo: Fechas.clavePeriodo(), categoria: nil)?
+                .composicion ?? []
+        }
+    }
+
+    private var panel: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                cabecera
+                contenido
+            }
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity)
+            .padding(24)
+        }
+        // El `idealWidth` es lo que mira `ViewThatFits` para decidir si la
+        // barra de secciones cabe al lado.
+        .frame(minWidth: Self.minimoPanel, idealWidth: Self.minimoPanel,
+               maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.suelo)
     }
 
     // MARK: - La barra de secciones
@@ -144,10 +179,8 @@ struct PantallaConfiguracion: View {
                 VStack(alignment: .leading, spacing: 0) {
                     fila(.cuenta, alto: 52, radio: 16, fuente: 16)
                         .padding(.bottom, 20)
-                    grupo(L.t("IGLESIA", "CHURCH"),
-                          [.iglesia, .institucion, .tesorero, .acceso])
-                    grupo(L.t("GENERAL", "GENERAL"),
-                          [.categorias, .datos, .preferencias].filter { Permisos.vigentes(sesion).veAjuste($0) })
+                    grupo(L.t("IGLESIA", "CHURCH"), seccionesIglesia)
+                    grupo(L.t("GENERAL", "GENERAL"), seccionesGenerales)
                 }
                 .padding(.bottom, 12)
             }
@@ -158,6 +191,78 @@ struct PantallaConfiguracion: View {
             Divider()
             fila(.zona, alto: 44, radio: 12, fuente: 15.5)
                 .padding(.vertical, 10)
+        }
+    }
+
+    /// Las secciones de los dos grupos, las mismas que enseña la barra.
+    private var seccionesIglesia: [SeccionAjustes] { [.iglesia, .institucion, .tesorero, .acceso] }
+    private var seccionesGenerales: [SeccionAjustes] {
+        [.categorias, .datos, .preferencias].filter { Permisos.vigentes(sesion).veAjuste($0) }
+    }
+
+    /// **El riel de 60 pt del handoff 8**: el botón que abre la lista, y cada
+    /// sección como su placa de color. El nombre va en `help` y en VoiceOver.
+    /// La Zona de riesgo, al pie y aparte, como en la barra.
+    private var riel: some View {
+        VStack(spacing: 4) {
+            Button { seccionesAbiertas.toggle() } label: {
+                Image(systemName: "sidebar.left")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 40, height: 32)
+                    .background(seccionesAbiertas ? Color.primary.opacity(0.08) : .clear,
+                                in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L.t("Ver secciones", "Show sections"))
+            .accessibilityLabel(L.t("Ver secciones", "Show sections"))
+            Rectangle().fill(Color.primary.opacity(0.12)).frame(width: 28, height: 1).padding(.vertical, 6)
+            ForEach([SeccionAjustes.cuenta] + seccionesIglesia + seccionesGenerales, id: \.self) { icono($0) }
+            Spacer(minLength: 0)
+            icono(.zona)
+        }
+        .padding(.top, 12)
+        .padding(.bottom, 10)
+        .frame(width: Self.anchoRiel)
+        .frame(maxHeight: .infinity)
+    }
+
+    private func icono(_ s: SeccionAjustes) -> some View {
+        let activa = seccion == s
+        return Button { seccion = s } label: {
+            Image(systemName: s.icono)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Paleta.sobre(s.color, prefs.tema.esquema ?? .light))
+                .frame(width: 28, height: 28)
+                .background(s.color, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .frame(width: 44, height: 44)
+                .background(fondo(activa: activa, esZona: s == .zona, color: s.color),
+                            in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(s.titulo)
+        .accessibilityLabel(s.titulo)
+    }
+
+    /// La barra entera, flotando a la derecha del riel. Un clic fuera la
+    /// cierra; Escape también.
+    private var seccionesFlotando: some View {
+        ZStack(alignment: .topLeading) {
+            Color.black.opacity(0.001)
+                .contentShape(Rectangle())
+                .onTapGesture { seccionesAbiertas = false }
+            barra
+                .frame(width: Self.anchoBarra)
+                .frame(maxHeight: .infinity)
+                // Sin `ignoresSafeAreaEdges`, el fondo sube por detrás de la barra
+                // de herramientas y tapa sus botones y el título.
+                .background(Color(nsColor: .windowBackgroundColor), ignoresSafeAreaEdges: [])
+                .overlay(alignment: .trailing) { Divider() }
+                .shadow(color: .black.opacity(0.22), radius: 18, x: 6)
+                .padding(.leading, Self.anchoRiel + 1)
+                .onKeyPress(.escape) { seccionesAbiertas = false; return .handled }
         }
     }
 

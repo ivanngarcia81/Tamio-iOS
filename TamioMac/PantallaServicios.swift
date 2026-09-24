@@ -149,14 +149,13 @@ struct PantallaServicios: View {
                 VStack(alignment: .leading, spacing: 12) {
                     encabezado(s)
                     conteos(s)
-                    HStack(alignment: .top, spacing: 12) {
-                        roster(s)
-                        orden(s)
-                    }
-                    HStack(alignment: .top, spacing: 12) {
-                        visitantes(s)
-                        historico(s)
-                    }
+                    // **Lado a lado si caben, y si no uno debajo del otro.**
+                    // A media pantalla (900 pt) cada panel se quedaba en ~160
+                    // pt, y con la etiqueta fija de 110 el nombre partía
+                    // «Assign person» letra por letra (24-sep). `ViewThatFits`
+                    // elige dentro del layout, sin medir ni guardar anchos.
+                    parDePaneles { roster(s) } _: { orden(s) }
+                    parDePaneles { visitantes(s) } _: { historico(s) }
                 }
                 .padding(22)
             }
@@ -265,6 +264,15 @@ struct PantallaServicios: View {
         }
         .padding(16)
         .tarjetaMac(14)
+    }
+
+    private func parDePaneles<A: View, B: View>(@ViewBuilder _ a: () -> A,
+                                                 @ViewBuilder _ b: () -> B) -> some View {
+        let a = a(), b = b()
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 12) { a; b }
+            VStack(alignment: .leading, spacing: 12) { a; b }
+        }
     }
 
     private func roster(_ s: Servicio) -> some View {
