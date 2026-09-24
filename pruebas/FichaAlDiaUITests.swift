@@ -12,7 +12,8 @@ import XCTest
 /// "Folio P-9" —o sea, sin subir— mientras la lista y el servidor ya decían
 /// "Folio 9".
 ///
-/// Se corre con el modo revisión ENCENDIDO.
+/// Se corre con el modo revisión ENCENDIDO, por argumento: edita el importe de
+/// un movimiento, y en la iglesia sincronizada lo dejaba en 7.77.
 final class FichaAlDia: XCTestCase {
     /// **Solo iPhone**: llega a Movimientos por la pestaña Treasury. En el iPad
     /// físico (23-sep) daba roja con «No matches found for Descendants matching
@@ -30,7 +31,7 @@ final class FichaAlDia: XCTestCase {
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)"]
         // Candado apagado por argumento: un bloqueo guardado en el aparato
         // la dejaría tapada (ver LEEME.md, «El candado y las corridas»).
-        app.launchArguments += ["-bloqueo.biometrico", "NO"]
+        app.launchArguments += ["-bloqueo.biometrico", "NO", "-modoRevision", "YES"]
         app.launch(); sleep(2)
     }
 
@@ -67,8 +68,13 @@ final class FichaAlDia: XCTestCase {
 
         let campo = app.textFields.element(boundBy: 0)
         XCTAssertTrue(campo.waitForExistence(timeout: 5), "no encuentro el campo de importe")
-        campo.tap()
-        for _ in 0..<14 { app.keys["Delete"].tap() }
+        // Vaciar con `typeText` y no con `app.keys["Delete"].tap()`: en el
+        // simulador (24-sep) la tecla no se dejaba pulsar —«Failed to scroll to
+        // visible (by AX action) Key … 'Delete'»—. Se toca el extremo derecho
+        // para que el cursor quede detrás de la última cifra.
+        let previo = campo.value as? String ?? ""
+        campo.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5)).tap(); sleep(1)
+        campo.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: previo.count + 5))
         campo.typeText("7.77"); sleep(1)
         print("ESCRITO:[\(campo.value as? String ?? "?")]")
 

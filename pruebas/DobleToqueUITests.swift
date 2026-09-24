@@ -9,8 +9,9 @@ import XCTest
 /// llamadas a `onGuardar` son dos `crear` con dos UUID y dos folios distintos:
 /// un movimiento duplicado que no se parece a un duplicado.
 ///
-/// **Escribe en la iglesia sincronizada** (no lleva `-modoRevision YES`): cada
-/// corrida deja un ingreso nuevo. Por eso cuenta DIFERENCIAS y no filas.
+/// Corre con `-modoRevision YES`: los ingresos se quedan en la memoria de la
+/// maqueta. Hasta el 24-sep escribía en la iglesia sincronizada y cada corrida
+/// dejaba uno nuevo; por eso sigue contando DIFERENCIAS y no filas.
 final class DobleToque: XCTestCase {
 
     var app: XCUIApplication!
@@ -26,7 +27,7 @@ final class DobleToque: XCTestCase {
         continueAfterFailure = true
         app = XCUIApplication()
         app.launchArguments += ["-prefs.idioma", "ingles", "-AppleLanguages", "(en)",
-                                "-bloqueo.biometrico", "NO"]
+                                "-bloqueo.biometrico", "NO", "-modoRevision", "YES"]
         app.launch(); sleep(2)
     }
 

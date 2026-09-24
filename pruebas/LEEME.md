@@ -248,8 +248,9 @@ De interfaz (con el modo revisión **ENCENDIDO** en la copia):
 - **`RespaldoUITests.swift`** — el botón "Respaldar ahora" mirado despacio, con
   paradas para fotografiar. Es la otra mitad de `BaseMudaTests`: lo que la
   tesorera ve cuando la base ya está caída.
-- **`TextoBrutoUITests.swift`** — **NO sirve todavía.** Su cabecera dice qué dos
-  cosas hay que arreglarle antes de creerse nada de lo que imprima.
+- **`TextoBrutoUITests.swift`** — sirve desde el 24-sep, con la maqueta. El
+  nombre de 500 caracteres entra entero y el acta lo parte en seis líneas del
+  membrete sin pisar nada (captura adjunta al `.xcresult`, «acta-con-nombre-largo»).
 
 **Dos cosas de esta pasada que cuestan una vuelta si no se saben:**
 

@@ -30,9 +30,11 @@ sigamos».
 
 ## Lo que queda
 
-1. **Las pruebas que escriben en la iglesia, a la maqueta.** Empezando por `TextoBruto`, que cambia
-   el nombre de la iglesia y no lo devuelve. Siguen `DobleToque`, `FichaAlDia` y
-   `TextoBruto.testNombreConEmojiYComas`. Tras cada suite, mirar qué dejó en la iglesia de prueba.
+1. **Las pruebas que escriben en la iglesia, ya en la maqueta** (24-sep): `TextoBruto`, `DobleToque`
+   y `FichaAlDia` llevan `-modoRevision YES`, y las cinco pasan en el simulador. `TextoBruto`
+   mide ya el nombre largo, y `FichaAlDia` borra con `typeText`, porque `app.keys["Delete"]` no se
+   deja pulsar. Falta correrlas en el iPhone físico. La iglesia de prueba puede traer aún el
+   nombre que le dejó `TextoBruto` antes del arreglo: mirarlo en Supabase.
 2. **Ver en pantalla lo que aún no se ha visto:**
    - el padrón vacío de Membresía (I8 · M6);
    - el aviso de sin conexión del «Hecho» de importar;
