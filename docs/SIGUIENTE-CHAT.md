@@ -91,6 +91,30 @@ sigamos con los tres puntos».
   cuentan por el periodo entero (`PeriodoFechas`, como el `Periodo` del web). **La asistencia
   todavía no**: `asistenciaResumen()` del repositorio no recibe periodo.
 
+## La suite en los aparatos · 23-sep, noche (`cc5dabf` + el código de ese día)
+
+- **iPad, por cable:** unidad 258 de 258. Interfaz: 79 verdes, 98 omitidas (son del teléfono) y 12
+  rojas, todas de instrumento o de datos:
+  - la ventana que no se estrecha (4);
+  - AX1 no se puede poner en el aparato (1);
+  - faltan los CSV sin sembrar (3);
+  - filas de la maqueta (4).
+  Las seis que quedaron sin decidir en septiembre ya pasan.
+- **iPhone, por Wi-Fi:** la primera vuelta dio 77 rojas porque **se bloqueó a media corrida**
+  («Not authorized for performing UI testing actions»). Con Bloqueo automático en «Nunca», las 71
+  repetidas quedaron así:
+  - 65 verdes;
+  - 4 rojas:
+    - `MembresiaTelefono`: de datos, no hay traslado en curso;
+    - `Presentaciones…ActasView`: de datos, el acta más reciente se firmó ese día;
+    - `TarjetaEsBoton`: falso negativo de `isHittable` en el carrusel; el toque sí abre la carta;
+    - `Presentaciones…CorteDetalle`: inestable. Repetida sola, pasa en el iPhone y en el
+      simulador.
+- **Lección:** por Wi-Fi el iPhone tiene que llevar el Bloqueo automático en «Nunca», o la corrida
+  se cae sin decirlo.
+- Preferencias de los dos aparatos, idénticas antes y después. Las copias quedaron en el scratchpad
+  de la sesión 059c0f73.
+
 ## Cuando Iván tenga el iPhone y el iPad en casa
 - La suite completa en los dos, cada aparato con su `TMPDIR`: ver §0.-24.
 - **Con el iPhone boca abajo** si se prueba el candado, porque Face ID desbloquea la app solo.
