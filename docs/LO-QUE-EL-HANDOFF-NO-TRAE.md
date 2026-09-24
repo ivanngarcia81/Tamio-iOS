@@ -138,3 +138,18 @@ El handoff 7 dibuja en el bloque `locked` dos cosas que la app no puede cumplir.
 
 El resto del bloque está construido tal cual: el panel verde de 380, «Show/Hide», el aviso de campos
 vacíos con el borde rojo y «Forgot your password?».
+
+## 8. Lo que el handoff 8 no resuelve a 900 pt · 24 de septiembre
+
+Con el handoff 8 construido, las 15 secciones se miraron a 900 pt con el inspector cerrado. **Iván
+decidió el 24-sep pedirle al diseñador** lo que queda, en vez de inventarlo:
+
+- **Membresía, la tira de 8 indicadores.** El diseño la dibuja siempre en 8 columnas iguales
+  (`repeat(8, minmax(0,1fr))`), sin variante para 900. En la app, a 900 pt, seis de los ocho
+  rótulos salen cortados («Remo…», «New t…», «Receiv…», «Transf…», «With a…», «Incom…»), y el botón
+  de la barra también («New me…»).
+- **Las tablas de Aportantes y del Registro** pierden la última columna por la derecha y se
+  desplazan en horizontal. Hay que saber si eso vale o qué columnas se esconden.
+
+Capturas en `~/Desktop/Tamio-diseñador/`. El inspector a 900 no entra en la petición: el diseño ya
+lo dibuja flotando, y si se construye así o no lo decide Iván.
