@@ -139,10 +139,14 @@ final class InformesMembresiaViewModel {
     /// El resumen congregacional del periodo: servicios, promedio y porcentaje.
     private(set) var asistencia: AsistenciaResumen?
 
+    /// **Del periodo elegido**, no del año en curso: con «Mes = marzo» la
+    /// asistencia contaba el año entero. Las vistas la vuelven a pedir cada
+    /// vez que cambia `periodo` (`.task(id:)`).
     @MainActor
     func cargarPadron() async {
-        miembros = (try? await padronRepo.lista()) ?? []
-        asistencia = await padronRepo.asistenciaResumen()
+        let p = periodo
+        miembros = (try? await padronRepo.lista(desde: p.desde, hasta: p.hasta)) ?? []
+        asistencia = await padronRepo.asistenciaResumen(desde: p.desde, hasta: p.hasta)
         padronCargado = true
     }
 

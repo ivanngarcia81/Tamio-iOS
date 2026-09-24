@@ -34,7 +34,8 @@ struct PantallaInformes: View {
             .padding(.bottom, 30)
         }
         .background(Color.suelo)
-        .task { await vm.cargarPadron() }
+        // Con cada cambio de periodo: la asistencia se cuenta del periodo.
+        .task(id: vm.periodo) { await vm.cargarPadron() }
     }
 
     // MARK: - Pestañas y periodo

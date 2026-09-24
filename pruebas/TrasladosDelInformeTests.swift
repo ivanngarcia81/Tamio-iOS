@@ -123,4 +123,44 @@ final class TrasladosDelInformeTests: XCTestCase {
         XCTAssertTrue(p.contiene("2026-03-31"))
         XCTAssertFalse(p.contiene("2026-04-01"))
     }
+
+    // MARK: - La asistencia, del periodo
+
+    /// Un repositorio que apunta qué periodo le piden.
+    private final class RepoQueApunta: MembresiaRepository, @unchecked Sendable {
+        var pedido: [(String?, String?)] = []
+        func lista() async throws -> [Miembro] { [] }
+        func lista(desde: String?, hasta: String?) async throws -> [Miembro] {
+            pedido.append((desde, hasta)); return []
+        }
+        func resumen() async -> MembresiaResumen {
+            MembresiaResumen(activos: 0, inactivos: 0, bajas: 0, nuevos: 0,
+                             recibidos: 0, trasladados: 0, ausencias: 0, incompletos: 0)
+        }
+        func asistenciaResumen() async -> AsistenciaResumen {
+            AsistenciaResumen(promedioPct: 0, serviciosPeriodo: 0, presentesPromedio: 0,
+                              mejorServicio: "", meses: [], porTipo: [])
+        }
+        func guardar(_ m: Miembro) async throws {}
+        func agregarPariente(miembroId: String, _ p: Pariente) async throws {}
+        func quitarPariente(id: String) async throws {}
+    }
+
+    /// **La asistencia se pide del periodo, no del año.** Con «Mes = marzo» el
+    /// informe contaba la asistencia del año entero: el repositorio la pedía
+    /// siempre con el año en curso.
+    func testLaAsistenciaSePideDelPeriodoElegido() async {
+        let repo = RepoQueApunta()
+        let vm = InformesMembresiaViewModel(padronRepo: repo)
+        vm.añoSeleccionado = 2026
+        vm.periodoTipo = .mes
+        vm.mesSeleccionado = 3
+        await vm.cargarPadron()
+        XCTAssertEqual(repo.pedido.last?.0, "2026-03-01")
+        XCTAssertEqual(repo.pedido.last?.1, "2026-03-31", "### seguía pidiendo el año entero")
+        vm.periodoTipo = .todo
+        await vm.cargarPadron()
+        XCTAssertNil(repo.pedido.last?.0)
+        XCTAssertNil(repo.pedido.last?.1)
+    }
 }

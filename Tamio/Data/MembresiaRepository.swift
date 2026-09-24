@@ -5,11 +5,28 @@ protocol MembresiaRepository {
     func lista() async throws -> [Miembro]
     func resumen() async -> MembresiaResumen
     func asistenciaResumen() async -> AsistenciaResumen
+    /// **El padrón con la asistencia de UN periodo**, para Informes. `nil` es
+    /// «sin límite» (Todo el historial). Presentes y servicios salen del
+    /// periodo; la racha y la última visita, no: el web las mide hasta el
+    /// servicio más reciente, y una racha que cambiara con el selector haría
+    /// aparecer y desaparecer a la gente de Seguimiento.
+    func lista(desde: String?, hasta: String?) async throws -> [Miembro]
+    /// La asistencia de la congregación en ese periodo.
+    func asistenciaResumen(desde: String?, hasta: String?) async -> AsistenciaResumen
     /// Alta o edición: la misma función, como en el web. Lo que llega es la
     /// ficha entera; el repositorio decide si inserta o actualiza.
     func guardar(_ m: Miembro) async throws
     func agregarPariente(miembroId: String, _ p: Pariente) async throws
     func quitarPariente(id: String) async throws
+}
+
+/// La maqueta y los repositorios de prueba no tienen asistencia por fechas:
+/// devuelven la de siempre. Solo el de disco la cuenta por periodo.
+extension MembresiaRepository {
+    func lista(desde: String?, hasta: String?) async throws -> [Miembro] { try await lista() }
+    func asistenciaResumen(desde: String?, hasta: String?) async -> AsistenciaResumen {
+        await asistenciaResumen()
+    }
 }
 
 /// Datos falsos que reproducen la pantalla de Membresía del handoff.
@@ -320,9 +337,41 @@ struct OfflineMembresiaRepository: MembresiaRepository {
 
     func asistenciaResumen() async -> AsistenciaResumen {
         let (desde, hasta) = periodo
-        return (try? await asistencia.resumen(desde: desde, hasta: hasta))
+        return await asistenciaResumen(desde: desde, hasta: hasta)
+    }
+
+    /// Sin límite se cuenta desde el principio de los tiempos: las fechas son
+    /// cadenas "YYYY-MM-DD" y la comparación es de texto.
+    private static func rango(_ desde: String?, _ hasta: String?) -> (String, String) {
+        (desde ?? "0000-01-01", hasta ?? "9999-12-31")
+    }
+
+    func asistenciaResumen(desde: String?, hasta: String?) async -> AsistenciaResumen {
+        let (d, h) = Self.rango(desde, hasta)
+        return (try? await asistencia.resumen(desde: d, hasta: h))
             ?? AsistenciaResumen(promedioPct: 0, serviciosPeriodo: 0, presentesPromedio: 0,
                                  mejorServicio: "—", meses: [], porTipo: [])
+    }
+
+    /// **Presentes y servicios del periodo; racha y última visita, las de
+    /// siempre.** Es la ficha de `lista()` con dos cifras cambiadas, así que
+    /// Seguimiento —que depende de la racha— no se mueve con el selector.
+    func lista(desde: String?, hasta: String?) async throws -> [Miembro] {
+        let (d, h) = Self.rango(desde, hasta)
+        let delPeriodo = (try? await asistencia.porMiembro(desde: d, hasta: h)) ?? [:]
+        return try await lista().map { m in
+            var x = m
+            let p = delPeriodo[m.id]
+            x.asistenciaResumen = AsistenciaMiembro(
+                presentes: p?.presentes ?? 0,
+                servicios: p?.servicios ?? 0,
+                rachaSinAsistir: m.asistenciaResumen?.rachaSinAsistir ?? 0,
+                ultimaVisita: m.asistenciaResumen?.ultimaVisita)
+            // Quien no tuvo ningún culto en el periodo no lleva resumen: no
+            // es un 0 %, es que no había a qué faltar.
+            if p == nil && m.asistenciaResumen == nil { x.asistenciaResumen = nil }
+            return x
+        }
     }
 
     func guardar(_ m: Miembro) async throws {

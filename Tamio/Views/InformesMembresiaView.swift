@@ -23,7 +23,8 @@ struct InformesMembresiaView: View {
     var body: some View {
         contenidoPrincipal
             .toolbar { barra }
-            .task { await vm.cargarPadron() }
+            // Con cada cambio de periodo: la asistencia se cuenta del periodo.
+            .task(id: vm.periodo) { await vm.cargarPadron() }
             .sincronizable { await vm.cargarPadron() }
             .sheet(isPresented: $mostrarFiltros) { filtrosSheet }
             // **`item:` y no `isPresented:` + `if let`.** Con lo segundo, el
@@ -566,8 +567,11 @@ struct InformesMembresiaView: View {
                     HStack(alignment: .top, spacing: 10) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(Paleta.aviso)
-                        Text(L.t("Hubo \(vm.serviciosDelPeriodo) servicios y en ninguno se tomó lista. Los porcentajes salen vacíos porque falta el dato, no porque nadie viniera.",
-                                 "There were \(vm.serviciosDelPeriodo) services and none has a roll call. The percentages are empty because the data is missing, not because nobody came."))
+                        Text(vm.serviciosDelPeriodo == 1
+                             ? L.t("Hubo 1 servicio y no se tomó lista. Los porcentajes salen vacíos porque falta el dato, no porque nadie viniera.",
+                                   "There was 1 service and it has no roll call. The percentages are empty because the data is missing, not because nobody came.")
+                             : L.t("Hubo \(vm.serviciosDelPeriodo) servicios y en ninguno se tomó lista. Los porcentajes salen vacíos porque falta el dato, no porque nadie viniera.",
+                                   "There were \(vm.serviciosDelPeriodo) services and none has a roll call. The percentages are empty because the data is missing, not because nobody came."))
                             .font(.footnote)
                     }
                     .padding(Esp.tarjeta)
