@@ -47,7 +47,22 @@ struct TablaRegistro: View {
         }
     }
 
+    /// **A media pantalla la tabla suelta una columna y estrecha el resto**
+    /// (handoff 9: «a 900 pt cada tabla suelta la columna que ya está en el
+    /// inspector»). `Table` nace en el ancho ideal de sus columnas y no las
+    /// encoge, así que por debajo de esa suma las últimas quedaban fuera de la
+    /// vista. `ViewThatFits` y no medir el ancho, como en `TablaMovimientos`.
+    private static let anchoCompleto: CGFloat = 132 + 104 + 520 + 170 + 4 * 17 + 20
+
     private var tabla: some View {
+        ViewThatFits(in: .horizontal) {
+            tabla(estrecha: false)
+                .frame(minWidth: 0, idealWidth: Self.anchoCompleto, maxWidth: .infinity, maxHeight: .infinity)
+            tabla(estrecha: true)
+        }
+    }
+
+    private func tabla(estrecha: Bool) -> some View {
         Table(filas, selection: $seleccion, sortOrder: $orden) {
 
             TableColumn(L.t("Cuándo", "When"), value: \.creadoEn) { a in
@@ -66,7 +81,7 @@ struct TablaRegistro: View {
                     .background((a.esNota ? Paleta.placaPizarra : Paleta.brand).opacity(0.14),
                                 in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             }
-            .width(min: 84, ideal: 104, max: 140)
+            .width(min: 84, ideal: estrecha ? 96 : 104, max: 140)
 
             TableColumn(L.t("Qué pasó", "What happened"), value: \.texto) { a in
                 HStack(spacing: 8) {
@@ -86,14 +101,17 @@ struct TablaRegistro: View {
                     Text(a.texto).lineLimit(1)
                 }
             }
-            .width(min: 240, ideal: 520)
+            .width(min: 200, ideal: estrecha ? 300 : 520)
 
-            TableColumn(L.t("Quién", "Who"), value: \.autor) { a in
-                Text(a.autor.isEmpty ? "—" : a.autor)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+            // Quién lo hizo ya sale en el inspector: es la que se suelta.
+            if !estrecha {
+                TableColumn(L.t("Quién", "Who"), value: \.autor) { a in
+                    Text(a.autor.isEmpty ? "—" : a.autor)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .width(min: 120, ideal: 170, max: 260)
             }
-            .width(min: 120, ideal: 170, max: 260)
         }
         // **Sin rayas alternas, y no es capricho.**
         //

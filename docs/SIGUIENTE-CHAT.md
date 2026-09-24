@@ -50,10 +50,9 @@ sigamos».
    columna (lista flotante en Reportes, riel de iconos en Configuración), y el Registro de servicios
    apila sus paneles. La pantalla de acceso ya no tenía las dos piezas del §7. Visto a 900 y a
    pantalla completa, y las 15 secciones a 900 sin caída.
-5. **Queda para Iván, del Mac:**
-   - la tira de 8 indicadores de Membresía recorta seis rótulos a 900 («Remo…», «With a…»), y el
-     diseño tampoco lo resuelve (8 columnas fijas);
-   - el inspector a 900: el diseño lo hace flotar encima; la app lo deja como está (⌘I).
+5. **Handoff 9, hecho en el Mac (24-sep):** Membresía (tira 4 × 2, barra en dos líneas, filtros que
+   saltan de renglón) y las cinco tablas soltando una columna a 900 pt. Queda para Iván el
+   inspector a 900: el diseño lo hace flotar encima; la app lo deja como está (⌘I).
 6. **Las caídas del Mac, `_postWindowNeedsUpdateConstraints` al plegar el inspector o la barra
    lateral.** El 24-sep la primera versión del plegado las provocaba (un `@State` con el ancho medido
    que cambiaba la vista a mitad del layout): 9 idas y vueltas Inicio↔Reportes. Con `ViewThatFits`,

@@ -17,7 +17,25 @@ struct TablaDepositos: View {
 
     private var filas: [Corte] { vm.items.sorted(using: orden) }
 
+    /// **A media pantalla la tabla suelta una columna y estrecha el resto**
+    /// (handoff 9: «a 900 pt cada tabla suelta la columna que ya está en el
+    /// inspector»). `Table` nace en el ancho ideal de sus columnas y no las
+    /// encoge, así que por debajo de esa suma las últimas quedaban fuera de la
+    /// vista. `ViewThatFits` y no medir el ancho, como en `TablaMovimientos`.
+    private static let anchoCompleto: CGFloat = 140 + 220 + 140 + 108 + 136 + 140 + 6 * 17 + 20
+
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            tabla(estrecha: false)
+                .frame(minWidth: 0, idealWidth: Self.anchoCompleto, maxWidth: .infinity, maxHeight: .infinity)
+            tabla(estrecha: true)
+        }
+        .sheet(item: $corteEnPDF) { c in
+            VistaPreviaCorteMac(corte: c)
+        }
+    }
+
+    private func tabla(estrecha: Bool) -> some View {
         Table(filas, selection: $seleccion, sortOrder: $orden) {
 
             TableColumn(L.t("Fecha", "Date"), value: \.registro.fecha) { c in
@@ -27,22 +45,25 @@ struct TablaDepositos: View {
                     // tiene ajuste propio y la fila mide lo que su celda más alta.
                     .frame(height: estado.altoDeFila)
             }
-            .width(min: 110, ideal: 140, max: 190)
+            .width(min: 96, ideal: estrecha ? 104 : 140, max: 190)
 
             TableColumn(L.t("Cuenta", "Bank account"), value: \.registro.cuenta) { c in
                 Text(c.registro.cuenta.isEmpty ? "—" : c.registro.cuenta)
                     .fontWeight(.semibold)
                     .lineLimit(1)
             }
-            .width(min: 130, ideal: 220)
+            .width(min: 120, ideal: estrecha ? 170 : 220)
 
-            TableColumn(L.t("Folios", "Folios"), value: \.rangoDeFolios) { c in
-                Text(c.rangoDeFolios)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+            // Los folios ya salen en el inspector: es la que se suelta.
+            if !estrecha {
+                TableColumn(L.t("Folios", "Folios"), value: \.rangoDeFolios) { c in
+                    Text(c.rangoDeFolios)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .width(min: 110, ideal: 140, max: 200)
             }
-            .width(min: 110, ideal: 140, max: 200)
 
             TableColumn(L.t("Movimientos", "Items"), value: \.cuantosMovimientos) { c in
                 Text("\(c.cuantosMovimientos)")
@@ -50,7 +71,7 @@ struct TablaDepositos: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .width(min: 90, ideal: 108, max: 150)
+            .width(min: 56, ideal: estrecha ? 64 : 108, max: 150)
 
             TableColumn(L.t("Estado", "Status"), value: \.ordenDeEstado) { c in
                 let (texto, tinta) = c.pastilla
@@ -62,7 +83,7 @@ struct TablaDepositos: View {
                     .background(tinta.opacity(0.14),
                                 in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             }
-            .width(min: 110, ideal: 136, max: 190)
+            .width(min: 104, ideal: estrecha ? 118 : 136, max: 190)
 
             TableColumn(L.t("Importe", "Amount"), value: \.suma) { c in
                 Text(Money.fmt(c.suma))
@@ -70,7 +91,7 @@ struct TablaDepositos: View {
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .width(min: 110, ideal: 140, max: 190)
+            .width(min: 100, ideal: estrecha ? 112 : 140, max: 190)
         }
         // **Sin rayas alternas.** `alternatesRowBackgrounds` las pinta en
         // TODO el alto de la tabla, también donde no hay datos: con dos filas
@@ -90,9 +111,6 @@ struct TablaDepositos: View {
             if ids.count == 1, let c = filas.first(where: { ids.contains($0.id) }) {
                 corteEnPDF = c
             }
-        }
-        .sheet(item: $corteEnPDF) { c in
-            VistaPreviaCorteMac(corte: c)
         }
     }
 }

@@ -141,6 +141,14 @@ vacíos con el borde rojo y «Forgot your password?».
 
 ## 8. Lo que el handoff 8 no resuelve a 900 pt · 24 de septiembre
 
+> **Resuelto con el handoff 9 (24-sep).** Membresía: la tira pasa a 4 × 2 con número y rótulo en
+> una línea, los botones de la barra bajan a otra línea en vez de encogerse y los filtros saltan de
+> renglón. Tablas, con su regla «a 900 pt cada tabla suelta la columna que ya está en el
+> inspector» y columnas más estrechas: Ingresos y Gastos sueltan Método, Aportantes Miembro desde,
+> Depósitos Folios. El Registro, que en su diseño es una lista y en la app una tabla, suelta Quién
+> por la misma regla. **Y salió algo peor de lo que se pidió:** a 900 pt Ingresos y Gastos dejaban
+> el Estado y el Importe fuera de la vista.
+
 Con el handoff 8 construido, las 15 secciones se miraron a 900 pt con el inspector cerrado. **Iván
 decidió el 24-sep pedirle al diseñador** lo que queda, en vez de inventarlo:
 

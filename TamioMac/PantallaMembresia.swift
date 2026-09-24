@@ -123,31 +123,64 @@ struct PantallaMembresia: View {
 
     // MARK: - Cabecera
 
+    /// **Si no cabe en una línea, en dos, y nada se encoge** (handoff 9). A
+    /// 900 pt el botón se leía «New me…»: el `HStack` apretaba los botones en
+    /// vez de bajarlos. Ahora los botones y la cuenta van a su tamaño natural,
+    /// y `ViewThatFits` elige entre la línea y las dos líneas.
     private var cabecera: some View {
-        HStack(spacing: 12) {
-            Picker("", selection: $sub) {
-                ForEach(SubMembresia.allCases) { Text($0.titulo).tag($0) }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                selectorSub
+                Spacer(minLength: 0)
+                cuenta
+                botonesAlta
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-            Spacer(minLength: 0)
-            Text(L.t("\(vm.itemsFiltrados.count) de \(vm.items.count) personas",
-                     "\(vm.itemsFiltrados.count) of \(vm.items.count) people"))
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-            // **El botón se queda aunque la orden viva en el menú.** El ⌘N del
-            // menú funciona con el foco donde sea, que es para lo que está; pero
-            // una pantalla de la que se puede dar de alta tiene que decirlo a la
-            // vista, sin que haya que abrir un menú para descubrirlo.
-            if administraPadron {
-                // **"Añadir pariente" va antes que "Nuevo miembro"**, como en
-                // el handoff: es la acción secundaria y queda a su izquierda.
-                Button(L.t("Añadir pariente", "Add relative")) { emparentando = true }
-                Button { estado.pidiendoAlta = true } label: {
-                    Label(L.t("Nuevo miembro", "New member"), systemImage: "plus")
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 12) {
+                    selectorSub
+                    Spacer(minLength: 0)
+                    cuenta
+                }
+                HStack(spacing: 12) {
+                    Spacer(minLength: 0)
+                    botonesAlta
                 }
             }
+        }
+    }
+
+    private var selectorSub: some View {
+        Picker("", selection: $sub) {
+            ForEach(SubMembresia.allCases) { Text($0.titulo).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+    }
+
+    private var cuenta: some View {
+        Text(L.t("\(vm.itemsFiltrados.count) de \(vm.items.count) personas",
+                 "\(vm.itemsFiltrados.count) of \(vm.items.count) people"))
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+            .fixedSize()
+    }
+
+    // **El botón se queda aunque la orden viva en el menú.** El ⌘N del menú
+    // funciona con el foco donde sea, que es para lo que está; pero una
+    // pantalla de la que se puede dar de alta tiene que decirlo a la vista,
+    // sin que haya que abrir un menú para descubrirlo.
+    @ViewBuilder
+    private var botonesAlta: some View {
+        if administraPadron {
+            // **"Añadir pariente" va antes que "Nuevo miembro"**, como en
+            // el handoff: es la acción secundaria y queda a su izquierda.
+            Button(L.t("Añadir pariente", "Add relative")) { emparentando = true }
+                .fixedSize()
+            Button { estado.pidiendoAlta = true } label: {
+                Label(L.t("Nuevo miembro", "New member"), systemImage: "plus")
+            }
+            .fixedSize()
         }
     }
 
@@ -169,26 +202,53 @@ struct PantallaMembresia: View {
             (L.t("Con ausencias", "With absences"), r?.ausencias ?? 0, Paleta.aviso),
             (L.t("Expediente incompleto", "Incomplete file"), r?.incompletos ?? 0, Paleta.aviso),
         ]
-        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 8),
-                         spacing: 9) {
-            ForEach(Array(datos.enumerated()), id: \.offset) { _, d in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(d.1)")
-                        .font(.system(size: 20, weight: .bold))
-                        .monospacedDigit()
-                        .foregroundStyle(d.2)
-                    Text(d.0)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+        // **Ocho en fila si caben enteros; si no, 4 × 2** (handoff 9), con el
+        // número y el rótulo en una línea para que ningún rótulo se corte. A
+        // 900 pt la fila de ocho cortaba seis («Remo…», «With a…»).
+        // `ViewThatFits` mira el ancho natural de la fila —los rótulos
+        // enteros— y solo la elige si cabe así.
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 9) {
+                ForEach(Array(datos.enumerated()), id: \.offset) { _, d in
+                    indicador(d, enLinea: false)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .tarjetaMac(11)
+            }
+            Grid(horizontalSpacing: 9, verticalSpacing: 9) {
+                GridRow {
+                    ForEach(Array(datos.prefix(4).enumerated()), id: \.offset) { _, d in
+                        indicador(d, enLinea: true)
+                    }
+                }
+                GridRow {
+                    ForEach(Array(datos.suffix(4).enumerated()), id: \.offset) { _, d in
+                        indicador(d, enLinea: true)
+                    }
+                }
             }
         }
         .padding(.top, 16)
+    }
+
+    private func indicador(_ d: (String, Int, Color), enLinea: Bool) -> some View {
+        let numero = Text("\(d.1)")
+            .font(.system(size: 20, weight: .bold))
+            .monospacedDigit()
+            .foregroundStyle(d.2)
+        let rotulo = Text(d.0)
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        return Group {
+            if enLinea {
+                HStack(spacing: 9) { numero.fixedSize(); rotulo }
+            } else {
+                VStack(alignment: .leading, spacing: 2) { numero; rotulo }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .tarjetaMac(11)
     }
 
     // MARK: - Miembros
@@ -567,14 +627,56 @@ struct PantallaMembresia: View {
 
 /// Chips que saltan de renglón cuando no caben. `LazyVGrid` no vale: aquí cada
 /// chip mide lo que mide su texto, y en dos idiomas distintos.
+///
+/// **Saltan de verdad** (24-sep). La versión anterior probaba una fila y, si no
+/// cabía, ponía… la misma fila: los chips se apretaban y partían su texto
+/// («With / absences»). Ahora cada chip va a su tamaño y el que no cabe baja.
 struct FlowChips<C: View>: View {
     @ViewBuilder let contenido: C
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 6) { contenido }
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) { contenido }
+        Flujo(espacio: 6) { contenido }
+    }
+}
+
+/// Un layout que coloca a sus hijos en fila, a su tamaño natural, y baja al
+/// siguiente renglón el que no cabe. Es layout puro: no mide nada en un
+/// estado, así que no puede cambiar la vista a mitad del layout de AppKit.
+struct Flujo: Layout {
+    var espacio: CGFloat = 6
+
+    private func filas(_ ancho: CGFloat, _ subviews: Subviews) -> [[(Int, CGSize)]] {
+        var filas: [[(Int, CGSize)]] = [[]]
+        var x: CGFloat = 0
+        for (i, v) in subviews.enumerated() {
+            let t = v.sizeThatFits(.unspecified)
+            if x > 0 && x + t.width > ancho {
+                filas.append([]); x = 0
             }
+            filas[filas.count - 1].append((i, t))
+            x += t.width + espacio
+        }
+        return filas
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let ancho = proposal.width ?? .infinity
+        let fs = filas(ancho, subviews)
+        let anchos = fs.map { f in f.reduce(0) { $0 + $1.1.width } + espacio * CGFloat(max(0, f.count - 1)) }
+        let alto = fs.reduce(0) { $0 + ($1.map(\.1.height).max() ?? 0) } + espacio * CGFloat(max(0, fs.count - 1))
+        return CGSize(width: anchos.max() ?? 0, height: alto)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for f in filas(bounds.width, subviews) {
+            var x = bounds.minX
+            let alto = f.map(\.1.height).max() ?? 0
+            for (i, t) in f {
+                subviews[i].place(at: CGPoint(x: x, y: y + (alto - t.height) / 2),
+                                  proposal: ProposedViewSize(t))
+                x += t.width + espacio
+            }
+            y += alto + espacio
         }
     }
 }

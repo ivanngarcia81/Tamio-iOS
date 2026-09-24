@@ -21,7 +21,22 @@ struct TablaAportantes: View {
     private var filas: [Aportante] { vm.itemsFiltrados.sorted(using: orden) }
     private var anio: Int { vm.anio }
 
+    /// **A media pantalla la tabla suelta una columna y estrecha el resto**
+    /// (handoff 9: «a 900 pt cada tabla suelta la columna que ya está en el
+    /// inspector»). `Table` nace en el ancho ideal de sus columnas y no las
+    /// encoge, así que por debajo de esa suma las últimas quedaban fuera de la
+    /// vista. `ViewThatFits` y no medir el ancho, como en `TablaMovimientos`.
+    private static let anchoCompleto: CGFloat = 260 + 120 + 124 + 120 + 140 + 5 * 17 + 20
+
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            tabla(estrecha: false)
+                .frame(minWidth: 0, idealWidth: Self.anchoCompleto, maxWidth: .infinity, maxHeight: .infinity)
+            tabla(estrecha: true)
+        }
+    }
+
+    private func tabla(estrecha: Bool) -> some View {
         Table(filas, selection: $seleccion, sortOrder: $orden) {
 
             TableColumn(L.t("Nombre", "Name"), value: \.nombre) { a in
@@ -44,18 +59,21 @@ struct TablaAportantes: View {
                 // tiene ajuste propio y la fila mide lo que su celda más alta.
                 .frame(height: estado.altoDeFila)
             }
-            .width(min: 160, ideal: 260)
+            .width(min: 140, ideal: estrecha ? 220 : 260)
 
-            TableColumn(L.t("Miembro desde", "Member since"), value: \.congregaDesde) { a in
-                Text(a.congregaDesde.isEmpty ? "—" : a.congregaDesde)
-                    .foregroundStyle(.secondary)
+            // Ya sale en el inspector: es la que se suelta.
+            if !estrecha {
+                TableColumn(L.t("Miembro desde", "Member since"), value: \.congregaDesde) { a in
+                    Text(a.congregaDesde.isEmpty ? "—" : a.congregaDesde)
+                        .foregroundStyle(.secondary)
+                }
+                .width(min: 100, ideal: 120, max: 170)
             }
-            .width(min: 100, ideal: 120, max: 170)
 
             TableColumn(L.t("Frecuencia", "Frequency"), value: \.frecuencia.rawValue) { a in
                 Text(a.frecuencia.etiqueta).foregroundStyle(.secondary)
             }
-            .width(min: 100, ideal: 124, max: 170)
+            .width(min: 90, ideal: estrecha ? 104 : 124, max: 170)
 
             TableColumn(L.t("Último aporte", "Last gift"), value: \.ordenUltimoAporte) { a in
                 Text(a.ultimoAporte.map {
@@ -63,7 +81,7 @@ struct TablaAportantes: View {
                 } ?? "—")
                 .foregroundStyle(a.ultimoAporte == nil ? .tertiary : .secondary)
             }
-            .width(min: 100, ideal: 120, max: 170)
+            .width(min: 80, ideal: estrecha ? 90 : 120, max: 170)
 
             TableColumn(L.t("Acumulado", "Year to date"), value: \.nombre) { a in
                 let t = a.total(anio: anio)
@@ -73,7 +91,7 @@ struct TablaAportantes: View {
                     .foregroundStyle(t == 0 ? .tertiary : .primary)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .width(min: 110, ideal: 140, max: 190)
+            .width(min: 100, ideal: estrecha ? 112 : 140, max: 190)
         }
         // **Sin rayas alternas.** `alternatesRowBackgrounds` las pinta en
         // TODO el alto de la tabla, también donde no hay datos: con dos filas

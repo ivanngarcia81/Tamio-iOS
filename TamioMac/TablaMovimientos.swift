@@ -34,7 +34,63 @@ struct TablaMovimientos: View {
 
     private var filas: [Movimiento] { vm.itemsFiltrados.sorted(using: orden) }
 
+    /// **A media pantalla la tabla suelta el Método y estrecha el resto**
+    /// (handoff 9: «a 900 pt cada tabla suelta la columna que ya está en el
+    /// inspector»). Sin eso, a 900 pt el Estado y el IMPORTE quedaban fuera de
+    /// la vista y había que desplazarse para saber cuánto dinero era: `Table`
+    /// nace en el ancho ideal de sus columnas y no las encoge.
+    ///
+    /// `ViewThatFits` y no medir el ancho: un `@State` con el ancho cambiaba la
+    /// vista a mitad del layout de AppKit y tumbaba la app (`PantallaReportes`).
+    /// El `idealWidth` es la suma de los anchos ideales de las seis columnas y
+    /// sus márgenes: por debajo, la completa tendría que desplazarse.
+    private static let anchoCompleto: CGFloat = 96 + 84 + 320 + 110 + 128 + 130 + 6 * 17 + 20
+
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            tabla(estrecha: false)
+                .frame(minWidth: 0, idealWidth: Self.anchoCompleto, maxWidth: .infinity, maxHeight: .infinity)
+            tabla(estrecha: true)
+        }
+        // **El ⌘D tiene que funcionar sin abrir el menú.** Un atajo dentro de
+        // un menú contextual solo responde mientras el menú está abierto; este
+        // botón invisible es el que lo cumple con la fila seleccionada, igual
+        // que el ⌘C de una tabla del Finder.
+        .background {
+            Button(L.t("Duplicar", "Duplicate")) {
+                if let m = seleccionUnica { duplicar(m) }
+            }
+            .keyboardShortcut("d", modifiers: .command)
+            .disabled(seleccionUnica == nil)
+            .opacity(0)
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
+            // El ⌘R, por lo mismo que el ⌘D.
+            Button(L.t("Aprobar", "Approve")) { aprobar(seleccionPendiente) }
+                .keyboardShortcut("r", modifiers: .command)
+                .disabled(seleccionPendiente.isEmpty)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
+        }
+        // **Actúa sobre TODA la selección, no sobre la fila pulsada.** Una
+        // tabla de Mac selecciona muchas y el menú sale de la selección; borrar
+        // solo una de las seis marcadas sería la sorpresa, no lo contrario. Por
+        // eso el aviso dice cuántas y cuánto dinero se lleva.
+        .confirmationDialog(tituloDelBorrado,
+                            isPresented: Binding(get: { !aEliminar.isEmpty },
+                                                 set: { if !$0 { aEliminar = [] } }),
+                            titleVisibility: .visible) {
+            Button(L.t("Eliminar", "Delete"), role: .destructive) { eliminarConfirmados() }
+            Button(L.t("Cancelar", "Cancel"), role: .cancel) { aEliminar = [] }
+        } message: {
+            Text(L.t("Se va del libro de la iglesia y de todos los aparatos. El Registro guarda quién lo hizo.",
+                     "It leaves the church's books and every device. The Log keeps who did it."))
+        }
+
+    }
+
+    private func tabla(estrecha: Bool) -> some View {
         Table(filas, selection: $seleccion, sortOrder: $orden) {
 
             TableColumn(L.t("Fecha", "Date"), value: \.fecha) { m in
@@ -48,14 +104,14 @@ struct TablaMovimientos: View {
                     // modificador seis veces.
                     .frame(height: estado.altoDeFila)
             }
-            .width(min: 76, ideal: 96, max: 140)
+            .width(min: 70, ideal: estrecha ? 78 : 96, max: 140)
 
             TableColumn(L.t("Folio", "Folio"), value: \.folio) { m in
                 Text(m.folio)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
-            .width(min: 64, ideal: 84, max: 120)
+            .width(min: 60, ideal: estrecha ? 74 : 84, max: 120)
 
             TableColumn(L.t("Concepto", "Concept"), value: \.categoria) { m in
                 HStack(spacing: 8) {
@@ -74,12 +130,15 @@ struct TablaMovimientos: View {
                     }
                 }
             }
-            .width(min: 180, ideal: 320)
+            .width(min: 140, ideal: estrecha ? 200 : 320)
 
-            TableColumn(L.t("Método", "Method"), value: \.metodo) { m in
-                Text(m.metodo).foregroundStyle(.secondary)
+            // El método ya sale en el inspector: es la que se suelta.
+            if !estrecha {
+                TableColumn(L.t("Método", "Method"), value: \.metodo) { m in
+                    Text(m.metodo).foregroundStyle(.secondary)
+                }
+                .width(min: 88, ideal: 110, max: 160)
             }
-            .width(min: 88, ideal: 110, max: 160)
 
             TableColumn(L.t("Estado", "Status"), value: \.ordenDeEstado) { m in
                 let e = EstadoFila(m)
@@ -90,7 +149,7 @@ struct TablaMovimientos: View {
                     .padding(.vertical, 2)
                     .background(e.tinta.opacity(0.14), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             }
-            .width(min: 104, ideal: 128, max: 180)
+            .width(min: 104, ideal: estrecha ? 118 : 128, max: 180)
 
             TableColumn(L.t("Importe", "Amount"), value: \.monto) { m in
                 // A la derecha y con cifras de ancho fijo: una columna de
@@ -102,7 +161,7 @@ struct TablaMovimientos: View {
                     .foregroundStyle(Money.color(ingreso: m.esIngreso))
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .width(min: 100, ideal: 130, max: 180)
+            .width(min: 100, ideal: estrecha ? 112 : 130, max: 180)
         }
         // **Sin rayas alternas, y no es capricho.**
         //
@@ -163,41 +222,6 @@ struct TablaMovimientos: View {
                     }
                 }
             }
-        }
-        // **El ⌘D tiene que funcionar sin abrir el menú.** Un atajo dentro de
-        // un menú contextual solo responde mientras el menú está abierto; este
-        // botón invisible es el que lo cumple con la fila seleccionada, igual
-        // que el ⌘C de una tabla del Finder.
-        .background {
-            Button(L.t("Duplicar", "Duplicate")) {
-                if let m = seleccionUnica { duplicar(m) }
-            }
-            .keyboardShortcut("d", modifiers: .command)
-            .disabled(seleccionUnica == nil)
-            .opacity(0)
-            .frame(width: 0, height: 0)
-            .accessibilityHidden(true)
-            // El ⌘R, por lo mismo que el ⌘D.
-            Button(L.t("Aprobar", "Approve")) { aprobar(seleccionPendiente) }
-                .keyboardShortcut("r", modifiers: .command)
-                .disabled(seleccionPendiente.isEmpty)
-                .opacity(0)
-                .frame(width: 0, height: 0)
-                .accessibilityHidden(true)
-        }
-        // **Actúa sobre TODA la selección, no sobre la fila pulsada.** Una
-        // tabla de Mac selecciona muchas y el menú sale de la selección; borrar
-        // solo una de las seis marcadas sería la sorpresa, no lo contrario. Por
-        // eso el aviso dice cuántas y cuánto dinero se lleva.
-        .confirmationDialog(tituloDelBorrado,
-                            isPresented: Binding(get: { !aEliminar.isEmpty },
-                                                 set: { if !$0 { aEliminar = [] } }),
-                            titleVisibility: .visible) {
-            Button(L.t("Eliminar", "Delete"), role: .destructive) { eliminarConfirmados() }
-            Button(L.t("Cancelar", "Cancel"), role: .cancel) { aEliminar = [] }
-        } message: {
-            Text(L.t("Se va del libro de la iglesia y de todos los aparatos. El Registro guarda quién lo hizo.",
-                     "It leaves the church's books and every device. The Log keeps who did it."))
         }
     }
 
