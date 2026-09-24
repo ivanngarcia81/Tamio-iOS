@@ -71,7 +71,9 @@ struct InspectorTamio: View {
             .foregroundStyle(Money.color(ingreso: m.esIngreso))
             .padding(.top, 4)
 
-        Text("\(m.categoria) · \(L.t("folio", "folio")) \(m.folio)")
+        // En la lengua de la app, como la tabla: se guarda la clave
+        // («diezmo»), y aquí salía tal cual con la app en inglés (24-sep).
+        Text("\(Catalogos.etiquetaDeCategoria(m.categoria)) · \(L.t("folio", "folio")) \(m.folio)")
             .font(.system(size: 12.5))
             .foregroundStyle(.secondary)
             .padding(.top, 2)
@@ -448,7 +450,7 @@ struct InspectorTamio: View {
                 .padding(.top, 18)
             VStack(spacing: 0) {
                 ForEach(Array(c.movimientos.enumerated()), id: \.element.id) { i, m in
-                    campo("\(m.folio) · \(m.categoria)", Money.fmt(m.monto),
+                    campo("\(m.folio) · \(Catalogos.etiquetaDeCategoria(m.categoria))", Money.fmt(m.monto),
                           ultimo: i == c.movimientos.count - 1)
                 }
             }

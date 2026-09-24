@@ -61,9 +61,17 @@ sigamos».
    que cambiaba la vista a mitad del layout): 9 idas y vueltas Inicio↔Reportes. Con `ViewThatFits`,
    50 idas y vueltas y 40 pliegues de la barra sin caída. La del 23-sep (10:43, antes de este cambio)
    era de la misma familia y sigue sin causa conocida: **no medir anchos en un `@State`** en el Mac.
-7. **La iglesia de prueba volvió a tener el nombre de 500 caracteres** de `TextoBruto` en Supabase
-   (subido a las 13:43 UTC del 24-sep, cuando por la mañana decía «Iglesia de prueba»). Algún
-   aparato con la ficha vieja la volvió a subir encima. Mirar quién y por qué.
+7. **La ficha de la iglesia se sube entera y gana la última subida** (visto el 24-sep). La iglesia
+   de prueba amaneció con el nombre de 500 caracteres de `TextoBruto` otra vez: a las 13:43 UTC una
+   app arrancó, subió de su cola una ficha guardada días antes (`PATCH iglesias`, antes de bajar
+   nada) y pisó el «Iglesia de prueba» que había desde las 10:23. `MotorSincronizacion` sube TODOS
+   los campos sin mirar el `updated_at` del servidor, y mientras hay un cambio pendiente no baja la
+   ficha. En una iglesia real: quien edita un campo sin conexión deshace, al volver, lo que otro
+   cambió mientras tanto en cualquier otro campo. **Pendiente de decidir con Iván.** El nombre de la
+   iglesia de prueba se devolvió a mano.
+8. **El Mac, listo para la tienda y sin subir** (24-sep): `~/Desktop/Tamio-mac/Tamio.pkg`, 1.0.0
+   (2026092401), firmado para la Mac App Store; capturas en `docs/capturas-tienda/mac{,-en}/`. Se
+   sube cuando Iván diga: la ficha pasa a declarar macOS.
 
 ## Cuando se corra la suite en los aparatos
 

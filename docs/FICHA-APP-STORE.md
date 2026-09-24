@@ -365,6 +365,9 @@ Se generan con `pruebas/capturas-tienda.sh`, que las deja en
   cuenta (desde el 24-sep). En español sigue siendo «Iglesia Nueva Vida»,
   Monterrey. Coincide el nombre de la iglesia, no las personas: la maqueta
   tiene su propio padrón.
+- **Y las del Mac** (24-sep): `pruebas/capturas-mac.sh en|es`, diez a 1440×900, en
+  `mac-en/` y `mac/`, con la maqueta. **Solo se suben el día que se suba el Mac**: una
+  captura de Mac en la ficha la declara para macOS, y el revisor lo revisa también.
 - **No están en el repo**, a propósito: pesan 10 MB y el repo empaquetado pesa
   4,5. Se rehacen en tres minutos con el guion. Están en `.gitignore` con el
   motivo escrito.

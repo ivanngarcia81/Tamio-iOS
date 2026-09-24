@@ -95,6 +95,14 @@ struct MockCartasRepository: CartasRepository {
                          destinatarioTipo: "iglesia",
                          destinatarioNombre: "Javier Medina Cruz",
                          asunto: L.t("Carta de traslado", "Transfer letter"),
+                         // **Con cuerpo, no en blanco.** Las dos cartas de la
+                         // maqueta salían con "[El cuerpo de la carta todavía
+                         // está en blanco]", y son las que se fotografían para
+                         // la ficha de la tienda (24-sep).
+                         saludo: L.t("Estimados hermanos:", "Dear brothers and sisters:"),
+                         cuerpo: L.t("Por medio de la presente hacemos constar que el hermano Javier Medina Cruz ha sido miembro en plena comunión de esta congregación desde noviembre de 2016, bautizado en agua y activo en el ministerio de enseñanza.\n\nA petición suya, y por cambio de residencia, lo encomendamos a su congregación con nuestra recomendación y afecto, confiando en que será recibido como tal.",
+                                     "This letter certifies that brother Javier Medina Cruz has been a member in full communion of this congregation since November 2016, baptized in water and active in the teaching ministry.\n\nAt his request, and because he is moving, we commend him to your congregation with our recommendation and affection, trusting that he will be received as such."),
+                         despedida: L.t("En Cristo,", "In Christ,"),
                          estado: "emitida"),
             CartaEmitida(id: "2", folio: FolioCarta.texto(anio: String(año), seq: 2), tipo: .certificadoMiembro,
                          fechaEmision: "\(año)-08-28",
@@ -102,6 +110,10 @@ struct MockCartasRepository: CartasRepository {
                          destinatarioTipo: "miembro",
                          destinatarioNombre: "Ana Lucía Torres",
                          asunto: L.t("Constancia de membresía", "Membership certificate"),
+                         saludo: L.t("A quien corresponda:", "To whom it may concern:"),
+                         cuerpo: L.t("Hacemos constar que la hermana Ana Lucía Torres es miembro activo de esta congregación desde agosto de 2016. Fue bautizada en agua y sirve en el equipo de intercesión.\n\nSe extiende la presente a petición de la interesada, para los fines que a ella convengan.",
+                                     "We certify that sister Ana Lucía Torres has been an active member of this congregation since August 2016. She was baptized in water and serves on the intercession team.\n\nThis certificate is issued at her request, for whatever purpose she may need it."),
+                         despedida: L.t("Atentamente,", "Sincerely,"),
                          estado: "emitida"),
         ]
     }
