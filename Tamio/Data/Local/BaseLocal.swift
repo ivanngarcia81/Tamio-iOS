@@ -1022,6 +1022,15 @@ final class BaseLocal {
             }
         }
 
+        m.registerMigration("v27_baseIglesia") { db in
+            // La ficha tal como la tiene el servidor, para subir solo los
+            // campos que cambian (`CamposIglesia`). Nula hasta la próxima
+            // bajada: mientras tanto se sube entera, como antes.
+            try db.alter(table: "iglesia") { t in
+                t.add(column: "base", .text)
+            }
+        }
+
         return m
     }
 

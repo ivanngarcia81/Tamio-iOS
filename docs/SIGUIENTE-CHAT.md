@@ -61,14 +61,15 @@ sigamos».
    que cambiaba la vista a mitad del layout): 9 idas y vueltas Inicio↔Reportes. Con `ViewThatFits`,
    50 idas y vueltas y 40 pliegues de la barra sin caída. La del 23-sep (10:43, antes de este cambio)
    era de la misma familia y sigue sin causa conocida: **no medir anchos en un `@State`** en el Mac.
-7. **La ficha de la iglesia se sube entera y gana la última subida** (visto el 24-sep). La iglesia
-   de prueba amaneció con el nombre de 500 caracteres de `TextoBruto` otra vez: a las 13:43 UTC una
-   app arrancó, subió de su cola una ficha guardada días antes (`PATCH iglesias`, antes de bajar
-   nada) y pisó el «Iglesia de prueba» que había desde las 10:23. `MotorSincronizacion` sube TODOS
-   los campos sin mirar el `updated_at` del servidor, y mientras hay un cambio pendiente no baja la
-   ficha. En una iglesia real: quien edita un campo sin conexión deshace, al volver, lo que otro
-   cambió mientras tanto en cualquier otro campo. **Pendiente de decidir con Iván.** El nombre de la
-   iglesia de prueba se devolvió a mano.
+7. **La ficha de la iglesia sube solo los campos cambiados** (arreglado el 24-sep). Subía entera y
+   ganaba la última subida: la iglesia de prueba amaneció otra vez con el nombre de 500 caracteres
+   de `TextoBruto` porque una app subió de su cola, al arrancar, una ficha guardada días antes. Ahora
+   la fila local guarda la `base` (lo último que se sabe del servidor, columna nueva `v27`) y
+   `CamposIglesia.parche` sube solo lo distinto. Probado de punta a punta con el Mac contra la
+   iglesia de prueba (ciudad cambiada «desde otro aparato» + teléfono pendiente: se quedan los dos)
+   y con `CamposIglesiaTests` (5 de 5). El IPA y el paquete del Mac del Escritorio ya lo llevan.
+   - Visto de paso: en el Mac, guardar la ficha no dispara la sincronización; sube al volver la app
+     al frente o al arrancar. Era así antes.
 8. **El Mac, listo para la tienda y sin subir** (24-sep): `~/Desktop/Tamio-mac/Tamio.pkg`, 1.0.0
    (2026092401), firmado para la Mac App Store; capturas en `docs/capturas-tienda/mac{,-en}/`. Se
    sube cuando Iván diga: la ficha pasa a declarar macOS.

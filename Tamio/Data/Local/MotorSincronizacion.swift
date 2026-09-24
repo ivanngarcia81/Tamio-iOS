@@ -2011,56 +2011,10 @@ final class MotorSincronizacion {
 
     // MARK: - Configuración de la iglesia
 
-    /// Vacío es NULO al subir. Un `""` no es "sin cargo" para el web: su
-    /// respaldo traducido solo salta con nulo.
-    private func oNulo(_ s: String) -> String? {
-        let v = s.trimmingCharacters(in: .whitespaces)
-        return v.isEmpty ? nil : v
-    }
-
     private func subirIglesia(_ id: String) async throws {
         guard let fila = try await cola.read({ db in
             try IglesiaFila.fetchOne(db, key: id)
         }) else { return }
-
-        struct IglesiaUpdate: Encodable {
-            let nombre, direccion, ciudad, estado, pais: String
-            let codigoPostal, idFiscal, telefono, correo, moneda: String
-            let pieInstitucional: String
-            let logoPath: String
-            let saldoInicial: Int
-            let pastorNombre: String
-            let tesoreroNombre: String
-            let tesoreroEmail, tesoreroTelefono: String
-            let pastorEmail, pastorTelefono: String
-            let secretarioNombre: String
-            let imprimirFirmas: Bool
-            /// **Los tres cargos suben NULOS si están vacíos**, no "". El web
-            /// resuelve el cargo con `?? t("cartas.rolSecretaria")`, que solo
-            /// salta con nulo: una cadena vacía le dejaría el pie de la carta
-            /// sin cargo en vez de traducido. Es lo mismo que hace su propio
-            /// formulario (`.trim() || null`).
-            let pastorCargo, tesoreroCargo, secretarioCargo: String?
-            enum CodingKeys: String, CodingKey {
-                case nombre, direccion, ciudad, estado, pais, telefono, correo, moneda
-                case codigoPostal      = "codigo_postal"
-                case idFiscal          = "id_fiscal"
-                case pieInstitucional  = "pie_institucional"
-                case logoPath          = "logo_path"
-                case saldoInicial      = "saldo_inicial"
-                case pastorNombre      = "pastor_nombre"
-                case pastorCargo       = "pastor_cargo"
-                case tesoreroNombre    = "tesorero_nombre"
-                case tesoreroCargo     = "tesorero_cargo"
-                case tesoreroEmail     = "tesorero_email"
-                case tesoreroTelefono  = "tesorero_telefono"
-                case pastorEmail       = "pastor_email"
-                case pastorTelefono    = "pastor_telefono"
-                case secretarioNombre  = "secretario_nombre"
-                case secretarioCargo   = "secretario_cargo"
-                case imprimirFirmas    = "imprimir_firmas"
-            }
-        }
 
         // **Se comprueba que el update TOCÓ algo.**
         //
@@ -2079,25 +2033,17 @@ final class MotorSincronizacion {
         // cola y decirlo, no desaparecer como si hubiera salido bien.
         struct IglesiaTocada: Decodable { let id: String }
 
-        let c = fila.configuracion
+        // **Solo los campos que este aparato cambió** (`CamposIglesia`): los
+        // demás pueden haberlos cambiado otros mientras tanto, y subirlos
+        // enteros los deshacía. Sin base —filas de antes del 24-sep— sube todo.
+        let parche = CamposIglesia.parche(fila.configuracion, base: fila.base)
+        // Nada distinto de lo que tiene el servidor: no hay nada que subir, y
+        // la operación se da por hecha.
+        if parche.isEmpty { return }
+
         let tocadas: [IglesiaTocada] = try await supabase
             .from("iglesias")
-            .update(IglesiaUpdate(
-                nombre: c.nombre, direccion: c.direccion, ciudad: c.ciudad,
-                estado: c.estado, pais: c.pais, codigoPostal: c.codigoPostal,
-                idFiscal: c.idFiscal, telefono: c.telefono, correo: c.correo,
-                moneda: c.moneda, pieInstitucional: c.pieInstitucional,
-                logoPath: c.logoPath,
-                saldoInicial: c.saldoInicial,
-                pastorNombre: c.pastorNombre,
-                tesoreroNombre: c.tesoreroNombre,
-                tesoreroEmail: c.tesoreroCorreo, tesoreroTelefono: c.tesoreroTelefono,
-                pastorEmail: c.pastorCorreo, pastorTelefono: c.pastorTelefono,
-                secretarioNombre: c.secretarioNombre,
-                imprimirFirmas: c.imprimirFirmas,
-                pastorCargo: oNulo(c.pastorCargo),
-                tesoreroCargo: oNulo(c.tesoreroCargo),
-                secretarioCargo: oNulo(c.secretarioCargo)))
+            .update(parche)
             .eq("id", value: id)
             .select("id")
             .execute()
@@ -2105,6 +2051,14 @@ final class MotorSincronizacion {
 
         guard !tocadas.isEmpty else {
             throw FalloDeSubida.nadieRecibioLaIglesia
+        }
+
+        // Lo subido ya es del servidor: pasa a la base.
+        var nueva = CamposIglesia.leer(fila.base) ?? [:]
+        for (k, v) in parche { nueva[k] = v }
+        let json = CamposIglesia.escribir(nueva)
+        try await cola.write { db in
+            try db.execute(sql: "update iglesia set base = ? where id = ?", arguments: [json, id])
         }
     }
 
@@ -2204,7 +2158,9 @@ final class MotorSincronizacion {
         // error en Swift 6, no solo un aviso.
         let configuracion = c
         try await cola.write { db in
-            try IglesiaFila(id: churchIdActivo, configuracion).save(db)
+            // Lo que baja es, por definición, lo que tiene el servidor: la base.
+            try IglesiaFila(id: churchIdActivo, configuracion,
+                            base: CamposIglesia.escribir(CamposIglesia.de(configuracion))).save(db)
         }
     }
 

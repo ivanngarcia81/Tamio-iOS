@@ -56,7 +56,12 @@ struct OfflineConfiguracionIglesiaRepository: ConfiguracionIglesiaRepository {
 
     func guardar(_ c: ConfiguracionIglesia) async throws {
         try await cola.write { db in
-            try IglesiaFila(id: churchIdActivo, c).save(db)
+            // La base se conserva: es lo que se sabe del servidor, y editar
+            // la ficha no lo cambia. Sin ella, la subida no sabría qué campos
+            // se tocaron aquí y los mandaría todos.
+            let base = try String.fetchOne(db, sql: "select base from iglesia where id = ?",
+                                           arguments: [churchIdActivo])
+            try IglesiaFila(id: churchIdActivo, c, base: base).save(db)
             // Una sola operación pendiente por iglesia: al servidor solo le
             // importa cómo quedó, no por cuántas ediciones pasó.
             let previa = try OperacionPendiente
