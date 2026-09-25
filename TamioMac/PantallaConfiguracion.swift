@@ -121,13 +121,17 @@ struct PantallaConfiguracion: View {
         .onChange(of: seccion) { anterior, _ in
             // Elegir una sección cierra también la lista flotante.
             seccionesAbiertas = false
-            if anterior == .iglesia {
-                fijarApertura()
-                Task { await cfg.guardarYa() }
-            }
+            if anterior == .iglesia { fijarApertura() }
+            if Self.editanLaFicha.contains(anterior) { subirFicha() }
             aperturaTexto = textoApertura
         }
         .onAppear { aperturaTexto = textoApertura }
+        // Salir de Ajustes por la barra de la app no cambia `seccion`: sin
+        // esto, lo tecleado en la ficha esperaba a la próxima vuelta al frente.
+        .onDisappear {
+            if seccion == .iglesia { fijarApertura() }
+            if Self.editanLaFicha.contains(seccion) { subirFicha() }
+        }
         .sheet(item: $firmando) { quien in
             HojaFirmaMac(firmante: quien, firmas: firmas)
         }
@@ -667,6 +671,22 @@ struct PantallaConfiguracion: View {
     /// así que en pantalla queda exactamente lo que se guardó. Si no se
     /// entiende, se deja lo anterior: un cero silencioso en una cifra de dinero
     /// es peor que no aceptar el texto. Misma regla que en el iPad.
+    /// Las tres secciones que escriben en la ficha de la iglesia.
+    private static let editanLaFicha: Set<SeccionAjustes> = [.iglesia, .institucion, .tesorero]
+
+    /// **La ficha sube al salir de donde se edita, no al volver la app al
+    /// frente** (25-sep). Antes solo se guardaba en la base, y en el Mac, con
+    /// la ventana abierta días, el iPhone no veía el pastor nuevo hasta que
+    /// alguien cambiaba de app. Se ESPERA al guardado antes de sincronizar,
+    /// como en Membresía: lanzados a la vez, la vuelta salía antes de que la
+    /// operación estuviera en la cola.
+    private func subirFicha() {
+        Task {
+            await cfg.guardarYa()
+            await motor.sincronizar()
+        }
+    }
+
     private func fijarApertura() {
         let limpio = aperturaTexto.trimmingCharacters(in: .whitespaces)
         if limpio.isEmpty {

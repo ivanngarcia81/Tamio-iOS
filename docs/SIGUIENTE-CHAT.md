@@ -92,8 +92,11 @@ sigamos».
    oscuro.
 3. **El concepto vacío de un aporte importado** sale como «Aporte», que no es del catálogo. Se
    decide con un archivo real.
-4. **En el Mac, guardar la ficha de la iglesia no dispara la sincronización**: sube al volver la app
-   al frente o al arrancar. Era así antes; decidir si se sube al momento.
+4. **HECHO el 25-sep, sin commitear:** en el Mac, la ficha de la iglesia sube al salir de Iglesia,
+   Institución o Tesorero y pastor, o de Ajustes entero (`subirFicha` en `PantallaConfiguracion`).
+   Antes solo subía al volver la app al frente. Probado con un build firmado con Developer ID
+   contra la iglesia de prueba: el estado llegó al servidor en el mismo segundo del ⌘1 y del clic en
+   «Account»; la ficha quedó como estaba.
 5. **HECHO en código el 25-sep, sale en el próximo build** (iPhone, iPad y Mac): ojo para ver la
    contraseña en la puerta y en «contraseña nueva», el campo «Confirmar contraseña», las cuatro
    reglas escritas y comprobadas antes de enviar (`ReglasContrasena` en `SesionSupabase.swift`), el
@@ -130,7 +133,20 @@ sigamos».
    si el elemento lleva el sitio `tamio.church`.
 6. **La caída del Mac del 23-sep** (`_postWindowNeedsUpdateConstraints`) sigue sin causa, pero es de
    la familia que se provocó y se quitó el 24-sep. Regla: **en el Mac no se miden anchos en un
-   `@State`**; `ViewThatFits`.
+   `@State`**; `ViewThatFits`. **Revisado el 25-sep:** ningún `GeometryReader` del Mac guarda medidas en
+   un `@State`. El sospechoso que queda es el inspector que se quita y se pone al cambiar de sección
+   (`seccionAlimentaElInspector`, desde `56c018c`, 22-sep 10:38; la caída fue al día siguiente).
+   No se reproduce: 1,120 cambios de sección con el DMG a 3500, 1150 y 1080 de ancho, mezclando
+   ⌘I, cero caídas. El informe `.ips` ya no está en el Mac. Sin reproducirla no se toca.
+7. **La sesión del Mac vive en el Llavero antiguo** (supabase-swift no usa
+   `kSecUseDataProtectionKeychain`), y su permiso queda atado a la firma que lo creó. Visto el 25-sep:
+   un build de desarrollo pedía «Tamio quiere usar información confidencial… supabase.gotrue.swift»
+   en cada lectura. Quien pase del DMG (Developer ID) a la Mac App Store vería ese aviso. Arreglo
+   posible: un `AuthLocalStorage` propio con el llavero de protección de datos (obliga a entrar
+   otra vez una vez).
+8. **Detalles del recorrido del 25-sep en el Mac:** Intro no envía en la hoja «Reset your password»
+   (al botón le falta `.keyboardShortcut(.defaultAction)`); «To review» vacío deja una franja
+   blanca a cada lado del fondo gris.
 
 ## Cuando se corra la suite en los aparatos
 
