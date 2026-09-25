@@ -31,10 +31,16 @@ sigamos».
   quiera que la ficha declare macOS**: desde ese momento el revisor revisa también el Mac.
 - **Capturas:** `docs/capturas-tienda/` (fuera de git): `telefono`, `ipad` → es-MX; `telefono-en`,
   `ipad-en` → en-US; `mac`, `mac-en` → solo con el paquete del Mac.
-- **Un build nuevo necesita un número mayor que 2026092402.**
+- **Un build nuevo necesita un número mayor que 2026092501** (el que está en revisión).
 
 ## Lo que hace Iván en App Store Connect
 
+> **REENVIADA el 25-sep-2026 por la tarde con el build 2026092501** (de `1950035`): Iván retiró la
+> 1.0.0 (2026092402) a las dos horas de enviarla, subió el nuevo con Transporter y la mandó otra vez.
+> Trae lo de las contraseñas (ojo, confirmar, las cuatro reglas, el motivo del servidor, la misma
+> contraseña) y `webcredentials:tamio.church`. El IPA está en `~/Desktop/Tamio-ipa/`; el 2026092402,
+> en `anterior-2026092402/`. **Un build nuevo necesita un número mayor que 2026092501.**
+>
 > **ENVIADA A REVISIÓN el 25-sep-2026 por la mañana**: iOS 1.0.0 (2026092402), solo iPhone y
 > iPad (Mac y Vision Pro desmarcados en Pricing and Availability), publicación **manual** al
 > aprobarse, gratis, todos los países. Capturas es-MX y en-US, texto de `FICHA-APP-STORE.md`,
@@ -108,6 +114,13 @@ sigamos».
    «Contraseña segura» que Safari pone solo— no se ofrece al entrar en la app. Visto el 25-sep con
    `+cliente1`: la contraseña se guardó bien (15:28:55) y los dos intentos de entrar fallaron.
    Arreglo: el permiso en la app y el archivo en `docs/.well-known/` de la rama `pages`.
+   **HECHO el 25-sep:** `1950035` en la app (va en el 2026092501) y `a226ff1` en `pages` de
+   `Tamio-app` (clon en `~/Desktop/Tamio-app`): el AASA responde 200 e `invitacion.html` es un
+   <form> con el correo como `username`. El Mac Studio quedó registrado en la cuenta. **Visto de punta a
+   punta el 25-sep** en el iPhone con el 2026092501: invitación desde la app a
+   `ivanngarcia82+cliente2@gmail.com` (tesorero en la iglesia de prueba), contraseña guardada en
+   `invitacion.html` y ofrecida por el Llavero al entrar en Tamio. Iván usa 1Password: también sirve,
+   si el elemento lleva el sitio `tamio.church`.
 6. **La caída del Mac del 23-sep** (`_postWindowNeedsUpdateConstraints`) sigue sin causa, pero es de
    la familia que se provocó y se quitó el 24-sep. Regla: **en el Mac no se miden anchos en un
    `@State`**; `ViewThatFits`.
