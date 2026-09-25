@@ -245,6 +245,9 @@ targets:
         # archivo de derechos y entra en conflicto con uno puesto a mano. Una
         # sola fuente, que es el archivo.
         CODE_SIGN_ENTITLEMENTS: Config/TamioMac.entitlements
+        # Lo exige la notarización para el .dmg que se baja de tamio.church
+        # (Developer ID); en la Mac App Store es opcional y no estorba (25-sep).
+        ENABLE_HARDENED_RUNTIME: YES
         GENERATE_INFOPLIST_FILE: YES
         # El mismo plist que iOS: lo único que lleva es `CFBundleLocalizations`,
         # que no tiene ajuste `INFOPLIST_KEY_` y hay que poner a mano.

@@ -29,6 +29,13 @@ sigamos».
 - **Mac:** `~/Desktop/Tamio-mac/Tamio.pkg` · 1.0.0 (2026092401), **sin `fe54076`**: rehacerlo antes
   de subirlo. **Se sube solo cuando Iván
   quiera que la ficha declare macOS**: desde ese momento el revisor revisa también el Mac.
+- **DMG del Mac · PUBLICADO el 25-sep** en tamio.church: release `mac-1.0.0` de `Tamio-app`
+  (`Tamio_universal.dmg`, 1.0.0 · 2026092501, universal, macOS 26+), que es la que baja el botón
+  «Download for Mac». Firmado con Developer ID (el certificado lo guarda Apple; Xcode lo usa solo)
+  y notarizado. Receta, desde `~/Desktop/Tamio-mac/`: `xcodebuild archive` del esquema `TamioMac`,
+  `-exportArchive` con `ExportOptions-dmg.plist` (developer-id, destination upload),
+  `-exportNotarizedApp` cuando Apple termine, y `hdiutil create` con la app y el acceso a
+  Aplicaciones. Necesita `ENABLE_HARDENED_RUNTIME` en `TamioMac`. La release la crea Iván.
 - **Capturas:** `docs/capturas-tienda/` (fuera de git): `telefono`, `ipad` → es-MX; `telefono-en`,
   `ipad-en` → en-US; `mac`, `mac-en` → solo con el paquete del Mac.
 - **Un build nuevo necesita un número mayor que 2026092501** (el que está en revisión).
