@@ -287,6 +287,12 @@ la revisión es en inglés.
     consumers, and the app is free and contains no purchase, no price, and no
     call to action to purchase anywhere outside it.
 
+    PLAN STATUS "COURTESY"
+    Settings shows the sample church's plan as "Courtesy". It is a
+    complimentary licence we assigned to the review church. There is nothing to
+    buy or renew in the app, and the plan screen does not say where or how
+    plans are obtained.
+
     SENSITIVE DATA
     The membership roll records baptism, membership status and ministries, so
     religious affiliation is declared as sensitive data in the privacy

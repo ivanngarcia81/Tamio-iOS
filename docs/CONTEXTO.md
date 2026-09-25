@@ -54,6 +54,12 @@ subir. Commits de `b2c9e11` a `fe54076`, todos en `mac-target`.
   SUCCEEDED with no errors», sin avisos en el análisis, y el build quedó en PROCESSING. El IPA lleva
   `ITSAppUsesNonExemptEncryption = NO`, así que TestFlight no pregunta por el cifrado.
 - **El SKU quedó `TAMIO-IOS-001`**, el previsto.
+- **Enviada a revisión el 25-sep por la mañana** (1.0.0, build 2026092402, solo iPhone y iPad,
+  publicación manual). Por el camino: la versión de la ficha decía 1.0 y hubo que ponerla en 1.0.0,
+  faltaba el Copyright, y la contraseña del revisor no se dejaba cambiar desde la app — la política
+  de Supabase exige minúscula, mayúscula, número y símbolo y la app lo esconde (en `SIGUIENTE-CHAT`
+  «Lo que queda»). Se puso por SQL desde el editor de Supabase, porque el modo automático no deja a
+  Claude escribir en `auth.users`.
 - **El nombre de la ficha quedó «Tamio Church»**, no «Tamio Iglesia» como se había decidido el
   17-sep: coincide con el nombre bajo el icono. Puestos al día `FICHA-APP-STORE.md` (también la
   nota al revisor), `APP-STORE.md`, `ACUERDO-CON-EL-WEB.md` y el comentario de `project.yml`. El web

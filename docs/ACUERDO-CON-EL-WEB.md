@@ -345,6 +345,17 @@ hace desde dentro de la app y es inmediato.
    `ivanngarcia82@gmail.com`; otras copias usan `ig07644@gmail.com`. Elegir uno
    y que sea el mismo en la ficha de App Store, en la política y en soporte.
 
+### Pagar crea la cuenta · 25-sep-2026
+
+Tamio Church no tiene «Crear cuenta». Hasta hoy `pago-webhook` solo actualizaba el plan de una
+cuenta que YA existía; un comprador nuevo pagaba y se quedaba sin cuenta (404 «usuario no
+encontrado»). Desde la v10 (`9bf4b87` en `main`), si el correo no existe y la suscripción está
+viva, la función invita por correo y el disparador `al_crear_usuario` crea iglesia y perfil de
+administrador; el plan se escribe en esa iglesia. También busca al comprador en todas las páginas
+de usuarios (antes solo en las primeras 50). `invitacion.html` (`854ec39` en `pages`) pide ahora
+las mismas cuatro reglas que la política de contraseñas de Supabase y enseña el motivo si la
+rechaza. Falta la prueba con una compra real (ver `SIGUIENTE-CHAT.md`).
+
 ### El nombre, ya decidido
 
 La ficha nueva se decidió como **«Tamio Iglesia»** (17-sep), y así está escrito en las
