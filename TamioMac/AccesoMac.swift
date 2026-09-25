@@ -650,7 +650,11 @@ struct TraerDatosMac: View {
 // MARK: - Recuperar la contraseña
 
 /// Los dos pasos del mismo camino que usa el iPhone: Supabase manda un código
-/// de seis cifras al correo y aquí se teclea junto con la contraseña nueva.
+/// al correo y aquí se teclea junto con la contraseña nueva, dos veces.
+///
+/// **El texto no dice cuántas cifras** (25-sep). Decía «seis» y el proyecto
+/// manda ocho (Auth → Email OTP Length): quien contaba las cifras creía que le
+/// había llegado otra cosa. El número lo decide un ajuste de Supabase, no la app.
 ///
 /// **Sin enlace de redirección**, igual que allí: un enlace abriría el
 /// navegador y dejaría la sesión iniciada FUERA de la app, que es lo contrario
@@ -663,6 +667,8 @@ struct RecuperarContrasenaMac: View {
     @State private var correo = ""
     @State private var codigo = ""
     @State private var nueva = ""
+    @State private var repetida = ""
+    @State private var mostrar = false
     @State private var enviado = false
     @State private var trabajando = false
     @State private var fallo: String?
@@ -674,17 +680,34 @@ struct RecuperarContrasenaMac: View {
                 .font(.system(size: 17, weight: .bold))
 
             Text(enviado
-                 ? L.t("Te mandamos un código de seis cifras a \(correo).",
-                       "We sent a six-digit code to \(correo).")
-                 : L.t("Te mandaremos un código de seis cifras para que puedas poner una nueva.",
-                       "We'll send you a six-digit code so you can set a new one."))
+                 ? L.t("Te mandamos un código a \(correo). Revisa también la carpeta de spam.",
+                       "We sent a code to \(correo). Check your spam folder too.")
+                 : L.t("Te mandaremos un código para que puedas poner una nueva.",
+                       "We'll send you a code so you can set a new one."))
                 .font(.system(size: 12.5))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if enviado {
                 TextField(L.t("Código", "Code"), text: $codigo)
-                SecureField(L.t("Contraseña nueva", "New password"), text: $nueva)
+                // Mostrar y ocultar como en la puerta, y la contraseña dos
+                // veces: un error de tecleo guardado es una cuenta cerrada.
+                HStack {
+                    Spacer(minLength: 0)
+                    Button(mostrar ? L.t("Ocultar", "Hide") : L.t("Mostrar", "Show")) { mostrar.toggle() }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Paleta.enlace)
+                }
+                campo(L.t("Contraseña nueva", "New password"), $nueva)
+                campo(L.t("Confirmar contraseña", "Confirm password"), $repetida)
+                Text(!repetida.isEmpty && repetida != nueva
+                     ? ReglasContrasena.textoNoCoinciden : ReglasContrasena.texto)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle((!repetida.isEmpty && repetida != nueva)
+                                     || (!nueva.isEmpty && !ReglasContrasena.cumple(nueva))
+                                     ? Paleta.negativo : .secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 TextField(L.t("Correo", "Email"), text: $correo)
             }
@@ -716,8 +739,17 @@ struct RecuperarContrasenaMac: View {
     }
 
     private var hayLoNecesario: Bool {
-        enviado ? (!codigo.isEmpty && !nueva.isEmpty)
+        enviado ? (!codigo.isEmpty && ReglasContrasena.cumple(nueva) && nueva == repetida)
                 : !correo.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    @ViewBuilder
+    private func campo(_ titulo: String, _ texto: Binding<String>) -> some View {
+        if mostrar {
+            TextField(titulo, text: texto)
+        } else {
+            SecureField(titulo, text: texto)
+        }
     }
 
     private func actuar() {

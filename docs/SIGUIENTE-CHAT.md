@@ -57,13 +57,17 @@ sigamos».
 
 ## Lo que queda
 
-0. **Cómo llega un cliente nuevo · montado el 25-sep, FALTA PROBARLO con una compra real.**
+0. **Cómo llega un cliente nuevo · montado y PROBADO el 25-sep** con `ivanngarcia82+cliente1@gmail.com`
+   (descuento `PRUEBA100` del 100 %): cuenta, invitación, iglesia «Mi Iglesia», plan completo activo
+   hasta el 25-oct, y la app lo enseña. La contraseña de esa cuenta se puso por SQL. Quedan por
+   cancelar su suscripción en Lemon Squeezy y el código `PRUEBA100`.
    Paga en `tamio.church` (Lemon Squeezy) → `pago-webhook` v10, si el correo no tiene cuenta, le
    manda la invitación de Supabase y el disparador `al_crear_usuario` le crea iglesia («Mi Iglesia»)
    y perfil de administrador con el plan pagado → elige contraseña en `invitacion.html` (ya pide
    las cuatro reglas) → baja Tamio Church y entra. Código: `9bf4b87` en `main` y `854ec39` en
-   `pages` de `Tamio-app`. **La prueba:** comprar con `ivanngarcia82+cliente1@gmail.com`, seguir el
-   correo, entrar en la app, mirar en Supabase la iglesia y el plan, y reembolsar en Lemon Squeezy.
+   `pages` de `Tamio-app`. **Ojo al probar:** Link (el «Save my information» del cobro) cambia el
+   correo del enlace por el guardado; hacerlo en ventana privada. La primera compra entró como
+   `ig07644@gmail.com` y la función, bien, no tocó su iglesia de cortesía.
    **Y la portada sigue hablando de la app vieja:** el botón de App Store va a `id6794741319` (la
    de Tauri) y dice que los datos viven en el aparato. Cambiarla cuando Apple apruebe Tamio Church
    (`apps.apple.com/app/id6815859389`), y antes de pulsar «Release».
@@ -77,7 +81,14 @@ sigamos».
    decide con un archivo real.
 4. **En el Mac, guardar la ficha de la iglesia no dispara la sincronización**: sube al volver la app
    al frente o al arrancar. Era así antes; decidir si se sube al momento.
-5. **Recuperar la contraseña con la MISMA contraseña gasta el código y despista** (visto el 24-sep
+5. **HECHO en código el 25-sep, sale en el próximo build** (iPhone, iPad y Mac): ojo para ver la
+   contraseña en la puerta y en «contraseña nueva», el campo «Confirmar contraseña», las cuatro
+   reglas escritas y comprobadas antes de enviar (`ReglasContrasena` en `SesionSupabase.swift`), el
+   motivo real si Supabase la rechaza, entrar directo si la nueva es igual a la vieja, y el código
+   que no se vuelve a canjear en el reintento. El Mac ya no dice «seis cifras». Visto en el
+   simulador del iPhone 17 Pro con una prueba de interfaz temporal (no está en el repo); el Mac,
+   solo compilado. Lo que sigue es el diagnóstico original:
+   **Recuperar la contraseña con la MISMA contraseña gasta el código y despista** (visto el 24-sep
    con la cuenta del revisor, en el build 2026092402). `verifyOTP` pasa, `update(user:)` da 422
    `same_password`, la app enseña «No se pudo cambiar la contraseña» y el reintento dice «Código
    inválido o vencido» porque el código ya se usó. Arreglo: distinguir `same_password` («Esa ya es
@@ -91,6 +102,12 @@ sigamos».
    paso, el Mac dice «código de seis cifras» y el proyecto manda **8** (Email OTP Length): quitar el
    número del texto. La contraseña del revisor se puso por SQL (se salta la política) y NO está en
    el repo.
+   **Y la app no comparte contraseñas con tamio.church.** Sin `webcredentials:tamio.church` en
+   Associated Domains ni `/.well-known/apple-app-site-association` en el sitio (da 404), la
+   contraseña que el iPhone guarda al activar la cuenta en `invitacion.html` —a menudo una
+   «Contraseña segura» que Safari pone solo— no se ofrece al entrar en la app. Visto el 25-sep con
+   `+cliente1`: la contraseña se guardó bien (15:28:55) y los dos intentos de entrar fallaron.
+   Arreglo: el permiso en la app y el archivo en `docs/.well-known/` de la rama `pages`.
 6. **La caída del Mac del 23-sep** (`_postWindowNeedsUpdateConstraints`) sigue sin causa, pero es de
    la familia que se provocó y se quitó el 24-sep. Regla: **en el Mac no se miden anchos en un
    `@State`**; `ViewThatFits`.

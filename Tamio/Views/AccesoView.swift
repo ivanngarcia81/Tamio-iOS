@@ -526,6 +526,7 @@ struct AccesoView: View {
 
     @State private var correo = ""
     @State private var contrasena = ""
+    @State private var verContrasena = false
     @State private var recuperando = false
     @FocusState private var foco: Campo?
 
@@ -665,13 +666,37 @@ struct AccesoView: View {
                 .fill(.black.opacity(0.1))
                 .frame(height: 1)
 
-            SecureField("", text: $contrasena, prompt: prompt(L.t("Contraseña", "Password")))
+            // **Con ojo para ver lo escrito** (25-sep). Sin él, una letra
+            // cambiada por el teclado no se nota y el «correo o contraseña
+            // incorrectos» parece un fallo de la cuenta. Es lo que le pasó a
+            // Iván tres veces seguidas probando la cuenta de un cliente.
+            HStack(spacing: 0) {
+                Group {
+                    if verContrasena {
+                        TextField("", text: $contrasena, prompt: prompt(L.t("Contraseña", "Password")))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    } else {
+                        SecureField("", text: $contrasena, prompt: prompt(L.t("Contraseña", "Password")))
+                    }
+                }
                 .textContentType(.password)
                 .focused($foco, equals: .contrasena)
                 .submitLabel(.go)
                 // Sin el `if`: con un campo vacío no hacía nada y no decía
                 // por qué. Ahora entra en `entrar`, que es quien avisa.
                 .onSubmit { entrar() }
+
+                BotonOjo(visible: $verContrasena, color: .black.opacity(0.45))
+                    .padding(.trailing, 8)
+            }
+            // El campo se cambia por otro al mostrar u ocultar, y el foco se
+            // iba con él: el teclado se cerraba a media contraseña. Se pide en
+            // la vuelta siguiente, cuando el campo nuevo ya existe; pedirlo en
+            // el mismo `onChange` no hacía nada, medido.
+            .onChange(of: verContrasena) {
+                Task { @MainActor in foco = .contrasena }
+            }
         }
         .textFieldStyle(CampoBlanco())
         .background(.white)
@@ -713,13 +738,34 @@ struct CampoBlanco: TextFieldStyle {
     }
 }
 
+/// **El ojo que enseña u oculta una contraseña.** Uno solo para la puerta y
+/// para la hoja de recuperar, con su etiqueta para VoiceOver: un icono sin
+/// nombre se lee como «botón» y nada más.
+struct BotonOjo: View {
+    @Binding var visible: Bool
+    var color: Color = .secondary
+
+    var body: some View {
+        Button { visible.toggle() } label: {
+            Image(systemName: visible ? "eye.slash" : "eye")
+                .font(.system(size: 17))
+                .foregroundStyle(color)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(visible ? L.t("Ocultar contraseña", "Hide password")
+                                    : L.t("Mostrar contraseña", "Show password"))
+    }
+}
+
 // MARK: - Recuperar la contraseña
 
 /// **Los dos pasos de recuperar el acceso, en una hoja.**
 ///
 /// Es el mismo flujo del web (`Login.tsx`) y con sus mismos textos: se pide el
-/// correo, Supabase manda un código de seis cifras, y con el código se pone la
-/// contraseña nueva. **No es un enlace**: un enlace de recuperación abre el
+/// correo, Supabase manda un código al correo —de 8 cifras con la configuración
+/// de hoy del proyecto—, y con el código se pone la contraseña nueva. **No es un enlace**: un enlace de recuperación abre el
 /// navegador y deja la sesión iniciada fuera de la app.
 ///
 /// Al terminar el segundo paso **ya se está dentro** —`verifyOTP` inicia la
@@ -735,6 +781,9 @@ struct RecuperarClaveView: View {
     @State private var destino = ""
     @State private var codigo = ""
     @State private var nueva = ""
+    @State private var repetida = ""
+    @State private var verNueva = false
+    @FocusState private var enClave: Int?
     @State private var paso: Paso = .pedirCorreo
     @State private var trabajando = false
     @State private var error: String?
@@ -756,8 +805,11 @@ struct RecuperarClaveView: View {
                         TextField(L.t("Código de verificación", "Verification code"), text: $codigo)
                             .keyboardType(.numberPad)
                             .textContentType(.oneTimeCode)
-                        SecureField(L.t("Nueva contraseña", "New password"), text: $nueva)
-                            .textContentType(.newPassword)
+                        campoClave(L.t("Nueva contraseña", "New password"), $nueva, 1)
+                        // **Se escribe dos veces** (25-sep). Con una sola, un
+                        // error de tecleo quedaba guardado como contraseña y
+                        // la persona no podía volver a entrar.
+                        campoClave(L.t("Confirmar contraseña", "Confirm password"), $repetida, 2)
                     }
                 } header: {
                     Text(paso == .pedirCorreo
@@ -777,8 +829,13 @@ struct RecuperarClaveView: View {
                             Text(L.t("Te enviaremos un código para poner una contraseña nueva. Revisa también la carpeta de spam.",
                                      "We'll send you a code to set a new password. Check your spam folder too."))
                         } else {
-                            Text(L.t("La contraseña debe tener al menos 6 caracteres.",
-                                     "Password must be at least 6 characters."))
+                            if !repetida.isEmpty && repetida != nueva {
+                                Text(ReglasContrasena.textoNoCoinciden)
+                                    .foregroundStyle(Paleta.negativo)
+                            }
+                            Text(ReglasContrasena.texto)
+                                .foregroundStyle(!nueva.isEmpty && !ReglasContrasena.cumple(nueva)
+                                                 ? Paleta.negativo : .secondary)
                         }
                     }
                 }
@@ -814,7 +871,33 @@ struct RecuperarClaveView: View {
     private var completo: Bool {
         switch paso {
         case .pedirCorreo: !destino.trimmingCharacters(in: .whitespaces).isEmpty
-        case .ponerClave:  codigo.trimmingCharacters(in: .whitespaces).count >= 6 && nueva.count >= 6
+        case .ponerClave:  codigo.trimmingCharacters(in: .whitespaces).count >= 6
+                           && ReglasContrasena.cumple(nueva) && nueva == repetida
+        }
+    }
+
+    /// Un campo de contraseña con su ojo. Los dos campos comparten el mismo
+    /// `verNueva`: quien quiere ver una quiere ver las dos, para compararlas.
+    private func campoClave(_ titulo: String, _ texto: Binding<String>, _ cual: Int) -> some View {
+        HStack(spacing: 0) {
+            Group {
+                if verNueva {
+                    TextField(titulo, text: texto)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                } else {
+                    SecureField(titulo, text: texto)
+                }
+            }
+            .textContentType(.newPassword)
+            .focused($enClave, equals: cual)
+            BotonOjo(visible: Binding(get: { verNueva }, set: { nuevo in
+                // Como en la puerta: el teclado se queda en el campo donde se
+                // estaba escribiendo, no se cierra al cambiar de vista.
+                let donde = enClave
+                verNueva = nuevo
+                Task { @MainActor in enClave = donde }
+            }))
         }
     }
 

@@ -25,6 +25,9 @@ final class SesionSupabase {
     /// perfil. Se sigue dentro, pero los repositorios que hablan con la red
     /// fallarán hasta que vuelva la conexión.
     private(set) var modoSinConexion = false
+    /// Correo y código de recuperación ya canjeados, para no volver a
+    /// mandarlos si falla lo de después (ver `cambiarContrasena`).
+    @ObservationIgnored private var codigoCanjeado: String?
 
     /// El rol y el nombre de quien ha entrado.
     ///
@@ -205,7 +208,8 @@ final class SesionSupabase {
 
     // MARK: - Recuperar la contraseña
 
-    /// **Paso 1: que Supabase mande un código de seis cifras al correo.**
+    /// **Paso 1: que Supabase mande un código al correo** (8 cifras hoy: lo fija
+    /// Auth → Email OTP Length, no la app).
     ///
     /// Es el mismo `resetPasswordForEmail` del web (`Login.tsx`), y **sin URL
     /// de redirección a propósito**: aquí no se abre ningún enlace, se teclea
@@ -234,25 +238,53 @@ final class SesionSupabase {
     ///
     /// Los dos errores se distinguen —código malo y contraseña rechazada—
     /// porque el remedio no es el mismo: uno se arregla pidiendo otro código y
-    /// el otro escribiendo algo más largo.
+    /// el otro escribiendo otra contraseña.
+    ///
+    /// **El código se canjea una sola vez** (24-sep, con la cuenta del
+    /// revisor). Si `verifyOTP` pasa y Supabase rechaza la contraseña, el
+    /// código ya está gastado: reintentar con él daba «Código inválido o
+    /// vencido» y la persona creía que el fallo era el código. Ahora se
+    /// recuerda que ya se canjeó y el reintento va directo a la contraseña
+    /// —la sesión que abrió el código sigue viva—.
     @MainActor
     func cambiarContrasena(correo: String, codigo: String, nueva: String) async -> String? {
         guard !ocupada else { return nil }
         ocupada = true
         defer { ocupada = false }
-        do {
-            _ = try await supabase.auth.verifyOTP(email: correo, token: codigo, type: .recovery)
-        } catch {
-            if Self.esFalloDeRed(error) { return Self.mensajeSinConexion }
-            return L.t("Código inválido o vencido.", "Invalid or expired code.")
+        let canje = correo.lowercased() + "|" + codigo
+        if codigoCanjeado != canje {
+            do {
+                _ = try await supabase.auth.verifyOTP(email: correo, token: codigo, type: .recovery)
+                codigoCanjeado = canje
+            } catch {
+                if Self.esFalloDeRed(error) { return Self.mensajeSinConexion }
+                return L.t("Código inválido o vencido.", "Invalid or expired code.")
+            }
         }
         do {
             let usuario = try await supabase.auth.update(user: UserAttributes(password: nueva))
+            codigoCanjeado = nil
             await adoptar(uid: usuario.id.uuidString,
                           correo: usuario.email ?? correo, permitirCache: false)
             return nil
         } catch {
             if Self.esFalloDeRed(error) { return Self.mensajeSinConexion }
+            // La misma que ya tenía: el código abrió la sesión, así que se
+            // entra en vez de pedirle que escriba otra.
+            if let e = error as? AuthError, e.errorCode == .samePassword,
+               let usuario = try? await supabase.auth.user() {
+                codigoCanjeado = nil
+                await adoptar(uid: usuario.id.uuidString,
+                              correo: usuario.email ?? correo, permitirCache: false)
+                return nil
+            }
+            // La política del proyecto la rechazó. Con `ReglasContrasena` la
+            // pantalla ya no deja mandarla, pero si Supabase endurece la regla
+            // el motivo tiene que llegar a la persona.
+            if let e = error as? AuthError,
+               e.errorCode == .weakPassword || e.message.localizedCaseInsensitiveContains("password should") {
+                return ReglasContrasena.textoRechazo
+            }
             return L.t("No se pudo cambiar la contraseña.", "Couldn't change the password.")
         }
     }
@@ -441,6 +473,47 @@ final class SesionSupabase {
             return L.t("Correo o contraseña incorrectos.", "Wrong email or password.")
         }
         return texto
+    }
+}
+
+// MARK: - Las reglas de la contraseña
+
+/// **Lo que Supabase exige a una contraseña nueva, escrito una sola vez.**
+///
+/// El proyecto pide al menos 8 caracteres con una minúscula, una mayúscula,
+/// un número y un símbolo (Auth → Password requirements). Hasta el 25-sep la
+/// app solo decía «al menos 6 caracteres»: la persona escribía `Iglesia2026`,
+/// Supabase la rechazaba y la pantalla no explicaba por qué, así que creía
+/// haberla cambiado y luego no podía entrar. Es la misma regla que ya pide
+/// `tamio.church/invitacion.html`, con los mismos símbolos.
+///
+/// Vive en `Support` porque la usan el iPhone, el iPad y el Mac.
+enum ReglasContrasena {
+    static let minimo = 8
+    static let simbolos = "!@#$%^&*()_+-=[]{};'\\:\"|<>?,./`~"
+
+    static func cumple(_ s: String) -> Bool {
+        s.count >= minimo
+            && s.contains(where: \.isLowercase)
+            && s.contains(where: \.isUppercase)
+            && s.contains(where: \.isNumber)
+            && s.contains(where: { simbolos.contains($0) })
+    }
+
+    /// La regla, para ponerla debajo del campo ANTES de escribir.
+    static var texto: String {
+        L.t("Al menos 8 caracteres, con una minúscula, una mayúscula, un número y un símbolo (como ! # $ o %).",
+            "At least 8 characters, with a lowercase letter, an uppercase letter, a number and a symbol (like ! # $ or %).")
+    }
+
+    /// Lo que se dice si, aun así, el servidor la rechaza.
+    static var textoRechazo: String {
+        L.t("Esa contraseña no cumple las reglas: al menos 8 caracteres, con una minúscula, una mayúscula, un número y un símbolo.",
+            "That password doesn't meet the rules: at least 8 characters, with a lowercase letter, an uppercase letter, a number and a symbol.")
+    }
+
+    static var textoNoCoinciden: String {
+        L.t("Las dos contraseñas no son iguales.", "The two passwords don't match.")
     }
 }
 

@@ -354,7 +354,7 @@ viva, la función invita por correo y el disparador `al_crear_usuario` crea igle
 administrador; el plan se escribe en esa iglesia. También busca al comprador en todas las páginas
 de usuarios (antes solo en las primeras 50). `invitacion.html` (`854ec39` en `pages`) pide ahora
 las mismas cuatro reglas que la política de contraseñas de Supabase y enseña el motivo si la
-rechaza. Falta la prueba con una compra real (ver `SIGUIENTE-CHAT.md`).
+rechaza. **Probado el 25-sep** con una compra real a $0 (código de 100 %): ver `SIGUIENTE-CHAT.md`.
 
 ### El nombre, ya decidido
 
