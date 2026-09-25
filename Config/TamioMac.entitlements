@@ -21,5 +21,11 @@
 	<!-- Impresión: los reportes y las actas salen en papel. -->
 	<key>com.apple.security.print</key>
 	<true/>
+	<!-- Contraseñas compartidas con tamio.church: la misma razón que en
+	     `Tamio.entitlements`. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>webcredentials:tamio.church</string>
+	</array>
 </dict>
 </plist>

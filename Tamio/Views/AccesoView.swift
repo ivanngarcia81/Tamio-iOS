@@ -670,7 +670,9 @@ struct AccesoView: View {
     private var tarjetaCampos: some View {
         VStack(spacing: 0) {
             TextField("", text: $correo, prompt: prompt(L.t("Correo", "Email")))
-                .textContentType(.emailAddress)
+                // `.username` y no `.emailAddress`: es lo que el llavero busca
+                // para ofrecer la pareja correo-contraseña guardada.
+                .textContentType(.username)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()

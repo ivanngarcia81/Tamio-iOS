@@ -126,6 +126,9 @@ targets:
         # deshace el ajuste por omisión. Comprobado: sin esta línea, el
         # comparador de ajustes efectivos lo delata en cada regeneración.
         CODE_SIGN_IDENTITY: Apple Development
+        # Solo lleva `webcredentials:tamio.church`: la app ofrece la contraseña
+        # que Safari guardó al activar la cuenta en el web (25-sep).
+        CODE_SIGN_ENTITLEMENTS: Config/Tamio.entitlements
         GENERATE_INFOPLIST_FILE: YES
         # Se MEZCLA con el plist generado. Solo lleva `CFBundleLocalizations`,
         # que no tiene ajuste `INFOPLIST_KEY_` y no hay otra forma de poner.

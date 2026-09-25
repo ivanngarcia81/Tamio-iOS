@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Contraseñas compartidas con tamio.church. Quien paga activa su cuenta
+	     en `invitacion.html` y Safari guarda ahí la contraseña (a menudo una
+	     «Contraseña segura» que nadie se aprende). Sin esto la app no la
+	     ofrece al entrar. La otra mitad es
+	     `tamio.church/.well-known/apple-app-site-association` (rama `pages`
+	     de Tamio-app), que nombra a `4N9XEU7F4P.church.tamio.native`. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>webcredentials:tamio.church</string>
+	</array>
+</dict>
+</plist>
