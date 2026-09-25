@@ -188,6 +188,11 @@ final class SesionSupabase {
         }
     }
 
+    /// Quita el aviso del último intento en cuanto se corrige un campo: si se
+    /// queda, parece que lo recién escrito también está mal.
+    @MainActor
+    func limpiarError() { if error != nil { error = nil } }
+
     @MainActor
     func iniciarSesion(correo: String, contrasena: String) async {
         guard !ocupada else { return }
@@ -470,7 +475,11 @@ final class SesionSupabase {
         if Self.esFalloDeRed(e) { return Self.mensajeSinConexion }
         let texto = e.localizedDescription
         if texto.localizedCaseInsensitiveContains("invalid login") {
-            return L.t("Correo o contraseña incorrectos.", "Wrong email or password.")
+            // Dice qué hacer, no solo qué pasó (25-sep): el caso de siempre es
+            // una letra mal tecleada, y quien lo lee no sabe si el fallo es suyo
+            // o de la cuenta.
+            return L.t("El correo o la contraseña no son correctos. Revisa que estén bien escritos, o usa «¿Olvidaste tu contraseña?».",
+                       "The email or password is incorrect. Check that they're typed correctly, or use \u{201C}Forgot your password?\u{201D}.")
         }
         return texto
     }

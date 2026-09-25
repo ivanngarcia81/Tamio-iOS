@@ -201,8 +201,10 @@ struct AccesoMac: View {
         .frame(maxWidth: 420)
         .padding(.horizontal, 46)
         .padding(.bottom, 40)
-        .onChange(of: correo) { faltanDatos = false }
-        .onChange(of: contrasena) { faltanDatos = false }
+        // Y el del servidor también: si se queda, parece que lo recién
+        // corregido sigue mal (25-sep, igual que en el iPhone).
+        .onChange(of: correo) { faltanDatos = false; sesion.limpiarError() }
+        .onChange(of: contrasena) { faltanDatos = false; sesion.limpiarError() }
     }
 
     /// **El botón no se apaga: avisa**, como en el handoff. Apagado no decía

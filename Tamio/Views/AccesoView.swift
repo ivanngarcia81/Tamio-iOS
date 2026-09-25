@@ -585,13 +585,31 @@ struct AccesoView: View {
 
                     tarjetaCampos
 
+                    // **Un aviso que se ve** (25-sep). Era una línea de letra
+                    // pequeña blanca sobre el verde, y quien fallaba la
+                    // contraseña no la veía: pulsaba «Entrar» otra vez y
+                    // pensaba que la app no respondía. Ahora es una tarjeta
+                    // blanca con el icono en rojo —el rojo sobre el verde no
+                    // se lee; sobre blanco sí— y VoiceOver la anuncia.
                     if let texto = aviso ?? sesion.error {
-                        Text(texto)
-                            .font(.footnote)
-                            .foregroundStyle(.white)
-                            .padding(.top, 12)
-                            .padding(.horizontal, 4)
-                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(Color(red: 0.78, green: 0.16, blue: 0.16))
+                            Text(texto)
+                                .font(.escalada(15, relativeTo: .subheadline))
+                                .foregroundStyle(.black.opacity(0.85))
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 12)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .padding(.top, 12)
+                        .accessibilityElement(children: .combine)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .onAppear {
+                            UIAccessibility.post(notification: .announcement, argument: texto)
+                        }
                     }
 
                     Button(action: entrar) {
@@ -701,6 +719,18 @@ struct AccesoView: View {
         .textFieldStyle(CampoBlanco())
         .background(.white)
         .clipShape(.rect(cornerRadius: 22, style: .continuous))
+        // Con el aviso de credenciales, la tarjeta se marca en rojo: el fallo
+        // está AQUÍ, en lo escrito, no en el botón.
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color(red: 0.86, green: 0.2, blue: 0.2),
+                              lineWidth: sesion.error == nil ? 0 : 2)
+        }
+        .onChange(of: contrasena) { sesion.limpiarError() }
+        .onChange(of: correo) { sesion.limpiarError() }
+        // Al llegar el error se baja el teclado: si no, tapaba medio aviso y
+        // lo que se leía era «Revisa que estén bien…» cortado.
+        .onChange(of: sesion.error) { if sesion.error != nil { foco = nil } }
         // Sin sombra, igual que "Entrar" (23-sep).
     }
 
