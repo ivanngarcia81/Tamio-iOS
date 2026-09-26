@@ -85,9 +85,20 @@ sigamos».
    de Tauri) y dice que los datos viven en el aparato. Cambiarla cuando Apple apruebe Tamio Church
    (`apps.apple.com/app/id6815859389`), y antes de pulsar «Release».
 
-1. **Correr en el iPhone físico** `TextoBruto`, `DobleToque` y `FichaAlDia`, ya con la maqueta.
+1. **HECHO el 26-sep: verdes en el iPhone físico** (`f792c28`, 5 pruebas en 220 s) `TextoBruto`,
+   `DobleToque` y `FichaAlDia`, ya con la maqueta. La base y las preferencias del iPhone quedaron
+   idénticas byte a byte. Lo original: correr en el iPhone físico esas tres.
    El iPhone tiene la versión de desarrollo de `fe54076` y sesión con la iglesia de prueba.
-2. **Ver en pantalla lo que aún no se ha visto:** el padrón vacío de Membresía (I8 · M6), el aviso
+2. **VISTO el 26-sep** (Mac y simulador del iPhone 17 Pro, maqueta, claro y oscuro, con
+   interruptores temporales que no quedaron en el código). Padrón vacío y «Hecho» sin conexión:
+   bien en los dos. **Arreglado, sin commitear:** la vista previa de los PDF (acta, carta, culto,
+   corte, membrete, reportes, constancia: todas pasan por `HojaCartaEscalada`) salía en oscuro con
+   hoja negra y letra blanca, y el PDF es papel blanco; y «BORRADOR» casi no se veía y se partía en
+   «BORRADO / R». **Encontrado, sin arreglar:** el botón verde principal (`borderedProminent` +
+   `tint(Paleta.brand)`) lleva texto BLANCO en oscuro: 2,38:1 medido en «Importar una lista…»
+   (iPhone y Mac) e «Ir a Membresía» (Mac). Hay 24 en el proyecto. El arreglo ya existe:
+   `Paleta.sobreRelleno`. Lo original:
+   **Ver en pantalla lo que aún no se ha visto:** el padrón vacío de Membresía (I8 · M6), el aviso
    de sin conexión del «Hecho» de importar, y la vista previa del acta y de la carta en iOS en
    oscuro.
 3. **El concepto vacío de un aporte importado** sale como «Aporte», que no es del catálogo. Se
@@ -138,7 +149,7 @@ sigamos».
    (`seccionAlimentaElInspector`, desde `56c018c`, 22-sep 10:38; la caída fue al día siguiente).
    No se reproduce: 1,120 cambios de sección con el DMG a 3500, 1150 y 1080 de ancho, mezclando
    ⌘I, cero caídas. El informe `.ips` ya no está en el Mac. Sin reproducirla no se toca.
-7. **HECHO el 26-sep, sin commitear:** `LlaveroMac` en `Tamio/Support/Supabase.swift` guarda la
+7. **HECHO el 26-sep, `f792c28`:** `LlaveroMac` en `Tamio/Support/Supabase.swift` guarda la
    sesión del Mac en el llavero de protección de datos (iPhone e iPad siguen con el de la
    librería). **Sin mudanza** desde el antiguo: `kSecUseAuthenticationUIFail` NO quita el aviso
    (probado: salió igual), así que quien venga del DMG 2026092502 entra otra vez, una vez. Visto
@@ -151,7 +162,7 @@ sigamos».
    en cada lectura. Quien pase del DMG (Developer ID) a la Mac App Store vería ese aviso. Arreglo
    posible: un `AuthLocalStorage` propio con el llavero de protección de datos (obliga a entrar
    otra vez una vez).
-8. **HECHO el 26-sep, sin commitear** (visto en pantalla con la maqueta, en claro, a 1391 y 1920 de
+8. **HECHO el 26-sep, `9bb8653`** (visto en pantalla con la maqueta, en claro, a 1391 y 1920 de
    ancho): Intro ya envía la hoja, y «To review» llena el panel con o sin tarjetas. La franja salía
    también CON tarjetas, con la barra de desplazamiento a media pantalla. Lo original:
    **Detalles del recorrido del 25-sep en el Mac:** Intro no envía en la hoja «Reset your password»

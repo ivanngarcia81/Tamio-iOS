@@ -241,6 +241,14 @@ struct HojaCartaEscalada<Contenido: View>: View {
             })
             .overlay(alignment: .top) {
                 contenido
+                    // **Papel, también en oscuro.** El PDF sale de
+                    // `ImageRenderer`, que dibuja en claro sobre el blanco del
+                    // papel, y la previa seguía al tema y dejaba ver el fondo
+                    // de detrás: en oscuro, una hoja negra con letra blanca que
+                    // no se parecía a lo que se imprime (26-sep). El blanco va
+                    // solo aquí; la hoja que se exporta no lo lleva.
+                    .environment(\.colorScheme, .light)
+                    .background(Color.white)
                     // **La hoja se dibuja a su alto natural, pase lo que pase.**
                     //
                     // `altoHoja` arranca en 0, así que en la primera pasada el

@@ -170,6 +170,13 @@ struct DocumentoPDFSheet<Hoja: View>: View {
                             Text(marcaDeAgua)
                                 .font(.system(size: 64, weight: .black, design: .rounded))
                                 .foregroundStyle(Color(.tertiaryLabel))
+                                // El gris del tema claro, como la hoja: el del
+                                // oscuro es casi blanco y sobre el papel no se
+                                // veía.
+                                .environment(\.colorScheme, .light)
+                                // Un renglón: en la hoja de una carta, que es
+                                // baja, se partía en «BORRADO» y «R».
+                                .fixedSize()
                                 .rotationEffect(.degrees(-30))
                                 .allowsHitTesting(false)
                         }
