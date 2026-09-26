@@ -138,7 +138,14 @@ sigamos».
    (`seccionAlimentaElInspector`, desde `56c018c`, 22-sep 10:38; la caída fue al día siguiente).
    No se reproduce: 1,120 cambios de sección con el DMG a 3500, 1150 y 1080 de ancho, mezclando
    ⌘I, cero caídas. El informe `.ips` ya no está en el Mac. Sin reproducirla no se toca.
-7. **La sesión del Mac vive en el Llavero antiguo** (supabase-swift no usa
+7. **HECHO el 26-sep, sin commitear:** `LlaveroMac` en `Tamio/Support/Supabase.swift` guarda la
+   sesión del Mac en el llavero de protección de datos (iPhone e iPad siguen con el de la
+   librería). **Sin mudanza** desde el antiguo: `kSecUseAuthenticationUIFail` NO quita el aviso
+   (probado: salió igual), así que quien venga del DMG 2026092502 entra otra vez, una vez. Visto
+   con el build de desarrollo: pantalla de acceso sin aviso, Iván entró, ⌘Q, y al reabrir entró
+   directo en «Iglesia de prueba» sin aviso. No probado: cerrar sesión (borra la base del Mac).
+   El diagnóstico original:
+   **La sesión del Mac vive en el Llavero antiguo** (supabase-swift no usa
    `kSecUseDataProtectionKeychain`), y su permiso queda atado a la firma que lo creó. Visto el 25-sep:
    un build de desarrollo pedía «Tamio quiere usar información confidencial… supabase.gotrue.swift»
    en cada lectura. Quien pase del DMG (Developer ID) a la Mac App Store vería ese aviso. Arreglo
