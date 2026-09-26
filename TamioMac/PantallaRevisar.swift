@@ -26,6 +26,11 @@ struct PantallaRevisar: View {
             .frame(maxWidth: 980, alignment: .leading)
             .padding(.horizontal, 26)
             .padding(.vertical, 22)
+            // La columna se queda en 980, pero el ScrollView llena el panel.
+            // Sin esto medía lo que la columna, y en una ventana ancha el
+            // fondo gris quedaba entre dos franjas blancas, con la barra de
+            // desplazamiento a media pantalla (25-sep).
+            .frame(maxWidth: .infinity)
         }
         .background(Color.suelo)
         .overlay(alignment: .bottom) { aviso }
@@ -222,6 +227,9 @@ struct PantallaRevisar: View {
             Text(L.t("Todo lo capturado está en orden.",
                      "Everything captured is in order."))
         }
+        // Centrado en la columna: sin esto mide su texto y, con el
+        // ScrollView ya a lo ancho, se quedaba arrimado a la izquierda.
+        .frame(maxWidth: .infinity)
         .padding(.top, 40)
     }
 }

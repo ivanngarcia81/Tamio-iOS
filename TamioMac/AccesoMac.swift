@@ -731,6 +731,9 @@ struct RecuperarContrasenaMac: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Paleta.brand)
+                // Intro envía, como en la puerta: quien acaba de pegar el
+                // código tiene las manos en el teclado, no en el ratón.
+                .keyboardShortcut(.defaultAction)
                 .disabled(trabajando || !hayLoNecesario)
             }
         }

@@ -144,7 +144,10 @@ sigamos».
    en cada lectura. Quien pase del DMG (Developer ID) a la Mac App Store vería ese aviso. Arreglo
    posible: un `AuthLocalStorage` propio con el llavero de protección de datos (obliga a entrar
    otra vez una vez).
-8. **Detalles del recorrido del 25-sep en el Mac:** Intro no envía en la hoja «Reset your password»
+8. **HECHO el 26-sep, sin commitear** (visto en pantalla con la maqueta, en claro, a 1391 y 1920 de
+   ancho): Intro ya envía la hoja, y «To review» llena el panel con o sin tarjetas. La franja salía
+   también CON tarjetas, con la barra de desplazamiento a media pantalla. Lo original:
+   **Detalles del recorrido del 25-sep en el Mac:** Intro no envía en la hoja «Reset your password»
    (al botón le falta `.keyboardShortcut(.defaultAction)`); «To review» vacío deja una franja
    blanca a cada lado del fondo gris.
 
