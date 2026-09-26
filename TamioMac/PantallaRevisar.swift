@@ -131,7 +131,9 @@ struct PantallaRevisar: View {
                 HStack(spacing: 8) {
                     ForEach(botones) { ac in
                         if ac.kind == .aprobar {
-                            Button(ac.label) { resolver(r, ac.kind) }
+                            Button { resolver(r, ac.kind) } label: {
+                                Text(ac.label).etiquetaSobreRelleno()
+                            }
                                 .buttonStyle(.borderedProminent)
                                 .tint(Paleta.brand)
                         } else {
@@ -165,11 +167,14 @@ struct PantallaRevisar: View {
     @ViewBuilder
     private var aprobarLoSeguro: some View {
         if vm.aprobablesCount > 0 {
-            Button(L.t("Aprobar todo lo seguro", "Approve all safe")) {
+            Button {
                 Task {
                     await vm.aprobarTodo()
                     await MotorSincronizacion.compartido.sincronizar()
                 }
+            } label: {
+                Text(L.t("Aprobar todo lo seguro", "Approve all safe"))
+                    .etiquetaSobreRelleno()
             }
             .buttonStyle(.borderedProminent)
             .tint(Paleta.brand)

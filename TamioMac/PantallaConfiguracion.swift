@@ -1636,7 +1636,9 @@ struct HojaFirmaMac: View {
                     trazos = []; actual = []
                 }
                 .disabled(!hayAlgo)
-                Button(L.t("Guardar la firma", "Save the signature")) { guardar() }
+                Button { guardar() } label: {
+                    Text(L.t("Guardar la firma", "Save the signature")).etiquetaSobreRelleno()
+                }
                     .buttonStyle(.borderedProminent)
                     .tint(Paleta.brand)
                     .disabled(!hayAlgo)

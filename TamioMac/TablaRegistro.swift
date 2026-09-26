@@ -229,7 +229,7 @@ struct NuevaNotaMac: View {
                 Spacer()
                 Button(L.t("Cancelar", "Cancel")) { cerrar() }
                     .keyboardShortcut(.cancelAction)
-                Button(L.t("Anotar", "Add")) {
+                Button {
                     guardando = true
                     Task {
                         await vm.escribirNota(
@@ -237,6 +237,8 @@ struct NuevaNotaMac: View {
                             area: area, autor: autor)
                         cerrar()
                     }
+                } label: {
+                    Text(L.t("Anotar", "Add")).etiquetaSobreRelleno()
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Paleta.brand)

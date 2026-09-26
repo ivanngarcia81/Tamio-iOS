@@ -121,6 +121,7 @@ struct HojaMac<C: View>: View {
                     Text(rotuloGuardar)
                     Text("⌘S").opacity(0.75)
                 }
+                .etiquetaSobreRelleno()
             }
             .keyboardShortcut("s", modifiers: .command)
             .buttonStyle(.borderedProminent)

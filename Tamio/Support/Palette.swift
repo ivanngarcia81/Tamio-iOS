@@ -70,6 +70,26 @@ enum Paleta {
     /// nombre primero y mentía en cuanto apareció el primer relleno rojo.
     static let sobreRelleno = Color("TamioSobreRelleno")
 
+    /// **La etiqueta de un botón `.borderedProminent` teñido de marca, aviso o
+    /// negativo.** Medido el 26-sep: en oscuro ese botón pinta el texto BLANCO
+    /// sobre el verde claro, 2.38:1, en el iPhone y en el Mac. Los de las
+    /// barras no: ahí el sistema ya elige negro (§4). Con esto, 6.37:1 en
+    /// oscuro y 6.28:1 en claro, medidos en «Aprobar todo lo seguro».
+    ///
+    /// **Va en la etiqueta, no en el botón.** En el Mac, `.foregroundStyle`
+    /// sobre el `Button` no hace nada —lo dibuja AppKit y el texto sigue
+    /// blanco, medido—; dentro de la etiqueta, sí.
+    ///
+    /// **Y solo si el botón está activo.** Apagado, el sistema repinta el
+    /// relleno de gris y atenúa la etiqueta; un color fijo encima dejaría casi
+    /// negro sobre gris oscuro.
+    struct EtiquetaSobreRelleno: ViewModifier {
+        @Environment(\.isEnabled) private var activo
+        func body(content: Content) -> some View {
+            if activo { content.foregroundStyle(Paleta.sobreRelleno) } else { content }
+        }
+    }
+
     /// **Lo que va encima de un color CUALQUIERA**, elegido por su luminancia.
     ///
     /// `sobreRelleno` sirve para los tres colores de la paleta, que se conocen.
@@ -417,5 +437,11 @@ extension View {
     @ViewBuilder
     func apagadoLegible(_ apagado: Bool) -> some View {
         if apagado { foregroundStyle(.primary.opacity(0.7)) } else { self }
+    }
+
+    /// Dentro de la etiqueta de un `.borderedProminent` teñido: ver
+    /// `Paleta.EtiquetaSobreRelleno`.
+    func etiquetaSobreRelleno() -> some View {
+        modifier(Paleta.EtiquetaSobreRelleno())
     }
 }

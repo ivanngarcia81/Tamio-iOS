@@ -730,6 +730,7 @@ private struct HojaImportarPersonas: View {
                             Text(L.t("Importar \(aplicables.count)", "Import \(aplicables.count)"))
                             Text("⌘S").opacity(0.75)
                         }
+                        .etiquetaSobreRelleno()
                     }
                     .keyboardShortcut("s", modifiers: .command)
                     .buttonStyle(.borderedProminent)
@@ -779,6 +780,7 @@ private struct HojaImportarPersonas: View {
                                                    : L.t("Ir a Aportantes", "Go to Contributors"))
                         Text("↩").opacity(0.75)
                     }
+                    .etiquetaSobreRelleno()
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
@@ -1155,6 +1157,7 @@ private struct HojaImportarAportes: View {
                                      "Import \(nuevos.count) · \(Money.fmt(total))"))
                             Text("⌘S").opacity(0.75)
                         }
+                        .etiquetaSobreRelleno()
                     }
                     .keyboardShortcut("s", modifiers: .command)
                     .buttonStyle(.borderedProminent)
@@ -1191,6 +1194,7 @@ private struct HojaImportarAportes: View {
                         Text(L.t("Ir al Inicio", "Go to Home"))
                         Text("↩").opacity(0.75)
                     }
+                    .etiquetaSobreRelleno()
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)

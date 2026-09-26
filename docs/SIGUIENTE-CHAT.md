@@ -94,10 +94,11 @@ sigamos».
    bien en los dos. **Arreglado, sin commitear:** la vista previa de los PDF (acta, carta, culto,
    corte, membrete, reportes, constancia: todas pasan por `HojaCartaEscalada`) salía en oscuro con
    hoja negra y letra blanca, y el PDF es papel blanco; y «BORRADOR» casi no se veía y se partía en
-   «BORRADO / R». **Encontrado, sin arreglar:** el botón verde principal (`borderedProminent` +
-   `tint(Paleta.brand)`) lleva texto BLANCO en oscuro: 2,38:1 medido en «Importar una lista…»
-   (iPhone y Mac) e «Ir a Membresía» (Mac). Hay 24 en el proyecto. El arreglo ya existe:
-   `Paleta.sobreRelleno`. Lo original:
+   «BORRADO / R». **Y arreglado después, sin commitear:** el botón verde principal (`borderedProminent` +
+   `tint`) llevaba texto BLANCO en oscuro, 2,38:1 (iPhone y Mac). Ahora `.etiquetaSobreRelleno()`
+   en la etiqueta de los 18 (4 iPhone, 14 Mac): 5,88–7,15:1 en oscuro y 6,28–6,63:1 en claro,
+   medidos. En el Mac tiene que ir DENTRO de la etiqueta: sobre el `Button` AppKit lo ignora.
+   Apagado no se toca: sale gris, como el sistema. Lo original:
    **Ver en pantalla lo que aún no se ha visto:** el padrón vacío de Membresía (I8 · M6), el aviso
    de sin conexión del «Hecho» de importar, y la vista previa del acta y de la carta en iOS en
    oscuro.

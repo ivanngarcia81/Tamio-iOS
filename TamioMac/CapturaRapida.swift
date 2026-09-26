@@ -201,7 +201,9 @@ struct CapturaRapida: View {
                 Button(L.t("Guardar y otro", "Save and new")) { guardar(cerrando: false) }
                     .keyboardShortcut("s", modifiers: [.command, .shift])
                     .disabled(!puedeGuardar)
-                Button(L.t("Guardar", "Save")) { guardar(cerrando: true) }
+                Button { guardar(cerrando: true) } label: {
+                    Text(L.t("Guardar", "Save")).etiquetaSobreRelleno()
+                }
                     .keyboardShortcut("s", modifiers: .command)
                     .buttonStyle(.borderedProminent)
                     .tint(tipo.tinta)

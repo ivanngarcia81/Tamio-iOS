@@ -725,9 +725,12 @@ struct RecuperarContrasenaMac: View {
                 Spacer()
                 Button(L.t("Cancelar", "Cancel")) { cerrar() }
                     .keyboardShortcut(.cancelAction)
-                Button(enviado ? L.t("Cambiarla", "Change it")
-                               : L.t("Mandar el código", "Send the code")) {
+                Button {
                     actuar()
+                } label: {
+                    Text(enviado ? L.t("Cambiarla", "Change it")
+                                 : L.t("Mandar el código", "Send the code"))
+                        .etiquetaSobreRelleno()
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Paleta.brand)
@@ -825,6 +828,7 @@ struct CandadoMac: View {
                         .font(.system(size: 14, weight: .medium))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 3)
+                        .etiquetaSobreRelleno()
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Paleta.brand)

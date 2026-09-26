@@ -85,6 +85,7 @@ struct TraerDatosView: View {
                     Text(L.t("Importar mi lista de personas", "Import my list of people"))
                         .font(.headline)
                         .frame(maxWidth: .infinity, minHeight: 52)
+                        .etiquetaSobreRelleno()
                 }
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.roundedRectangle(radius: 14))
@@ -150,6 +151,7 @@ struct TraerDatosView: View {
                         Text(L.t("Elegir archivo…", "Choose file…"))
                             .font(.headline)
                             .frame(maxWidth: .infinity, minHeight: 50)
+                            .etiquetaSobreRelleno()
                     }
                     .buttonStyle(.borderedProminent)
                     .buttonBorderShape(.roundedRectangle(radius: 14))
@@ -973,6 +975,7 @@ private struct HojaImportarIOS: View {
                 Text(titulo)
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 50)
+                    .etiquetaSobreRelleno()
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.roundedRectangle(radius: 14))

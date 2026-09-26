@@ -281,9 +281,11 @@ struct PantallaCartas: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    Button(L.t("Escribir una carta con esta plantilla",
-                               "Write a letter from this template")) {
+                    Button {
                         estado.pidiendoAlta = true
+                    } label: {
+                        Text(L.t("Escribir una carta con esta plantilla",
+                                 "Write a letter from this template")).etiquetaSobreRelleno()
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(Paleta.brand)

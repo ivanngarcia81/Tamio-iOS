@@ -288,8 +288,10 @@ struct PantallaMembresia: View {
                 .frame(maxWidth: 360)
             if administraPadron {
                 HStack(spacing: 10) {
-                    Button(L.t("Importar una lista…", "Import a list…")) {
+                    Button {
                         estado.pidiendoImportarAportantes = true
+                    } label: {
+                        Text(L.t("Importar una lista…", "Import a list…")).etiquetaSobreRelleno()
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(Paleta.brand)

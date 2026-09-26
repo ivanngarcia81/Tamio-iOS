@@ -94,6 +94,7 @@ struct PadronVacioView: View {
                         Text(L.t("Importar una lista…", "Import a list…"))
                             .font(.headline)
                             .frame(maxWidth: .infinity, minHeight: 50)
+                            .etiquetaSobreRelleno()
                     }
                     .buttonStyle(.borderedProminent)
                     .buttonBorderShape(.roundedRectangle(radius: 14))
