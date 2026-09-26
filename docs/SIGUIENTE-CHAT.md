@@ -29,6 +29,11 @@ sigamos».
 - **Mac:** `~/Desktop/Tamio-mac/Tamio.pkg` · 1.0.0 (2026092401), **sin `fe54076`**: rehacerlo antes
   de subirlo. **Se sube solo cuando Iván
   quiera que la ficha declare macOS**: desde ese momento el revisor revisa también el Mac.
+- **DMG 2026092601 · HECHO el 26-sep, SIN PUBLICAR:** `~/Desktop/Tamio-mac/Tamio.dmg`, de `e0f465b`
+  (Llavero nuevo, botones legibles, Por revisar, Intro en recuperar). Notarizado y sellado,
+  universal, Gatekeeper lo acepta. SHA-256 `482dc8a2…925b`. El 2026092502 está en
+  `anterior-2026092502/`. **Quien actualice entra otra vez, una vez** (la sesión pasa al Llavero
+  nuevo). Reemplazar el archivo de la release `mac-1.0.0` lo hace Iván.
 - **DMG del Mac · PUBLICADO el 25-sep** en tamio.church: release `mac-1.0.0` de `Tamio-app`
   (`Tamio_universal.dmg`, 1.0.0 · 2026092501, universal, macOS 26+), que es la que baja el botón
   «Download for Mac». Firmado con Developer ID (el certificado lo guarda Apple; Xcode lo usa solo)
